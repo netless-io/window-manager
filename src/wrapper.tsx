@@ -49,7 +49,7 @@ export class WindowManagerWrapper extends React.Component {
             const newWidth = payload.width * cameraState.width + 20;
             const newHeigth = payload.height * cameraState.height;
             // @ts-ignore
-            pluginBox.minwidth = newWidth;
+            // pluginBox.minwidth = newWidth;
             pluginBox.resize(newWidth, newHeigth);
             pluginBox.onresize = this.boxOnResize(payload.name);
         }
@@ -145,11 +145,15 @@ export class WindowManagerWrapper extends React.Component {
     private setRef = (name: string, ref: HTMLDivElement | null) => {
         if (!this.winboxMap.has(name) && ref) {
             emitter.emit("init", { name });
+            const boardRect = WindowManager.boardElement.getBoundingClientRect();
+            const { top, left, width, height } = boardRect;
+            const right = document.body.clientWidth - left - width;
+            const bottom = document.body.clientHeight - top - height;
             const box = new Winbox(name, {
                 class: "modern plugin-winbox",
-                border: 0,
-                width: 640,
-                height: 480,
+                // width: 640,
+                // height: 480,
+                top, left, right, bottom
             }) as WinBox;
             this.winboxMap.set(name, box);
             emitter.once(EventNames.InitReplay).then((payload) => {

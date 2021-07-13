@@ -1,4 +1,4 @@
-import { InvisiblePlugin, InvisiblePluginContext, Room, Event, View, ViewVisionMode } from "white-web-sdk";
+import { InvisiblePlugin, InvisiblePluginContext, Room, Event, View, ViewVisionMode, CameraState } from "white-web-sdk";
 import Emittery from "emittery";
 import { loadPlugin } from "./loader";
 import { WindowManagerWrapper } from "./wrapper";
@@ -34,6 +34,7 @@ export enum EventNames {
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
+    public static boardElement: HTMLDivElement;
     private instancePlugins: Map<string, Plugin> = new Map();
     public viewMap: Map<string, View> = new Map();
 
@@ -139,10 +140,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public static async use(room: Room): Promise<WindowManager> {
-        let manger = await room.getInvisiblePlugin(WindowManager.kind);
+        let manger = room.getInvisiblePlugin(WindowManager.kind);
         if (!manger) {
             manger = await room.createInvisiblePlugin(WindowManager, {});
         }
+        WindowManager.boardElement = (room as any).cameraObserver.mainView.divElement;
         return manger as WindowManager;
     }
 
@@ -202,6 +204,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             this.viewMap.set(name, view);
             return view;
         }
+    }
+
+    public getRoomCameraState(): CameraState {
+        return this.displayer.state.cameraState;
     }
 
     public onWindowCreated(name: string, listener: any) {
