@@ -10,7 +10,7 @@ import WinBox from "winbox";
 
 export type WindowMangerAttributes = {
     modelValue?: string,
-    [key: string]: any
+    [key: string]: any,
 }
 
 export type Plugin = { name: string, url: string };
@@ -64,6 +64,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 }
             }
         }
+    }
+
+    public updatePluginAttribute(name: string, keys: string[], value: any) {
+        this.updateAttributes([name, ...keys], value);
     }
 
     private pluginMoveListener = (event: Event) => {

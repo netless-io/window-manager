@@ -23,12 +23,7 @@ module.exports = {
             root: "React",
             commonjs: "react",
             commonjs2: "react",
-        },
-        "react-dom": {
-            root: "ReactDOM",
-            commonjs: "react-dom",
-            commonjs2: "react-dom",
-        },
+        }
     },
     resolve: {
         extensions: [".ts", ".tsx", ".js", ".json"],
@@ -67,9 +62,9 @@ module.exports = {
             },
         ],
     },
-    optimization: {
-        minimizer: [new TerserPlugin({ parallel: true })],
-    },
+    // optimization: {
+    //     minimizer: [new TerserPlugin({ parallel: true })],
+    // },
     plugins: [
         new ForkTsCheckerWebpackPlugin(),
         new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /zh-cn/),
