@@ -36,7 +36,6 @@
     "less": "^4.1.1",
     "less-loader": "^10.0.1",
     "optimize-css-assets-webpack-plugin": "^6.0.1",
-    "poi": "^12.10.3",
     "style-loader": "^3.1.0",
     "terser-webpack-plugin": "^5.1.4",
     "ts-loader": "^9.2.3",

@@ -4,15 +4,15 @@ import "normalize.css"
 
 const root = document.createElement("div");
 root.textContent = "whiteboard";
-root.style.width = "1600px";
-root.style.height = "900px";
-root.style.backgroundColor = "yellow";
+root.style.width = "80vw";
+root.style.height = "80vh";
+root.style.marginLeft = "10vw";
+root.style.marginTop = "10vh";
+root.style.backgroundColor = "gray";
 document.body.appendChild(root);
 
-const APPID = process.env.APPID;
-
 const sdk = new WhiteWebSdk({
-    appIdentifier: APPID
+    appIdentifier: process.env.APPID
 });
 
 sdk.joinRoom({
@@ -25,6 +25,6 @@ sdk.joinRoom({
     window.room = room;
     const manager = room.getInvisiblePlugin(Manager.WindowManager.kind);
     window.InvisiblePlugin = InvisiblePlugin;
-    Manager.WindowManager.use(room)
+    Manager.WindowManager.use(room);
 })
 

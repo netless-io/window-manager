@@ -11,5 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "normalize.css": "^8.0.1"
+  },
+  "devDependencies": {
+    "poi": "^12.10.3"
   }
 }
