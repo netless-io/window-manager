@@ -4,8 +4,9 @@ import "normalize.css"
 
 const root = document.createElement("div");
 root.textContent = "whiteboard";
-root.style.width = "100vw";
-root.style.height = "100vh";
+root.style.width = "1600px";
+root.style.height = "900px";
+root.style.backgroundColor = "yellow";
 document.body.appendChild(root);
 
 const APPID = process.env.APPID;
