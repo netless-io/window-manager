@@ -1,7 +1,7 @@
 import * as React from "react";
-import Winbox from "winbox/src/js/winbox";
-import type WinBox  from "winbox";
-import { emitter, EventNames, WindowManager } from "./index";
+import { WinBox } from "./box/src/winbox";
+
+import { emitter, EventNames, PluginAttributes, WindowManager } from "./index";
 import debounce from "lodash.debounce";
 import { ViewMode, ViewVisionMode } from "white-web-sdk";
  
@@ -18,6 +18,30 @@ export class WindowManagerWrapper extends React.Component {
         emitter.on(EventNames.UpdateWindowManagerWrapper, this.messageListener);
     }
 
+    componentDidMount() {
+        window.addEventListener("resize", this.windowResizeListener);
+    }
+
+    componentWillUnmount(): void {
+        emitter.clearListeners();
+        this.winboxMap.forEach(box => {
+            box.unmount();
+        });
+        this.winboxMap.clear();
+        window.removeEventListener("resize", this.windowResizeListener);
+    }
+
+    private windowResizeListener = () => {
+        this.winboxMap.forEach((box, name) => {
+            this.updateBoxViewPort(box);
+            const pluginAttributes = WindowManager.instance.attributes[name];
+            const position = pluginAttributes?.[PluginAttributes.Position];
+            if (position) {
+                this.pluginMoveListener({ name, ...position });
+            }
+        });
+    }
+
     private pluginMoveListener = (payload: any) => {
         const pluginBox = this.winboxMap.get(payload.name);
         if (pluginBox) {
@@ -29,7 +53,6 @@ export class WindowManagerWrapper extends React.Component {
             const y = position.y;
             pluginBox.move(x, y);
             pluginBox.onmove = this.boxOnMove(payload.name);
-            
         }
     }
 
@@ -57,12 +80,12 @@ export class WindowManagerWrapper extends React.Component {
 
     private boxOnMove = (name: string): any => {
         const computedPosition = this.computedPosition;
-        return debounce(function(x, y) {
+        return function(x: number, y: number) {
             // @ts-ignore
             const { width, height } = this;
             const position = computedPosition(width, height, x, y);
             emitter.emit("move", { name, ...position });
-        }, 5);
+        };
     }
 
     private computedPosition = (boxWidth: number, boxHeight: number, x: number, y: number, useMove: boolean = false) => {
@@ -106,14 +129,15 @@ export class WindowManagerWrapper extends React.Component {
         return () => {
             emitter.emit("close", { name });
             WindowManagerWrapper.componentsMap.delete(name);
+            const boxDom = this.winboxMap.get(name)?.dom;
+            setTimeout(() => {
+                boxDom?.parentNode?.removeChild(boxDom);
+            });
             this.winboxMap.delete(name);
             const wrapperDom = document.querySelector(`.${name}-wrapper`) as HTMLDivElement;
             if (wrapperDom) {
                 wrapperDom.style.display = "none";
             }
-            setTimeout(() => {
-                this.forceUpdate();
-            });
             return true;
         };
     }
@@ -123,14 +147,6 @@ export class WindowManagerWrapper extends React.Component {
         return (
             <div>error</div>
         );
-    }
-
-    componentWillUnmount(): void {
-        emitter.clearListeners();
-        this.winboxMap.forEach(box => {
-            box.unmount();
-        });
-        this.winboxMap.clear();
     }
 
     private messageListener = () => {
@@ -145,15 +161,10 @@ export class WindowManagerWrapper extends React.Component {
     private setRef = (name: string, ref: HTMLDivElement | null) => {
         if (!this.winboxMap.has(name) && ref) {
             emitter.emit("init", { name });
-            const boardRect = WindowManager.boardElement.getBoundingClientRect();
-            const { top, left, width, height } = boardRect;
-            const right = document.body.clientWidth - left - width;
-            const bottom = document.body.clientHeight - top - height;
-            const box = new Winbox(name, {
+            const box = new WinBox(name, {
                 class: "modern plugin-winbox",
                 // width: 640,
                 // height: 480,
-                top, left, right, bottom
             }) as WinBox;
             this.winboxMap.set(name, box);
             emitter.once(EventNames.InitReplay).then((payload) => {
@@ -173,6 +184,7 @@ export class WindowManagerWrapper extends React.Component {
                     box.onfocus = this.boxOnFocus(name);
                     box.onresize = this.boxOnResize(name);
                     box.onclose = this.boxOnClose(name);
+                    this.updateBoxViewPort(box);
                     emitter.emit(`${name}${EventNames.WindowCreated}`);
                     // const view = WindowManager.instance.createView(name);
                     // if (view) {
@@ -180,6 +192,28 @@ export class WindowManagerWrapper extends React.Component {
                     // }
                 }
             });
+        }
+    }
+
+    private updateBoxViewPort = (box: any) => {
+        const viewPort = this.getBoxViewport();
+        if (viewPort) {
+            const { top, left, right, bottom } = viewPort;
+            box.top = top;
+            box.bottom = bottom;
+            box.left = left;
+            box.right = right;
+        }
+    }
+
+    private getBoxViewport = () => {
+        const boardElement = WindowManager.boardElement;
+        if (boardElement) {
+            const boardRect = boardElement.getBoundingClientRect();
+            const { top, left, width, height } = boardRect;
+            const right = document.body.clientWidth - left - width;
+            const bottom = document.body.clientHeight - top - height;
+            return { top, bottom, left, right };
         }
     }
 
@@ -218,6 +252,6 @@ export class WindowManagerWrapper extends React.Component {
                     {this.renderMaps()}
                 </div>
             </>
-        )
+        );
     }
 }

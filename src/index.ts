@@ -3,10 +3,12 @@ import Emittery from "emittery";
 import { loadPlugin } from "./loader";
 import { WindowManagerWrapper } from "./wrapper";
 
-import "winbox/dist/css/winbox.min.css";
-import "winbox/dist/css/themes/modern.min.css";
+// import "winbox/dist/css/winbox.min.css";
+// import "winbox/dist/css/themes/modern.min.css";
+import "./box/css/winbox.css";
+import "./box/css/themes/modern.less";
 import "./style.css";
-import WinBox from "winbox";
+import { WinBox } from "./box/src/winbox";
 
 export type WindowMangerAttributes = {
     modelValue?: string,
@@ -31,10 +33,15 @@ export enum EventNames {
     WindowCreated = "WindowCreated",
 }
 
+export enum PluginAttributes {
+    Size = "size",
+    Position = "position",
+}
+
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
-    public static boardElement: HTMLDivElement;
+    public static boardElement: HTMLDivElement | null = null;
     private instancePlugins: Map<string, Plugin> = new Map();
     public viewMap: Map<string, View> = new Map();
 
@@ -51,7 +58,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         const plugins = instance.attributes.plugins as Plugins;
         if (plugins) {
             for (const [_, plugin] of Object.entries(plugins)) {
-                instance.addPlugin(plugin.name, plugin.url);
+                instance.addPlugin(plugin.name, plugin.url, false);
             }
         }
     }
@@ -67,7 +74,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    public updatePluginAttribute(name: string, keys: string[], value: any) {
+    public updatePluginAttributes(name: string, keys: string[], value: any) {
         this.updateAttributes([name, ...keys], value);
     }
 
@@ -90,9 +97,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     };
 
     private onPluginBoxInit = (name: string) => {
-        const position = this.attributes[`${name}-position`];
+        const pluginAttributes = this.attributes[name];
+        const position = pluginAttributes?.[PluginAttributes.Position];
         const focus = this.attributes.focus;
-        const size = this.attributes[`${name}-size`];
+        const size = pluginAttributes?.[PluginAttributes.Size];
         let payload = {};
         if (position) {
             payload = { name: name, x: position.x, y: position.y };
@@ -111,9 +119,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             case "move": {
                 const room = this.displayer as Room;
                 room.dispatchMagixEvent(EventNames.PluginMove, payload);
-                this.setAttributes({
-                    [`${payload.name}-position`]: { x: payload.x, y: payload.y }
-                });
+                this.updateAttributes([payload.name, PluginAttributes.Position], { x: payload.x, y: payload.y });
                 break;
             }
             case "focus": {
@@ -125,13 +131,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             case "resize": {
                 const room = this.displayer as Room;
                 room.dispatchMagixEvent(EventNames.PluginResize, payload);
-                this.setAttributes({ 
-                    [`${payload.name}-size`]: { width: payload.width, height: payload.height }
-                });
+                this.updateAttributes([payload.name, PluginAttributes.Size], { width: payload.width, height: payload.height })
                 break;
             }
             case "init": {
                 this.onPluginBoxInit(payload.name);
+                break;
+            }
+            case "close": {
+                this.instancePlugins.delete(payload.name);
                 break;
             }
             default:
@@ -148,18 +156,36 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return manger as WindowManager;
     }
 
-    public async addPlugin(name: string, url: string) {
+    public async addPlugin(name: string, url: string, isFirst = true) {
         const scriptText = await loadPlugin(url);
+        try {
+            this.excuteFuntion(scriptText, name, url, isFirst);
+        } catch (error) {
+            if (error.message.includes("Can only have one anonymous define call per script file")) {
+                // @ts-ignore
+                const define = window.define;
+                if("function" == typeof define && define.amd) {
+                    delete define.amd;
+                }
+                this.excuteFuntion(scriptText, name, url, isFirst);
+            }
+        }      
+    }
+
+    private excuteFuntion(scriptText: string, name: string, url: string, isFirst: boolean) {
         let moduleResult = Function(scriptText)();
         if (typeof moduleResult === "undefined") {
             // @ts-ignore
             moduleResult = window[name];  
         }
-        console.log("moduleResult", moduleResult)
         this.insertToSDK(this.displayer, moduleResult, name);
-        this.addPluginToAttirbutes({
-            name, url
-        });
+        this.addPluginToAttirbutes({ name, url });
+        if (isFirst) {
+            this.setAttributes({ [name]: { 
+                [PluginAttributes.Size]: { width: 0, height: 0 },
+                [PluginAttributes.Position]: { x: 0, y: 0 }
+            } });
+        }
     }
 
     private addPluginToAttirbutes(payload: any): void {
