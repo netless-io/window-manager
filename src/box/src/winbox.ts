@@ -457,7 +457,7 @@ export class WinBox {
         this.id = id || ("winbox-" + (++idCounter));
         this.dom.className = "winbox" + (classname ? " " + (typeof classname === "string" ? classname : (classname as any).join(" ")) : "") +
                                         (modal ? " modal" : "");
-        console.log("clssName", this.dom.className, classname);
+
         this.x = x;
         this.y = y;
         this.width = width;

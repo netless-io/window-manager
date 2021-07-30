@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "poi --serve"
+    "dev": "poi --serve --watch"
   },
   "keywords": [],
   "author": "",

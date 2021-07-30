@@ -1,9 +1,10 @@
 import * as React from "react";
+import * as ReactDOM from "react-dom";
 import { WinBox } from "./box/src/winbox";
 
 import { emitter, EventNames, PluginAttributes, WindowManager } from "./index";
 import debounce from "lodash.debounce";
-import { ViewMode, ViewVisionMode } from "white-web-sdk";
+import { View, ViewMode, ViewVisionMode } from "white-web-sdk";
  
 export class WindowManagerWrapper extends React.Component {
     public static componentsMap = new Map<string, any>();
@@ -19,7 +20,7 @@ export class WindowManagerWrapper extends React.Component {
     }
 
     componentDidMount() {
-        window.addEventListener("resize", this.windowResizeListener);
+        // window.addEventListener("resize", this.windowResizeListener);
     }
 
     componentWillUnmount(): void {
@@ -28,7 +29,7 @@ export class WindowManagerWrapper extends React.Component {
             box.unmount();
         });
         this.winboxMap.clear();
-        window.removeEventListener("resize", this.windowResizeListener);
+        // window.removeEventListener("resize", this.windowResizeListener);
     }
 
     private windowResizeListener = () => {
@@ -153,39 +154,53 @@ export class WindowManagerWrapper extends React.Component {
         this.forceUpdate();
     }
 
-    public static addComponent(name: string, node: React.ReactNode): void {
-        this.componentsMap.set(name, node);
+    public static addComponent(
+        name: string, 
+        node: React.ReactNode,
+        view: View, 
+        scenes?: { name: string }[], 
+        initScenePath?: string
+    ): void {
+        this.componentsMap.set(name, { node, view, scenes, initScenePath });
         emitter.emit(EventNames.UpdateWindowManagerWrapper, true);
     }
 
-    private setRef = (name: string, ref: HTMLDivElement | null) => {
+    private setRef = (name: string, ref: HTMLDivElement | null, Comp: any,  view: View, scenes?: any[], initScenePath?: string) => {
         if (!this.winboxMap.has(name) && ref) {
             emitter.emit("init", { name });
+            let width = 640;
+            let height = 480;
+            if (scenes) {
+                const ppt = scenes[0].ppt;
+                width = ppt.width;
+                height = ppt.height;
+            }
+            
             const box = new WinBox(name, {
                 class: "modern plugin-winbox",
-                // width: 640,
-                // height: 480,
+                width, height
             }) as WinBox;
             this.winboxMap.set(name, box);
             emitter.once(EventNames.InitReplay).then((payload) => {
                 const box = this.winboxMap.get(name);
                 if (box) {
                     box.mount(ref);
-                    if (payload.x && payload.y) {
-                        this.pluginMoveListener(payload)
-                    }
-                    if (payload.focus) {
-                        box.focus();
-                    }
-                    if (payload.width && payload.height) {
-                        this.pluginResizeListener(payload)
-                    }
-                    box.onmove = this.boxOnMove(name);
-                    box.onfocus = this.boxOnFocus(name);
-                    box.onresize = this.boxOnResize(name);
-                    box.onclose = this.boxOnClose(name);
-                    this.updateBoxViewPort(box);
-                    emitter.emit(`${name}${EventNames.WindowCreated}`);
+                    ReactDOM.render(<Comp view={view} {...{ scenes, initScenePath }} />, box.body);
+                    // if (payload.x && payload.y) {
+                    //     this.pluginMoveListener(payload)
+                    // }
+                    // if (payload.focus) {
+                    //     box.focus();
+                    // }
+                    // if (payload.width && payload.height) {
+                    //     this.pluginResizeListener(payload)
+                    // }
+                    // box.onmove = this.boxOnMove(name);
+                    // box.onfocus = this.boxOnFocus(name);
+                    // box.onresize = this.boxOnResize(name);
+                    // box.onclose = this.boxOnClose(name);
+                    // this.updateBoxViewPort(box);
+                    // emitter.emit(`${name}${EventNames.WindowCreated}`);
                     // const view = WindowManager.instance.createView(name);
                     // if (view) {
                     //     view.divElement = box.body as HTMLDivElement;
@@ -217,13 +232,14 @@ export class WindowManagerWrapper extends React.Component {
         }
     }
 
-    private renderComponent(name: string, Comp: any): React.ReactNode {
+    private renderComponent(name: string, Comp: any, view: View, scenes: { name: string }[], initScenePath: string): React.ReactNode {
         return (
             <div ref={(ref) => {
-                this.setRef(name, ref);
-            }} key={`plugin-${name}`} className={`${name}-wrapper`}
-            style={{ width: "100%", height: "100%" }}>
-                <Comp />
+                this.setRef(name, ref, Comp, view, scenes, initScenePath);
+            }}
+                key={`plugin-${name}`} 
+                className={`${name}-wrapper`}
+                style={{ width: "100%", height: "100%" }}>
             </div>
         );
     }
@@ -234,8 +250,8 @@ export class WindowManagerWrapper extends React.Component {
         return (
             <>
                 {names.map(name => {
-                    const Component = componentsMap.get(name);
-                    return this.renderComponent(name, Component);
+                    const { node, view, scenes, initScenePath } = componentsMap.get(name);
+                    return this.renderComponent(name, node, view, scenes, initScenePath);
                 })}
             </>
         );
