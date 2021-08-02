@@ -177,7 +177,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             case "resize": {
                 this.safeDispatchMagixEvent(EventNames.PluginResize, payload);
-                this.updateAttributes([payload.pluginId, PluginAttributes.Size], { width: payload.width, height: payload.height })
+                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.Size], { width: payload.width, height: payload.height })
                 break;
             }
             case "init": {
@@ -266,7 +266,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             await plugin.setup(context);
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
-            pluginEmitter.emit("create");
+            emitter.once(`${pluginId}${EventNames.WindowCreated}`).then(() => {
+                pluginEmitter.emit("create");
+                const pluginLisener = this.makePluginEventListener(pluginId);
+                pluginEmitter.onAny(pluginLisener);
+            });
         } catch (error) {
             throw new Error(`plugin setup error: ${JSON.stringify(error)}`);
         }
@@ -284,8 +288,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         };
     }
 
-    private makePluginEventListener(emitter: Emittery) {
-
+    private makePluginEventListener(pluginId: string) {
+        return (eventName: string, data: any) => {
+            switch (eventName) {
+                case "setBoxSize": {
+                    const box = WindowManagerWrapper.winboxMap.get(pluginId);
+                    if (box) {
+                        box.width = data.width;
+                        box.height = data.height;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
     }
 
     private generatePluginId(kind: string, options: AddPluginOptions) {

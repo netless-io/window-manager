@@ -176,20 +176,16 @@ export class WindowManagerWrapper extends React.Component {
     private setRef = (ref: HTMLDivElement | null, options: AddComponentParams) => {
         if (!this.winboxMap.has(options.pluginId) && ref) {
             emitter.emit("init", { pluginId: options.pluginId });
-
-            let width = 640;
-            let height = 480;
-            if (options.scenes) {
-                const ppt = options.scenes[0].ppt;
-                if (ppt) {
-                    width = ppt.width;
-                    height = ppt.height;
-                }
-            }
+            // if (options.scenes) {
+            //     const ppt = options.scenes[0].ppt;
+            //     if (ppt) {
+            //         width = ppt.width;
+            //         height = ppt.height;
+            //     }
+            // }
             
             const box = new WinBox(options.pluginId, {
-                class: "modern plugin-winbox",
-                width, height
+                class: "modern plugin-winbox"
             });
 
             this.winboxMap.set(options.pluginId, box);

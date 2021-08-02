@@ -6,6 +6,7 @@ type Context = {
     on: (event: string, listener: () => void) => void;
     view: View;
     setAttributes: (attributes: any) => void;
+    emit: (eventName: string, data: any) => void;
 }
 
 type PPTWrapperProps = {
@@ -61,7 +62,8 @@ export default {
     setup: (context: Context) => {
         context.on("create", () => {
             console.log("create");
-            context.setAttributes({ aaaaa: 1 })
+            context.setAttributes({ aaaaa: 1 });
+            context.emit("setBoxSize", { width: 400, height: 400 });
         });
     },
     wrapper: PPTWrapper,

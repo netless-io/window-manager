@@ -44,7 +44,8 @@ const sdk = new WhiteWebSdk({
 });
 
 const { WindowManager, WindowManagerWrapper } = Manager;
-
+window.WindowManager = WindowManager;
+window.WindowManagerWrapper = WindowManagerWrapper;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
     roomToken: process.env.ROOM_TOKEN,
@@ -72,7 +73,7 @@ sdk.joinRoom({
             plugin: PPT,
             ppt: { scenePath: "/test" },
             options: () => {
-                return { a:1 };
+                return { a: 1 };
             }
         })
     })
