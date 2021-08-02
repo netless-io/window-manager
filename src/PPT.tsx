@@ -28,6 +28,7 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
     }
 
     setRef = (ref: HTMLDivElement) => {
+        console.log(this.props);
         this.props.view.divElement = ref;
         this.props.view.focusScenePath = `${this.props.initScenePath}/${this.getCurrentPathName()}`;
     }

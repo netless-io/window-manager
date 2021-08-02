@@ -24,9 +24,12 @@ export type Plugin = {
     kind: string;
     options: {
         width: number;
-        heigth: number;
+        height: number;
+
+        minwidth?: number;
+        maxheight?: number;
         enableView?: boolean;
-    }
+    };
     setup: (context: Context) => void;
     wrapper?: React.ReactNode;
 }
@@ -69,18 +72,29 @@ export type AddPluginOptions = {
         scenePath: string;
     };
     isFirst: boolean;
-    plugin?: Plugin
+    plugin?: Plugin,
+    options?: () => Promise<any>;
+}
+
+type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
+
+type InsertComponentToWrapperParams = {
+    pluginId: string;
+    plugin: Plugin;
+    emitter: Emittery;
+    initScenePath?: string;
+    pluginOptions?: any
 }
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
-    public static boardElement: HTMLDivElement | null = null;
     public static displayer: Displayer;
     public static viewsMap: Map<string, View> = new Map();
+    public static emitterMap:Map<string, Emittery> = new Map();
 
     private instancePlugins: Map<string, Plugin> = new Map();
-    private static emitterMap:Map<string, Emittery> = new Map();
+
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -203,7 +217,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (plugin) {
             const pluginId = this.generatePluginId(plugin.kind, options);
             this.addPluginToAttirbutes(pluginId, url, options, plugin);
-            await this.setupPlugin(pluginId, plugin, options);
+            if (options.options) {
+                const pluginOptions = await options.options();
+                await this.setupPlugin(pluginId, plugin, { ...options, pluginOptions })
+            } else {
+                await this.setupPlugin(pluginId, plugin, options);
+            }
         } else {
             throw new Error(`plugin load failed ${name} ${url}`);
         }
@@ -223,7 +242,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.instancePlugins.set(pluginId, plugin);
     }
 
-    private async setupPlugin(pluginId: string, plugin: Plugin, options: AddPluginOptions) {
+    private async setupPlugin(pluginId: string, plugin: Plugin, options: setPluginOptions) {
         const pluginEmitter: Emittery = new Emittery();
         const context: Context = {
             displayer: this.displayer,
@@ -237,7 +256,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         try {
             if (plugin.wrapper) {
-                this.insertComponentToWrapper(pluginId, plugin, pluginEmitter, options.ppt?.scenePath);
+                this.insertComponentToWrapper({
+                    pluginId,
+                    plugin,
+                    emitter: pluginEmitter,
+                    initScenePath: options.ppt?.scenePath,
+                    pluginOptions: options.pluginOptions,
+                });
             }
             await plugin.setup(context);
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
@@ -259,6 +284,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         };
     }
 
+    private makePluginEventListener(emitter: Emittery) {
+
+    }
+
     private generatePluginId(kind: string, options: AddPluginOptions) {
         if (options.ppt) {
             return `${kind}-${options.ppt.scenePath}`;
@@ -267,7 +296,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private insertComponentToWrapper(pluginId: string, plugin: Plugin, emitter: Emittery, initScenePath?: string) {
+    private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions }: InsertComponentToWrapperParams) {
         const options = plugin.options;
         let payload: AddComponentParams = { pluginId, node: plugin.wrapper, emitter };
         if (options.enableView) {
@@ -282,6 +311,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             payload.view = view;
             WindowManager.viewsMap.set(pluginId, view);
+        }
+        if (pluginOptions) {
+            payload.options = pluginOptions;
         }
         WindowManagerWrapper.addComponent(payload);
     }

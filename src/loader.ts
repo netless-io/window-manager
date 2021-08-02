@@ -1,12 +1,14 @@
 import { getItem, setItem } from "./storage";
 import { Plugin } from "./index";
 
+const TIMEOUT = 10000; // 10 秒超时
+
 export const getScript = async (url: string, key: string) => {
     const item = await getItem(key);
     if (item) {
         return item;
     } else {
-        const result = await fetch(url);
+        const result = await fetchWithTimeout(url, { timeout: TIMEOUT });
         const text = await result.text();
         await setItem(key, text);
         return text;
@@ -37,3 +39,19 @@ export const loadPlugin = async (name: string, url: string) => {
         }
     }
 }
+
+
+async function fetchWithTimeout(resource: string, options: RequestInit & { timeout: number }) {
+    const { timeout = 10000 } = options;
+
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+
+    return response;
+  }

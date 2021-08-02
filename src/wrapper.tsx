@@ -13,7 +13,8 @@ export type AddComponentParams = {
     view?: View,
     scenes?: WhiteScene[],
     initScenePath?: string,
-    emitter?: Emittery
+    emitter?: Emittery,
+    options?: any,
 };
 
 export class WindowManagerWrapper extends React.Component {
@@ -197,7 +198,7 @@ export class WindowManagerWrapper extends React.Component {
                 const box = this.winboxMap.get(options.pluginId);
                 if (box) {
                     box.mount(ref);
-                    ReactDOM.render(<options.node {...options} />, box.body);
+                    ReactDOM.render(<options.node {...options} displayer={WindowManager.displayer} />, box.body);
                     if (payload.x && payload.y) {
                         this.pluginMoveListener(payload)
                     }

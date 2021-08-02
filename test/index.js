@@ -68,7 +68,13 @@ sdk.joinRoom({
     window.manager = manager;
 
     button1.addEventListener("click", () => {
-        manager.addPlugin(PPT.kind, undefined, { plugin: PPT, ppt: { scenePath: "/test" } })
+        manager.addPlugin(PPT.kind, undefined, {
+            plugin: PPT,
+            ppt: { scenePath: "/test" },
+            options: () => {
+                return { a:1 };
+            }
+        })
     })
 
     button2.addEventListener("click", () => {
