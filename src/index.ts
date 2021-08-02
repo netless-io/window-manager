@@ -83,7 +83,8 @@ type InsertComponentToWrapperParams = {
     plugin: Plugin;
     emitter: Emittery;
     initScenePath?: string;
-    pluginOptions?: any
+    pluginOptions?: any,
+    context: Context,
 }
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
@@ -94,6 +95,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static emitterMap:Map<string, Emittery> = new Map();
 
     private instancePlugins: Map<string, Plugin> = new Map();
+    private pluginListenerMap: Map<string, any> = new Map();
 
 
     constructor(context: InvisiblePluginContext) {
@@ -188,9 +190,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 break;
             }
             case "close": {
+                const pluginListener = this.pluginListenerMap.get(payload.pluginId);
+                const pluginEmitter = WindowManager.emitterMap.get(payload.pluginId);
+                if (pluginEmitter && pluginListener) {
+                    pluginEmitter.offAny(pluginListener);
+                }
                 this.instancePlugins.delete(payload.pluginId);
                 WindowManager.emitterMap.delete(payload.pluginId);
                 WindowManager.viewsMap.delete(payload.pluginId);
+                this.pluginListenerMap.delete(payload.pluginId);
                 break;
             }
             default:
@@ -262,6 +270,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     emitter: pluginEmitter,
                     initScenePath: options.ppt?.scenePath,
                     pluginOptions: options.pluginOptions,
+                    context
                 });
             }
             await plugin.setup(context);
@@ -270,6 +279,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 pluginEmitter.emit("create");
                 const pluginLisener = this.makePluginEventListener(pluginId);
                 pluginEmitter.onAny(pluginLisener);
+                this.pluginListenerMap.set(pluginId, pluginLisener);
             });
         } catch (error) {
             throw new Error(`plugin setup error: ${JSON.stringify(error)}`);
@@ -294,8 +304,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 case "setBoxSize": {
                     const box = WindowManagerWrapper.winboxMap.get(pluginId);
                     if (box) {
-                        box.width = data.width;
-                        box.height = data.height;
+                        box.resize(data.width, data.height);
                     }
                     break;
                 }
@@ -313,9 +322,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions }: InsertComponentToWrapperParams) {
+    private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions, context }: InsertComponentToWrapperParams) {
         const options = plugin.options;
-        let payload: AddComponentParams = { pluginId, node: plugin.wrapper, emitter };
+        let payload: AddComponentParams = { pluginId, node: plugin.wrapper, emitter, context };
         if (options.enableView) {
             const room = WindowManager.instance.displayer;
             const view = room.views.createView();

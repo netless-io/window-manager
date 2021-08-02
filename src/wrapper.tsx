@@ -2,7 +2,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { WinBox } from "./box/src/winbox";
 
-import { emitter, EventNames, PluginAttributes, WindowManager } from "./index";
+import { Context, emitter, EventNames, PluginAttributes, WindowManager } from "./index";
 import debounce from "lodash.debounce";
 import { View, ViewMode, ViewVisionMode, WhiteScene } from "white-web-sdk";
 import Emittery from "emittery";
@@ -15,6 +15,7 @@ export type AddComponentParams = {
     initScenePath?: string,
     emitter?: Emittery,
     options?: any,
+    context: Context,
 };
 
 export class WindowManagerWrapper extends React.Component {
