@@ -1,7 +1,10 @@
-import { InvisiblePlugin, InvisiblePluginContext, Room, Event, View, ViewVisionMode, CameraState } from "white-web-sdk";
+import {
+    InvisiblePlugin, InvisiblePluginContext, Room, Event,
+    View, ViewVisionMode, CameraState, Displayer, isRoom
+} from "white-web-sdk";
 import Emittery from "emittery";
 import { loadPlugin } from "./loader";
-import { WindowManagerWrapper } from "./wrapper";
+import { AddComponentParams, WindowManagerWrapper } from "./wrapper";
 import PPT from "./PPT";
 
 (window as any).PPT = PPT;
@@ -11,7 +14,6 @@ import "./box/css/themes/modern.less";
 import "./style.css";
 import { WinBox } from "./box/src/winbox";
 import { ReactNode } from "react";
-
 
 export type WindowMangerAttributes = {
     modelValue?: string,
@@ -23,17 +25,19 @@ export type Plugin = {
     options: {
         width: number;
         heigth: number;
+        enableView?: boolean;
     }
     setup: (context: Context) => void;
-    wrapper: React.ReactNode;
+    wrapper?: React.ReactNode;
 }
 
 export type Context = {
-    room: Room;
+    displayer: Displayer;
     attributes: any,
     setAttributes: (attributes: { [key: string]: any }) => void;
     updateAttributes: (keys: string[], attributes: any) => void;
     on: (event: string, listener: () => void) => void;
+    emit: (event: string, payload?: any) => void;
     off: (event: string, listener: () => void) => void;
     once: (event: string, listener: () => any) => void;
 };
@@ -65,14 +69,18 @@ export type AddPluginOptions = {
         scenePath: string;
     };
     isFirst: boolean;
+    plugin?: Plugin
 }
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
     public static boardElement: HTMLDivElement | null = null;
+    public static displayer: Displayer;
+    public static viewsMap: Map<string, View> = new Map();
+
     private instancePlugins: Map<string, Plugin> = new Map();
-    public viewMap: Map<string, View> = new Map();
+    private static emitterMap:Map<string, Emittery> = new Map();
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -81,6 +89,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.displayer.addMagixEventListener(EventNames.PluginFocus, this.pluginFocusListener);
         this.displayer.addMagixEventListener(EventNames.PluginResize, this.pluginResizeListener);
         WindowManager.instance = this;
+        WindowManager.displayer = this.displayer;
     }
 
     public static onCreate(instance: WindowManager) {
@@ -101,10 +110,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 }
             }
         }
-    }
-
-    public updatePluginAttributes(name: string, keys: string[], value: any) {
-        this.updateAttributes([name, ...keys], value);
+        console.log("onAttributesUpdate", attributes);
     }
 
     private pluginMoveListener = (event: Event) => {
@@ -146,29 +152,31 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private eventListener = (eventName: string, payload: any) => {
         switch (eventName) {
             case "move": {
-                const room = this.displayer as Room;
-                room.dispatchMagixEvent(EventNames.PluginMove, payload);
-                this.updateAttributes([payload.name, PluginAttributes.Position], { x: payload.x, y: payload.y });
+                this.safeDispatchMagixEvent(EventNames.PluginMove, payload);
+                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.Position], { x: payload.x, y: payload.y });
                 break;
             }
             case "focus": {
-                const room = this.displayer as Room;
-                room.dispatchMagixEvent(EventNames.PluginFocus, payload);
-                this.setAttributes({ focus: payload.name });
+                this.safeDispatchMagixEvent(EventNames.PluginFocus, payload);
+                this.safeSetAttributes({ focus: payload.pluginId });
                 break;
             }
             case "resize": {
-                const room = this.displayer as Room;
-                room.dispatchMagixEvent(EventNames.PluginResize, payload);
-                this.updateAttributes([payload.name, PluginAttributes.Size], { width: payload.width, height: payload.height })
+                this.safeDispatchMagixEvent(EventNames.PluginResize, payload);
+                this.updateAttributes([payload.pluginId, PluginAttributes.Size], { width: payload.width, height: payload.height })
                 break;
             }
             case "init": {
-                this.onPluginBoxInit(payload.name);
+                this.onPluginBoxInit(payload.pluginId);
+                this.safeSetAttributes({ [payload.pluginId]: {
+                    [PluginAttributes.Position]: {}
+                 } });
                 break;
             }
             case "close": {
-                this.instancePlugins.delete(payload.name);
+                this.instancePlugins.delete(payload.pluginId);
+                WindowManager.emitterMap.delete(payload.pluginId);
+                WindowManager.viewsMap.delete(payload.pluginId);
                 break;
             }
             default:
@@ -181,73 +189,101 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (!manger) {
             manger = await room.createInvisiblePlugin(WindowManager, {});
         }
-        WindowManager.boardElement = (room as any).cameraObserver.mainView.divElement;
         return manger as WindowManager;
     }
 
     public async addPlugin(name: string, url: string, options: AddPluginOptions) {
-        const plugin = await loadPlugin(name, url);
+        let plugin;
+        if (url) {
+            plugin = await loadPlugin(name, url);
+        } else {
+            plugin = options?.plugin;
+        }
+
         if (plugin) {
-            if (options.isFirst) {
-                this.setAttributes({ [name]: { 
-                    [PluginAttributes.Size]: { width: 0, height: 0 },
-                    [PluginAttributes.Position]: { x: 0, y: 0 }
-                } });
-            }
-            this.addPluginToAttirbutes({ name, url });
-            this.setupPlugin(plugin, options);
+            const pluginId = this.generatePluginId(plugin.kind, options);
+            this.addPluginToAttirbutes(pluginId, url, options, plugin);
+            await this.setupPlugin(pluginId, plugin, options);
         } else {
             throw new Error(`plugin load failed ${name} ${url}`);
         }
     }
 
-    private async setupPlugin(plugin: Plugin, options: AddPluginOptions) {
+    private addPluginToAttirbutes(pluginId: string, url: string, options: AddPluginOptions, plugin: Plugin): void {
+        if (options.isFirst) {
+            this.safeSetAttributes({ [pluginId]: {
+                [PluginAttributes.Size]: { width: 0, height: 0 },
+                [PluginAttributes.Position]: { x: 0, y: 0 }
+            } });
+        }
+        if (!this.attributes.plugins) {
+            this.safeSetAttributes({ plugins: {} });
+        }
+        this.safeUpdateAttributes(["plugins", pluginId], { url });
+        this.instancePlugins.set(pluginId, plugin);
+    }
+
+    private async setupPlugin(pluginId: string, plugin: Plugin, options: AddPluginOptions) {
         const pluginEmitter: Emittery = new Emittery();
         const context: Context = {
-            room: this.displayer as Room,
-            attributes: this.attributes,
-            setAttributes: this.makePluginSetAttibutes(plugin.kind),
-            updateAttributes: this.makePluginUpdateAttributes(plugin.kind),
+            displayer: this.displayer,
+            attributes: this.attributes[pluginId],
+            setAttributes: this.makePluginSetAttibutes(pluginId),
+            updateAttributes: this.makePluginUpdateAttributes(pluginId),
             on: (event, listener) => pluginEmitter.on(event, listener),
+            emit: (event, payload) => pluginEmitter.emit(event, payload),
             off: (event, listener) => pluginEmitter.off(event, listener),
             once: (event, listener) => pluginEmitter.once(event).then(listener),
         }
-        this.insertComponentToWrapper(plugin.kind, plugin.wrapper, options.ppt?.scenePath);
-        await plugin.setup(context);
-        pluginEmitter.emit("onCreate");
+        try {
+            if (plugin.wrapper) {
+                this.insertComponentToWrapper(pluginId, plugin, pluginEmitter, options.ppt?.scenePath);
+            }
+            await plugin.setup(context);
+            WindowManager.emitterMap.set(pluginId, pluginEmitter);
+            pluginEmitter.emit("create");
+        } catch (error) {
+            throw new Error(`plugin setup error: ${JSON.stringify(error)}`);
+        }
     }
 
-    private makePluginSetAttibutes(pluginName: string) {
+    private makePluginSetAttibutes(pluginId: string) {
         return (payload: any) => {
-            this.setAttributes({ [pluginName]: payload });
+            this.safeSetAttributes({ [pluginId]: payload });
         };
     }
 
-    private makePluginUpdateAttributes(pluginName: string) {
+    private makePluginUpdateAttributes(pluginId: string) {
         return (keys: string[], value: any) => {
-            this.updateAttributes([pluginName, ...keys], value);
+            this.safeUpdateAttributes([pluginId, ...keys], value);
         };
     }
 
-    private addPluginToAttirbutes(payload: any): void {
-        if (!this.attributes.plugins) {
-            this.setAttributes({ plugins: {} });
+    private generatePluginId(kind: string, options: AddPluginOptions) {
+        if (options.ppt) {
+            return `${kind}-${options.ppt.scenePath}`;
+        } else {
+            return kind;
         }
-        this.updateAttributes(["plugins", payload.name], payload);
-        this.instancePlugins.set(payload.name, payload);
     }
 
-    public insertComponentToWrapper(name: string, node: ReactNode, initScenePath?: string) {
-        const room = WindowManager.instance.displayer;
-        const view = room.views.createView();
-        view.mode = ViewVisionMode.Freedom;
-        (view as any).cameraman.disableCameraTransform = true
-        if (initScenePath) {
-            const viewScenes = room.entireScenes()[initScenePath];
-            WindowManagerWrapper.addComponent(name, node, view, viewScenes, initScenePath);
-        } else {
-            WindowManagerWrapper.addComponent(name, node, view);
+    private insertComponentToWrapper(pluginId: string, plugin: Plugin, emitter: Emittery, initScenePath?: string) {
+        const options = plugin.options;
+        let payload: AddComponentParams = { pluginId, node: plugin.wrapper, emitter };
+        if (options.enableView) {
+            const room = WindowManager.instance.displayer;
+            const view = room.views.createView();
+            view.mode = ViewVisionMode.Freedom;
+            (view as any).cameraman.disableCameraTransform = true;
+            if (initScenePath) {
+                const viewScenes = room.entireScenes()[initScenePath];
+                payload.scenes = viewScenes;
+                payload.initScenePath = initScenePath;
+            }
+            payload.view = view;
+            WindowManager.viewsMap.set(pluginId, view);
         }
+        WindowManagerWrapper.addComponent(payload);
     }
 
     public resize(name: string, width: number, height: number): void {
@@ -261,16 +297,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return WindowManagerWrapper.winboxMap.get(name);
     }
 
-    public createView(name: string) {
-        const room = this.displayer as Room;
-        if (room) {
-            const view = room.views.createView();
-            view.mode = ViewVisionMode.Writable;
-            this.viewMap.set(name, view);
-            return view;
-        }
-    }
-
     public getRoomCameraState(): CameraState {
         return this.displayer.state.cameraState;
     }
@@ -281,6 +307,30 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public onDestroy() {
         emitter.offAny(this.eventListener);
+    }
+
+    private safeSetAttributes(attributes: any) {
+        if (this.canOperate) {
+            this.setAttributes(attributes);
+        }
+    }
+
+    private safeUpdateAttributes(keys: string[], value: any) {
+        if (this.canOperate) {
+            this.updateAttributes(keys, value);
+        }
+    }
+
+    public get canOperate() {
+        if (isRoom(this.displayer)) {
+            return (this.displayer as Room).isWritable;
+        } else {
+            return false;
+        }
+    }
+
+    private safeDispatchMagixEvent(event: string, payload: any) {
+        (this.displayer as Room).dispatchMagixEvent(event, payload);
     }
 }
 

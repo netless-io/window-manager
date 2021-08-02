@@ -4,8 +4,18 @@ import { WinBox } from "./box/src/winbox";
 
 import { emitter, EventNames, PluginAttributes, WindowManager } from "./index";
 import debounce from "lodash.debounce";
-import { View, ViewMode, ViewVisionMode } from "white-web-sdk";
- 
+import { View, ViewMode, ViewVisionMode, WhiteScene } from "white-web-sdk";
+import Emittery from "emittery";
+
+export type AddComponentParams = {
+    pluginId: string,
+    node: any,
+    view?: View,
+    scenes?: WhiteScene[],
+    initScenePath?: string,
+    emitter?: Emittery
+};
+
 export class WindowManagerWrapper extends React.Component {
     public static componentsMap = new Map<string, any>();
     public static winboxMap = new Map<string, WinBox>();
@@ -33,18 +43,21 @@ export class WindowManagerWrapper extends React.Component {
     }
 
     private windowResizeListener = () => {
-        this.winboxMap.forEach((box, name) => {
-            this.updateBoxViewPort(box);
-            const pluginAttributes = WindowManager.instance.attributes[name];
+        this.winboxMap.forEach((box, pluginId) => {
+            const view = WindowManager.viewsMap.get(pluginId);
+            if (view) {
+                this.updateBoxViewPort(box, view);
+            }
+            const pluginAttributes = WindowManager.instance.attributes[pluginId];
             const position = pluginAttributes?.[PluginAttributes.Position];
             if (position) {
-                this.pluginMoveListener({ name, ...position });
+                this.pluginMoveListener({ pluginId, ...position });
             }
         });
     }
 
     private pluginMoveListener = (payload: any) => {
-        const pluginBox = this.winboxMap.get(payload.name);
+        const pluginBox = this.winboxMap.get(payload.pluginId);
         if (pluginBox) {
             const { width, height } = pluginBox as any;
             pluginBox.onmove = () => {};
@@ -53,19 +66,19 @@ export class WindowManagerWrapper extends React.Component {
             const x = position.x;
             const y = position.y;
             pluginBox.move(x, y);
-            pluginBox.onmove = this.boxOnMove(payload.name);
+            pluginBox.onmove = this.boxOnMove(payload.pluginId);
         }
     }
 
     private pluginFocusListener = (payload: any) => {
-        const pluginBox = this.winboxMap.get(payload.name);
+        const pluginBox = this.winboxMap.get(payload.pluginId);
         if (pluginBox) {
             pluginBox.focus();
         }
     }
 
     private pluginResizeListener = (payload: any) => {
-        const pluginBox = this.winboxMap.get(payload.name);
+        const pluginBox = this.winboxMap.get(payload.pluginId);
         const cameraState = WindowManager.instance.displayer.state.cameraState;
         if (pluginBox) {
             pluginBox.onresize = () => {};
@@ -75,17 +88,17 @@ export class WindowManagerWrapper extends React.Component {
             // @ts-ignore
             // pluginBox.minwidth = newWidth;
             pluginBox.resize(newWidth, newHeigth);
-            pluginBox.onresize = this.boxOnResize(payload.name);
+            pluginBox.onresize = this.boxOnResize(payload.pluginId);
         }
     }
 
-    private boxOnMove = (name: string): any => {
+    private boxOnMove = (pluginId: string): any => {
         const computedPosition = this.computedPosition;
         return function(x: number, y: number) {
             // @ts-ignore
             const { width, height } = this;
             const position = computedPosition(width, height, x, y);
-            emitter.emit("move", { name, ...position });
+            emitter.emit("move", { pluginId, ...position });
         };
     }
 
@@ -106,9 +119,9 @@ export class WindowManagerWrapper extends React.Component {
         }
     }
 
-    private boxOnFocus = (name: string) => {
+    private boxOnFocus = (pluginId: string) => {
         return () => {
-            emitter.emit("focus", { name });
+            emitter.emit("focus", { pluginId });
             // const view = WindowManager.instance.viewMap.get(name);
             // if (view) {
             //     console.log(view);
@@ -117,25 +130,25 @@ export class WindowManagerWrapper extends React.Component {
         };
     }
 
-    private boxOnResize = (name: string) => {
+    private boxOnResize = (pluginId: string) => {
         return debounce((width: number, height: number) => {
             const cameraState = WindowManager.instance.displayer.state.cameraState;
             const widthPercentage = width / cameraState.width;
             const heightPercentage = height / cameraState.height;
-            emitter.emit("resize", { name, width: widthPercentage, height: heightPercentage });
+            emitter.emit("resize", { pluginId, width: widthPercentage, height: heightPercentage });
         }, 10);
     }
 
-    private boxOnClose = (name: string) => {
+    private boxOnClose = (pluginId: string) => {
         return () => {
-            emitter.emit("close", { name });
-            WindowManagerWrapper.componentsMap.delete(name);
-            const boxDom = this.winboxMap.get(name)?.dom;
+            emitter.emit("close", { pluginId });
+            WindowManagerWrapper.componentsMap.delete(pluginId);
+            const boxDom = this.winboxMap.get(pluginId)?.dom;
             setTimeout(() => {
                 boxDom?.parentNode?.removeChild(boxDom);
             });
-            this.winboxMap.delete(name);
-            const wrapperDom = document.querySelector(`.${name}-wrapper`) as HTMLDivElement;
+            this.winboxMap.delete(pluginId);
+            const wrapperDom = document.querySelector(`.${pluginId}-wrapper`) as HTMLDivElement;
             if (wrapperDom) {
                 wrapperDom.style.display = "none";
             }
@@ -154,64 +167,64 @@ export class WindowManagerWrapper extends React.Component {
         this.forceUpdate();
     }
 
-    public static addComponent(
-        name: string, 
-        node: React.ReactNode,
-        view: View, 
-        scenes?: { name: string }[], 
-        initScenePath?: string
-    ): void {
-        this.componentsMap.set(name, { node, view, scenes, initScenePath });
+    public static addComponent(params: AddComponentParams): void {
+        this.componentsMap.set(params.pluginId, params);
         emitter.emit(EventNames.UpdateWindowManagerWrapper, true);
     }
 
-    private setRef = (name: string, ref: HTMLDivElement | null, Comp: any,  view: View, scenes?: any[], initScenePath?: string) => {
-        if (!this.winboxMap.has(name) && ref) {
-            emitter.emit("init", { name });
+    private setRef = (ref: HTMLDivElement | null, options: AddComponentParams) => {
+        if (!this.winboxMap.has(options.pluginId) && ref) {
+            emitter.emit("init", { pluginId: options.pluginId });
+
             let width = 640;
             let height = 480;
-            if (scenes) {
-                const ppt = scenes[0].ppt;
-                width = ppt.width;
-                height = ppt.height;
+            if (options.scenes) {
+                const ppt = options.scenes[0].ppt;
+                if (ppt) {
+                    width = ppt.width;
+                    height = ppt.height;
+                }
             }
             
-            const box = new WinBox(name, {
+            const box = new WinBox(options.pluginId, {
                 class: "modern plugin-winbox",
                 width, height
-            }) as WinBox;
-            this.winboxMap.set(name, box);
+            });
+
+            this.winboxMap.set(options.pluginId, box);
+
             emitter.once(EventNames.InitReplay).then((payload) => {
-                const box = this.winboxMap.get(name);
+                const box = this.winboxMap.get(options.pluginId);
                 if (box) {
                     box.mount(ref);
-                    ReactDOM.render(<Comp view={view} {...{ scenes, initScenePath }} />, box.body);
-                    // if (payload.x && payload.y) {
-                    //     this.pluginMoveListener(payload)
+                    ReactDOM.render(<options.node {...options} />, box.body);
+                    if (payload.x && payload.y) {
+                        this.pluginMoveListener(payload)
+                    }
+                    if (payload.focus) {
+                        box.focus();
+                    }
+                    if (payload.width && payload.height) {
+                        this.pluginResizeListener(payload)
+                    }
+                    box.onmove = this.boxOnMove(options.pluginId);
+                    box.onfocus = this.boxOnFocus(options.pluginId);
+                    box.onresize = this.boxOnResize(options.pluginId);
+                    box.onclose = this.boxOnClose(options.pluginId);
+
+                    // const view = WindowManager.viewsMap.get(options.pluginId);
+                    // if (view && view.divElement) {
+                    //     this.updateBoxViewPort(box, view);
                     // }
-                    // if (payload.focus) {
-                    //     box.focus();
-                    // }
-                    // if (payload.width && payload.height) {
-                    //     this.pluginResizeListener(payload)
-                    // }
-                    // box.onmove = this.boxOnMove(name);
-                    // box.onfocus = this.boxOnFocus(name);
-                    // box.onresize = this.boxOnResize(name);
-                    // box.onclose = this.boxOnClose(name);
-                    // this.updateBoxViewPort(box);
-                    // emitter.emit(`${name}${EventNames.WindowCreated}`);
-                    // const view = WindowManager.instance.createView(name);
-                    // if (view) {
-                    //     view.divElement = box.body as HTMLDivElement;
-                    // }
+
+                    emitter.emit(`${options.pluginId}${EventNames.WindowCreated}`);
                 }
             });
         }
     }
 
-    private updateBoxViewPort = (box: any) => {
-        const viewPort = this.getBoxViewport();
+    private updateBoxViewPort = (box: any, view: View) => {
+        const viewPort = this.getBoxViewport(view);
         if (viewPort) {
             const { top, left, right, bottom } = viewPort;
             box.top = top;
@@ -221,10 +234,10 @@ export class WindowManagerWrapper extends React.Component {
         }
     }
 
-    private getBoxViewport = () => {
-        const boardElement = WindowManager.boardElement;
-        if (boardElement) {
-            const boardRect = boardElement.getBoundingClientRect();
+    private getBoxViewport = (view: View) => {
+        const viewElement = view.divElement;
+        if (viewElement) {
+            const boardRect = viewElement.getBoundingClientRect();
             const { top, left, width, height } = boardRect;
             const right = document.body.clientWidth - left - width;
             const bottom = document.body.clientHeight - top - height;
@@ -232,13 +245,13 @@ export class WindowManagerWrapper extends React.Component {
         }
     }
 
-    private renderComponent(name: string, Comp: any, view: View, scenes: { name: string }[], initScenePath: string): React.ReactNode {
+    private renderComponent(params: AddComponentParams): React.ReactNode {
         return (
             <div ref={(ref) => {
-                this.setRef(name, ref, Comp, view, scenes, initScenePath);
+                this.setRef(ref, params);
             }}
-                key={`plugin-${name}`} 
-                className={`${name}-wrapper`}
+                key={`plugin-${params.pluginId}`}
+                className={`${params.pluginId}-wrapper`}
                 style={{ width: "100%", height: "100%" }}>
             </div>
         );
@@ -246,12 +259,12 @@ export class WindowManagerWrapper extends React.Component {
 
     private renderMaps(): React.ReactNode {
         const componentsMap = WindowManagerWrapper.componentsMap;
-        const names = Array.from(componentsMap.keys());
+        const ids = Array.from(componentsMap.keys());
         return (
             <>
-                {names.map(name => {
-                    const { node, view, scenes, initScenePath } = componentsMap.get(name);
-                    return this.renderComponent(name, node, view, scenes, initScenePath);
+                {ids.map(id => {
+                    const params = componentsMap.get(id);
+                    return this.renderComponent(params);
                 })}
             </>
         );

@@ -3,6 +3,9 @@ import React from "react";
 
 type Context = {
     room: Room;
+    on: (event: string, listener: () => void) => void;
+    view: View;
+    setAttributes: (attributes: any) => void;
 }
 
 type PPTWrapperProps = {
@@ -45,15 +48,20 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
                 onClick={this.onClick}
                 style={{ width: "100%", height: "100%" }}>
             </div>
-        )
+        );
     }
 }
 
 export default {
     kind: "PPTPlugin",
-    options: {  },
+    options: {
+        enableView: true
+     },
     setup: (context: Context) => {
-        console.log("setup");
+        context.on("create", () => {
+            console.log("create");
+            context.setAttributes({ aaaaa: 1 })
+        });
     },
     wrapper: PPTWrapper,
 }

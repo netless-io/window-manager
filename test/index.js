@@ -68,11 +68,11 @@ sdk.joinRoom({
     window.manager = manager;
 
     button1.addEventListener("click", () => {
-        manager.insertComponentToWrapper("PPT1", PPT.wrapper, "/test");
+        manager.addPlugin(PPT.kind, undefined, { plugin: PPT, ppt: { scenePath: "/test" } })
     })
 
     button2.addEventListener("click", () => {
-        manager.insertComponentToWrapper("PPT2", PPT.wrapper, "/test3");
+        manager.addPlugin(PPT.kind, undefined, { plugin: PPT, ppt: { scenePath: "/test3" } })
     })
 })
 
