@@ -1,5 +1,5 @@
 import { getItem, setItem } from "./storage";
-import { Plugin } from "./index";
+import { Plugin } from "./typings";
 
 const TIMEOUT = 10000; // 10 秒超时
 

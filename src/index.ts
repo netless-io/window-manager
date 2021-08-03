@@ -12,12 +12,13 @@ import {
     View,
     ViewVisionMode
     } from 'white-web-sdk';
-import { Events, PluginAttributes } from './constants';
+import { Events, PluginAttributes, PluginEvents } from './constants';
 import { loadPlugin } from './loader';
 import { WinBox } from './box/src/winbox';
 import './box/css/winbox.css';
 import './box/css/themes/modern.less';
 import './style.css';
+import { Plugin, Context } from './typings';
 
 (window as any).PPT = PPT;
 
@@ -26,32 +27,6 @@ export type WindowMangerAttributes = {
     modelValue?: string,
     [key: string]: any,
 }
-
-export type Plugin = {
-    kind: string;
-    options: {
-        width: number;
-        height: number;
-
-        minwidth?: number;
-        minheight?: number;
-        enableView?: boolean;
-    };
-    setup: (context: Context) => void;
-    wrapper?: React.ReactNode;
-}
-
-export type Context = {
-    displayer: Displayer;
-    attributes: any,
-    setAttributes: (attributes: { [key: string]: any }) => void;
-    updateAttributes: (keys: string[], attributes: any) => void;
-    on: (event: string, listener: () => void) => void;
-    emit: (event: string, payload?: any) => void;
-    off: (event: string, listener: () => void) => void;
-    once: (event: string, listener: () => any) => void;
-};
-
 
 export type Plugins = {
     [key: string]: Plugin
@@ -64,7 +39,6 @@ export type AddPluginOptions = {
 }
 
 export type AddPluginLocalOptions = {
-    isFirst: boolean;
     plugin?: Plugin;
     options?: any;
 }
@@ -289,7 +263,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         options?: AddPluginOptions,
         localOptions?: AddPluginLocalOptions, 
         ): void {
-        if (localOptions?.isFirst) {
+        if (!this.attributes[pluginId]) {
             this.safeSetAttributes({ [pluginId]: {
                 [PluginAttributes.Size]: { width: 0, height: 0 },
                 [PluginAttributes.Position]: { x: 0, y: 0 }
@@ -353,14 +327,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private makePluginEventListener(pluginId: string, options: setPluginOptions) {
         return (eventName: string, data: any) => {
             switch (eventName) {
-                case "setBoxSize": {
+                case PluginEvents.setBoxSize: {
                     const box = BoxMap.get(pluginId);
                     if (box) {
                         box.resize(data.width, data.height);
                     }
                     break;
                 }
-                case "setBoxMinSize": {
+                case PluginEvents.setBoxMinSize: {
                     const box = BoxMap.get(pluginId);
                     if (box) {
                         box.minwidth = data.minwidth;
@@ -368,7 +342,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     }
                     break;
                 }
-                case "destory": {
+                case PluginEvents.destory: {
                     this.destoryPlugin(pluginId, true, data.error);
                 }
                 default:
@@ -429,7 +403,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private safeUpdateAttributes(keys: string[], value: any) {
-        console.log(keys, value);
         if (this.canOperate) {
             this.updateAttributes(keys, value);
         }
@@ -449,3 +422,4 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 }
 
 export * from "./wrapper";
+export * from "./typings";

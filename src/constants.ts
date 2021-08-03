@@ -13,3 +13,13 @@ export enum PluginAttributes {
     Size = "size",
     Position = "position",
 }
+
+export enum PluginEvents {
+    setBoxSize = "setBoxSize",
+    setBoxMinSize = "setBoxMinSize",
+    destory = "destory",
+}
+type AnyEnumKeysAsStrings<TEnumType> = keyof TEnumType;
+
+export type PluginEventKeys = AnyEnumKeysAsStrings<typeof PluginEvents>
+

@@ -2,7 +2,8 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import debounce from 'lodash.debounce';
 import Emittery from 'emittery';
-import { Context, emitter, WindowManager } from './index';
+import { emitter, WindowManager } from './index';
+import { Context } from "./typings";
 import { Events, PluginAttributes } from './constants';
 import {
     View,

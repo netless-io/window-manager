@@ -28,9 +28,9 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
         }
     }
 
-    // componentDidMount() {
-    //     throw new Error("test by componentDidMount");
-    // }
+    componentDidMount() {
+        console.log(this.props);
+    }
 
     setRef = (ref: HTMLDivElement) => {
         console.log(this.props);
