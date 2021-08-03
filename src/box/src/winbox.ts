@@ -668,6 +668,17 @@ export class WinBox {
         }
     }
 
+    closeForce() {
+        if(this.min){
+            removeMinStack(this);
+        }
+        this.unmount();
+        this.dom.parentNode.removeChild(this.dom);
+        if(lastFocus === this){
+            lastFocus = null;
+        }
+    }
+
     fullscreen(state?: any): WinBox {
         if (typeof state === "undefined" || (state !== isFullscreen)) {
             if (this.min) {

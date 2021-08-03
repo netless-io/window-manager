@@ -1,11 +1,18 @@
-import * as React from "react";
-import * as ReactDOM from "react-dom";
-import { WinBox } from "./box/src/winbox";
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+import debounce from 'lodash.debounce';
+import Emittery from 'emittery';
+import { Context, emitter, WindowManager } from './index';
+import { Events, PluginAttributes } from './constants';
+import {
+    View,
+    ViewMode,
+    ViewVisionMode,
+    WhiteScene
+    } from 'white-web-sdk';
+import { WinBox } from './box/src/winbox';
+import { ErrorBoundary } from './error';
 
-import { Context, emitter, EventNames, PluginAttributes, WindowManager } from "./index";
-import debounce from "lodash.debounce";
-import { View, ViewMode, ViewVisionMode, WhiteScene } from "white-web-sdk";
-import Emittery from "emittery";
 
 export type AddComponentParams = {
     pluginId: string,
@@ -18,17 +25,17 @@ export type AddComponentParams = {
     context: Context,
 };
 
+export const BoxMap =  new Map<string, WinBox>();
+
 export class WindowManagerWrapper extends React.Component {
     public static componentsMap = new Map<string, any>();
-    public static winboxMap = new Map<string, WinBox>();
-    public winboxMap = WindowManagerWrapper.winboxMap;
 
     constructor(props: any) {
         super(props);
-        emitter.on(EventNames.PluginMove, this.pluginMoveListener);
-        emitter.on(EventNames.PluginFocus, this.pluginFocusListener);
-        emitter.on(EventNames.PluginResize, this.pluginResizeListener);
-        emitter.on(EventNames.UpdateWindowManagerWrapper, this.messageListener);
+        emitter.on(Events.PluginMove, this.pluginMoveListener);
+        emitter.on(Events.PluginFocus, this.pluginFocusListener);
+        emitter.on(Events.PluginResize, this.pluginResizeListener);
+        emitter.on(Events.UpdateWindowManagerWrapper, this.messageListener);
     }
 
     componentDidMount() {
@@ -36,16 +43,25 @@ export class WindowManagerWrapper extends React.Component {
     }
 
     componentWillUnmount(): void {
+        console.log("componentWillUnmount");
         emitter.clearListeners();
-        this.winboxMap.forEach(box => {
+        BoxMap.forEach(box => {
             box.unmount();
+            box.close();
         });
-        this.winboxMap.clear();
+        BoxMap.clear();
         // window.removeEventListener("resize", this.windowResizeListener);
     }
 
+    componentDidCatch(error: any) {
+        console.log("componentDidCatch by Wrapper", error);
+        return (
+            <div>error</div>
+        );
+    }
+
     private windowResizeListener = () => {
-        this.winboxMap.forEach((box, pluginId) => {
+        BoxMap.forEach((box, pluginId) => {
             const view = WindowManager.viewsMap.get(pluginId);
             if (view) {
                 this.updateBoxViewPort(box, view);
@@ -59,7 +75,7 @@ export class WindowManagerWrapper extends React.Component {
     }
 
     private pluginMoveListener = (payload: any) => {
-        const pluginBox = this.winboxMap.get(payload.pluginId);
+        const pluginBox = BoxMap.get(payload.pluginId);
         if (pluginBox) {
             const { width, height } = pluginBox as any;
             pluginBox.onmove = () => {};
@@ -73,14 +89,14 @@ export class WindowManagerWrapper extends React.Component {
     }
 
     private pluginFocusListener = (payload: any) => {
-        const pluginBox = this.winboxMap.get(payload.pluginId);
+        const pluginBox = BoxMap.get(payload.pluginId);
         if (pluginBox) {
             pluginBox.focus();
         }
     }
 
     private pluginResizeListener = (payload: any) => {
-        const pluginBox = this.winboxMap.get(payload.pluginId);
+        const pluginBox = BoxMap.get(payload.pluginId);
         const cameraState = WindowManager.instance.displayer.state.cameraState;
         if (pluginBox) {
             pluginBox.onresize = () => {};
@@ -145,24 +161,17 @@ export class WindowManagerWrapper extends React.Component {
         return () => {
             emitter.emit("close", { pluginId });
             WindowManagerWrapper.componentsMap.delete(pluginId);
-            const boxDom = this.winboxMap.get(pluginId)?.dom;
-            setTimeout(() => {
-                boxDom?.parentNode?.removeChild(boxDom);
-            });
-            this.winboxMap.delete(pluginId);
-            const wrapperDom = document.querySelector(`.${pluginId}-wrapper`) as HTMLDivElement;
-            if (wrapperDom) {
-                wrapperDom.style.display = "none";
+            const box = BoxMap.get(pluginId);
+            if (box) {
+                const boxDom = box.dom;
+                setTimeout(() => {
+                    boxDom.parentNode?.removeChild(boxDom);
+                });
+                // this.winboxMap.delete(pluginId);
+                box.body.style.display = "none";
             }
             return true;
         };
-    }
-
-    componentDidCatch(error: any) {
-        console.log(error);
-        return (
-            <div>error</div>
-        );
     }
 
     private messageListener = () => {
@@ -171,31 +180,32 @@ export class WindowManagerWrapper extends React.Component {
 
     public static addComponent(params: AddComponentParams): void {
         this.componentsMap.set(params.pluginId, params);
-        emitter.emit(EventNames.UpdateWindowManagerWrapper, true);
+        emitter.emit(Events.UpdateWindowManagerWrapper, true);
     }
 
     private setRef = (ref: HTMLDivElement | null, options: AddComponentParams) => {
-        if (!this.winboxMap.has(options.pluginId) && ref) {
+        if (!BoxMap.has(options.pluginId) && ref) {
             emitter.emit("init", { pluginId: options.pluginId });
-            // if (options.scenes) {
-            //     const ppt = options.scenes[0].ppt;
-            //     if (ppt) {
-            //         width = ppt.width;
-            //         height = ppt.height;
-            //     }
-            // }
-            
+        
             const box = new WinBox(options.pluginId, {
                 class: "modern plugin-winbox"
             });
 
-            this.winboxMap.set(options.pluginId, box);
-
-            emitter.once(EventNames.InitReplay).then((payload) => {
-                const box = this.winboxMap.get(options.pluginId);
+            BoxMap.set(options.pluginId, box);
+            console.log("set box Map", BoxMap)
+            emitter.once(Events.InitReplay).then((payload) => {
+                const box = BoxMap.get(options.pluginId);
                 if (box) {
                     box.mount(ref);
-                    ReactDOM.render(<options.node {...options} displayer={WindowManager.displayer} />, box.body);
+                    try {
+                        ReactDOM.render(
+                            <ErrorBoundary pluginId={options.pluginId}>
+                               <options.node {...options} displayer={WindowManager.displayer} />
+                            </ErrorBoundary>
+                        , box.body);
+                    } catch (error) {
+                        console.log("error by setRef")
+                    }
                     if (payload.x && payload.y) {
                         this.pluginMoveListener(payload)
                     }
@@ -210,12 +220,9 @@ export class WindowManagerWrapper extends React.Component {
                     box.onresize = this.boxOnResize(options.pluginId);
                     box.onclose = this.boxOnClose(options.pluginId);
 
-                    // const view = WindowManager.viewsMap.get(options.pluginId);
-                    // if (view && view.divElement) {
-                    //     this.updateBoxViewPort(box, view);
-                    // }
+                    // TODO 更新 box 的限制区域
 
-                    emitter.emit(`${options.pluginId}${EventNames.WindowCreated}`);
+                    emitter.emit(`${options.pluginId}${Events.WindowCreated}`);
                 }
             });
         }
@@ -255,7 +262,7 @@ export class WindowManagerWrapper extends React.Component {
         );
     }
 
-    private renderMaps(): React.ReactNode {
+    private renderMaps() {
         const componentsMap = WindowManagerWrapper.componentsMap;
         const ids = Array.from(componentsMap.keys());
         return (
@@ -269,13 +276,20 @@ export class WindowManagerWrapper extends React.Component {
     }
 
     render(): React.ReactNode {
+        const wrapperStyle: React.CSSProperties = {
+            width: "100%", 
+            height: "100%", 
+            position: "absolute", 
+            left: 0, 
+            top: 0,
+            display: "none"
+        }
         return (
             <>
                 {this.props.children}
-                <div className="window-manger" style={{
-                    width: "100%", height: "100%", position: "absolute", left: 0, top: 0,
-                    display: "none"
-                }}>
+                <div
+                    className="window-manger" 
+                    style={wrapperStyle}>
                     {this.renderMaps()}
                 </div>
             </>

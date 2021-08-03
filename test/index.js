@@ -46,6 +46,7 @@ const sdk = new WhiteWebSdk({
 const { WindowManager, WindowManagerWrapper } = Manager;
 window.WindowManager = WindowManager;
 window.WindowManagerWrapper = WindowManagerWrapper;
+window.Manager = Manager;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
     roomToken: process.env.ROOM_TOKEN,
@@ -68,19 +69,31 @@ sdk.joinRoom({
     // WindowManager.use(room);
     window.manager = manager;
 
-    button1.addEventListener("click", () => {
-        manager.addPlugin(PPT.kind, undefined, {
-            plugin: PPT,
-            ppt: { scenePath: "/test" },
-            options: () => {
-                return { a: 1 };
-            }
-        })
+    manager.onPluginDestory(PPT.kind, (error) => {
+        console.log("onPluginDestory", error)
     })
 
+    button1.addEventListener("click", () => {
+      manager.addPlugin(
+        PPT.kind,
+        undefined,
+        {
+          ppt: { scenePath: "/test" },
+        },
+        { options: { a: 1 }, plugin: PPT }
+      );
+    });
+
     button2.addEventListener("click", () => {
-        manager.addPlugin(PPT.kind, undefined, { plugin: PPT, ppt: { scenePath: "/test3" } })
-    })
+      manager.addPlugin(
+        PPT.kind,
+        undefined,
+        {
+          ppt: { scenePath: "/test3" },
+        },
+        { options: { a: 1 }, plugin: PPT }
+      );
+    });
 })
 
 
