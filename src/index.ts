@@ -2,6 +2,7 @@ import Emittery from 'emittery';
 import PPT from './PPT';
 import { AddComponentParams, BoxMap, WindowManagerWrapper } from './wrapper';
 import {
+    CameraBound,
     CameraState,
     Displayer,
     Event,
@@ -12,13 +13,14 @@ import {
     View,
     ViewVisionMode
     } from 'white-web-sdk';
-import { Events, PluginAttributes, PluginEvents } from './constants';
+import { Events, PluginAttributes, PluginEvents, PluginListenerEvents } from './constants';
 import { loadPlugin } from './loader';
 import { WinBox } from './box/src/winbox';
 import './box/css/winbox.css';
 import './box/css/themes/modern.less';
 import './style.css';
 import { Plugin, Context } from './typings';
+import { ViewManager } from './viewManager';
 
 (window as any).PPT = PPT;
 
@@ -60,11 +62,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
     public static displayer: Displayer;
-    public static viewsMap: Map<string, View> = new Map();
     public static emitterMap:Map<string, Emittery> = new Map();
 
     private instancePlugins: Map<string, Plugin> = new Map();
     private pluginListenerMap: Map<string, any> = new Map();
+    private viewManager: ViewManager;
 
 
     constructor(context: InvisiblePluginContext) {
@@ -75,6 +77,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.displayer.addMagixEventListener(Events.PluginResize, this.pluginResizeListener);
         WindowManager.instance = this;
         WindowManager.displayer = this.displayer;
+        this.viewManager = new ViewManager(this.displayer as Room);
     }
 
     /**
@@ -129,6 +132,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return manger as WindowManager;
     }
 
+    /**
+     * 创建 main View
+     *
+     * @returns {View}
+     * @memberof WindowManager
+     */
+    public createMainView(): View {
+        return this.viewManager.createMainView();
+    }
+
     /**`
      * 创建一个插件至白板
      * 
@@ -155,16 +168,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     /**
-     * 插件 destory 回调
+     * 插件 destroy 回调
      *
      * @param {string} kind
      * @param {(error: Error) => void} listener
      * @memberof WindowManager
      */
-    public onPluginDestory(kind: string, listener: (error: Error) => void) {
-        emitter.once(`destory-${kind}`).then(listener);
+    public onPluginDestroy(kind: string, listener: (error: Error) => void) {
+        emitter.once(`destroy-${kind}`).then(listener);
     }
-
 
     private onPluginBoxInit = (name: string) => {
         const pluginAttributes = this.attributes[name];
@@ -194,6 +206,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             case "focus": {
                 this.safeDispatchMagixEvent(Events.PluginFocus, payload);
                 this.safeSetAttributes({ focus: payload.pluginId });
+                this.viewManager.swtichViewToWriter(payload.pluginId);
                 break;
             }
             case "resize": {
@@ -209,7 +222,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 break;
             }
             case "close": {
-                this.destoryPlugin(payload.pluginId, false, payload.error, payload.errorInfo);
+                this.destroyPlugin(payload.pluginId, false, payload.error, payload.errorInfo);
                 break;
             }
             default:
@@ -217,21 +230,22 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private destoryPlugin(pluginId: string, needCloseBox: boolean, error?: Error, errorInfo?: any,) {
+    private destroyPlugin(pluginId: string, needCloseBox: boolean, error?: Error, errorInfo?: any,) {
         const pluginListener = this.pluginListenerMap.get(pluginId);
         const pluginEmitter = WindowManager.emitterMap.get(pluginId);
         const pluginInstance = this.instancePlugins.get(pluginId);
         if (pluginEmitter && pluginListener) {
+            pluginEmitter.emit(PluginListenerEvents.destroy, { error, errorInfo });
             pluginEmitter.offAny(pluginListener);
         }
         if (pluginInstance) {
-            emitter.emit(`destory-${pluginInstance.kind}`, { error, errorInfo });
+            emitter.emit(`destroy-${pluginInstance.kind}`, { error, errorInfo });
         }
         this.instancePlugins.delete(pluginId);
         WindowManager.emitterMap.delete(pluginId);
-        WindowManager.viewsMap.delete(pluginId);
         this.pluginListenerMap.delete(pluginId);
         this.safeUpdateAttributes(["plugins", pluginId], undefined);
+        BoxMap.delete(pluginId);
         if (needCloseBox) {
             const box = this.getWindow(pluginId);
             box && box.closeForce();
@@ -302,7 +316,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             await plugin.setup(context);
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
             emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
-                pluginEmitter.emit("create");
+                pluginEmitter.emit(PluginListenerEvents.create);
                 const pluginLisener = this.makePluginEventListener(pluginId, options);
                 pluginEmitter.onAny(pluginLisener);
                 this.pluginListenerMap.set(pluginId, pluginLisener);
@@ -342,8 +356,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     }
                     break;
                 }
-                case PluginEvents.destory: {
-                    this.destoryPlugin(pluginId, true, data.error);
+                case PluginEvents.destroy: {
+                    this.destroyPlugin(pluginId, true, data.error);
                 }
                 default:
                     break;
@@ -361,11 +375,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions, context }: InsertComponentToWrapperParams) {
         const options = plugin.options;
-        let payload: AddComponentParams = { pluginId, node: plugin.wrapper, emitter, context };
+        let payload: AddComponentParams = { pluginId, node: plugin.wrapper, emitter, context, plugin };
         if (options.enableView) {
-            const room = WindowManager.instance.displayer;
-            const view = room.views.createView();
-            view.mode = ViewVisionMode.Freedom;
+            const room = this.displayer;
+            const view = this.viewManager.createView(payload.pluginId);
             (view as any).cameraman.disableCameraTransform = true;
             if (initScenePath) {
                 const viewScenes = room.entireScenes()[initScenePath];
@@ -373,7 +386,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 payload.initScenePath = initScenePath;
             }
             payload.view = view;
-            WindowManager.viewsMap.set(pluginId, view);
         }
         if (pluginOptions) {
             payload.options = pluginOptions;
@@ -407,6 +419,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             this.updateAttributes(keys, value);
         }
     }
+
 
     public get canOperate() {
         if (isRoom(this.displayer)) {

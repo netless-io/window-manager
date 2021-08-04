@@ -1,6 +1,6 @@
 import { Displayer } from 'white-web-sdk';
-import { PluginEventKeys } from './constants';
-import type { ComponentType } from "react";
+import { PluginEventKeys, PluginListenerKeys } from './constants';
+import React from 'react';
 
 export type Plugin = {
     kind: string;
@@ -13,7 +13,7 @@ export type Plugin = {
         enableView?: boolean;
     };
     setup: (context: Context) => void;
-    wrapper?: ComponentType;
+    wrapper?: React.ReactNode;
 };
 
 export type Context = {
@@ -22,7 +22,7 @@ export type Context = {
 
     setAttributes: (attributes: any) => void;
     updateAttributes: (keys: string[], attributes: any) => void;
-    on: (event: PluginEventKeys, listener: () => void) => void;
+    on: (event: PluginListenerKeys, listener: () => void) => void;
     emit: (event: PluginEventKeys, payload?: any) => void;
     off: (event: string, listener: () => void) => void;
     once: (event: string, listener: () => any) => void;

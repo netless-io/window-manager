@@ -3,13 +3,22 @@ import * as Manager from "../dist/index";
 import "normalize.css"
 import { scenes } from "./test";
 
+const continaer = document.createElement("div");
+continaer.style.width = "80vw";
+continaer.style.height = "80vh";
+continaer.style.overflowY = "scroll";
+continaer.style.marginLeft = "10vw";
+continaer.style.marginTop = "10vh";
+
 const root = document.createElement("div");
 root.textContent = "whiteboard";
-root.style.width = "80vw";
-root.style.height = "80vh";
-root.style.marginLeft = "10vw";
-root.style.marginTop = "10vh";
+root.style.width = "100%";
+root.style.height = "1000px";
+
 root.style.backgroundColor = "gray";
+
+continaer.appendChild(root)
+
 
 // const pptDom = document.createElement("div");
 // pptDom.style.width = "80vw";
@@ -31,12 +40,28 @@ rightBar.style.right = 0;
 rightBar.style.top = "70px";
 rightBar.style.textAlign = "center";
 
+const timer = null
+
+continaer.addEventListener("wheel", event => {
+    root.style.pointerEvents = "none";
+    if (timer) {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            root.style.pointerEvents = "auto";
+        }, 5);
+    }
+});
+
+continaer.addEventListener("click", () => {
+    root.style.pointerEvents = "auto";
+})
+
 rightBar.appendChild(button1);
 rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(button2);
 
-document.body.appendChild(root);
+document.body.appendChild(continaer);
 document.body.appendChild(rightBar);
 
 const sdk = new WhiteWebSdk({
@@ -54,23 +79,23 @@ sdk.joinRoom({
     invisiblePlugins: [WindowManager],
     useMultiViews: true
 }).then(room => {
-    // room.bindHtmlElement(root);
-    window.room = room;
-    room.putScenes("/test", scenes);
 
-    const mainView = room.views.createView();
-    mainView.mode = ViewVisionMode.Writable;
-    mainView.divElement = root;
-    window.mainView = mainView;
-    // pptView.focusScenePath = "/test/2d9a8a51-08c1-4949-94f9-7d186d04b3b0";
+    window.room = room;
+
+    room.setScenePath("/init")
 
     const manager = room.getInvisiblePlugin(WindowManager.kind);
     window.InvisiblePlugin = InvisiblePlugin;
-    // WindowManager.use(room);
+    WindowManager.use(room);
     window.manager = manager;
 
-    manager.onPluginDestory(PPT.kind, (error) => {
-        console.log("onPluginDestory", error)
+    const mainView = manager.createMainView();
+     mainView.mode = ViewVisionMode.Writable;
+    mainView.divElement = root;
+    window.mainView = mainView;
+
+    manager.onPluginDestroy(PPT.kind, (error) => {
+        console.log("onPlugindestroy", error)
     })
 
     button1.addEventListener("click", () => {

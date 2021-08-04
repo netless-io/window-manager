@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom';
 import debounce from 'lodash.debounce';
 import Emittery from 'emittery';
 import { emitter, WindowManager } from './index';
-import { Context } from "./typings";
+import { Context, Plugin } from "./typings";
 import { Events, PluginAttributes } from './constants';
 import {
     View,
@@ -17,6 +17,7 @@ import { ErrorBoundary } from './error';
 
 export type AddComponentParams = {
     pluginId: string,
+    plugin: Plugin,
     node: any,
     view?: View,
     scenes?: WhiteScene[],
@@ -44,7 +45,6 @@ export class WindowManagerWrapper extends React.Component {
     }
 
     componentWillUnmount(): void {
-        console.log("componentWillUnmount");
         emitter.clearListeners();
         BoxMap.forEach(box => {
             box.unmount();
@@ -63,10 +63,10 @@ export class WindowManagerWrapper extends React.Component {
 
     private windowResizeListener = () => {
         BoxMap.forEach((box, pluginId) => {
-            const view = WindowManager.viewsMap.get(pluginId);
-            if (view) {
-                this.updateBoxViewPort(box, view);
-            }
+            // const view = WindowManager.viewsMap.get(pluginId);
+            // if (view) {
+            //     this.updateBoxViewPort(box, view);
+            // }
             const pluginAttributes = WindowManager.instance.attributes[pluginId];
             const position = pluginAttributes?.[PluginAttributes.Position];
             if (position) {
@@ -187,13 +187,13 @@ export class WindowManagerWrapper extends React.Component {
     private setRef = (ref: HTMLDivElement | null, options: AddComponentParams) => {
         if (!BoxMap.has(options.pluginId) && ref) {
             emitter.emit("init", { pluginId: options.pluginId });
-        
+            const { width, height } = options.plugin.options;
             const box = new WinBox(options.pluginId, {
-                class: "modern plugin-winbox"
+                class: "modern plugin-winbox",
+                width, height
             });
 
             BoxMap.set(options.pluginId, box);
-            console.log("set box Map", BoxMap)
             emitter.once(Events.InitReplay).then((payload) => {
                 const box = BoxMap.get(options.pluginId);
                 if (box) {

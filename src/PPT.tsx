@@ -1,13 +1,6 @@
 import { Room, View } from "white-web-sdk"
 import React from "react";
-
-type Context = {
-    room: Room;
-    on: (event: string, listener: () => void) => void;
-    view: View;
-    setAttributes: (attributes: any) => void;
-    emit: (eventName: string, data: any) => void;
-}
+import { Context } from "./typings";
 
 type PPTWrapperProps = {
     view: View;
@@ -44,14 +37,13 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
     }
 
     getCurrentPathName = () => {
-        return this.props.scenes[this.state.page - 1].name;
+        return this.props.scenes[this.state.page - 1]?.name;
     }
 
     render() {
         return (
             <div
                 ref={this.setRef}
-                onClick={this.onClick}
                 style={{ width: "100%", height: "100%" }}>
             </div>
         );
@@ -61,7 +53,9 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
 export default {
     kind: "PPTPlugin",
     options: {
-        enableView: true
+        enableView: true,
+        width: 500,
+        height: 1000
      },
     setup: (context: Context) => {
         context.on("create", () => {
