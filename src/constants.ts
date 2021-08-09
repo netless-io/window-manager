@@ -3,6 +3,7 @@ export enum Events {
     PluginMove = "PluginMove",
     PluginFocus = "PluginFocus",
     PluginResize = "PluginResize",
+    PluginBlur = "PluginBlur",
     GetAttributes = "GetAttributes",
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
     InitReplay = "InitReplay",
@@ -22,7 +23,10 @@ export enum PluginEvents {
 
 export enum PluginListenerEvents {
     create = "create",
-    destroy = "destroy"
+    destroy = "destroy",
+    attributesUpdate = "attributesUpdate",
+    writableChange = "writableChange",
+    sceneStateChange = "sceneStateChange"
 }
 
 type AnyEnumKeysAsStrings<TEnumType> = keyof TEnumType;

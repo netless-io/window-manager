@@ -1,4 +1,3 @@
-
 {
     "compilerOptions": {
       "rootDir": "./src",
@@ -9,7 +8,7 @@
       "declaration": true,
       "declarationMap": true,
       "noImplicitAny": true,
-      "module": "ES6",
+      "module": "ESNext",
       "skipLibCheck": true,
       "target": "es6",
       "jsx": "react",
@@ -22,11 +21,11 @@
       "allowSyntheticDefaultImports": true,
       "experimentalDecorators": true,
       "moduleResolution": "node",
-      "types" : [],
-      "allowJs": true
+      "types" : ["./node_modules/telebox-insider/dist"],
+      "allowJs": true,
     },
     "include": [
       "./src",
-      "../node_modules/@types/**/index.d.ts"
+      "../node_modules/@types/**/index.d.ts",
     ]
   }

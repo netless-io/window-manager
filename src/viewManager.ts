@@ -2,17 +2,17 @@ import { Room, View, ViewVisionMode } from "white-web-sdk";
 
 export class ViewManager {
     private room: Room;
-    private _mainView: View | null = null;
+    public mainView: View;
     private views: Map<string, View> = new Map();
 
     constructor(room: Room) {
         this.room = room;
+        this.mainView = this.createMainView();
     }
 
     public createMainView(): View {
         const mainView = this.room.views.createView();
         mainView.mode = ViewVisionMode.Writable;
-        this._mainView = mainView;
         return mainView;
     }
 
@@ -23,6 +23,9 @@ export class ViewManager {
         return view;
     }
 
+    public getView(pluginId: string) {
+        return this.views.get(pluginId);
+    }
 
     public swtichViewToWriter(pluginId: string) {
         const view = this.views.get(pluginId);

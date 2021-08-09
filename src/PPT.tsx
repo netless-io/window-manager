@@ -1,6 +1,7 @@
 import { Room, View } from "white-web-sdk"
 import React from "react";
-import { Context } from "./typings";
+import { } from "./typings";
+import { PluginContext } from "./PluginContext";
 
 type PPTWrapperProps = {
     view: View;
@@ -30,17 +31,17 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
     setRef = (ref: HTMLDivElement) => {
         this.viewRef = ref;
         this.props.view.divElement = ref;
-        this.props.view.focusScenePath = `${this.props.initScenePath}/${this.getCurrentPathName()}`;
+        this.props.view.focusScenePath = `${this.props.initScenePath}/${this.props.scenes[0].name}`;
     }
 
-    nextPage = () => {
-        this.setState({ page: this.state.page + 1 });
-        this.props.view.focusScenePath = `${this.props.initScenePath}/${this.getCurrentPathName()}`;
-    }
+    // nextPage = () => {
+    //     this.setState({ page: this.state.page + 1 });
+    //     this.props.view.focusScenePath = `${this.props.initScenePath}/${this.getCurrentPathName()}`;
+    // }
 
-    getCurrentPathName = () => {
-        return this.props.scenes[this.state.page - 1]?.name;
-    }
+    // getCurrentPathName = () => {
+    //     return this.props.scenes[this.state.page - 1]?.name;
+    // }
 
     onWheel = () => {
         if (this.viewRef) {
@@ -64,7 +65,7 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
                 ref={this.setWrapperRef}
                 onWheel={this.onWheel}
                 onClick={this.onClick}
-                style={{ width: "100%", height: "700px" }}>
+                style={{ width: "100%", height: "100%" }}>
                 <div
                     ref={this.setRef}
                     style={{ width: "100%", height: "100%" }}>
@@ -81,11 +82,16 @@ export default {
         width: 500,
         height: 600
      },
-    setup: (context: Context) => {
+    setup: (context: PluginContext) => {
+        console.log("setup", context);
         context.on("create", () => {
             console.log("create");
             context.setAttributes({ aaaaa: 1 });
             // context.emit("setBoxSize", { width: 400, height: 400 });
+            context.on("attributesUpdate", (attributes: any) => {
+                console.log("attributesUpdate", attributes)
+            });
+            console.log("isWritable", context.isWritable);
         });
     },
     wrapper: PPTWrapper,

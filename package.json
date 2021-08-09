@@ -1,17 +1,15 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.0.0-beta.21",
+  "version": "0.0.0-beta.32",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/window-manager.cjs.js",
+  "module": "dist/window-manager.es.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -d",
+    "build": "vite build && yarn type-gen",
     "type-gen": "tsc --emitDeclarationOnly",
     "predev": "yarn type-gen",
-    "dev": "webpack --config webpack.config.js  --watch --progress --mode=development",
-    "build:lib:types": "tsc --emitDeclarationOnly",
-    "build:lib:js": "webpack --mode=development",
-    "build:lib": "npm run build:lib:types && npm run build:lib:js"
+    "build:lib:types": "tsc --emitDeclarationOnly"
   },
   "keywords": [],
   "author": "",
@@ -20,29 +18,26 @@
     "white-web-sdk": "^2.13.10"
   },
   "dependencies": {
+    "debug": "^4.3.2",
     "emittery": "^0.9.2",
     "localforage": "^1.9.0",
     "lodash.debounce": "^4.0.8",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "telebox-insider": "link:../telebox-insider"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^20.0.0",
+    "@rollup/plugin-node-resolve": "^13.0.4",
+    "@rollup/plugin-url": "^6.1.0",
+    "@types/debug": "^4.1.7",
     "@types/lodash.debounce": "^4.0.6",
     "@types/react": "^17.0.14",
     "@types/react-dom": "^17.0.9",
-    "css-loader": "^5.2.6",
     "dotenv": "^10.0.0",
-    "fork-ts-checker-webpack-plugin": "^6.2.12",
     "less": "^4.1.1",
-    "less-loader": "^10.0.1",
-    "optimize-css-assets-webpack-plugin": "^6.0.1",
-    "style-loader": "^3.1.0",
-    "terser-webpack-plugin": "^5.1.4",
-    "ts-loader": "^9.2.3",
     "typescript": "^4.3.5",
-    "url-loader": "^4.1.1",
-    "webpack": "^5.44.0",
-    "webpack-cli": "^4.7.2",
+    "vite": "^2.4.4",
     "white-web-sdk": "^2.13.10"
   }
 }
