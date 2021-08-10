@@ -3,7 +3,7 @@ import { PluginContext } from './PluginContext';
 
 export type Plugin = {
     kind: string;
-    options: {
+    config: {
         width: number;
         height: number;
 

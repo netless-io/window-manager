@@ -34,11 +34,11 @@ export class PluginContext {
     }
 
     public get content() {
-        return this.manager.boxManager.getBox({ pluginId: this.pluginId })?.$content;
+        return this.manager.boxManager.getBox(this.pluginId )?.$content;
     }
 
     public get footer() {
-        return this.manager.boxManager.getBox({ pluginId: this.pluginId })?.$footer;
+        return this.manager.boxManager.getBox(this.pluginId)?.$footer;
     }
 
     public setAttributes(attributes: any) {

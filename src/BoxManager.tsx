@@ -52,7 +52,7 @@ export class BoxManager {
     }
 
     public createBox(params: CreateBoxParams) {
-        const { width, height } = params.plugin.options;
+        const { width, height } = params.plugin.config;
         const widthRatio = width / this.teleBoxManager.containerRect.width;
         const heigthRatio = height / this.teleBoxManager.containerRect.height;
 
@@ -83,15 +83,22 @@ export class BoxManager {
         return manager;
     }
 
-    public getBox({ pluginId }: PluginId) {
+    public getBox(pluginId: string) {
         const boxId = this.pluginBoxMap.get(pluginId);
         if (boxId) {
             return this.teleBoxManager.queryOne({ id: boxId });
         }
     }
 
+    public closeBox(pluginId: string) {
+        const boxId = this.pluginBoxMap.get(pluginId);
+        if (boxId) {
+            return this.teleBoxManager.remove(boxId);
+        }
+    }
+
     public boxIsFocus(pluginId: string) {
-        const box = this.getBox({ pluginId });
+        const box = this.getBox(pluginId);
         return box?.focus;
     }
 

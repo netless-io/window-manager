@@ -79,7 +79,7 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
 
 export default {
     kind: "PPTPlugin",
-    options: {
+    config: {
         enableView: true,
         width: 500,
         height: 600

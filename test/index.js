@@ -47,9 +47,6 @@ rightBar.style.textAlign = "center";
 const button3 = document.createElement("button")
 button3.textContent = "课件3"
 
-rightBar.appendChild(button1);
-rightBar.appendChild(document.createElement("br"))
-rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(button2);
 rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(document.createElement("br"))
@@ -84,7 +81,7 @@ sdk.joinRoom({
     window.manager = manager;
 
     const mainView = manager.createMainView();
-     mainView.mode = ViewVisionMode.Writable;
+    mainView.mode = ViewVisionMode.Writable;
     mainView.divElement = root;
     window.mainView = mainView;
 
@@ -92,37 +89,32 @@ sdk.joinRoom({
         console.log("onPlugindestroy", error)
     })
 
-    button1.addEventListener("click", () => {
-      manager.baseInsertPlugin(
-        PPT.kind,
-        undefined,
-        {
-          ppt: { scenePath: "/test" },
-        },
-        { options: { a: 1 }, plugin: PPT }
-      );
-    });
-
     button2.addEventListener("click", () => {
-      manager.addPlugin(
-        PPT.kind,
-        undefined,
-        {
-          ppt: { scenePath: "/693d42e0f69311eb8177ab7800579660/f62a1dfb-3efb-4d6e-87e1-fc3c522b52aa" },
-        },
-        { options: { a: 1 }, plugin: PPT }
-      );
+        manager.addPlugin({
+            kind: PPT.kind,
+            plugin: PPT,
+            syncOptions: {
+                ppt: { scenePath: "/2e57c840f98a11eb9b03a12989ba200c/80b1ae4e-f9f6-4cf3-82c8-9e6642c3902e" }
+            },
+            localOptions: {
+                a: 1
+            }
+        });
     });
     button3.addEventListener("click", () => {
-        manager.addPlugin(
-          PPT.kind,
-          undefined,
-          {
-            ppt: { scenePath: "/693d42e0f69311eb8177ab7800579660/86c7e7ae-fb8d-446e-98a5-74f326856101" },
-          },
-          { options: { a: 1 }, plugin: PPT }
-        );
-      });
+        manager.addPlugin({
+            kind: PPT.kind,
+            plugin: PPT,
+            syncOptions: {
+                ppt: { scenePath: "/2e57c840f98a11eb9b03a12989ba200c/9260d43b-d48a-4936-b54c-06d0d4c1716d" }
+            },
+            localOptions: {
+                a: 1
+            }
+        });
+    });
 })
+
+
 
 

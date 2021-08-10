@@ -28,6 +28,7 @@ import { ViewManager } from './ViewManager';
 import './style.css';
 import 'telebox-insider/dist/style.css';
 import { PluginListeners } from './PluginListener';
+import { ViewCameraManager } from './ViewCameraManager';
 
 (window as any).PPT = PPT;
 
@@ -48,11 +49,6 @@ export type AddPluginOptions = {
     };
 }
 
-export type AddPluginLocalOptions = {
-    plugin?: Plugin;
-    options?: any;
-}
-
 type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
 
 type InsertComponentToWrapperParams = {
@@ -62,6 +58,13 @@ type InsertComponentToWrapperParams = {
     initScenePath?: string;
     pluginOptions?: any,
     context: PluginContext,
+}
+
+export type AddPluginParams = {
+    kind: string;
+    plugin: string | Plugin;
+    syncOptions?: AddPluginOptions;
+    localOptions?: any;
 }
 
 export const emitter: Emittery = new Emittery();
@@ -74,6 +77,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static root: HTMLElement | null;
     public static viewManager: ViewManager;
     public boxManager: BoxManager;
+    public viewCameraManager: ViewCameraManager;
 
     private instancePlugins: Map<string, Plugin> = new Map();
     private pluginListenerMap: Map<string, any> = new Map();
@@ -86,7 +90,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         
         WindowManager.instance = this;
         WindowManager.displayer = this.displayer;
-        WindowManager.viewManager = new ViewManager(this.displayer as Room, this);
+        this.viewCameraManager = new ViewCameraManager(this);
+        WindowManager.viewManager = new ViewManager(this.displayer as Room, this, this.viewCameraManager);
         this.boxManager = new BoxManager(WindowManager.viewManager.mainView, this);
         this.pluginListeners = new PluginListeners(this, this.displayer, this.boxManager);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
@@ -106,7 +111,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             for (const id in plugins) {
                 const plugin = plugins[id];
                 if (plugin) {
-                    instance.baseInsertPlugin(plugin.name, plugin.url, plugin.options);
+                    instance.baseInsertPlugin({
+                        kind: plugin.kind,
+                        plugin: plugin.url,
+                        syncOptions: plugin.options
+                    });
                 }
             }
         }
@@ -124,7 +133,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             for (const id in plugins) {
                 if (!this.instancePlugins.has(id)) {
                     const plugin = plugins[id];
-                    this.baseInsertPlugin(plugin.name, plugin.url, plugin.options);
+                    this.baseInsertPlugin({
+                        kind: plugin.kind,
+                        plugin: plugin.url,
+                        syncOptions: plugin.options
+                    });
                 }
             }
         }
@@ -165,7 +178,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return WindowManager.viewManager.mainView;
     }
 
-    /**`
+    /**
      * 创建一个插件至白板
      * 
      * @param {string} name
@@ -173,24 +186,26 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @param {AddPluginOptions} options
      * @memberof WindowManager
      */
-    public async addPlugin(name: string, url: string, options: AddPluginOptions, localOptions?: AddPluginLocalOptions) {
-        const baseResult = await this.baseInsertPlugin(name, url, options, localOptions);
+    public async addPlugin(params: AddPluginParams) {
+        const baseResult = await this.baseInsertPlugin(params);
         if (baseResult) {
-            this.addPluginToAttirbutes(baseResult.pluginId, url, baseResult.plugin, options, localOptions);
+            this.addPluginToAttirbutes(baseResult.pluginId, params);
+            this.instancePlugins.set(baseResult.pluginId, baseResult.plugin);
         }
     }
 
-    private async baseInsertPlugin(name: string, url: string, options: AddPluginOptions, localOptions?: AddPluginLocalOptions) {
-        const pluginId = this.generatePluginId(name, options);
+    private async baseInsertPlugin(params: AddPluginParams) {
+        const pluginId = this.generatePluginId(params.kind, params.syncOptions);
         if (this.instancePlugins.get(pluginId)) {
             return;
         }
-        if ((name && url) || localOptions?.plugin) {
-            const plugin = localOptions?.plugin ? localOptions.plugin : await loadPlugin(name, url);
+
+        if (params.kind && params.plugin) {
+            const plugin = typeof params.plugin === "string" ? await loadPlugin(params.kind, params.plugin) : params.plugin;
             if (plugin) {
-                await this.setupPlugin(pluginId, plugin, options, localOptions);
+                await this.setupPlugin(pluginId, plugin, params.syncOptions, params.localOptions);
             } else {
-                throw new Error(`plugin load failed ${name} ${url}`);
+                throw new Error(`plugin load failed ${params.kind} ${params.plugin}`);
             }
             this.boxManager.updateManagerRect();
             return {
@@ -292,10 +307,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         WindowManager.emitterMap.delete(pluginId);
         this.pluginListenerMap.delete(pluginId);
         this.safeUpdateAttributes(["plugins", pluginId], undefined);
-        // BoxMap.delete(pluginId);
         if (needCloseBox) {
-            // const box = this.getWindow(pluginId);
-            // box && box.closeForce();
+            this.boxManager.closeBox(pluginId);
+            WindowManager.viewManager.destoryView(pluginId);
         }
     }
 
@@ -313,10 +327,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private addPluginToAttirbutes(
         pluginId: string, 
-        url: string, 
-        plugin: Plugin, 
-        options?: AddPluginOptions,
-        localOptions?: AddPluginLocalOptions, 
+        params: AddPluginParams
         ): void {
         if (!this.attributes[pluginId]) {
             this.safeSetAttributes({ [pluginId]: {
@@ -327,18 +338,23 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (!this.attributes.plugins) {
             this.safeSetAttributes({ plugins: {} });
         }
-        this.safeUpdateAttributes(["plugins", pluginId], { url, options });
-        this.instancePlugins.set(pluginId, plugin);
+        if (typeof params.plugin === "string") {
+            this.safeUpdateAttributes(["plugins", pluginId], {
+                kind: params.kind,
+                url: params.plugin, 
+                options: params.syncOptions,
+            });
+        }
     }
 
-    private async setupPlugin(pluginId: string, plugin: Plugin, options: setPluginOptions, localOptions?: AddPluginLocalOptions) {
+    private async setupPlugin(pluginId: string, plugin: Plugin, options?: setPluginOptions, localOptions?: any) {
         const pluginEmitter: Emittery = new Emittery();
         const context = new PluginContext(this, pluginId, pluginEmitter);
         try {
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
             emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
                 pluginEmitter.emit(PluginListenerEvents.create);
-                const pluginLisener = this.makePluginEventListener(pluginId, options);
+                const pluginLisener = this.makePluginEventListener(pluginId);
                 pluginEmitter.onAny(pluginLisener);
                 this.pluginListenerMap.set(pluginId, pluginLisener);
             });
@@ -347,8 +363,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 pluginId,
                 plugin,
                 emitter: pluginEmitter,
-                initScenePath: options.ppt?.scenePath,
-                pluginOptions: localOptions?.options,
+                initScenePath: options?.ppt?.scenePath,
+                pluginOptions: localOptions,
                 context
             });
         } catch (error) {
@@ -356,7 +372,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private makePluginEventListener(pluginId: string, options: setPluginOptions) {
+    private makePluginEventListener(pluginId: string) {
         return (eventName: string, data: any) => {
             switch (eventName) {
                 case PluginEvents.setBoxSize: {
@@ -384,8 +400,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private generatePluginId(kind: string, options: AddPluginOptions) {
-        if (options.ppt) {
+    private generatePluginId(kind: string, options?: AddPluginOptions) {
+        if (options && options.ppt) {
             return `${kind}-${options.ppt.scenePath}`;
         } else {
             return kind;
@@ -393,9 +409,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions, context }: InsertComponentToWrapperParams) {
-        const options = plugin.options;
+        const config = plugin.config;
         let payload: any = { pluginId, node: plugin.wrapper, emitter, context, plugin };
-        if (options.enableView) {
+        if (config.enableView) {
             const room = this.displayer;
             const view = WindowManager.viewManager.createView(payload.pluginId);
             const mainViewElement = WindowManager.viewManager.mainView.divElement;

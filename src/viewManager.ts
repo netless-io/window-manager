@@ -1,29 +1,49 @@
-import { Room, View, ViewVisionMode } from "white-web-sdk";
+import { Camera, Room, View, ViewVisionMode } from "white-web-sdk";
 import { WindowManager } from "./index";
+import { ViewCameraManager } from "./ViewCameraManager";
 
 export class ViewManager {
 
     public mainView: View;
     private views: Map<string, View> = new Map();
+    private viewListeners: Map<string, any> = new Map();
     private mainViewIsAddListener = false;
 
     constructor(
         private room: Room, 
-        private manager: WindowManager) {
+        private manager: WindowManager,
+        private viewCameraManager: ViewCameraManager) {
         this.mainView = this.createMainView();
     }
 
     public createMainView(): View {
         const mainView = this.room.views.createView();
+        mainView.callbacks.on("onCameraUpdated", this.viewCameraListener("mainView"));
         mainView.mode = ViewVisionMode.Writable;
         return mainView;
     }
 
     public createView(pluginId: string): View {
         const view = this.room.views.createView();
+        const listener = this.viewCameraListener(pluginId);
+        this.viewListeners.set(pluginId, listener);
+        view.callbacks.on("onCameraUpdated", listener);
         view.mode = ViewVisionMode.Freedom;
         this.views.set(pluginId, view);
         return view;
+    }
+
+    public destoryView(pluginId: string) {
+        const view = this.views.get(pluginId);
+        if (view) {
+            const viewListener = this.viewListeners.get(pluginId);
+            if (viewListener) {
+                view.callbacks.off("onCameraUpdated", viewListener);
+                this.viewCameraManager.deleteCamera(pluginId);
+            }
+            view.release();
+            this.views.delete(pluginId);
+        }
     }
 
     public getView(pluginId: string) {
@@ -84,5 +104,11 @@ export class ViewManager {
             });
             this.mainViewIsAddListener = true;
         }
+    }
+
+    public viewCameraListener(id: string) {
+        return (camera: Camera) => {
+            this.viewCameraManager.setCamera(id, camera);
+        };
     }
 }
