@@ -1,20 +1,19 @@
 import Emittery from 'emittery';
 import PPT from './PPT';
-import { BoxManager } from './BoxManager';
+import { BoxManager, TeleBoxState } from './BoxManager';
 import {
     CameraBound,
     CameraState,
     Displayer,
+    DisplayerState,
     Event,
     InvisiblePlugin,
     InvisiblePluginContext,
     isRoom,
     Room,
     View,
-    ViewVisionMode,
-    DisplayerState
+    ViewVisionMode
     } from 'white-web-sdk';
-import { Plugin } from './typings';
 import { debug, log } from './log';
 import {
     Events,
@@ -23,16 +22,19 @@ import {
     PluginListenerEvents
     } from './constants';
 import { loadPlugin } from './loader';
+import { Plugin } from './typings';
+import { PluginContext } from './PluginContext';
 import { ViewManager } from './ViewManager';
 import './style.css';
 import 'telebox-insider/dist/style.css';
-import { PluginContext } from './PluginContext';
+import { PluginListeners } from './PluginListener';
 
 (window as any).PPT = PPT;
 
 
 export type WindowMangerAttributes = {
     modelValue?: string,
+    boxState: TeleBoxState,
     [key: string]: any,
 }
 
@@ -69,24 +71,26 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static instance: WindowManager;
     public static displayer: Displayer;
     public static emitterMap:Map<string, Emittery> = new Map();
+    public static root: HTMLElement | null;
+    public static viewManager: ViewManager;
+    public boxManager: BoxManager;
 
     private instancePlugins: Map<string, Plugin> = new Map();
     private pluginListenerMap: Map<string, any> = new Map();
-    public static viewManager: ViewManager;
-    public boxManager: BoxManager;
+    private pluginListeners: PluginListeners;
+
 
     constructor(context: InvisiblePluginContext) {
         super(context);
         emitter.onAny(this.eventListener);
-        this.displayer.addMagixEventListener(Events.PluginMove, this.pluginMoveListener);
-        this.displayer.addMagixEventListener(Events.PluginFocus, this.pluginFocusListener);
-        this.displayer.addMagixEventListener(Events.PluginResize, this.pluginResizeListener);
-        this.displayer.addMagixEventListener(Events.PluginBlur, this.pluginBlurListener);
+        
         WindowManager.instance = this;
         WindowManager.displayer = this.displayer;
         WindowManager.viewManager = new ViewManager(this.displayer as Room);
         this.boxManager = new BoxManager(WindowManager.viewManager.mainView, this);
+        this.pluginListeners = new PluginListeners(this, this.displayer, this.boxManager);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
+        this.pluginListeners.addListeners();
     }
 
     /**
@@ -125,7 +129,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
         for (const [pluginId, pluginEmitter] of WindowManager.emitterMap.entries()) {
-            const pluginAttributes = attributes[pluginId];
+            const pluginAttributes = plugins[pluginId];
             if (pluginAttributes) {
                 pluginEmitter.emit(PluginListenerEvents.attributesUpdate, pluginAttributes);
             }
@@ -140,12 +144,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @returns {Promise<WindowManager>}
      * @memberof WindowManager
      */
-    public static async use(room: Room): Promise<WindowManager> {
+    public static async use(room: Room, root: HTMLElement): Promise<WindowManager> {
         let manger = room.getInvisiblePlugin(WindowManager.kind);
         if (!manger) {
             manger = await room.createInvisiblePlugin(WindowManager, {});
         }
         (manger as any).enableCallbackUpdate = true;
+        WindowManager.root = root;
+        (manger as WindowManager).boxManager.setupBoxManager();
         return manger as WindowManager;
     }
 
@@ -242,7 +248,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             case "resize": {
                 this.safeDispatchMagixEvent(Events.PluginResize, payload);
-                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.Size], { width: payload.width, height: payload.height })
+                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.Size], { width: payload.width, height: payload.height });
+                break;
+            }
+            case TeleBoxState.Minimized: {
+                this.safeDispatchMagixEvent(Events.PluginMinimize, payload);
+                this.setAttributes({ boxState: TeleBoxState.Minimized });
+                break;
+            }
+            case TeleBoxState.Maximized: {
+                this.safeDispatchMagixEvent(Events.PluginMaximize, payload);
+                this.setAttributes({ boxState: TeleBoxState.Maximized });
                 break;
             }
             case "init": {
@@ -283,7 +299,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private displayerStateListener(state: Partial<DisplayerState>) {
+    private displayerStateListener = (state: Partial<DisplayerState>) => {
         if (state.sceneState) {
             const scenePath = state.sceneState.scenePath;
             this.instancePlugins.forEach((_, id) => {
@@ -294,34 +310,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             });
         }
     }
-
-    private pluginMoveListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.moveBox(event.payload);
-        }
-    };
-
-    private pluginFocusListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.focusBox(event.payload);
-        }
-    };
-
-    private pluginResizeListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.resizeBox(event.payload);
-        }
-    };
-
-    private pluginBlurListener =  (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            const pluginEmitter = WindowManager.emitterMap.get(event.payload.pluginId);
-            if (pluginEmitter) {
-                pluginEmitter.emit(PluginListenerEvents.writableChange, { isWritable: false });
-            }
-        }
-    };
-
 
     private addPluginToAttirbutes(
         pluginId: string, 
@@ -355,16 +343,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.pluginListenerMap.set(pluginId, pluginLisener);
             });
             await plugin.setup(context);
-            if (plugin.wrapper) {
-                this.insertComponentToWrapper({
-                    pluginId,
-                    plugin,
-                    emitter: pluginEmitter,
-                    initScenePath: options.ppt?.scenePath,
-                    pluginOptions: localOptions?.options,
-                    context
-                });
-            }''
+            this.insertComponentToWrapper({
+                pluginId,
+                plugin,
+                emitter: pluginEmitter,
+                initScenePath: options.ppt?.scenePath,
+                pluginOptions: localOptions?.options,
+                context
+            });
         } catch (error) {
             throw new Error(`plugin setup error: ${error.message}`);
         }
@@ -412,12 +398,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (options.enableView) {
             const room = this.displayer;
             const view = WindowManager.viewManager.createView(payload.pluginId);
+            const mainViewElement = WindowManager.viewManager.mainView.divElement;
+            if (!mainViewElement) {
+                throw new Error(`create plugin main view must bind divElement`);
+            }
+            WindowManager.viewManager.addMainViewListener();
             (view as any).cameraman.disableCameraTransform = true;
             if (initScenePath) {
                 const viewScenes = room.entireScenes()[initScenePath];
-                payload.scenes = viewScenes;
-                payload.initScenePath = initScenePath;
-                view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
+                if (viewScenes) {
+                    payload.scenes = viewScenes;
+                    payload.initScenePath = initScenePath;
+                    view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
+                }
             }
             payload.view = view;
         }
@@ -440,6 +433,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public onDestroy() {
         emitter.offAny(this.eventListener);
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
+        this.pluginListeners.removeListeners();
     }
 
     public safeSetAttributes(attributes: any) {
@@ -477,8 +471,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
     }
 
-    private getPluginInitPath(pluginId: string) {
-        const pluginAttributes = this.attributes[pluginId];
+    public getPluginInitPath(pluginId: string): string | undefined {
+        const pluginAttributes = this.attributes["plugins"][pluginId];
         if (pluginAttributes) {
             return pluginAttributes?.options?.ppt.scenePath;
         }

@@ -1,7 +1,8 @@
 /* eslint-disable import/no-anonymous-default-export */
 import path from "path";
+import { defineConfig } from "vite";
 
-export default ({ command, mode }) => {
+export default defineConfig(({ command, mode }) => {
     const isProd = mode === "production";
 
     return {
@@ -11,10 +12,12 @@ export default ({ command, mode }) => {
                 formats: ["es", "cjs"],
             },
             outDir: "dist",
+            sourcemap: false,
             rollupOptions: {
                 external: ["react", "white-web-sdk", "react-dom"],
+                // plugins: [styles({ mode: "inject" })]
             },
             minify: false,
         },
     };
-};
+});

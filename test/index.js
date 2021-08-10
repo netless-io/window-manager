@@ -12,12 +12,14 @@ continaer.style.overflow = "hidden";
 continaer.style.marginTop = "2vh";
 continaer.style.marginLeft = "10vw";
 continaer.style.position = "relative";
+continaer.style.border = "1px solid";
 
 const root = document.createElement("div");
 root.textContent = "whiteboard";
 root.style.width = "100%";
 root.style.height = "100%";
-root.style.backgroundColor = "gray";
+
+// root.style.backgroundColor = "gray";
 
 continaer.appendChild(root)
 
@@ -41,22 +43,6 @@ rightBar.style.position = "fixed";
 rightBar.style.right = 0;
 rightBar.style.top = "70px";
 rightBar.style.textAlign = "center";
-
-const timer = null
-
-continaer.addEventListener("wheel", event => {
-    root.style.pointerEvents = "none";
-    if (timer) {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            root.style.pointerEvents = "auto";
-        }, 5);
-    }
-});
-
-continaer.addEventListener("click", () => {
-    root.style.pointerEvents = "auto";
-})
 
 const button3 = document.createElement("button")
 button3.textContent = "课件3"
@@ -94,7 +80,7 @@ sdk.joinRoom({
 
     const manager = room.getInvisiblePlugin(WindowManager.kind);
     window.InvisiblePlugin = InvisiblePlugin;
-    WindowManager.use(room);
+    WindowManager.use(room, document.getElementById("root"));
     window.manager = manager;
 
     const mainView = manager.createMainView();

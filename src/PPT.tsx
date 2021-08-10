@@ -1,11 +1,12 @@
 import { Room, View } from "white-web-sdk"
 import React from "react";
+import ReactDOM from "react-dom";
 import { } from "./typings";
 import { PluginContext } from "./PluginContext";
 
 type PPTWrapperProps = {
     view: View;
-    scenes: { name: string }[];
+    // scenes: { name: string }[];
     initScenePath: string;
 }
 
@@ -30,8 +31,9 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
 
     setRef = (ref: HTMLDivElement) => {
         this.viewRef = ref;
+        console.log(this.props.view);
         this.props.view.divElement = ref;
-        this.props.view.focusScenePath = `${this.props.initScenePath}/${this.props.scenes[0].name}`;
+        // this.props.view.focusScenePath = `${this.props.initScenePath}/${this.props.scenes[0].name}`;
     }
 
     // nextPage = () => {
@@ -92,7 +94,17 @@ export default {
                 console.log("attributesUpdate", attributes)
             });
             console.log("isWritable", context.isWritable);
+            context.on("sceneStateChange", (state: any) =>  {
+                console.log(state);
+            })
+            console.log("context context", context.content);
+            if (context.content) {
+                ReactDOM.render(<PPTWrapper 
+                    view={context.view} 
+                    initScenePath={context.initScenePath!} />, 
+                context.content);
+            }
+            console.log("context footer", context.footer);
         });
     },
-    wrapper: PPTWrapper,
 }

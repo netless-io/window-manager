@@ -9,11 +9,14 @@ import {
     ReadonlyTeleBox,
     TeleBoxCollector,
     TeleBoxEventType,
-    TeleBoxManager
+    TeleBoxManager,
+    TeleBoxState
     } from 'telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
 import { PluginContext } from './PluginContext';
+
+export { TeleBoxState };
 
 export type CreateBoxParams = {
     pluginId: string,
@@ -44,16 +47,7 @@ export class BoxManager {
     constructor(mainView: View, windowManager: WindowManager) {
         this.mainView = mainView;
         this.windowManager = windowManager;
-        const rect = document.getElementById("root")!.getBoundingClientRect();
-        const manager = new TeleBoxManager({
-            root: document.getElementById("root")!,
-            containerRect: {
-                x: 0, y: 0,
-                width: rect.width, height: rect.height
-            },
-            collector: new TeleBoxCollector().mount(document.body),
-            fence: false
-        });
+        const manager = this.setupBoxManager();
         this.teleBoxManager = manager;
     }
 
@@ -68,27 +62,25 @@ export class BoxManager {
             focus: true
         });
 
-        const warpper = document.createElement("div");
-        warpper.className = `${params.pluginId}-wrapper`;
-        warpper.style.width = "100%";
-        warpper.style.height = "100%";
-
-        try {
-            ReactDOM.render(
-                <ErrorBoundary pluginId={params.pluginId}>
-                   <params.node {...params} displayer={WindowManager.displayer} />
-                </ErrorBoundary>, warpper);
-        } catch (error) {
-            console.log("error by setRef");
-        }
-
-        this.teleBoxManager.update(box.id, {
-            content: warpper,
-        });
-
         emitter.emit(`${params.pluginId}${Events.WindowCreated}`);
         this.addBoxListeners(params.pluginId, box);
         this.pluginBoxMap.set(params.pluginId, box.id);
+    }
+
+    public setupBoxManager() {
+        const root = WindowManager.root ? WindowManager.root : document.body;
+        const rect = root.getBoundingClientRect();
+        const manager = new TeleBoxManager({
+            root: root,
+            containerRect: {
+                x: 0, y: 0,
+                width: rect.width, height: rect.height
+            },
+            collector: new TeleBoxCollector().mount(document.body),
+            fence: false
+        });
+        this.teleBoxManager = manager;
+        return manager;
     }
 
     public getBox({ pluginId }: PluginId) {
@@ -116,6 +108,7 @@ export class BoxManager {
         box.events.on(TeleBoxEventType.Resize, this.boxResizeListener(pluginId));
         box.events.on(TeleBoxEventType.Focus, this.boxFocusListener(pluginId));
         box.events.on(TeleBoxEventType.Blur, this.boxBlurListener(pluginId));
+        box.events.on(TeleBoxEventType.State, this.boxStateListener(pluginId));
     }
 
 
@@ -142,6 +135,13 @@ export class BoxManager {
             emitter.emit("blur", { pluginId });
         }
     }
+
+    private boxStateListener = (pluginId: string) => {
+        return (state: TeleBoxState) => {
+            emitter.emit(state, { pluginId });
+        }
+    }
+
 
     public moveBox({ pluginId, x, y }: MoveBoxParams) {
         const boxId = this.pluginBoxMap.get(pluginId);

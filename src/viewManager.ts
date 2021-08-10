@@ -4,6 +4,7 @@ export class ViewManager {
     private room: Room;
     public mainView: View;
     private views: Map<string, View> = new Map();
+    private mainViewIsAddListener = false;
 
     constructor(room: Room) {
         this.room = room;
@@ -30,19 +31,55 @@ export class ViewManager {
     public swtichViewToWriter(pluginId: string) {
         const view = this.views.get(pluginId);
         if (view) {
-            const views = this.room.views;
-            views.forEach(view => {
-                if (view.mode === ViewVisionMode.Writable) {
-                    if (!view.focusScenePath) {
-                        view.focusScenePath = this.room.state.sceneState.scenePath;
+            this.room.views.forEach(roomView => {
+                if (roomView.mode === ViewVisionMode.Writable) {
+                    if (!roomView.focusScenePath) {
+                        roomView.focusScenePath = this.room.state.sceneState.scenePath;
                     }
                 }
-                view.mode = ViewVisionMode.Freedom;
+                roomView.mode = ViewVisionMode.Freedom;
             });
             if (view.focusScenePath) {
                 this.room.setScenePath(view.focusScenePath);
                 view.mode = ViewVisionMode.Writable;
             }
+        }
+    }
+
+    public switchViewToFreedom(pluginId: string) {
+        const view = this.views.get(pluginId);
+        if (view) {
+            if (!view.focusScenePath) {
+                view.focusScenePath = this.room.state.sceneState.scenePath;
+            }
+            view.mode = ViewVisionMode.Freedom;
+        }
+    }
+
+    public switchMainViewToWriter() {
+        if (this.mainView) {
+            this.room.views.forEach(roomView => {
+                if (roomView.mode === ViewVisionMode.Writable) {
+                    if (!roomView.focusScenePath) {
+                        roomView.focusScenePath = this.room.state.sceneState.scenePath;
+                    }
+                }
+                roomView.mode = ViewVisionMode.Freedom;
+            });
+            if (this.mainView.focusScenePath) {
+                this.room.setScenePath(this.mainView.focusScenePath);
+                this.mainView.mode = ViewVisionMode.Writable;
+            }
+        }
+    }
+
+    public addMainViewListener() {
+        if (this.mainViewIsAddListener) return;
+        if (this.mainView.divElement) {
+            this.mainView.divElement.addEventListener("click", () => {
+                this.switchMainViewToWriter();
+            });
+            this.mainViewIsAddListener = true;
         }
     }
 }
