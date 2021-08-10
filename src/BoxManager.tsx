@@ -53,12 +53,10 @@ export class BoxManager {
 
     public createBox(params: CreateBoxParams) {
         const { width, height } = params.plugin.config;
-        const widthRatio = width / this.teleBoxManager.containerRect.width;
-        const heigthRatio = height / this.teleBoxManager.containerRect.height;
 
         const box = this.teleBoxManager.create({
             title: params.pluginId,
-            width: widthRatio, height: heigthRatio,
+            width: width, height: height,
             focus: true
         });
 

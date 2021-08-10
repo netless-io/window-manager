@@ -88,11 +88,11 @@ export default {
             console.log("create");
             context.setAttributes({ aaaaa: 1 });
             // context.emit("setBoxSize", { width: 400, height: 400 });
-            context.emitter.on("attributesUpdate", (attributes: any) => {
+            context.emitter.on("attributesUpdate", attributes => {
                 console.log("attributesUpdate", attributes);
             });
             console.log("isWritable", context.isWritable);
-            context.emitter.on("sceneStateChange", (state: any) => {
+            context.emitter.on("sceneStateChange", state => {
                 console.log(state);
             });
             console.log("context context", context.content);

@@ -388,7 +388,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     this.boxManager.setBoxMinSize({
                         pluginId,
                         minWidth: data.minwidth,
-                        minHeight: data.minHeight
+                        minHeight: data.minheight
                     });
                     break;
                 }
