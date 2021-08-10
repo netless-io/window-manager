@@ -38,6 +38,6 @@ export type PluginEmitterEvent<T = any> = {
 
 export type PluginListenerKeys = keyof PluginEmitterEvent;
 
-export { PluginContext } from "./PluginContext";
-export { ReadonlyTeleBox } from "telebox-insider";
-export { SceneState, WhiteScene };
+export type { PluginContext } from "./PluginContext";
+export type { ReadonlyTeleBox } from "telebox-insider";
+export type { SceneState, WhiteScene };
