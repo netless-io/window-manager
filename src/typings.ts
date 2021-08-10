@@ -1,4 +1,4 @@
-import { SceneState } from 'white-web-sdk';
+import { SceneState, WhiteScene } from 'white-web-sdk';
 import { PluginContext } from './PluginContext';
 
 export interface Plugin<T = any> {
@@ -39,3 +39,5 @@ export type PluginEmitterEvent<T = any> = {
 export type PluginListenerKeys = keyof PluginEmitterEvent;
 
 export { PluginContext } from "./PluginContext";
+export { ReadonlyTeleBox } from "telebox-insider";
+export { SceneState, WhiteScene };

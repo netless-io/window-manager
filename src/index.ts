@@ -357,7 +357,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         try {
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
             emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
-                pluginEmitter.emit("create", undefined);
+                pluginEmitter.emit("create",  undefined);
                 const pluginLisener = this.makePluginEventListener(pluginId);
                 pluginEmitter.onAny(pluginLisener);
                 this.pluginListenerMap.set(pluginId, pluginLisener);
