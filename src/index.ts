@@ -86,7 +86,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         
         WindowManager.instance = this;
         WindowManager.displayer = this.displayer;
-        WindowManager.viewManager = new ViewManager(this.displayer as Room);
+        WindowManager.viewManager = new ViewManager(this.displayer as Room, this);
         this.boxManager = new BoxManager(WindowManager.viewManager.mainView, this);
         this.pluginListeners = new PluginListeners(this, this.displayer, this.boxManager);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);

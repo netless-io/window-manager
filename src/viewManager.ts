@@ -1,13 +1,15 @@
 import { Room, View, ViewVisionMode } from "white-web-sdk";
+import { WindowManager } from "./index";
 
 export class ViewManager {
-    private room: Room;
+
     public mainView: View;
     private views: Map<string, View> = new Map();
     private mainViewIsAddListener = false;
 
-    constructor(room: Room) {
-        this.room = room;
+    constructor(
+        private room: Room, 
+        private manager: WindowManager) {
         this.mainView = this.createMainView();
     }
 
@@ -78,6 +80,7 @@ export class ViewManager {
         if (this.mainView.divElement) {
             this.mainView.divElement.addEventListener("click", () => {
                 this.switchMainViewToWriter();
+                this.manager.boxManager.blurAllBox();
             });
             this.mainViewIsAddListener = true;
         }

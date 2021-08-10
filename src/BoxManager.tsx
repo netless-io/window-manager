@@ -170,4 +170,10 @@ export class BoxManager {
             this.teleBoxManager.update(boxId, { minWidth: params.minWidth, minHeight: params.minHeight }, true);
         }
     }
+
+    public blurAllBox() {
+        this.teleBoxManager.updateAll({
+            focus: false
+        });
+    }
 }
