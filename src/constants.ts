@@ -25,15 +25,3 @@ export enum PluginEvents {
     destroy = "destroy",
 }
 
-export enum PluginListenerEvents {
-    create = "create",
-    destroy = "destroy",
-    attributesUpdate = "attributesUpdate",
-    writableChange = "writableChange",
-    sceneStateChange = "sceneStateChange"
-}
-
-type AnyEnumKeysAsStrings<TEnumType> = keyof TEnumType;
-
-export type PluginEventKeys = AnyEnumKeysAsStrings<typeof PluginEvents>
-export type PluginListenerKeys = AnyEnumKeysAsStrings<typeof PluginListenerEvents>

@@ -1,6 +1,6 @@
 import { Displayer, Event } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
-import { Events, PluginListenerEvents } from "./constants";
+import { Events } from "./constants";
 import { WindowManager } from "./index";
 
 export class PluginListeners {
@@ -47,7 +47,7 @@ export class PluginListeners {
         if (event.authorId !== this.displayer.observerId) {
             const pluginEmitter = WindowManager.emitterMap.get(event.payload.pluginId);
             if (pluginEmitter) {
-                pluginEmitter.emit(PluginListenerEvents.writableChange, { isWritable: false });
+                pluginEmitter.emit("writableChange", false);
             }
             WindowManager.viewManager.switchViewToFreedom(event.payload.pluginId);
         }

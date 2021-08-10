@@ -90,6 +90,10 @@ export class ViewManager {
             });
             if (this.mainView.focusScenePath) {
                 this.room.setScenePath(this.mainView.focusScenePath);
+                const mainViewCamera = this.viewCameraManager.getCamera("mainView");
+                if (mainViewCamera) {
+                    // (this.mainView as any).moveCamera(mainViewCamera);
+                }
                 this.mainView.mode = ViewVisionMode.Writable;
             }
         }
@@ -99,8 +103,8 @@ export class ViewManager {
         if (this.mainViewIsAddListener) return;
         if (this.mainView.divElement) {
             this.mainView.divElement.addEventListener("click", () => {
-                this.switchMainViewToWriter();
                 this.manager.boxManager.blurAllBox();
+                this.switchMainViewToWriter();
             });
             this.mainViewIsAddListener = true;
         }

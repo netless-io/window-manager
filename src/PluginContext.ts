@@ -1,23 +1,24 @@
 import Emittery from "emittery";
-import { PluginEventKeys, PluginListenerKeys } from "./constants";
-import { WindowManager } from "./index";
+import { PluginEmitterEvent, WindowManager } from "./index";
 
-export class PluginContext {
+
+
+export class PluginContext<T = any> {
     private manager: WindowManager;
     private pluginId: string;
-    private pluginEmitter: Emittery;
+    public readonly emitter: Emittery<PluginEmitterEvent<T>>
 
-    constructor(manager: WindowManager, pluginId: string, pluginEmitter: Emittery) {
+    constructor(manager: WindowManager, pluginId: string, pluginEmitter: Emittery<PluginEmitterEvent<T>>) {
         this.manager = manager;
         this.pluginId = pluginId;
-        this.pluginEmitter = pluginEmitter;
+        this.emitter = pluginEmitter;
     }
     
     public get displayer() {
         return this.manager.displayer;
     }
 
-    public get attributes() {
+    public get attributes(): T {
         return this.manager.attributes[this.pluginId];
     }
 
@@ -41,28 +42,12 @@ export class PluginContext {
         return this.manager.boxManager.getBox(this.pluginId)?.$footer;
     }
 
-    public setAttributes(attributes: any) {
+    public setAttributes(attributes: T) {
         this.manager.safeSetAttributes({ [this.pluginId]: attributes });
     }
 
     public updateAttributes(keys: string[], value: any) { 
         this.manager.safeUpdateAttributes([this.pluginId, ...keys], value);
-    }
-
-    public on(event: PluginListenerKeys, listener: any) {
-        this.pluginEmitter.on(event, listener);
-    }
-
-    public off(event: PluginListenerKeys, listener: any) {
-        this.pluginEmitter.off(event, listener);
-    }
-
-    public emit(event: PluginEventKeys, payload: any) {
-        this.pluginEmitter.emit(event, payload);
-    }
-
-    public once(event: PluginListenerKeys, listener: any) {
-        this.pluginEmitter.once(event).then(listener);
     }
 
     public setScenePath(scenePath: string) {

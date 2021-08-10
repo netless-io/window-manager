@@ -1,7 +1,7 @@
-import React from 'react';
+import { SceneState } from 'white-web-sdk';
 import { PluginContext } from './PluginContext';
 
-export type Plugin = {
+export interface Plugin<T = any> {
     kind: string;
     config: {
         width: number;
@@ -11,8 +11,17 @@ export type Plugin = {
         minheight?: number;
         enableView?: boolean;
     };
-    setup: (context: PluginContext) => void;
-    wrapper?: React.ReactNode;
+    setup: (context: PluginContext<T>) => void;
 };
+
+export type PluginEmitterEvent<T = any> = {
+    create: void,
+    destroy: { error?: Error },
+    attributesUpdate: T,
+    writableChange: boolean,
+    sceneStateChange: SceneState,
+}
+
+export type PluginListenerKeys = keyof PluginEmitterEvent;
 
 export { PluginContext } from "./PluginContext";

@@ -19,10 +19,9 @@ import {
     Events,
     PluginAttributes,
     PluginEvents,
-    PluginListenerEvents
     } from './constants';
 import { loadPlugin } from './loader';
-import { Plugin } from './typings';
+import { Plugin, PluginEmitterEvent, PluginListenerKeys } from './typings';
 import { PluginContext } from './PluginContext';
 import { ViewManager } from './ViewManager';
 import './style.css';
@@ -54,7 +53,7 @@ type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
 type InsertComponentToWrapperParams = {
     pluginId: string;
     plugin: Plugin;
-    emitter: Emittery;
+    emitter: Emittery<PluginEmitterEvent>;
     initScenePath?: string;
     pluginOptions?: any,
     context: PluginContext,
@@ -67,13 +66,19 @@ export type AddPluginParams = {
     localOptions?: any;
 }
 
+type PluginSyncAttributes = {
+    kind: string,
+    url?: string,
+    options: any,
+}
+
 export const emitter: Emittery = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
     public static displayer: Displayer;
-    public static emitterMap:Map<string, Emittery> = new Map();
+    public static emitterMap:Map<string, Emittery<PluginEmitterEvent>> = new Map();
     public static root: HTMLElement | null;
     public static viewManager: ViewManager;
     public boxManager: BoxManager;
@@ -144,7 +149,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         for (const [pluginId, pluginEmitter] of WindowManager.emitterMap.entries()) {
             const pluginAttributes = plugins[pluginId];
             if (pluginAttributes) {
-                pluginEmitter.emit(PluginListenerEvents.attributesUpdate, pluginAttributes);
+                pluginEmitter.emit("attributesUpdate", pluginAttributes);
             }
         }
     }
@@ -180,10 +185,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 创建一个插件至白板
-     * 
-     * @param {string} name
-     * @param {string} url
-     * @param {AddPluginOptions} options
+     *
+     * @param {AddPluginParams} params
      * @memberof WindowManager
      */
     public async addPlugin(params: AddPluginParams) {
@@ -284,7 +287,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 break;
             }
             case "close": {
-                this.destroyPlugin(payload.pluginId, false, payload.error, payload.errorInfo);
+                this.destroyPlugin(payload.pluginId, false, payload.error);
                 break;
             }
             default:
@@ -292,16 +295,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private destroyPlugin(pluginId: string, needCloseBox: boolean, error?: Error, errorInfo?: any,) {
+    private destroyPlugin(pluginId: string, needCloseBox: boolean, error?: Error) {
         const pluginListener = this.pluginListenerMap.get(pluginId);
         const pluginEmitter = WindowManager.emitterMap.get(pluginId);
         const pluginInstance = this.instancePlugins.get(pluginId);
         if (pluginEmitter && pluginListener) {
-            pluginEmitter.emit(PluginListenerEvents.destroy, { error, errorInfo });
+            pluginEmitter.emit("destroy", { error });
             pluginEmitter.offAny(pluginListener);
         }
         if (pluginInstance) {
-            emitter.emit(`destroy-${pluginInstance.kind}`, { error, errorInfo });
+            emitter.emit(`destroy-${pluginInstance.kind}`, { error });
         }
         this.instancePlugins.delete(pluginId);
         WindowManager.emitterMap.delete(pluginId);
@@ -319,7 +322,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             this.instancePlugins.forEach((_, id) => {
                 const initPath = this.getPluginInitPath(id);
                 if (initPath && scenePath.startsWith(initPath)) {
-                    this.emitToPlugin(id, PluginListenerEvents.sceneStateChange, state.sceneState);
+                    this.emitToPlugin(id, "sceneStateChange", state.sceneState);
                 }
             });
         }
@@ -338,22 +341,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (!this.attributes.plugins) {
             this.safeSetAttributes({ plugins: {} });
         }
+        let pluginAttributes: PluginSyncAttributes = { kind: params.kind, options: params.syncOptions };
         if (typeof params.plugin === "string") {
-            this.safeUpdateAttributes(["plugins", pluginId], {
-                kind: params.kind,
-                url: params.plugin, 
-                options: params.syncOptions,
-            });
+            pluginAttributes.url = params.plugin;
         }
+        this.safeUpdateAttributes(["plugins", pluginId], pluginAttributes);
     }
 
     private async setupPlugin(pluginId: string, plugin: Plugin, options?: setPluginOptions, localOptions?: any) {
-        const pluginEmitter: Emittery = new Emittery();
+        const pluginEmitter: Emittery<PluginEmitterEvent> = new Emittery();
         const context = new PluginContext(this, pluginId, pluginEmitter);
         try {
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
             emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
-                pluginEmitter.emit(PluginListenerEvents.create);
+                pluginEmitter.emit("create", undefined);
                 const pluginLisener = this.makePluginEventListener(pluginId);
                 pluginEmitter.onAny(pluginLisener);
                 this.pluginListenerMap.set(pluginId, pluginLisener);
@@ -410,7 +411,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions, context }: InsertComponentToWrapperParams) {
         const config = plugin.config;
-        let payload: any = { pluginId, node: plugin.wrapper, emitter, context, plugin };
+        let payload: any = { pluginId, emitter, context, plugin };
         if (config.enableView) {
             const room = this.displayer;
             const view = WindowManager.viewManager.createView(payload.pluginId);
@@ -494,7 +495,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private emitToPlugin(pluginId: string, event: string, payload: any) {
+    private emitToPlugin(pluginId: string, event: PluginListenerKeys, payload: any) {
         const pluginEmitter = WindowManager.emitterMap.get(pluginId);
         if (pluginEmitter) {
             pluginEmitter.emit(event, payload);
