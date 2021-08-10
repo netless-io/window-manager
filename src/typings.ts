@@ -1,3 +1,4 @@
+import { TeleBoxRect, ReadonlyTeleBox } from 'telebox-insider';
 import { SceneState, WhiteScene } from 'white-web-sdk';
 import { PluginContext } from './PluginContext';
 
@@ -34,10 +35,11 @@ export type PluginEmitterEvent<T = any> = {
     sceneStateChange: SceneState,
     setBoxSize: { width: number, height: number },
     setBoxMinSize: { minwidth: number, minheight: number },
+    containerRectUpdate: TeleBoxRect,
 }
 
 export type PluginListenerKeys = keyof PluginEmitterEvent;
 
 export type { PluginContext } from "./PluginContext";
-export type { ReadonlyTeleBox } from "telebox-insider";
+export type { ReadonlyTeleBox, TeleBoxRect };
 export type { SceneState, WhiteScene };
