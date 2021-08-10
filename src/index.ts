@@ -412,7 +412,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions, context }: InsertComponentToWrapperParams) {
         const config = plugin.config;
         let payload: any = { pluginId, emitter, context, plugin };
-        if (config.enableView) {
+        if (config?.enableView) {
             const room = this.displayer;
             const view = WindowManager.viewManager.createView(payload.pluginId);
             const mainViewElement = WindowManager.viewManager.mainView.divElement;

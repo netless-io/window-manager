@@ -3,11 +3,11 @@ import { PluginContext } from './PluginContext';
 
 export interface Plugin<T = any> {
     kind: string;
-    config: {
+    config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
-        width: number;
+        width?: number;
          /** Box height relative to whiteboard. 0~1. Default 0.5. */
-        height: number;
+        height?: number;
 
         /** Minimum box width relative to whiteboard. 0~1. Default 0. */
         minwidth?: number;
