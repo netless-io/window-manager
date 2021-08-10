@@ -1,8 +1,6 @@
 import Emittery from "emittery";
 import { PluginEmitterEvent, WindowManager } from "./index";
 
-
-
 export class PluginContext<T = any> {
     private manager: WindowManager;
     private pluginId: string;
@@ -34,12 +32,8 @@ export class PluginContext<T = any> {
         return this.manager.canOperate && Boolean(this.manager.boxManager?.boxIsFocus(this.pluginId)) ;
     }
 
-    public get content() {
-        return this.manager.boxManager.getBox(this.pluginId )?.$content;
-    }
-
-    public get footer() {
-        return this.manager.boxManager.getBox(this.pluginId)?.$footer;
+    public get box() {
+        return this.manager.boxManager.getBox(this.pluginId);
     }
 
     public setAttributes(attributes: T) {

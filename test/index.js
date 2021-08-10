@@ -1,5 +1,5 @@
 import { WhiteWebSdk, InvisiblePlugin, ViewVisionMode } from "white-web-sdk";
-import * as Manager from "../dist/window-manager.es";
+import * as Manager from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
 import { scenes } from "./test";
@@ -77,7 +77,7 @@ sdk.joinRoom({
 
     const manager = room.getInvisiblePlugin(WindowManager.kind);
     window.InvisiblePlugin = InvisiblePlugin;
-    WindowManager.use(room, document.getElementById("root"));
+    WindowManager.use(room, document.getElementById("root"), true);
     window.manager = manager;
 
     const mainView = manager.createMainView();

@@ -1,7 +1,7 @@
-import * as Debug from "debug";
+import { WindowManager } from "./index";
 
-export const debug = Debug.default;
-
-export const log = debug("WindowManager");
-
-debug.enable("WindowManager");
+export const log = (...args: any[]) => {
+    if (WindowManager.debug) {
+        console.log(`[Window Manager]:`, ...args);
+    }
+}

@@ -1,8 +1,5 @@
 import Emittery from 'emittery';
-import React from 'react';
-import ReactDOM from 'react-dom';
 import { emitter, WindowManager } from './index';
-import { ErrorBoundary } from './error';
 import { Events } from './constants';
 import { Plugin } from './typings';
 import {

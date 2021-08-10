@@ -14,20 +14,20 @@ import {
     View,
     ViewVisionMode
     } from 'white-web-sdk';
-import { debug, log } from './log';
+import { log } from './log';
+import { loadPlugin } from './loader';
+import { Plugin, PluginEmitterEvent, PluginListenerKeys } from './typings';
+import { PluginContext } from './PluginContext';
+import { PluginListeners } from './PluginListener';
+import { ViewCameraManager } from './ViewCameraManager';
+import { ViewManager } from './ViewManager';
+import './style.css';
+import 'telebox-insider/dist/style.css';
 import {
     Events,
     PluginAttributes,
     PluginEvents,
     } from './constants';
-import { loadPlugin } from './loader';
-import { Plugin, PluginEmitterEvent, PluginListenerKeys } from './typings';
-import { PluginContext } from './PluginContext';
-import { ViewManager } from './ViewManager';
-import './style.css';
-import 'telebox-insider/dist/style.css';
-import { PluginListeners } from './PluginListener';
-import { ViewCameraManager } from './ViewCameraManager';
 
 (window as any).PPT = PPT;
 
@@ -81,6 +81,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static emitterMap:Map<string, Emittery<PluginEmitterEvent>> = new Map();
     public static root: HTMLElement | null;
     public static viewManager: ViewManager;
+    public static debug = false;
     public boxManager: BoxManager;
     public viewCameraManager: ViewCameraManager;
 
@@ -162,7 +163,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @returns {Promise<WindowManager>}
      * @memberof WindowManager
      */
-    public static async use(room: Room, root: HTMLElement): Promise<WindowManager> {
+    public static async use(room: Room, root: HTMLElement, debug?: boolean): Promise<WindowManager> {
         let manger = room.getInvisiblePlugin(WindowManager.kind);
         if (!manger) {
             manger = await room.createInvisiblePlugin(WindowManager, {});
@@ -170,6 +171,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         (manger as any).enableCallbackUpdate = true;
         WindowManager.root = root;
         (manger as WindowManager).boxManager.setupBoxManager();
+        WindowManager.debug = !!debug;
         return manger as WindowManager;
     }
 
@@ -190,6 +192,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @memberof WindowManager
      */
     public async addPlugin(params: AddPluginParams) {
+        log("addPlugin", params);
         const baseResult = await this.baseInsertPlugin(params);
         if (baseResult) {
             this.addPluginToAttirbutes(baseResult.pluginId, params);

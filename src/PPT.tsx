@@ -1,8 +1,7 @@
-import { Room, View } from "white-web-sdk";
-import React from "react";
-import ReactDOM from "react-dom";
-import { } from "./typings";
-import { PluginContext } from "./PluginContext";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { PluginContext } from './PluginContext';
+import { Room, View } from 'white-web-sdk';
 
 type PPTWrapperProps = {
     view: View;
@@ -79,33 +78,31 @@ export default {
     kind: "PPTPlugin",
     config: {
         enableView: true,
-        width: 500,
-        height: 600,
     },
     setup: (context: PluginContext) => {
-        console.log("setup", context);
+        // console.log("setup", context);
         context.emitter.on("create", () => {
             console.log("create");
-            context.setAttributes({ aaaaa: 1 });
+            // context.setAttributes({ aaaaa: 1 });
             // context.emit("setBoxSize", { width: 400, height: 400 });
             context.emitter.on("attributesUpdate", attributes => {
-                console.log("attributesUpdate", attributes);
+                // console.log("attributesUpdate", attributes);
             });
             console.log("isWritable", context.isWritable);
             context.emitter.on("sceneStateChange", state => {
-                console.log(state);
+                // console.log(state);
             });
-            console.log("context context", context.content);
-            if (context.content) {
+            console.log("context context", context.box?.$content);
+            if (context.box) {
                 ReactDOM.render(
                     <PPTWrapper
                         view={context.view}
                         initScenePath={context.initScenePath!}
                     />,
-                    context.content
+                    context.box.$content!
                 );
             }
-            console.log("context footer", context.footer);
+            console.log("context footer", context.box?.$footer);
         });
     },
 };

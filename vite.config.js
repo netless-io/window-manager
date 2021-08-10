@@ -9,7 +9,9 @@ export default defineConfig(({ command, mode }) => {
         build: {
             lib: {
                 entry: path.resolve(__dirname, "src/index.ts"),
-                formats: ["es", "cjs"],
+                formats: ["es", "cjs", "umd"],
+                name: "WindowManager",
+                fileName: "index"
             },
             outDir: "dist",
             sourcemap: false,

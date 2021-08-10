@@ -1,5 +1,5 @@
 import { Camera } from "white-web-sdk";
-import { WindowManager } from ".";
+import { WindowManager } from "./index";
 
 export class ViewCameraManager {
     private cameras: Map<string, Camera> = new Map();
