@@ -88,21 +88,24 @@ export default {
             context.emitter.on("attributesUpdate", attributes => {
                 // console.log("attributesUpdate", attributes);
             });
-            console.log("isWritable", context.isWritable);
+            console.log("isWritable", context.getIsWritable());
             context.emitter.on("sceneStateChange", state => {
                 // console.log(state);
             });
-            console.log("context context", context.box?.$content);
-            if (context.box) {
+            const box = context.getBox();
+            console.log("context context", box?.$content);
+            if (box) {
+                const view = context.getView();
+                const initScenePath = context.getInitScenePath();
                 ReactDOM.render(
                     <PPTWrapper
-                        view={context.view}
-                        initScenePath={context.initScenePath!}
+                        view={view}
+                        initScenePath={initScenePath!}
                     />,
-                    context.box.$content!
+                    box.$content!
                 );
             }
-            console.log("context footer", context.box?.$footer);
+            console.log("context footer", box?.$footer);
         });
     },
 };

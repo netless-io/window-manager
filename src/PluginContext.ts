@@ -11,28 +11,32 @@ export class PluginContext<T = any> {
         this.pluginId = pluginId;
         this.emitter = pluginEmitter;
     }
-    
-    public get displayer() {
+
+    public getDisplayer() {
         return this.manager.displayer;
     }
 
-    public get attributes(): T {
+    public getAttributes(): T {
         return this.manager.attributes[this.pluginId];
     }
 
-    public get view() {
-        return WindowManager.viewManager.getView(this.pluginId)!;
+    public getView() {
+        let view = WindowManager.viewManager.getView(this.pluginId);
+        if (!view) {
+            view = this.createView();
+        }
+        return view;
     }
 
-    public get initScenePath() {
-        return this.manager.getPluginInitPath(this.pluginId)
+    public getInitScenePath() {
+        return this.manager.getPluginInitPath(this.pluginId);
     }
 
-    public get isWritable(): boolean {
+    public getIsWritable(): boolean {
         return this.manager.canOperate && Boolean(this.manager.boxManager?.boxIsFocus(this.pluginId)) ;
     }
 
-    public get box() {
+    public getBox() {
         return this.manager.boxManager.getBox(this.pluginId);
     }
 
@@ -54,5 +58,24 @@ export class PluginContext<T = any> {
 
     public pptPreviousStep() {
         this.manager.room?.pptPreviousStep();
+    }
+
+    private createView() {
+        const room = this.manager.displayer;
+        const view = WindowManager.viewManager.createView(this.pluginId);
+        const mainViewElement = WindowManager.viewManager.mainView.divElement;
+        if (!mainViewElement) {
+            throw new Error(`create plugin main view must bind divElement`);
+        }
+        WindowManager.viewManager.addMainViewListener();
+        (view as any).cameraman.disableCameraTransform = true;
+        const initScenePath = this.getInitScenePath();
+        if (initScenePath) {
+            const viewScenes = room.entireScenes()[initScenePath];
+            if (viewScenes) {
+                view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
+            }
+        }
+        return view;
     }
 }

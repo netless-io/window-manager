@@ -14,9 +14,6 @@ export interface Plugin<T = any> {
         minwidth?: number;
         /** Minimum box height relative to whiteboard. 0~1. Default 0. */
         minheight?: number;
-
-        /** Enable whiteboard intergration to plugin window. */
-        enableView?: boolean;
     };
     setup: (context: PluginContext<T>) => void;
 };

@@ -99,7 +99,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.viewCameraManager = new ViewCameraManager(this);
         WindowManager.viewManager = new ViewManager(this.displayer as Room, this, this.viewCameraManager);
         this.boxManager = new BoxManager(WindowManager.viewManager.mainView, this);
-        this.pluginListeners = new PluginListeners(this, this.displayer, this.boxManager);
+        this.pluginListeners = new PluginListeners(this.displayer, this.boxManager);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.pluginListeners.addListeners();
     }
@@ -299,6 +299,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private destroyPlugin(pluginId: string, needCloseBox: boolean, error?: Error) {
+        log("destroyPlugin", pluginId, needCloseBox, error);
         const pluginListener = this.pluginListenerMap.get(pluginId);
         const pluginEmitter = WindowManager.emitterMap.get(pluginId);
         const pluginInstance = this.instancePlugins.get(pluginId);
@@ -352,6 +353,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private async setupPlugin(pluginId: string, plugin: Plugin, options?: setPluginOptions, localOptions?: any) {
+        log("setupPlugin", pluginId, plugin, options, localOptions);
         const pluginEmitter: Emittery<PluginEmitterEvent> = new Emittery();
         const context = new PluginContext(this, pluginId, pluginEmitter);
         try {
@@ -412,28 +414,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private insertComponentToWrapper({ pluginId, plugin, emitter, initScenePath, pluginOptions, context }: InsertComponentToWrapperParams) {
-        const config = plugin.config;
+    private insertComponentToWrapper(params: InsertComponentToWrapperParams) {
+        log("insertComponentToWrapper", params);
+        const { pluginId, plugin, emitter, initScenePath, pluginOptions, context } = params;
         let payload: any = { pluginId, emitter, context, plugin };
-        if (config?.enableView) {
-            const room = this.displayer;
-            const view = WindowManager.viewManager.createView(payload.pluginId);
-            const mainViewElement = WindowManager.viewManager.mainView.divElement;
-            if (!mainViewElement) {
-                throw new Error(`create plugin main view must bind divElement`);
-            }
-            WindowManager.viewManager.addMainViewListener();
-            (view as any).cameraman.disableCameraTransform = true;
-            if (initScenePath) {
-                const viewScenes = room.entireScenes()[initScenePath];
-                if (viewScenes) {
-                    payload.scenes = viewScenes;
-                    payload.initScenePath = initScenePath;
-                    view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
-                }
-            }
-            payload.view = view;
-        }
+
         if (pluginOptions) {
             payload.options = pluginOptions;
         }
@@ -441,6 +426,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.canOperate) {
             WindowManager.viewManager.swtichViewToWriter(pluginId);
         }
+
     }
 
     private resize(name: string, width: number, height: number): void {

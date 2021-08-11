@@ -1,4 +1,5 @@
 import { Displayer, Event } from "white-web-sdk";
+import { TeleBoxState } from "../../telebox-insider";
 import { BoxManager } from "./BoxManager";
 import { Events } from "./constants";
 import { WindowManager } from "./index";
@@ -6,7 +7,6 @@ import { WindowManager } from "./index";
 export class PluginListeners {
 
     constructor(
-        private manager: WindowManager,
         private displayer: Displayer,
         private boxManager: BoxManager) {
     }
@@ -16,6 +16,8 @@ export class PluginListeners {
         this.displayer.addMagixEventListener(Events.PluginResize, this.pluginResizeListener);
         this.displayer.addMagixEventListener(Events.PluginFocus, this.pluginFocusListener);
         this.displayer.addMagixEventListener(Events.PluginBlur, this.pluginBlurListener);
+        this.displayer.addMagixEventListener(Events.PluginMinimize, this.pluginMinimizedListener);
+        this.displayer.addMagixEventListener(Events.PluginMaximize, this.pluginMaximizedListener);
     }
 
     public removeListeners() {
@@ -23,6 +25,8 @@ export class PluginListeners {
         this.displayer.removeMagixEventListener(Events.PluginResize, this.pluginResizeListener);
         this.displayer.removeMagixEventListener(Events.PluginFocus, this.pluginFocusListener);
         this.displayer.removeMagixEventListener(Events.PluginBlur, this.pluginBlurListener);
+        this.displayer.removeMagixEventListener(Events.PluginMinimize, this.pluginMinimizedListener);
+        this.displayer.removeMagixEventListener(Events.PluginMaximize, this.pluginMaximizedListener);
     }
 
     private pluginMoveListener = (event: Event) => {
@@ -52,5 +56,17 @@ export class PluginListeners {
             WindowManager.viewManager.switchViewToFreedom(event.payload.pluginId);
         }
     }
-}
 
+    private pluginMinimizedListener = (event: Event) => {
+        if (event.authorId === this.displayer.observerId) {
+            this.boxManager.setBoxState(TeleBoxState.Minimized);
+            WindowManager.viewManager.switchMainViewToWriter();
+        }
+    }
+
+    private pluginMaximizedListener = (event: Event) => {
+        if (event.authorId === this.displayer.observerId) {
+            this.boxManager.setBoxState(TeleBoxState.Maximized);
+        }
+    }
+}

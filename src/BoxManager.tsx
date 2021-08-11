@@ -181,4 +181,8 @@ export class BoxManager {
             focus: false
         });
     }
+
+    public setBoxState(state: TeleBoxState) {
+        this.teleBoxManager.setState(state, true);
+    }
 }
