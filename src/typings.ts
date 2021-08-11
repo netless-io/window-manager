@@ -32,6 +32,7 @@ export type PluginEmitterEvent<T = any> = {
     sceneStateChange: SceneState,
     setBoxSize: { width: number, height: number },
     setBoxMinSize: { minwidth: number, minheight: number },
+    setBoxTitle: { title: string },
     containerRectUpdate: TeleBoxRect,
 }
 

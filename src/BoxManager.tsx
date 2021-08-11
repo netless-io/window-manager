@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { emitter, WindowManager } from './index';
+import { emitter, PluginInitState, WindowManager } from './index';
 import { Events } from './constants';
 import { Plugin } from './typings';
 import {
@@ -33,17 +33,17 @@ type ResizeBoxParams = PluginId & { width: number, height: number };
 
 type SetBoxMinSizeParams = PluginId & { minWidth: number, minHeight: number };
 
+type SetBoxTitleParams = PluginId & { title: string };
 export class BoxManager {
-    private teleBoxManager: TeleBoxManager;
-    private windowManager: WindowManager;
-    private mainView: View;
+    public teleBoxManager: TeleBoxManager;
     private pluginBoxMap: Map<string, string> = new Map();
 
-    constructor(mainView: View, windowManager: WindowManager) {
+    constructor(
+        private mainView: View,
+        private manager: WindowManager
+    ) {
         this.mainView = mainView;
-        this.windowManager = windowManager;
-        const manager = this.setupBoxManager();
-        this.teleBoxManager = manager;
+        this.teleBoxManager = this.setupBoxManager();;
     }
 
     public createBox(params: CreateBoxParams) {
@@ -52,7 +52,6 @@ export class BoxManager {
         const box = this.teleBoxManager.create({
             title: params.pluginId,
             width: width, height: height,
-            focus: true
         });
 
         emitter.emit(`${params.pluginId}${Events.WindowCreated}`);
@@ -86,6 +85,7 @@ export class BoxManager {
     public closeBox(pluginId: string) {
         const boxId = this.pluginBoxMap.get(pluginId);
         if (boxId) {
+            this.pluginBoxMap.delete(pluginId);
             return this.teleBoxManager.remove(boxId);
         }
     }
@@ -93,6 +93,16 @@ export class BoxManager {
     public boxIsFocus(pluginId: string) {
         const box = this.getBox(pluginId);
         return box?.focus;
+    }
+
+    public updateBox(state?: PluginInitState) {
+        if (!state) return;
+        const box = this.getBox(state.id);
+        if (box) {
+            this.teleBoxManager.update(box.id, {
+                x: state.x, y: state.y, width: state.width, height: state.height, focus: state.focus
+            });
+        }
     }
 
     public updateManagerRect() {
@@ -113,7 +123,6 @@ export class BoxManager {
         box.events.on(TeleBoxEventType.Blur, this.boxBlurListener(pluginId));
         box.events.on(TeleBoxEventType.State, this.boxStateListener(pluginId));
     }
-
 
     private boxMoveListener = (pluginId: string) => {
         return debounce(({ x, y }: { x: number, y: number }) => {
@@ -145,7 +154,6 @@ export class BoxManager {
         }
     }
 
-
     public moveBox({ pluginId, x, y }: MoveBoxParams) {
         const boxId = this.pluginBoxMap.get(pluginId);
         if (boxId) {
@@ -171,6 +179,13 @@ export class BoxManager {
         const boxId = this.pluginBoxMap.get(params.pluginId);
         if (boxId) {
             this.teleBoxManager.update(boxId, { minWidth: params.minWidth, minHeight: params.minHeight }, true);
+        }
+    }
+
+    public setBoxTitle(params: SetBoxTitleParams) {
+        const boxId = this.pluginBoxMap.get(params.pluginId);
+        if (boxId) {
+            this.teleBoxManager.update(boxId, { title: params.title }, true);
         }
     }
 

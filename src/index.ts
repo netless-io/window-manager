@@ -69,6 +69,15 @@ type PluginSyncAttributes = {
     options: any,
 }
 
+export type PluginInitState = {
+    id: string,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number,
+    focus?: boolean,
+}
+
 export const emitter: Emittery = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
@@ -167,8 +176,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         (manger as any).enableCallbackUpdate = true;
         WindowManager.root = root;
+        WindowManager.debug = Boolean(debug);
         (manger as WindowManager).boxManager.setupBoxManager();
-        WindowManager.debug = !!debug;
         return manger as WindowManager;
     }
 
@@ -215,7 +224,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 pluginId, plugin
             }
         } else {
-            // throw new Error("name or url is require");
+            // throw new Error("kind and plugin is require");
         }
     }
 
@@ -230,22 +239,24 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         emitter.once(`destroy-${kind}`).then(listener);
     }
 
-    private onPluginBoxInit = (name: string) => {
-        const pluginAttributes = this.attributes[name];
+    public getPluginInitState = (id: string) => {
+        const pluginAttributes = this.attributes[id];
+        if (!pluginAttributes) return;
         const position = pluginAttributes?.[PluginAttributes.Position];
         const focus = this.attributes.focus;
         const size = pluginAttributes?.[PluginAttributes.Size];
-        let payload = {};
+        let payload = {} as PluginInitState;
         if (position) {
-            payload = { name: name, x: position.x, y: position.y };
+            payload = { id: id, x: position.x, y: position.y };
         }
-        if (focus) {
+        if (focus === id) {
             payload = { ...payload, focus: true };
         }
         if (size) {
             payload = { ...payload, width: size.width, height: size.height };
         }
-        emitter.emit(Events.InitReplay, {});
+        emitter.emit(Events.InitReplay, payload);
+        return payload;
     }
 
     private eventListener = (eventName: string, payload: any) => {
@@ -277,7 +288,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 break;
             }
             case "init": {
-                this.onPluginBoxInit(payload.pluginId);
+                this.getPluginInitState(payload.pluginId);
                 this.safeSetAttributes({
                     [payload.pluginId]: {
                         [PluginAttributes.Position]: {}
@@ -328,16 +339,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private addPluginToAttirbutes(
-        pluginId: string,
-        params: AddPluginParams
-    ): void {
+    private addPluginToAttirbutes(pluginId: string, params: AddPluginParams): void {
         if (!this.attributes[pluginId]) {
             this.safeSetAttributes({
                 [pluginId]: {
                     [PluginAttributes.Size]: { width: 0, height: 0 },
-                    [PluginAttributes.Position]: { x: 0, y: 0 }
-                }
+                    [PluginAttributes.Position]: { x: 0, y: 0 },
+                },
+                focus: pluginId,
             });
         }
         if (!this.attributes.plugins) {
@@ -357,6 +366,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         try {
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
             emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
+                const boxInitState = this.getPluginInitState(pluginId);
+                this.boxManager.updateBox(boxInitState);
                 pluginEmitter.emit("create", undefined);
                 const pluginLisener = this.makePluginEventListener(pluginId);
                 pluginEmitter.onAny(pluginLisener);
@@ -376,9 +387,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private makePluginEventListener(pluginId: string) {
-        return (eventName: string, data: any) => {
+        return (eventName: PluginListenerKeys, data: any) => {
             switch (eventName) {
-                case PluginEvents.setBoxSize: {
+                case "setBoxSize": {
                     this.boxManager.resizeBox({
                         pluginId,
                         width: data.width,
@@ -386,12 +397,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     });
                     break;
                 }
-                case PluginEvents.setBoxMinSize: {
+                case "setBoxMinSize": {
                     this.boxManager.setBoxMinSize({
                         pluginId,
                         minWidth: data.minwidth,
                         minHeight: data.minheight
                     });
+                    break;
+                }
+                case "setBoxTitle": {
+                    this.boxManager.setBoxTitle({ pluginId, title: data.title });
                     break;
                 }
                 case PluginEvents.destroy: {
