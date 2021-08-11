@@ -43,7 +43,7 @@ export type Plugins = {
 }
 
 export type AddPluginOptions = {
-    scenePath: string;
+    scenePath?: string;
 }
 
 type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
