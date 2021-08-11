@@ -15,7 +15,7 @@ export interface Plugin<T = any> {
         /** Minimum box height relative to whiteboard. 0~1. Default 0. */
         minheight?: number;
     };
-    setup: (context: PluginContext<T>) => void;
+    setup: (context: PluginContext<T>, pluginArgs: any) => void;
 };
 
 export type PluginEmitterEvent<T = any> = {

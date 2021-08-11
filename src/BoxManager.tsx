@@ -8,10 +8,9 @@ import {
     TeleBoxEventType,
     TeleBoxManager,
     TeleBoxState
-    } from 'telebox-insider';
+} from 'telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
-import { PluginContext } from './PluginContext';
 
 export { TeleBoxState };
 
@@ -23,8 +22,7 @@ export type CreateBoxParams = {
     scenes?: WhiteScene[],
     initScenePath?: string,
     emitter?: Emittery,
-    options?: any,
-    context: PluginContext,
+    options?: any
 };
 
 type PluginId = { pluginId: string };

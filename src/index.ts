@@ -1,6 +1,6 @@
-import Emittery from 'emittery';
+import Emittery from "emittery";
 import PPT from './PPT';
-import { BoxManager, TeleBoxState } from './BoxManager';
+import { BoxManager, TeleBoxState } from "./BoxManager";
 import {
     CameraBound,
     CameraState,
@@ -13,21 +13,21 @@ import {
     Room,
     View,
     ViewVisionMode
-    } from 'white-web-sdk';
-import { log } from './log';
-import { loadPlugin } from './loader';
-import { Plugin, PluginEmitterEvent, PluginListenerKeys } from './typings';
-import { PluginContext } from './PluginContext';
-import { PluginListeners } from './PluginListener';
-import { ViewCameraManager } from './ViewCameraManager';
-import { ViewManager } from './ViewManager';
-import './style.css';
-import 'telebox-insider/dist/style.css';
+} from 'white-web-sdk';
+import { loadPlugin } from "./loader";
+import { log } from "./log";
+import { Plugin, PluginEmitterEvent, PluginListenerKeys } from "./typings";
+import { PluginContext } from "./PluginContext";
+import { PluginListeners } from "./PluginListener";
+import { ViewCameraManager } from "./ViewCameraManager";
+import { ViewManager } from "./ViewManager";
+import "./style.css";
+import "telebox-insider/dist/style.css";
 import {
     Events,
     PluginAttributes,
     PluginEvents,
-    } from './constants';
+} from "./constants";
 
 (window as any).PPT = PPT;
 
@@ -43,9 +43,7 @@ export type Plugins = {
 }
 
 export type AddPluginOptions = {
-    ppt?: {
-        scenePath: string;
-    };
+    scenePath: string;
 }
 
 type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
@@ -56,14 +54,13 @@ type InsertComponentToWrapperParams = {
     emitter: Emittery<PluginEmitterEvent>;
     initScenePath?: string;
     pluginOptions?: any,
-    context: PluginContext,
 }
 
 export type AddPluginParams = {
     kind: string;
     plugin: string | Plugin;
-    syncOptions?: AddPluginOptions;
-    localOptions?: any;
+    options?: AddPluginOptions;
+    pluginArgs?: any;
 }
 
 type PluginSyncAttributes = {
@@ -78,7 +75,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
     public static displayer: Displayer;
-    public static emitterMap:Map<string, Emittery<PluginEmitterEvent>> = new Map();
+    public static emitterMap: Map<string, Emittery<PluginEmitterEvent>> = new Map();
     public static root: HTMLElement | null;
     public static viewManager: ViewManager;
     public static debug = false;
@@ -93,7 +90,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     constructor(context: InvisiblePluginContext) {
         super(context);
         emitter.onAny(this.eventListener);
-        
+
         WindowManager.instance = this;
         WindowManager.displayer = this.displayer;
         this.viewCameraManager = new ViewCameraManager(this);
@@ -120,7 +117,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     instance.baseInsertPlugin({
                         kind: plugin.kind,
                         plugin: plugin.url,
-                        syncOptions: plugin.options
+                        options: plugin.options
                     });
                 }
             }
@@ -142,7 +139,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     this.baseInsertPlugin({
                         kind: plugin.kind,
                         plugin: plugin.url,
-                        syncOptions: plugin.options
+                        options: plugin.options
                     });
                 }
             }
@@ -201,7 +198,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private async baseInsertPlugin(params: AddPluginParams) {
-        const pluginId = this.generatePluginId(params.kind, params.syncOptions);
+        const pluginId = this.generatePluginId(params.kind, params.options);
         if (this.instancePlugins.get(pluginId)) {
             return;
         }
@@ -209,7 +206,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (params.kind && params.plugin) {
             const plugin = typeof params.plugin === "string" ? await loadPlugin(params.kind, params.plugin) : params.plugin;
             if (plugin) {
-                await this.setupPlugin(pluginId, plugin, params.syncOptions, params.localOptions);
+                await this.setupPlugin(pluginId, plugin, params.options, params.pluginArgs);
             } else {
                 throw new Error(`plugin load failed ${params.kind} ${params.plugin}`);
             }
@@ -272,21 +269,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.safeUpdateAttributes([payload.pluginId, PluginAttributes.Size], { width: payload.width, height: payload.height });
                 break;
             }
-            case TeleBoxState.Minimized: {
-                this.safeDispatchMagixEvent(Events.PluginMinimize, payload);
-                this.setAttributes({ boxState: TeleBoxState.Minimized });
-                break;
-            }
-            case TeleBoxState.Maximized: {
-                this.safeDispatchMagixEvent(Events.PluginMaximize, payload);
-                this.setAttributes({ boxState: TeleBoxState.Maximized });
+            case TeleBoxState.Minimized:
+            case TeleBoxState.Maximized:
+            case TeleBoxState.Normal: {
+                this.safeDispatchMagixEvent(Events.PluginBoxStateChange, payload);
+                this.setAttributes({ boxState: eventName });
                 break;
             }
             case "init": {
                 this.onPluginBoxInit(payload.pluginId);
-                this.safeSetAttributes({ [payload.pluginId]: {
-                    [PluginAttributes.Position]: {}
-                 } });
+                this.safeSetAttributes({
+                    [payload.pluginId]: {
+                        [PluginAttributes.Position]: {}
+                    }
+                });
                 break;
             }
             case "close": {
@@ -333,19 +329,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private addPluginToAttirbutes(
-        pluginId: string, 
+        pluginId: string,
         params: AddPluginParams
-        ): void {
+    ): void {
         if (!this.attributes[pluginId]) {
-            this.safeSetAttributes({ [pluginId]: {
-                [PluginAttributes.Size]: { width: 0, height: 0 },
-                [PluginAttributes.Position]: { x: 0, y: 0 }
-            } });
+            this.safeSetAttributes({
+                [pluginId]: {
+                    [PluginAttributes.Size]: { width: 0, height: 0 },
+                    [PluginAttributes.Position]: { x: 0, y: 0 }
+                }
+            });
         }
         if (!this.attributes.plugins) {
             this.safeSetAttributes({ plugins: {} });
         }
-        let pluginAttributes: PluginSyncAttributes = { kind: params.kind, options: params.syncOptions };
+        let pluginAttributes: PluginSyncAttributes = { kind: params.kind, options: params.options };
         if (typeof params.plugin === "string") {
             pluginAttributes.url = params.plugin;
         }
@@ -359,19 +357,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         try {
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
             emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
-                pluginEmitter.emit("create",  undefined);
+                pluginEmitter.emit("create", undefined);
                 const pluginLisener = this.makePluginEventListener(pluginId);
                 pluginEmitter.onAny(pluginLisener);
                 this.pluginListenerMap.set(pluginId, pluginLisener);
             });
-            await plugin.setup(context);
+            await plugin.setup(context, localOptions);
             this.insertComponentToWrapper({
                 pluginId,
                 plugin,
                 emitter: pluginEmitter,
-                initScenePath: options?.ppt?.scenePath,
+                initScenePath: options?.scenePath,
                 pluginOptions: localOptions,
-                context
             });
         } catch (error) {
             throw new Error(`plugin setup error: ${error.message}`);
@@ -407,8 +404,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private generatePluginId(kind: string, options?: AddPluginOptions) {
-        if (options && options.ppt) {
-            return `${kind}-${options.ppt.scenePath}`;
+        if (options && options.scenePath) {
+            return `${kind}-${options.scenePath}`;
         } else {
             return kind;
         }
@@ -416,24 +413,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private insertComponentToWrapper(params: InsertComponentToWrapperParams) {
         log("insertComponentToWrapper", params);
-        const { pluginId, plugin, emitter, initScenePath, pluginOptions, context } = params;
-        let payload: any = { pluginId, emitter, context, plugin };
+        const { pluginId, plugin, emitter, pluginOptions } = params;
+        let payload: any = { pluginId, emitter, plugin };
 
         if (pluginOptions) {
             payload.options = pluginOptions;
         }
         this.boxManager.createBox(payload);
-        if (this.canOperate) {
-            WindowManager.viewManager.swtichViewToWriter(pluginId);
-        }
-
-    }
-
-    private resize(name: string, width: number, height: number): void {
-        const cameraState = this.displayer.state.cameraState;
-        const newWidth = width / cameraState.width;
-        const newHeight = height / cameraState.height;
-        emitter.emit(Events.PluginResize, { name, width: newWidth, height: newHeight });
     }
 
     public onDestroy() {
@@ -480,7 +466,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public getPluginInitPath(pluginId: string): string | undefined {
         const pluginAttributes = this.attributes["plugins"][pluginId];
         if (pluginAttributes) {
-            return pluginAttributes?.options?.ppt.scenePath;
+            return pluginAttributes?.options.scenePath;
         }
     }
 

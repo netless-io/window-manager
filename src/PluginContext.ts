@@ -76,6 +76,7 @@ export class PluginContext<T = any> {
                 view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
             }
         }
+        WindowManager.viewManager.swtichViewToWriter(this.pluginId);
         return view;
     }
 }

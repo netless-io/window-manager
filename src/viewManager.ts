@@ -1,5 +1,6 @@
-import { Camera, Room, View, ViewVisionMode } from "white-web-sdk";
+import { AnimationMode, Camera, Room, Size, View, ViewVisionMode } from "white-web-sdk";
 import { WindowManager } from "./index";
+import { log } from "./log";
 import { ViewCameraManager } from "./ViewCameraManager";
 
 export class ViewManager {
@@ -18,16 +19,17 @@ export class ViewManager {
 
     public createMainView(): View {
         const mainView = this.room.views.createView();
-        mainView.callbacks.on("onCameraUpdated", this.viewCameraListener("mainView"));
+        mainView.callbacks.on("onCameraUpdated", this.viewCameraListener("mainView", mainView));
         mainView.mode = ViewVisionMode.Writable;
         return mainView;
     }
 
     public createView(pluginId: string): View {
         const view = this.room.views.createView();
-        const listener = this.viewCameraListener(pluginId);
-        this.viewListeners.set(pluginId, listener);
-        view.callbacks.on("onCameraUpdated", listener);
+        const cameraListener = this.viewCameraListener(pluginId, view);
+        this.viewListeners.set(pluginId, cameraListener);
+        log(pluginId, "addViewListener", cameraListener);
+        view.callbacks.on("onCameraUpdated", cameraListener);
         view.mode = ViewVisionMode.Freedom;
         this.views.set(pluginId, view);
         return view;
@@ -51,6 +53,7 @@ export class ViewManager {
     }
 
     public swtichViewToWriter(pluginId: string) {
+        if (!this.manager.canOperate) return;
         const view = this.views.get(pluginId);
         if (view) {
             this.room.views.forEach(roomView => {
@@ -63,7 +66,11 @@ export class ViewManager {
             });
             if (view.focusScenePath) {
                 this.room.setScenePath(view.focusScenePath);
+                const viewCamera = this.viewCameraManager.getCamera(pluginId);
                 view.mode = ViewVisionMode.Writable;
+                if (viewCamera) {
+                    view.moveCamera({ ...viewCamera, animationMode: AnimationMode.Immediately });
+                }
             }
         }
     }
@@ -80,6 +87,7 @@ export class ViewManager {
 
     public switchMainViewToWriter() {
         if (this.mainView) {
+            if (this.mainView.mode === ViewVisionMode.Writable) return;
             this.room.views.forEach(roomView => {
                 if (roomView.mode === ViewVisionMode.Writable) {
                     if (!roomView.focusScenePath) {
@@ -91,10 +99,10 @@ export class ViewManager {
             if (this.mainView.focusScenePath) {
                 this.room.setScenePath(this.mainView.focusScenePath);
                 const mainViewCamera = this.viewCameraManager.getCamera("mainView");
-                if (mainViewCamera) {
-                    // (this.mainView as any).moveCamera(mainViewCamera);
-                }
                 this.mainView.mode = ViewVisionMode.Writable;
+                if (mainViewCamera) {
+                    this.mainView.moveCamera({ ...mainViewCamera, animationMode: AnimationMode.Immediately });
+                }
             }
         }
     }
@@ -103,6 +111,7 @@ export class ViewManager {
         if (this.mainViewIsAddListener) return;
         if (this.mainView.divElement) {
             this.mainView.divElement.addEventListener("click", () => {
+                if (this.mainView.mode === ViewVisionMode.Writable) return;
                 this.manager.boxManager.blurAllBox();
                 this.switchMainViewToWriter();
             });
@@ -110,9 +119,11 @@ export class ViewManager {
         }
     }
 
-    public viewCameraListener(id: string) {
+    public viewCameraListener(id: string, view: View) {
         return (camera: Camera) => {
-            this.viewCameraManager.setCamera(id, camera);
+            if (view.mode === ViewVisionMode.Writable) {
+                this.viewCameraManager.setCamera(id, camera);
+            }
         };
     }
 }
