@@ -61,7 +61,7 @@ const sdk = new WhiteWebSdk({
 
 const { WindowManager } = Manager;
 window.WindowManager = WindowManager;
-
+WindowManager.register(PPT);
 window.Manager = Manager;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
@@ -72,9 +72,7 @@ sdk.joinRoom({
 }).then(room => {
 
     window.room = room;
-
     room.setScenePath("/init")
-
     const manager = room.getInvisiblePlugin(WindowManager.kind);
     window.InvisiblePlugin = InvisiblePlugin;
     WindowManager.use(room, document.getElementById("root"), true);
@@ -92,7 +90,6 @@ sdk.joinRoom({
     button2.addEventListener("click", () => {
         manager.addPlugin({
             kind: PPT.kind,
-            plugin: PPT,
             options: {
                 scenePath: "/2e57c840f98a11eb9b03a12989ba200c/80b1ae4e-f9f6-4cf3-82c8-9e6642c3902e",
                 title: "ppt1",
@@ -105,7 +102,6 @@ sdk.joinRoom({
     button3.addEventListener("click", () => {
         manager.addPlugin({
             kind: PPT.kind,
-            plugin: PPT,
             options: {
                 scenePath: "/2e57c840f98a11eb9b03a12989ba200c/9260d43b-d48a-4936-b54c-06d0d4c1716d",
                 title: "ppt2"

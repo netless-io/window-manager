@@ -47,7 +47,7 @@ export class BoxManager {
     }
 
     public createBox(params: CreateBoxParams) {
-        log("create box", params);
+        console.log("create box", params);
         const { width, height } = params.plugin.config ?? {};
         const title = params.options?.title || params.pluginId;
         const box = this.teleBoxManager.create({

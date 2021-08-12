@@ -33,7 +33,7 @@ export class PluginProxy {
         private manager: WindowManager,
         private boxManager: BoxManager,
     ) {
-        this.id = this.genId(params.kind, params.options);
+        this.id = PluginProxy.genId(params.kind, params.options);
         if (this.manager.pluginProxies.has(this.id)) {
             throw new PluginCreateError();
         }
@@ -43,7 +43,7 @@ export class PluginProxy {
         this.scenePath = this.params.options?.scenePath;
     }
 
-    private genId(kind: string, options?: AddPluginOptions) {
+    public static genId(kind: string, options?: AddPluginOptions) {
         if (options && options.scenePath) {
             return `${kind}-${options.scenePath}`;
         } else {
@@ -72,16 +72,25 @@ export class PluginProxy {
 
     public async baseInsertPlugin() {
         const params = this.params; 
-        if (params.kind && params.plugin) {
-            const plugin = typeof params.plugin === "string" ? await loadPlugin(params.kind, params.plugin) : params.plugin;
-            if (plugin) {
-                await this.setupPlugin(this.id, plugin, params.options, params.pluginArgs);
+        if (params.kind) {
+            let pluginClass;
+            if (params.plugin === undefined) {
+                pluginClass = WindowManager.pluginClasses.get(params.kind);
+                if (!pluginClass) {
+                    throw new Error("plugin need register");
+                }
+            } else {
+                pluginClass = typeof params.plugin === "string" ? await loadPlugin(params.kind, params.plugin) : params.plugin;
+            }
+
+            if (pluginClass) {
+                await this.setupPlugin(this.id, pluginClass, params.options, params.pluginArgs);
             } else {
                 throw new Error(`plugin load failed ${params.kind} ${params.plugin}`);
             }
             this.boxManager.updateManagerRect();
             return {
-                pluginId: this.id, plugin
+                pluginId: this.id, plugin: pluginClass
             }
         } else {
             // throw new Error("kind and plugin is require");
@@ -92,21 +101,16 @@ export class PluginProxy {
         log("setupPlugin", pluginId, plugin, options, localOptions);
         const context = new PluginContext(this.manager, pluginId, this.pluginEmitter);
         try {
-            emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
+            emitter.once(`${pluginId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getPluginInitState(pluginId);
-                log("WindowCreated", boxInitState);
                 this.boxManager.updateBox(boxInitState);
-                this.pluginEmitter.emit("create", undefined);
                 this.pluginEmitter.onAny(this.pluginLisener);
                 this.pluginAttributesUpdateListener(pluginId);
+                await plugin.setup(context, localOptions);
+                this.pluginEmitter.emit("create", undefined);
             });
-            await plugin.setup(context, localOptions);
-            this.insertComponentToWrapper({
-                pluginId,
-                plugin,
-                emitter: this.pluginEmitter,
-                options: options,
-                pluginOptions: localOptions,
+            this.boxManager.createBox({
+                pluginId, plugin
             });
         } catch (error) {
             throw new Error(`plugin setup error: ${error.message}`);
@@ -203,7 +207,7 @@ export class PluginProxy {
         log("insertComponentToWrapper", params);
         const { pluginId, plugin, emitter, options } = params;
         let payload: any = { pluginId, emitter, plugin, options };
-        this.boxManager.createBox(payload);
+        
     }
 
     private cleanPluginAttributes() {

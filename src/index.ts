@@ -64,7 +64,7 @@ export type InsertComponentToWrapperParams = {
 
 export type AddPluginParams = {
     kind: string;
-    plugin: string | Plugin;
+    plugin?: string;
     options?: AddPluginOptions;
     pluginArgs?: any;
 }
@@ -102,6 +102,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public pluginListeners: PluginListeners;
     public pluginProxies: Map<string, PluginProxy> = new Map();
     private attributesDisposer: any;
+    public static pluginClasses: Map<string, Plugin> = new Map();
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -115,33 +116,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.pluginListeners = new PluginListeners(this.displayer, this.boxManager, this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.pluginListeners.addListeners();
-        this.attributesDisposer = autorun(() => {
-            const attributes = this.attributes;
-            this.attributesUpdateCallback(attributes);
-        });
-    }
-
-    /**
-     * SDK 创建 window manager 自动调用
-     *
-     * @static
-     * @param {WindowManager} instance
-     * @memberof WindowManager
-     */
-    public static onCreate(instance: WindowManager) {
-        const plugins = instance.attributes.plugins;
-        if (plugins) {
-            for (const id in plugins) {
-                const plugin = plugins[id];
-                if (plugin) {
-                    instance.baseInsertPlugin({
-                        kind: plugin.kind,
-                        plugin: plugin.url,
-                        options: plugin.options
-                    });
-                }
-            }
-        }
+        setTimeout(() => {
+            this.attributesDisposer = autorun(() => {
+                const attributes = this.attributes;
+                this.attributesUpdateCallback(attributes);
+            });
+        }, 50);
     }
 
     /**
@@ -156,9 +136,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             for (const id in plugins) {
                 if (!this.pluginProxies.has(id)) {
                     const plugin = plugins[id];
+                    let pluginClass = plugin.url;
+                    if (!pluginClass) {
+                        pluginClass = WindowManager.pluginClasses.get(plugin.kind);
+                    }
                     this.baseInsertPlugin({
                         kind: plugin.kind,
-                        plugin: plugin.url,
+                        plugin: pluginClass,
                         options: plugin.options
                     });
                 }
@@ -179,10 +163,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (!manger) {
             manger = await room.createInvisiblePlugin(WindowManager, {});
         }
-        WindowManager.root = root;
-        WindowManager.debug = Boolean(debug);
+        this.root = root;
+        this.debug = Boolean(debug);
         (manger as WindowManager).boxManager.setupBoxManager();
         return manger as WindowManager;
+    }
+
+    /**
+     * 注册插件
+     *
+     * @param {Plugin} plugin
+     * @memberof WindowManager
+     */
+    public static register(plugin: Plugin) {
+        this.pluginClasses.set(plugin.kind, plugin);
     }
 
     /**
@@ -204,9 +198,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public async addPlugin(params: AddPluginParams) {
         log("addPlugin", params);
         try {
-            const pluginProxy = new PluginProxy(params, this, this.boxManager);
+            const pluginProxy = await this.baseInsertPlugin(params);
             if (pluginProxy) {
-                await pluginProxy.baseInsertPlugin();
                 pluginProxy.setupAttributes();
             }
         } catch (error) {
@@ -217,9 +210,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private async baseInsertPlugin(params: AddPluginParams) {
+        const id = PluginProxy.genId(params.kind, params.options);
+        if (this.pluginProxies.has(id)) {
+            return;
+        }
         const pluginProxy = new PluginProxy(params, this, this.boxManager);
         if (pluginProxy) {
             await pluginProxy.baseInsertPlugin();
+            return pluginProxy;
         } else {
             console.log("plugin create failed", params);
         }

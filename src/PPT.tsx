@@ -71,7 +71,7 @@ export default {
         enableView: true,
     },
     setup: (context: PluginContext) => {
-        // console.log("setup", context);
+        console.log("setup", context);
         context.emitter.on("create", () => {
             console.log("create");
             // context.setAttributes({ aaaaa: 1 });
