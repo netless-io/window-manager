@@ -2,7 +2,7 @@ import { TeleBoxRect, ReadonlyTeleBox } from 'telebox-insider';
 import { SceneState, WhiteScene } from 'white-web-sdk';
 import { PluginContext } from './PluginContext';
 
-export interface Plugin<T = any> {
+export interface Plugin<T = any, K = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
@@ -15,7 +15,7 @@ export interface Plugin<T = any> {
         /** Minimum box height relative to whiteboard. 0~1. Default 0. */
         minheight?: number;
     };
-    setup: (context: PluginContext<T>, pluginArgs: any) => void;
+    setup: (context: PluginContext<T>, pluginArgs: K) => void;
 };
 
 export type PluginEmitterEvent<T = any> = {
