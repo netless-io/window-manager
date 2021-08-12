@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { emitter, PluginInitState, WindowManager } from './index';
+import { AddPluginOptions, emitter, PluginInitState, WindowManager } from './index';
 import { Events } from './constants';
 import { Plugin } from './typings';
 import {
@@ -8,7 +8,8 @@ import {
     TeleBoxCollector,
     TeleBoxEventType,
     TeleBoxManager,
-    TeleBoxState
+    TeleBoxState,
+    TeleBoxManagerEventType
 } from 'telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
@@ -19,12 +20,9 @@ export { TeleBoxState };
 export type CreateBoxParams = {
     pluginId: string,
     plugin: Plugin,
-    node: any,
     view?: View,
-    scenes?: WhiteScene[],
-    initScenePath?: string,
     emitter?: Emittery,
-    options?: any
+    options?: AddPluginOptions
 };
 
 type PluginId = { pluginId: string };
@@ -51,15 +49,21 @@ export class BoxManager {
     public createBox(params: CreateBoxParams) {
         log("create box", params);
         const { width, height } = params.plugin.config ?? {};
-
+        const title = params.options?.title || params.pluginId;
         const box = this.teleBoxManager.create({
-            title: params.pluginId,
+            title: title,
             width: width, height: height,
         });
 
         emitter.emit(`${params.pluginId}${Events.WindowCreated}`);
         this.addBoxListeners(params.pluginId, box);
         this.pluginBoxMap.set(params.pluginId, box.id);
+        this.teleBoxManager.events.on(TeleBoxManagerEventType.State, state => {
+            if (state) {
+                log("state change", state);
+                emitter.emit(state, undefined);
+            }
+        });
     }
 
     public setupBoxManager() {
@@ -124,15 +128,13 @@ export class BoxManager {
     private addBoxListeners(pluginId: string, box: ReadonlyTeleBox) {
         box.events.on(TeleBoxEventType.Move, debounce(params => emitter.emit("move", { pluginId, ...params }), 5));
         box.events.on(TeleBoxEventType.Resize, debounce(params => emitter.emit("resize", { pluginId, ...params }), 5));
-        box.events.on(TeleBoxEventType.Focus, () => emitter.emit("focus", { pluginId }));
-        box.events.on(TeleBoxEventType.Blur, () => emitter.emit("blur", { pluginId }));
-        box.events.on(TeleBoxEventType.State, state => {
-            if (state) {
-                emitter.emit(state, { pluginId });
-            }
+        box.events.on(TeleBoxEventType.Focus, () => {
+            log("focus", pluginId);
+            emitter.emit("focus", { pluginId });
         });
+        box.events.on(TeleBoxEventType.Blur, () => emitter.emit("blur", { pluginId }));
         box.events.on(TeleBoxEventType.Snapshot, rect => {
-            emitter.emit("snapshot", { pluginId, rect })
+            emitter.emit("snapshot", { pluginId, rect });
         });
         box.events.on(TeleBoxEventType.Close, () => emitter.emit("close", { pluginId }));
     }

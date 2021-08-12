@@ -1,6 +1,6 @@
 import Emittery from 'emittery';
 import get from 'lodash.get';
-import { autorun } from "white-web-sdk";
+import { autorun, SceneState } from "white-web-sdk";
 import {
     AddPluginOptions,
     AddPluginParams,
@@ -26,6 +26,7 @@ export class PluginProxy {
     public pluginEmitter: Emittery<PluginEmitterEvent>;
     private pluginLisener: any;
     private disposer: any;
+    public scenePath?: string;
 
     constructor(
         private params: AddPluginParams,
@@ -39,6 +40,7 @@ export class PluginProxy {
         this.manager.pluginProxies.set(this.id, this);
         this.pluginEmitter = new Emittery();
         this.pluginLisener = this.makePluginEventListener(this.id);
+        this.scenePath = this.params.options?.scenePath;
     }
 
     private genId(kind: string, options?: AddPluginOptions) {
@@ -103,7 +105,7 @@ export class PluginProxy {
                 pluginId,
                 plugin,
                 emitter: this.pluginEmitter,
-                initScenePath: options?.scenePath,
+                options: options,
                 pluginOptions: localOptions,
             });
         } catch (error) {
@@ -134,6 +136,27 @@ export class PluginProxy {
         }
         emitter.emit(Events.InitReplay, payload);
         return payload;
+    }
+
+    public destroy(needCloseBox: boolean, error?: Error) {
+        this.pluginEmitter.emit("destroy", { error });
+        this.pluginEmitter.offAny(this.pluginLisener);
+        emitter.emit(`destroy-${this.id}`, { error });
+        this.manager.safeUpdateAttributes(["plugins", this.id], undefined);
+        if (needCloseBox) {
+            this.boxManager.closeBox(this.id);
+            WindowManager.viewManager.destoryView(this.id);
+        }
+
+        if (this.disposer) {
+            this.disposer();
+        }
+        this.cleanPluginAttributes();
+        this.manager.pluginProxies.delete(this.id);
+    }
+
+    public emitPluginSceneStateChange(sceneState: SceneState) {
+        this.pluginEmitter.emit("sceneStateChange", sceneState!);
     }
 
     private makePluginEventListener(pluginId: string) {
@@ -168,27 +191,9 @@ export class PluginProxy {
         }
     }
 
-    public destroy(needCloseBox: boolean, error?: Error) {
-        this.pluginEmitter.emit("destroy", { error });
-        this.pluginEmitter.offAny(this.pluginLisener);
-        emitter.emit(`destroy-${this.id}`, { error });
-        this.manager.safeUpdateAttributes(["plugins", this.id], undefined);
-        if (needCloseBox) {
-            this.boxManager.closeBox(this.id);
-            WindowManager.viewManager.destoryView(this.id);
-        }
-
-        if (this.disposer) {
-            this.disposer();
-        }
-        this.cleanPluginAttributes();
-        this.manager.pluginProxies.delete(this.id);
-    }
-
     private pluginAttributesUpdateListener = (pluginId: string) => {
         const disposer = autorun(() => {
             const pluginAttributes = this.manager.attributes[pluginId];
-            log("proxy autorun", pluginAttributes);
             this.pluginEmitter.emit("attributesUpdate", pluginAttributes);
         });
         this.disposer = disposer;
@@ -196,12 +201,8 @@ export class PluginProxy {
 
     private insertComponentToWrapper(params: InsertComponentToWrapperParams) {
         log("insertComponentToWrapper", params);
-        const { pluginId, plugin, emitter, pluginOptions } = params;
-        let payload: any = { pluginId, emitter, plugin };
-
-        if (pluginOptions) {
-            payload.options = pluginOptions;
-        }
+        const { pluginId, plugin, emitter, options } = params;
+        let payload: any = { pluginId, emitter, plugin, options };
         this.boxManager.createBox(payload);
     }
 

@@ -48,6 +48,7 @@ export type Plugins = {
 
 export type AddPluginOptions = {
     scenePath?: string;
+    title?: string;
 }
 
 export type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
@@ -58,6 +59,7 @@ export type InsertComponentToWrapperParams = {
     emitter: Emittery<PluginEmitterEvent>;
     initScenePath?: string;
     pluginOptions?: any,
+    options?: AddPluginOptions
 }
 
 export type AddPluginParams = {
@@ -99,6 +101,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public pluginListeners: PluginListeners;
     public pluginProxies: Map<string, PluginProxy> = new Map();
+    private attributesDisposer: any;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -112,7 +115,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.pluginListeners = new PluginListeners(this.displayer, this.boxManager, this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.pluginListeners.addListeners();
-        autorun(() => {
+        this.attributesDisposer = autorun(() => {
             const attributes = this.attributes;
             this.attributesUpdateCallback(attributes);
         });
@@ -279,12 +282,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private displayerStateListener = (state: Partial<DisplayerState>) => {
-        if (state.sceneState) {
-            const scenePath = state.sceneState.scenePath;
-            this.pluginProxies.forEach((pluginProxy, id) => {
-                const initPath = this.getPluginInitPath(id);
-                if (initPath && scenePath.startsWith(initPath)) {
-                    pluginProxy.pluginEmitter.emit("sceneStateChange", state.sceneState!);
+        const sceneState = state.sceneState
+        if (sceneState) {
+            const scenePath = sceneState.scenePath;
+            this.pluginProxies.forEach((pluginProxy) => {
+                if (pluginProxy.scenePath && scenePath.startsWith(pluginProxy.scenePath)) {
+                    pluginProxy.emitPluginSceneStateChange(sceneState);
                 }
             });
         }
@@ -294,6 +297,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         emitter.offAny(this.eventListener);
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
         this.pluginListeners.removeListeners();
+        this.attributesDisposer();
     }
 
     public safeSetAttributes(attributes: any) {

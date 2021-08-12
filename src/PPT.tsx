@@ -101,7 +101,7 @@ export default {
                     box.$content!
                 );
             }
-            context.emitter.emit("setBoxTitle", { title: "ppt1" })
+            // context.emitter.emit("setBoxTitle", { title: "ppt1" });
             console.log("context footer", box?.$footer);
         });
     },
