@@ -49,6 +49,7 @@ export class BoxManager {
     }
 
     public createBox(params: CreateBoxParams) {
+        log("create box", params);
         const { width, height } = params.plugin.config ?? {};
 
         const box = this.teleBoxManager.create({
@@ -124,13 +125,16 @@ export class BoxManager {
         box.events.on(TeleBoxEventType.Move, debounce(params => emitter.emit("move", { pluginId, ...params }), 5));
         box.events.on(TeleBoxEventType.Resize, debounce(params => emitter.emit("resize", { pluginId, ...params }), 5));
         box.events.on(TeleBoxEventType.Focus, () => emitter.emit("focus", { pluginId }));
-        box.events.on(TeleBoxEventType.Blur, () =>  emitter.emit("blur", { pluginId }));
+        box.events.on(TeleBoxEventType.Blur, () => emitter.emit("blur", { pluginId }));
         box.events.on(TeleBoxEventType.State, state => {
-            emitter.emit(state, { pluginId });
+            if (state) {
+                emitter.emit(state, { pluginId });
+            }
         });
         box.events.on(TeleBoxEventType.Snapshot, rect => {
             emitter.emit("snapshot", { pluginId, rect })
         });
+        box.events.on(TeleBoxEventType.Close, () => emitter.emit("close", { pluginId }));
     }
 
     public moveBox({ pluginId, x, y }: MoveBoxParams) {

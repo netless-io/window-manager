@@ -156,7 +156,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
         for (const [pluginId, pluginEmitter] of WindowManager.emitterMap.entries()) {
-            const pluginAttributes = plugins[pluginId];
+            const pluginAttributes = attributes[pluginId];
             if (pluginAttributes) {
                 pluginEmitter.emit("attributesUpdate", pluginAttributes);
             }
@@ -305,6 +305,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             case "close": {
                 this.destroyPlugin(payload.pluginId, false, payload.error);
+                this.cleanPluginAttributes(payload.pluginId);
                 break;
             }
             default:
@@ -331,6 +332,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (needCloseBox) {
             this.boxManager.closeBox(pluginId);
             WindowManager.viewManager.destoryView(pluginId);
+        }
+    }
+
+    private cleanPluginAttributes(pluginId: string) {
+        this.safeSetAttributes({ [pluginId]: undefined });
+        const focus = this.attributes["focus"];
+        if (focus === pluginId) {
+            this.safeSetAttributes({ focus: undefined });
         }
     }
 

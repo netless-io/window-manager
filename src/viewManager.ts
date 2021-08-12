@@ -57,9 +57,7 @@ export class ViewManager {
         if (view) {
             this.room.views.forEach(roomView => {
                 if (roomView.mode === ViewVisionMode.Writable) {
-                    if (!roomView.focusScenePath) {
-                        roomView.focusScenePath = this.room.state.sceneState.scenePath;
-                    }
+                    roomView.focusScenePath = this.room.state.sceneState.scenePath;
                 }
                 roomView.mode = ViewVisionMode.Freedom;
             });
@@ -89,9 +87,7 @@ export class ViewManager {
             if (this.mainView.mode === ViewVisionMode.Writable) return;
             this.room.views.forEach(roomView => {
                 if (roomView.mode === ViewVisionMode.Writable) {
-                    if (!roomView.focusScenePath) {
-                        roomView.focusScenePath = this.room.state.sceneState.scenePath;
-                    }
+                    roomView.focusScenePath = this.room.state.sceneState.scenePath;
                 }
                 roomView.mode = ViewVisionMode.Freedom;
             });

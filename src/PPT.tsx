@@ -73,12 +73,16 @@ export default {
             // context.setAttributes({ aaaaa: 1 });
             // context.emit("setBoxSize", { width: 400, height: 400 });
             context.emitter.on("attributesUpdate", attributes => {
-                // console.log("attributesUpdate", attributes);
+                console.log("attributesUpdate", attributes);
             });
             console.log("isWritable", context.getIsWritable());
             context.emitter.on("sceneStateChange", state => {
                 // console.log(state);
             });
+            context.setAttributes({ a:1, b:2 });
+            setTimeout(() => {
+                context.updateAttributes(["a"], 3);
+            }, 2000)
             const box = context.getBox();
             console.log("context context", box?.$content);
             if (box) {
