@@ -44,7 +44,7 @@ export class PluginContext<T = any> {
         this.manager.safeSetAttributes({ [this.pluginId]: attributes });
     }
 
-    public updateAttributes(keys: string[], value: any) { 
+    public updateAttributes(keys: string[], value: any) {
         this.manager.safeUpdateAttributes([this.pluginId, ...keys], value);
     }
 

@@ -12,7 +12,8 @@ import {
     isRoom,
     Room,
     View,
-    ViewVisionMode
+    ViewVisionMode,
+    autorun
 } from 'white-web-sdk';
 import { loadPlugin } from "./loader";
 import { log } from "./log";
@@ -28,6 +29,9 @@ import {
     PluginAttributes,
     PluginEvents,
 } from "./constants";
+import get from "lodash.get";
+import { PluginProxy } from "./PluginProxy";
+import { PluginCreateError } from "./error";
 
 (window as any).PPT = PPT;
 
@@ -46,9 +50,9 @@ export type AddPluginOptions = {
     scenePath?: string;
 }
 
-type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
+export type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
 
-type InsertComponentToWrapperParams = {
+export type InsertComponentToWrapperParams = {
     pluginId: string;
     plugin: Plugin;
     emitter: Emittery<PluginEmitterEvent>;
@@ -63,10 +67,11 @@ export type AddPluginParams = {
     pluginArgs?: any;
 }
 
-type PluginSyncAttributes = {
+export type PluginSyncAttributes = {
     kind: string,
     url?: string,
     options: any,
+    state?: any
 }
 
 export type PluginInitState = {
@@ -86,17 +91,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static instance: WindowManager;
     public static displayer: Displayer;
-    public static emitterMap: Map<string, Emittery<PluginEmitterEvent>> = new Map();
     public static root: HTMLElement | null;
     public static viewManager: ViewManager;
     public static debug = false;
     public boxManager: BoxManager;
     public viewCameraManager: ViewCameraManager;
 
-    private instancePlugins: Map<string, Plugin> = new Map();
-    private pluginListenerMap: Map<string, any> = new Map();
-    private pluginListeners: PluginListeners;
-
+    public pluginListeners: PluginListeners;
+    public pluginProxies: Map<string, PluginProxy> = new Map();
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -107,9 +109,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.viewCameraManager = new ViewCameraManager(this);
         WindowManager.viewManager = new ViewManager(this.displayer as Room, this, this.viewCameraManager);
         this.boxManager = new BoxManager(WindowManager.viewManager.mainView, this);
-        this.pluginListeners = new PluginListeners(this.displayer, this.boxManager);
+        this.pluginListeners = new PluginListeners(this.displayer, this.boxManager, this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.pluginListeners.addListeners();
+        autorun(() => {
+            const attributes = this.attributes;
+            this.attributesUpdateCallback(attributes);
+        });
     }
 
     /**
@@ -141,11 +147,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @param {*} attributes
      * @memberof WindowManager
      */
-    public onAttributesUpdate(attributes: any) {
+    public attributesUpdateCallback(attributes: any) {
         const plugins = attributes.plugins;
         if (plugins) {
             for (const id in plugins) {
-                if (!this.instancePlugins.has(id)) {
+                if (!this.pluginProxies.has(id)) {
                     const plugin = plugins[id];
                     this.baseInsertPlugin({
                         kind: plugin.kind,
@@ -153,12 +159,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                         options: plugin.options
                     });
                 }
-            }
-        }
-        for (const [pluginId, pluginEmitter] of WindowManager.emitterMap.entries()) {
-            const pluginAttributes = attributes[pluginId];
-            if (pluginAttributes) {
-                pluginEmitter.emit("attributesUpdate", pluginAttributes);
             }
         }
     }
@@ -176,7 +176,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (!manger) {
             manger = await room.createInvisiblePlugin(WindowManager, {});
         }
-        (manger as any).enableCallbackUpdate = true;
         WindowManager.root = root;
         WindowManager.debug = Boolean(debug);
         (manger as WindowManager).boxManager.setupBoxManager();
@@ -201,32 +200,25 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      */
     public async addPlugin(params: AddPluginParams) {
         log("addPlugin", params);
-        const baseResult = await this.baseInsertPlugin(params);
-        if (baseResult) {
-            this.addPluginToAttirbutes(baseResult.pluginId, params);
-            this.instancePlugins.set(baseResult.pluginId, baseResult.plugin);
+        try {
+            const pluginProxy = new PluginProxy(params, this, this.boxManager);
+            if (pluginProxy) {
+                await pluginProxy.baseInsertPlugin();
+                pluginProxy.setupAttributes();
+            }
+        } catch (error) {
+            if (error instanceof PluginCreateError) {
+                console.log(error);
+            }
         }
     }
 
     private async baseInsertPlugin(params: AddPluginParams) {
-        const pluginId = this.generatePluginId(params.kind, params.options);
-        if (this.instancePlugins.get(pluginId)) {
-            return;
-        }
-
-        if (params.kind && params.plugin) {
-            const plugin = typeof params.plugin === "string" ? await loadPlugin(params.kind, params.plugin) : params.plugin;
-            if (plugin) {
-                await this.setupPlugin(pluginId, plugin, params.options, params.pluginArgs);
-            } else {
-                throw new Error(`plugin load failed ${params.kind} ${params.plugin}`);
-            }
-            this.boxManager.updateManagerRect();
-            return {
-                pluginId, plugin
-            }
+        const pluginProxy = new PluginProxy(params, this, this.boxManager);
+        if (pluginProxy) {
+            await pluginProxy.baseInsertPlugin();
         } else {
-            // throw new Error("kind and plugin is require");
+            console.log("plugin create failed", params);
         }
     }
 
@@ -241,36 +233,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         emitter.once(`destroy-${kind}`).then(listener);
     }
 
-    public getPluginInitState = (id: string) => {
-        const pluginAttributes = this.attributes[id];
-        if (!pluginAttributes) return;
-        const position = pluginAttributes?.[PluginAttributes.Position];
-        const focus = this.attributes.focus;
-        const size = pluginAttributes?.[PluginAttributes.Size];
-        const snapshotRect = pluginAttributes?.[PluginAttributes.SnapshotRect];
-        const boxState = this.attributes["boxState"];
-        let payload = { boxState } as PluginInitState;
-        if (position) {
-            payload = { ...payload, id: id, x: position.x, y: position.y };
-        }
-        if (focus === id) {
-            payload = { ...payload, focus: true };
-        }
-        if (size) {
-            payload = { ...payload, width: size.width, height: size.height };
-        }
-        if (snapshotRect) {
-            payload = { ...payload, snapshotRect };
-        }
-        emitter.emit(Events.InitReplay, payload);
-        return payload;
-    }
-
     private eventListener = (eventName: string, payload: any) => {
         switch (eventName) {
             case "move": {
                 this.safeDispatchMagixEvent(Events.PluginMove, payload);
-                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.Position], { x: payload.x, y: payload.y });
+                this.updatePluginState(payload.pluginId, PluginAttributes.Position, { x: payload.x, y: payload.y });
                 break;
             }
             case "focus": {
@@ -284,7 +251,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             case "resize": {
                 this.safeDispatchMagixEvent(Events.PluginResize, payload);
-                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.Size], { width: payload.width, height: payload.height });
+                this.updatePluginState(payload.pluginId, PluginAttributes.Size, { width: payload.width, height: payload.height });
                 break;
             }
             case TeleBoxState.Minimized:
@@ -296,16 +263,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             case "snapshot": {
                 this.safeDispatchMagixEvent(Events.PluginSnapshot, payload);
-                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.SnapshotRect], payload.rect);
-                break;
-            }
-            case "init": {
-                this.getPluginInitState(payload.pluginId);
+                this.updatePluginState(payload.pluginId, PluginAttributes.SnapshotRect, payload.rect);
                 break;
             }
             case "close": {
-                this.destroyPlugin(payload.pluginId, false, payload.error);
-                this.cleanPluginAttributes(payload.pluginId);
+                const pluginProxy = this.pluginProxies.get(payload.pluginId);
+                if (pluginProxy) {
+                    pluginProxy.destroy(false, payload.error)
+                }
                 break;
             }
             default:
@@ -313,146 +278,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private destroyPlugin(pluginId: string, needCloseBox: boolean, error?: Error) {
-        log("destroyPlugin", pluginId, needCloseBox, error);
-        const pluginListener = this.pluginListenerMap.get(pluginId);
-        const pluginEmitter = WindowManager.emitterMap.get(pluginId);
-        const pluginInstance = this.instancePlugins.get(pluginId);
-        if (pluginEmitter && pluginListener) {
-            pluginEmitter.emit("destroy", { error });
-            pluginEmitter.offAny(pluginListener);
-        }
-        if (pluginInstance) {
-            emitter.emit(`destroy-${pluginInstance.kind}`, { error });
-        }
-        this.instancePlugins.delete(pluginId);
-        WindowManager.emitterMap.delete(pluginId);
-        this.pluginListenerMap.delete(pluginId);
-        this.safeUpdateAttributes(["plugins", pluginId], undefined);
-        if (needCloseBox) {
-            this.boxManager.closeBox(pluginId);
-            WindowManager.viewManager.destoryView(pluginId);
-        }
-    }
-
-    private cleanPluginAttributes(pluginId: string) {
-        this.safeSetAttributes({ [pluginId]: undefined });
-        const focus = this.attributes["focus"];
-        if (focus === pluginId) {
-            this.safeSetAttributes({ focus: undefined });
-        }
-    }
-
     private displayerStateListener = (state: Partial<DisplayerState>) => {
         if (state.sceneState) {
             const scenePath = state.sceneState.scenePath;
-            this.instancePlugins.forEach((_, id) => {
+            this.pluginProxies.forEach((pluginProxy, id) => {
                 const initPath = this.getPluginInitPath(id);
                 if (initPath && scenePath.startsWith(initPath)) {
-                    this.emitToPlugin(id, "sceneStateChange", state.sceneState);
+                    pluginProxy.pluginEmitter.emit("sceneStateChange", state.sceneState!);
                 }
             });
         }
-    }
-
-    private addPluginToAttirbutes(pluginId: string, params: AddPluginParams): void {
-        if (!this.attributes[pluginId]) {
-            this.safeSetAttributes({
-                [pluginId]: {
-                    [PluginAttributes.Size]: { width: 0, height: 0 },
-                    [PluginAttributes.Position]: { x: 0, y: 0 },
-                    [PluginAttributes.SnapshotRect]: {},
-                },
-                focus: pluginId,
-            });
-        }
-        if (!this.attributes.plugins) {
-            this.safeSetAttributes({ plugins: {} });
-        }
-        let pluginAttributes: PluginSyncAttributes = { kind: params.kind, options: params.options };
-        if (typeof params.plugin === "string") {
-            pluginAttributes.url = params.plugin;
-        }
-        this.safeUpdateAttributes(["plugins", pluginId], pluginAttributes);
-    }
-
-    private async setupPlugin(pluginId: string, plugin: Plugin, options?: setPluginOptions, localOptions?: any) {
-        log("setupPlugin", pluginId, plugin, options, localOptions);
-        const pluginEmitter: Emittery<PluginEmitterEvent> = new Emittery();
-        const context = new PluginContext(this, pluginId, pluginEmitter);
-        try {
-            WindowManager.emitterMap.set(pluginId, pluginEmitter);
-            emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
-                const boxInitState = this.getPluginInitState(pluginId);
-                log("WindowCreated", boxInitState);
-                this.boxManager.updateBox(boxInitState);
-                pluginEmitter.emit("create", undefined);
-                const pluginLisener = this.makePluginEventListener(pluginId);
-                pluginEmitter.onAny(pluginLisener);
-                this.pluginListenerMap.set(pluginId, pluginLisener);
-            });
-            await plugin.setup(context, localOptions);
-            this.insertComponentToWrapper({
-                pluginId,
-                plugin,
-                emitter: pluginEmitter,
-                initScenePath: options?.scenePath,
-                pluginOptions: localOptions,
-            });
-        } catch (error) {
-            throw new Error(`plugin setup error: ${error.message}`);
-        }
-    }
-
-    private makePluginEventListener(pluginId: string) {
-        return (eventName: PluginListenerKeys, data: any) => {
-            switch (eventName) {
-                case "setBoxSize": {
-                    this.boxManager.resizeBox({
-                        pluginId,
-                        width: data.width,
-                        height: data.height,
-                    });
-                    break;
-                }
-                case "setBoxMinSize": {
-                    this.boxManager.setBoxMinSize({
-                        pluginId,
-                        minWidth: data.minwidth,
-                        minHeight: data.minheight
-                    });
-                    break;
-                }
-                case "setBoxTitle": {
-                    this.boxManager.setBoxTitle({ pluginId, title: data.title });
-                    break;
-                }
-                case PluginEvents.destroy: {
-                    this.destroyPlugin(pluginId, true, data.error);
-                }
-                default:
-                    break;
-            }
-        }
-    }
-
-    private generatePluginId(kind: string, options?: AddPluginOptions) {
-        if (options && options.scenePath) {
-            return `${kind}-${options.scenePath}`;
-        } else {
-            return kind;
-        }
-    }
-
-    private insertComponentToWrapper(params: InsertComponentToWrapperParams) {
-        log("insertComponentToWrapper", params);
-        const { pluginId, plugin, emitter, pluginOptions } = params;
-        let payload: any = { pluginId, emitter, plugin };
-
-        if (pluginOptions) {
-            payload.options = pluginOptions;
-        }
-        this.boxManager.createBox(payload);
     }
 
     public onDestroy() {
@@ -465,7 +300,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.canOperate) {
             this.setAttributes(attributes);
         }
-        (this as any).enableCallbackUpdate = true;
     }
 
     public safeUpdateAttributes(keys: string[], value: any) {
@@ -503,11 +337,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private emitToPlugin(pluginId: string, event: PluginListenerKeys, payload: any) {
-        const pluginEmitter = WindowManager.emitterMap.get(pluginId);
-        if (pluginEmitter) {
-            pluginEmitter.emit(event, payload);
-        }
+    private updatePluginState(pluginId: string, stateName: PluginAttributes, state: any) {
+        this.safeUpdateAttributes(["plugins", pluginId, "state", stateName], state);
     }
 }
 

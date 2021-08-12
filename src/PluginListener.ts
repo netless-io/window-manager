@@ -8,7 +8,8 @@ export class PluginListeners {
 
     constructor(
         private displayer: Displayer,
-        private boxManager: BoxManager) {
+        private boxManager: BoxManager,
+        private manager: WindowManager) {
     }
 
     public addListeners() {
@@ -49,9 +50,9 @@ export class PluginListeners {
 
     private pluginBlurListener =  (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
-            const pluginEmitter = WindowManager.emitterMap.get(event.payload.pluginId);
-            if (pluginEmitter) {
-                pluginEmitter.emit("writableChange", false);
+            const proxy = this.manager.pluginProxies.get(event.payload.pluginId);
+            if (proxy) {
+                proxy.pluginEmitter.emit("writableChange", false);
             }
             WindowManager.viewManager.switchViewToFreedom(event.payload.pluginId);
         }

@@ -115,9 +115,9 @@ export class BoxManager {
         if (rect) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
-            WindowManager.emitterMap.forEach((emitter) => {
-                emitter.emit("containerRectUpdate", this.teleBoxManager.containerRect);
-            });
+            this.manager.pluginProxies.forEach(proxy => {
+                proxy.pluginEmitter.emit("containerRectUpdate", this.teleBoxManager.containerRect);
+            })
         }
     }
 

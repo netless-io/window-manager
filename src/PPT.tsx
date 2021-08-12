@@ -7,6 +7,7 @@ type PPTWrapperProps = {
     view: View;
     // scenes: { name: string }[];
     initScenePath: string;
+    updateAttr: (keys: string[], attr: any) => void;
 };
 
 type PPTWrapperState = {
@@ -53,6 +54,9 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
         return (
             <div
                 ref={this.setWrapperRef}
+                onClick={() => {
+                    this.props.updateAttr(["a"], 10);
+                }}
                 style={{ width: "100%", height: "100%" }}
             >
                 <div ref={this.setRef} style={{ width: "100%", height: "100%" }}></div>
@@ -73,7 +77,7 @@ export default {
             // context.setAttributes({ aaaaa: 1 });
             // context.emit("setBoxSize", { width: 400, height: 400 });
             context.emitter.on("attributesUpdate", attributes => {
-                console.log("attributesUpdate", attributes);
+                // console.log("attributesUpdate", attributes);
             });
             console.log("isWritable", context.getIsWritable());
             context.emitter.on("sceneStateChange", state => {
@@ -91,6 +95,7 @@ export default {
                 ReactDOM.render(
                     <PPTWrapper
                         view={view}
+                        updateAttr={(keys, attr) => context.updateAttributes(keys, attr)}
                         initScenePath={initScenePath!}
                     />,
                     box.$content!
