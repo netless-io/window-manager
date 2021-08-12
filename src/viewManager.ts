@@ -28,7 +28,6 @@ export class ViewManager {
         const view = this.room.views.createView();
         const cameraListener = this.viewCameraListener(pluginId, view);
         this.viewListeners.set(pluginId, cameraListener);
-        log(pluginId, "addViewListener", cameraListener);
         view.callbacks.on("onCameraUpdated", cameraListener);
         view.mode = ViewVisionMode.Freedom;
         this.views.set(pluginId, view);

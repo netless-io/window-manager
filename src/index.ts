@@ -76,6 +76,8 @@ export type PluginInitState = {
     width?: number,
     height?: number,
     focus?: boolean,
+    snapshotRect?: any,
+    boxState: TeleBoxState,
 }
 
 export const emitter: Emittery = new Emittery();
@@ -245,15 +247,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         const position = pluginAttributes?.[PluginAttributes.Position];
         const focus = this.attributes.focus;
         const size = pluginAttributes?.[PluginAttributes.Size];
-        let payload = {} as PluginInitState;
+        const snapshotRect = pluginAttributes?.[PluginAttributes.SnapshotRect];
+        const boxState = this.attributes["boxState"];
+        let payload = { boxState } as PluginInitState;
         if (position) {
-            payload = { id: id, x: position.x, y: position.y };
+            payload = { ...payload, id: id, x: position.x, y: position.y };
         }
         if (focus === id) {
             payload = { ...payload, focus: true };
         }
         if (size) {
             payload = { ...payload, width: size.width, height: size.height };
+        }
+        if (snapshotRect) {
+            payload = { ...payload, snapshotRect };
         }
         emitter.emit(Events.InitReplay, payload);
         return payload;
@@ -283,17 +290,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             case TeleBoxState.Minimized:
             case TeleBoxState.Maximized:
             case TeleBoxState.Normal: {
-                this.safeDispatchMagixEvent(Events.PluginBoxStateChange, payload);
+                this.safeDispatchMagixEvent(Events.PluginBoxStateChange, {...payload, state: eventName });
                 this.setAttributes({ boxState: eventName });
+                break;
+            }
+            case "snapshot": {
+                this.safeDispatchMagixEvent(Events.PluginSnapshot, payload);
+                this.safeUpdateAttributes([payload.pluginId, PluginAttributes.SnapshotRect], payload.rect);
                 break;
             }
             case "init": {
                 this.getPluginInitState(payload.pluginId);
-                this.safeSetAttributes({
-                    [payload.pluginId]: {
-                        [PluginAttributes.Position]: {}
-                    }
-                });
                 break;
             }
             case "close": {
@@ -345,6 +352,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 [pluginId]: {
                     [PluginAttributes.Size]: { width: 0, height: 0 },
                     [PluginAttributes.Position]: { x: 0, y: 0 },
+                    [PluginAttributes.SnapshotRect]: {},
                 },
                 focus: pluginId,
             });
@@ -367,6 +375,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             WindowManager.emitterMap.set(pluginId, pluginEmitter);
             emitter.once(`${pluginId}${Events.WindowCreated}`).then(() => {
                 const boxInitState = this.getPluginInitState(pluginId);
+                log("WindowCreated", boxInitState);
                 this.boxManager.updateBox(boxInitState);
                 pluginEmitter.emit("create", undefined);
                 const pluginLisener = this.makePluginEventListener(pluginId);

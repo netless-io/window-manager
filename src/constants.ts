@@ -5,6 +5,7 @@ export enum Events {
     PluginResize = "PluginResize",
     PluginBlur = "PluginBlur",
     PluginBoxStateChange = "PluginBoxStateChange",
+    PluginSnapshot = "PluginSnapshot",
     GetAttributes = "GetAttributes",
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
     InitReplay = "InitReplay",
@@ -14,8 +15,7 @@ export enum Events {
 export enum PluginAttributes {
     Size = "size",
     Position = "position",
-    Minimize = "minimize",
-    Maximize = "maximize",
+    SnapshotRect = "SnapshotRect"
 }
 
 export enum PluginEvents {

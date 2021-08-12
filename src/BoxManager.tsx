@@ -4,6 +4,7 @@ import { Events } from './constants';
 import { Plugin } from './typings';
 import {
     ReadonlyTeleBox,
+    TeleBox,
     TeleBoxCollector,
     TeleBoxEventType,
     TeleBoxManager,
@@ -11,6 +12,7 @@ import {
 } from 'telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
+import { log } from './log';
 
 export { TeleBoxState };
 
@@ -102,6 +104,8 @@ export class BoxManager {
             this.teleBoxManager.update(box.id, {
                 x: state.x, y: state.y, width: state.width, height: state.height, focus: state.focus
             });
+            this.teleBoxManager.setState(state.boxState);
+            (box as TeleBox).setSnapshot(state.snapshotRect);
         }
     }
 
@@ -117,41 +121,16 @@ export class BoxManager {
     }
 
     private addBoxListeners(pluginId: string, box: ReadonlyTeleBox) {
-        box.events.on(TeleBoxEventType.Move, this.boxMoveListener(pluginId));
-        box.events.on(TeleBoxEventType.Resize, this.boxResizeListener(pluginId));
-        box.events.on(TeleBoxEventType.Focus, this.boxFocusListener(pluginId));
-        box.events.on(TeleBoxEventType.Blur, this.boxBlurListener(pluginId));
-        box.events.on(TeleBoxEventType.State, this.boxStateListener(pluginId));
-    }
-
-    private boxMoveListener = (pluginId: string) => {
-        return debounce(({ x, y }: { x: number, y: number }) => {
-            emitter.emit("move", { pluginId, x, y });
-        }, 5);
-    }
-
-    private boxResizeListener = (pluginId: string) => {
-        return debounce(({ width, height }: { width: number, height: number }) => {
-            emitter.emit("resize", { pluginId, width, height });
-        }, 5);
-    }
-
-    private boxFocusListener = (pluginId: string) => {
-        return () => {
-            emitter.emit("focus", { pluginId });
-        }
-    }
-
-    private boxBlurListener = (pluginId: string) => {
-        return () => {
-            emitter.emit("blur", { pluginId });
-        }
-    }
-
-    private boxStateListener = (pluginId: string) => {
-        return (state: TeleBoxState) => {
+        box.events.on(TeleBoxEventType.Move, debounce(params => emitter.emit("move", { pluginId, ...params }), 5));
+        box.events.on(TeleBoxEventType.Resize, debounce(params => emitter.emit("resize", { pluginId, ...params }), 5));
+        box.events.on(TeleBoxEventType.Focus, () => emitter.emit("focus", { pluginId }));
+        box.events.on(TeleBoxEventType.Blur, () =>  emitter.emit("blur", { pluginId }));
+        box.events.on(TeleBoxEventType.State, state => {
             emitter.emit(state, { pluginId });
-        }
+        });
+        box.events.on(TeleBoxEventType.Snapshot, rect => {
+            emitter.emit("snapshot", { pluginId, rect })
+        });
     }
 
     public moveBox({ pluginId, x, y }: MoveBoxParams) {

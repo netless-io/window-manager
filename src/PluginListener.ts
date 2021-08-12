@@ -1,5 +1,5 @@
 import { Displayer, Event } from "white-web-sdk";
-import { TeleBoxState } from "telebox-insider";
+import { TeleBox, TeleBoxState } from "telebox-insider";
 import { BoxManager } from "./BoxManager";
 import { Events } from "./constants";
 import { WindowManager } from "./index";
@@ -17,6 +17,7 @@ export class PluginListeners {
         this.displayer.addMagixEventListener(Events.PluginFocus, this.pluginFocusListener);
         this.displayer.addMagixEventListener(Events.PluginBlur, this.pluginBlurListener);
         this.displayer.addMagixEventListener(Events.PluginBoxStateChange, this.pluginBoxStateListener);
+        this.displayer.addMagixEventListener(Events.PluginSnapshot, this.pluginSnapShotListener);
     }
 
     public removeListeners() {
@@ -25,6 +26,7 @@ export class PluginListeners {
         this.displayer.removeMagixEventListener(Events.PluginFocus, this.pluginFocusListener);
         this.displayer.removeMagixEventListener(Events.PluginBlur, this.pluginBlurListener);
         this.displayer.removeMagixEventListener(Events.PluginBoxStateChange, this.pluginBoxStateListener);
+        this.displayer.removeMagixEventListener(Events.PluginSnapshot, this.pluginSnapShotListener)
     }
 
     private pluginMoveListener = (event: Event) => {
@@ -56,10 +58,19 @@ export class PluginListeners {
     }
 
     private pluginBoxStateListener = (event: Event) => {
-        if (event.authorId === this.displayer.observerId) {
-            this.boxManager.setBoxState(event.payload);
+        if (event.authorId !== this.displayer.observerId) {
+            this.boxManager.setBoxState(event.payload.state);
             if (event.payload === TeleBoxState.Minimized) {
                 WindowManager.viewManager.switchMainViewToWriter();
+            }
+        }
+    }
+
+    private pluginSnapShotListener = (event: Event) => {
+        if (event.authorId !== this.displayer.observerId) {
+            const box = this.boxManager.getBox(event.payload.pluginId) as TeleBox;
+            if (box) {
+                box.setSnapshot(event.payload.rect);
             }
         }
     }

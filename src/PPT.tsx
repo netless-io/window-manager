@@ -30,8 +30,9 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
 
     setRef = (ref: HTMLDivElement) => {
         this.viewRef = ref;
-        console.log(this.props.view);
         this.props.view.divElement = ref;
+
+        // this.props.view.divElement = shadowRoot as any;
         // this.props.view.focusScenePath = `${this.props.initScenePath}/${this.props.scenes[0].name}`;
     };
 
@@ -44,18 +45,6 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
     //     return this.props.scenes[this.state.page - 1]?.name;
     // }
 
-    onWheel = () => {
-        if (this.viewRef) {
-            this.viewRef.style.pointerEvents = "none";
-        }
-    };
-
-    onClick = () => {
-        if (this.viewRef) {
-            this.viewRef.style.pointerEvents = "auto";
-        }
-    };
-
     setWrapperRef = (ref: HTMLDivElement) => {
         this.wrapperRef = ref;
     };
@@ -64,8 +53,6 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
         return (
             <div
                 ref={this.setWrapperRef}
-                onWheel={this.onWheel}
-                onClick={this.onClick}
                 style={{ width: "100%", height: "100%" }}
             >
                 <div ref={this.setRef} style={{ width: "100%", height: "100%" }}></div>
@@ -105,6 +92,7 @@ export default {
                     box.$content!
                 );
             }
+            context.emitter.emit("setBoxTitle", { title: "ppt1" })
             console.log("context footer", box?.$footer);
         });
     },
