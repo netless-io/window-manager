@@ -89,6 +89,10 @@ export class AppProxy {
         }
     }
 
+    private get box() {
+        return this.boxManager.getBox(this.id);
+    }
+
     private async getAppImpl() {
         const params = this.params;
         let appImpl;
@@ -174,7 +178,13 @@ export class AppProxy {
     }
 
     public emitAppIsWritableChange(isWritable: boolean) {
-        this.appEmitter.emit("writableChange", isWritable);
+        if (isWritable === false) {
+            this.appEmitter.emit("writableChange", isWritable);
+        } else {
+            if (this.box && this.box.focus) {
+                this.appEmitter.emit("writableChange", isWritable);
+            }
+        }
     }
 
     private makeAppEventListener(appId: string) {

@@ -1,5 +1,5 @@
 import { TeleBoxRect, ReadonlyTeleBox } from 'telebox-insider';
-import { SceneState, WhiteScene, View } from 'white-web-sdk';
+import { SceneState, WhiteScene, View, AnimationMode } from 'white-web-sdk';
 import { AppContext } from './AppContext';
 
 export interface NetlessApp<T = any> {
@@ -39,4 +39,4 @@ export type AppListenerKeys = keyof AppEmitterEvent;
 
 export type { AppContext } from "./AppContext";
 export type { ReadonlyTeleBox, TeleBoxRect };
-export type { SceneState, WhiteScene, View };
+export type { SceneState, WhiteScene, View, AnimationMode };
