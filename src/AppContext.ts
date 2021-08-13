@@ -29,7 +29,7 @@ export class AppContext<T = any> {
     }
 
     public getInitScenePath() {
-        return this.manager.getPluginInitPath(this.appId);
+        return this.manager.getAppInitPath(this.appId);
     }
 
     public getIsWritable(): boolean {
@@ -65,7 +65,7 @@ export class AppContext<T = any> {
         const view = WindowManager.viewManager.createView(this.appId);
         const mainViewElement = WindowManager.viewManager.mainView.divElement;
         if (!mainViewElement) {
-            throw new Error(`create plugin main view must bind divElement`);
+            throw new Error(`create app main view must bind divElement`);
         }
         WindowManager.viewManager.addMainViewListener();
         (view as any).cameraman.disableCameraTransform = true;

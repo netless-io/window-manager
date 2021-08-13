@@ -138,13 +138,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             for (const id in apps) {
                 if (!this.appProxies.has(id)) {
                     const app = apps[id];
-                    let pluginClass = app.src;
-                    if (!pluginClass) {
-                        pluginClass = WindowManager.appClasses.get(app.kind);
+                    let appImpl = app.src;
+                    if (!appImpl) {
+                        appImpl = WindowManager.appClasses.get(app.kind);
                     }
                     this.baseInsertApp({
                         kind: app.kind,
-                        src: pluginClass,
+                        src: appImpl,
                         options: app.options
                     });
                 }
@@ -221,18 +221,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             await appProxy.baseInsertApp();
             return appProxy;
         } else {
-            console.log("plugin create failed", params);
+            console.log("app create failed", params);
         }
     }
 
     /**
-     * 插件 destroy 回调
+     * app destroy 回调
      *
      * @param {string} kind
      * @param {(error: Error) => void} listener
      * @memberof WindowManager
      */
-    public onPluginDestroy(kind: string, listener: (error: Error) => void) {
+    public onAppDestroy(kind: string, listener: (error: Error) => void) {
         emitter.once(`destroy-${kind}`).then(listener);
     }
 
@@ -334,15 +334,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
     }
 
-    public getPluginInitPath(pluginId: string): string | undefined {
-        const pluginAttributes = this.attributes["apps"][pluginId];
-        if (pluginAttributes) {
-            return pluginAttributes?.options.scenePath;
+    public getAppInitPath(appId: string): string | undefined {
+        const attrs = this.attributes["apps"][appId];
+        if (attrs) {
+            return attrs?.options.scenePath;
         }
     }
 
-    private updateAppState(pluginId: string, stateName: AppAttributes, state: any) {
-        this.safeUpdateAttributes(["apps", pluginId, "state", stateName], state);
+    private updateAppState(appId: string, stateName: AppAttributes, state: any) {
+        this.safeUpdateAttributes(["apps", appId, "state", stateName], state);
     }
 }
 

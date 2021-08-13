@@ -83,8 +83,8 @@ sdk.joinRoom({
     mainView.divElement = root;
     window.mainView = mainView;
 
-    manager.onPluginDestroy(PPT.kind, (error) => {
-        console.log("onPlugindestroy", error)
+    manager.onAppDestroy(PPT.kind, (error) => {
+        console.log("onAppDestroy", error)
     })
 
     button2.addEventListener("click", () => {
