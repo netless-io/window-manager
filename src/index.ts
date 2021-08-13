@@ -195,6 +195,7 @@ export class AppManager {
         this.boxManager = new BoxManager(this.viewManager.mainView, this.appProxies);
         this.appListeners = new AppListeners(this.displayer, this.boxManager, this.viewManager, this.appProxies);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
+        this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.addListeners();
 
         emitter.once("onCreated").then(async () => {
@@ -272,6 +273,12 @@ export class AppManager {
                 }
             });
         }
+    }
+
+    private displayerWritableListener = () => {
+        this.appProxies.forEach((appProxy) => {
+            appProxy.emitAppIsWritableChange(this.displayer.enableWriteNow);
+        });
     }
 
     private get eventName() {
@@ -385,6 +392,7 @@ export class AppManager {
 
     public destroy() {
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
+        this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();
         emitter.offAny(this.eventListener);
         this.attributesDisposer();

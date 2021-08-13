@@ -171,6 +171,10 @@ export class AppProxy {
         this.appEmitter.emit("sceneStateChange", sceneState!);
     }
 
+    public emitAppIsWritableChange(isWritable: boolean) {
+        this.appEmitter.emit("writableChange", isWritable);
+    }
+
     private makeAppEventListener(appId: string) {
         return (eventName: AppListenerKeys, data: any) => {
             switch (eventName) {
