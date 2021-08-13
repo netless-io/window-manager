@@ -250,6 +250,7 @@ export class AppManager {
                 if (params.options?.scenePath) {
                     this.setupScenePath(params.options.scenePath);
                 }
+                this.viewManager.swtichViewToWriter(id);
             }
         } catch (error) {
             if (error instanceof AppCreateError) {
@@ -364,10 +365,13 @@ export class AppManager {
             }
             case "blur": {
                 this.safeDispatchMagixEvent(Events.AppBlur, payload);
+                break;
             }
             case "resize": {
-                this.safeDispatchMagixEvent(Events.AppResize, payload);
-                this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
+                if (payload.width && payload.height) {
+                    this.safeDispatchMagixEvent(Events.AppResize, payload);
+                    this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
+                }
                 break;
             }
             case TeleBoxState.Minimized: {

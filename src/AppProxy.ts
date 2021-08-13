@@ -115,7 +115,9 @@ export class AppProxy {
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
                 await app.setup(context);
-                this.manager.viewManager.swtichViewToWriter(appId);
+                if (boxInitState?.focus) {
+                    this.manager.viewManager.swtichViewToWriter(appId);
+                }
             });
             this.boxManager.createBox({
                 appId: appId, app, options

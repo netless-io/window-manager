@@ -109,7 +109,10 @@ export class BoxManager {
         const box = this.getBox(state.id);
         if (box) {
             this.teleBoxManager.update(box.id, {
-                x: state.x, y: state.y, width: state.width, height: state.height
+                x: state.x,
+                y: state.y,
+                width: state.width || 0.5,
+                height: state.height || 0.5
             });
             if (state.focus) {
                 this.teleBoxManager.update(box.id, { focus: true });
