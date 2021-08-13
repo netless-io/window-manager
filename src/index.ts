@@ -29,6 +29,7 @@ import {
     AppAttributes,
     AppEvents,
 } from "./constants";
+import get from 'lodash.get';
 
 (window as any).PPT = PPT;
 
@@ -312,9 +313,9 @@ export class AppManager {
     }
 
     public getAppInitPath(appId: string): string | undefined {
-        const attrs = this.attributes["apps"][appId];
+        const attrs = get(this.attributes, ["apps", appId]);
         if (attrs) {
-            return attrs?.options.scenePath;
+            return attrs?.options?.scenePath;
         }
     }
 
