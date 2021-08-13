@@ -3,6 +3,7 @@ import { TeleBox, TeleBoxState } from "telebox-insider";
 import { BoxManager } from "./BoxManager";
 import { Events } from "./constants";
 import { ViewManager } from "./ViewManager";
+import { AppProxy } from "./AppProxy";
 
 export class AppListeners {
 
@@ -10,7 +11,7 @@ export class AppListeners {
         private displayer: Displayer,
         private boxManager: BoxManager,
         private viewManager: ViewManager,
-        private appProxies: any) {
+        private appProxies: Map<string, AppProxy>) {
     }
 
     public addListeners() {
