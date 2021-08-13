@@ -241,6 +241,9 @@ export class AppManager {
             const appProxy = await this.baseInsertApp(params);
             if (appProxy) {
                 appProxy.setupAttributes(params.attributes);
+                if (params.options?.scenePath) {
+                    this.setupScenePath(params.options.scenePath);
+                }
             }
         } catch (error) {
             if (error instanceof AppCreateError) {
@@ -260,6 +263,13 @@ export class AppManager {
             return appProxy;
         } else {
             console.log("app create failed", params);
+        }
+    }
+
+    private setupScenePath(scenePath: string) {
+        const scenes = this.displayer.entireScenes()[scenePath];
+        if (!scenes) {
+            this.room?.putScenes(scenePath, [{ name: "1" }]);
         }
     }
 
