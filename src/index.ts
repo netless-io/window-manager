@@ -239,6 +239,11 @@ export class AppManager {
     public async addApp(params: AddAppParams) {
         log("addApp", params);
         try {
+            const id = AppProxy.genId(params.kind, params.options);
+            if (this.appProxies.has(id)) {
+                return;
+            }
+            this.safeSetAttributes({ [id]: params.attributes });
             const appProxy = await this.baseInsertApp(params);
             if (appProxy) {
                 appProxy.setupAttributes(params.attributes);
@@ -318,7 +323,6 @@ export class AppManager {
             return attrs?.options?.scenePath;
         }
     }
-
 
     public safeSetAttributes(attributes: any) {
         if (this.canOperate) {
