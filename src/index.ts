@@ -356,11 +356,22 @@ export class AppManager {
                 }
                 break;
             }
-            case TeleBoxState.Minimized:
-            case TeleBoxState.Maximized:
+            case TeleBoxState.Minimized: {
+                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
+                this.safeSetAttributes({ boxState: eventName });
+                this.viewManager.switchMainViewToWriter();
+                break;
+            }
+            case TeleBoxState.Maximized: {
+                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
+                this.safeSetAttributes({ boxState: eventName });
+                this.swtichFocusAppToWritable();
+                break;
+            }
             case TeleBoxState.Normal: {
                 this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
                 this.safeSetAttributes({ boxState: eventName });
+                this.swtichFocusAppToWritable();
                 break;
             }
             case "snapshot": {
@@ -377,6 +388,16 @@ export class AppManager {
             }
             default:
                 break;
+        }
+    }
+
+    private swtichFocusAppToWritable() {
+        const focusAppId = this.attributes.focus;
+        if (focusAppId) {
+            const view = this.viewManager.getView(focusAppId);
+            if (view) {
+                this.viewManager.swtichViewToWriter(focusAppId);
+            }
         }
     }
 

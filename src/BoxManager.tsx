@@ -106,7 +106,6 @@ export class BoxManager {
 
     public updateBox(state?: AppInitState) {
         if (!state) return;
-        console.log("updateBox", state);
         const box = this.getBox(state.id);
         if (box) {
             this.teleBoxManager.update(box.id, {

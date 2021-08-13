@@ -56,6 +56,7 @@ export class ViewManager {
         if (!this.manager.canOperate) return;
         const view = this.views.get(appId);
         if (view) {
+            if (view.focusScenePath === this.room.state.sceneState.scenePath) return;
             this.room.views.forEach(roomView => {
                 if (roomView.mode === ViewVisionMode.Writable) {
                     roomView.focusScenePath = this.room.state.sceneState.scenePath;
