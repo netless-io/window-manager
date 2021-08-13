@@ -58,7 +58,7 @@ export class AppProxy {
         }
         let attrs: AppSyncAttributes = { kind: params.kind, options: params.options };
         if (typeof params.src === "string") {
-            attrs.url = params.src;
+            attrs.src = params.src;
         }
         this.manager.safeUpdateAttributes(["apps", this.id], attrs);
         this.manager.safeUpdateAttributes(["apps", this.id, "state"],{

@@ -68,12 +68,12 @@ type BaseInsertParams = {
     options?: AddAppOptions;
     // 初始化 attributes
     attributes?: any;
-    appClass?: Plugin;
+    appClass?: App;
 }
 
 export type AppSyncAttributes = {
     kind: string,
-    url?: string,
+    src?: string,
     options: any,
     state?: any
 }
@@ -137,15 +137,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (apps) {
             for (const id in apps) {
                 if (!this.appProxies.has(id)) {
-                    const plugin = apps[id];
-                    let pluginClass = plugin.url;
+                    const app = apps[id];
+                    let pluginClass = app.src;
                     if (!pluginClass) {
-                        pluginClass = WindowManager.appClasses.get(plugin.kind);
+                        pluginClass = WindowManager.appClasses.get(app.kind);
                     }
                     this.baseInsertApp({
-                        kind: plugin.kind,
+                        kind: app.kind,
                         src: pluginClass,
-                        options: plugin.options
+                        options: app.options
                     });
                 }
             }
