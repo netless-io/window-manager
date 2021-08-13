@@ -2,14 +2,15 @@ import { Displayer, Event } from "white-web-sdk";
 import { TeleBox, TeleBoxState } from "telebox-insider";
 import { BoxManager } from "./BoxManager";
 import { Events } from "./constants";
-import { WindowManager } from "./index";
+import { ViewManager } from "./ViewManager";
 
 export class AppListeners {
 
     constructor(
         private displayer: Displayer,
         private boxManager: BoxManager,
-        private manager: WindowManager) {
+        private viewManager: ViewManager,
+        private appProxies: any) {
     }
 
     public addListeners() {
@@ -50,11 +51,11 @@ export class AppListeners {
 
     private appBlurListener =  (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
-            const proxy = this.manager.appProxies.get(event.payload.appId);
+            const proxy = this.appProxies.get(event.payload.appId);
             if (proxy) {
                 proxy.appEmitter.emit("writableChange", false);
             }
-            WindowManager.viewManager.switchViewToFreedom(event.payload.appId);
+            this.viewManager.switchViewToFreedom(event.payload.appId);
         }
     }
 
@@ -62,7 +63,7 @@ export class AppListeners {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.setBoxState(event.payload.state);
             if (event.payload === TeleBoxState.Minimized) {
-                WindowManager.viewManager.switchMainViewToWriter();
+                this.viewManager.switchMainViewToWriter();
             }
         }
     }

@@ -2,7 +2,7 @@ import { TeleBoxRect, ReadonlyTeleBox } from 'telebox-insider';
 import { SceneState, WhiteScene } from 'white-web-sdk';
 import { AppContext } from './AppContext';
 
-export interface App<T = any> {
+export interface NetlessApp<T = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
@@ -19,7 +19,6 @@ export interface App<T = any> {
 };
 
 export type AppEmitterEvent<T = any> = {
-    create: void,
     /**
      *  before plugin destroyed
      */

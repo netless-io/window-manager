@@ -1,12 +1,7 @@
 import { Camera } from "white-web-sdk";
-import { WindowManager } from "./index";
 
 export class ViewCameraManager {
     private cameras: Map<string, Camera> = new Map();
-
-    constructor(
-        private manager: WindowManager
-    ) {}
 
     public setCamera(id: string, camera: Camera) {
         this.cameras.set(id, camera);

@@ -1,5 +1,5 @@
 import { AnimationMode, Camera, Room, Size, View, ViewVisionMode } from "white-web-sdk";
-import { WindowManager } from "./index";
+import { WindowManager, AppManager } from "./index";
 import { log } from "./log";
 import { ViewCameraManager } from "./ViewCameraManager";
 
@@ -12,7 +12,7 @@ export class ViewManager {
 
     constructor(
         private room: Room, 
-        private manager: WindowManager,
+        private manager: AppManager,
         private viewCameraManager: ViewCameraManager) {
         this.mainView = this.createMainView();
     }
@@ -20,6 +20,7 @@ export class ViewManager {
     public createMainView(): View {
         const mainView = this.room.views.createView();
         mainView.callbacks.on("onCameraUpdated", this.viewCameraListener("mainView", mainView));
+        mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager?.updateManagerRect());
         mainView.mode = ViewVisionMode.Writable;
         return mainView;
     }

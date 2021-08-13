@@ -72,38 +72,35 @@ export default {
     },
     setup: (context: AppContext) => {
         console.log("setup", context);
-        context.emitter.on("create", () => {
-            console.log("create");
-            context.updateAttributes(["ccc"], 1);
-            // context.setAttributes({ aaaaa: 1 });
-            // context.emit("setBoxSize", { width: 400, height: 400 });
-            context.emitter.on("attributesUpdate", (attributes: any) => {
-                // console.log("attributesUpdate", attributes);
-            });
-            console.log("isWritable", context.getIsWritable());
-            context.emitter.on("sceneStateChange", (state: any) => {
-                // console.log(state);
-            });
-            context.setAttributes({ a:1, b:2 });
-            setTimeout(() => {
-                context.updateAttributes(["a"], 3);
-            }, 2000)
-            const box = context.getBox();
-            console.log("context context", box?.$content);
-            if (box) {
-                const view = context.getView();
-                const initScenePath = context.getInitScenePath();
-                ReactDOM.render(
-                    <PPTWrapper
-                        view={view}
-                        updateAttr={(keys, attr) => context.updateAttributes(keys, attr)}
-                        initScenePath={initScenePath!}
-                    />,
-                    box.$content!
-                );
-            }
-            // context.emitter.emit("setBoxTitle", { title: "ppt1" });
-            console.log("context footer", box?.$footer);
+        context.updateAttributes(["ccc"], 1);
+        // context.setAttributes({ aaaaa: 1 });
+        // context.emit("setBoxSize", { width: 400, height: 400 });
+        context.emitter.on("attributesUpdate", (attributes: any) => {
+            // console.log("attributesUpdate", attributes);
         });
+        console.log("isWritable", context.getIsWritable());
+        context.emitter.on("sceneStateChange", (state: any) => {
+            // console.log(state);
+        });
+        context.setAttributes({ a:1, b:2 });
+        setTimeout(() => {
+            context.updateAttributes(["a"], 3);
+        }, 2000)
+        const box = context.getBox();
+        console.log("context context", box?.$content);
+        if (box) {
+            const view = context.getView();
+            const initScenePath = context.getInitScenePath();
+            ReactDOM.render(
+                <PPTWrapper
+                    view={view}
+                    updateAttr={(keys, attr) => context.updateAttributes(keys, attr)}
+                    initScenePath={initScenePath!}
+                />,
+                box.$content!
+            );
+        }
+        // context.emitter.emit("setBoxTitle", { title: "ppt1" });
+        console.log("context footer", box?.$footer);
     },
 };

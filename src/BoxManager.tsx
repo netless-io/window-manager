@@ -1,7 +1,7 @@
 import Emittery from 'emittery';
 import { AddAppOptions, emitter, AppInitState, WindowManager } from './index';
 import { Events } from './constants';
-import { App } from './typings';
+import { NetlessApp } from './typings';
 import {
     ReadonlyTeleBox,
     TeleBox,
@@ -14,12 +14,13 @@ import {
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
 import { log } from './log';
+import { AppProxy } from './AppProxy';
 
 export { TeleBoxState };
 
 export type CreateBoxParams = {
     appId: string,
-    app: App,
+    app: NetlessApp,
     view?: View,
     emitter?: Emittery,
     options?: AddAppOptions
@@ -40,13 +41,14 @@ export class BoxManager {
 
     constructor(
         private mainView: View,
-        private manager: WindowManager
+        private appProxies: Map<string, AppProxy>,
     ) {
         this.mainView = mainView;
-        this.teleBoxManager = this.setupBoxManager();;
+        this.teleBoxManager = this.setupBoxManager();
     }
 
     public createBox(params: CreateBoxParams) {
+        if (!this.teleBoxManager) return;
         const { width, height } = params.app.config ?? {};
         const title = params.options?.title || params.appId;
         const box = this.teleBoxManager.create({
@@ -64,7 +66,7 @@ export class BoxManager {
         });
     }
 
-    public setupBoxManager() {
+    public setupBoxManager(collector?: HTMLElement) {
         const root = WindowManager.root ? WindowManager.root : document.body;
         const rect = root.getBoundingClientRect();
         const manager = new TeleBoxManager({
@@ -73,9 +75,11 @@ export class BoxManager {
                 x: 0, y: 0,
                 width: rect.width, height: rect.height
             },
-            collector: new TeleBoxCollector().mount(document.body),
             fence: false
         });
+        if (this.teleBoxManager) {
+            this.teleBoxManager.destroy();
+        }
         this.teleBoxManager = manager;
         return manager;
     }
@@ -102,6 +106,7 @@ export class BoxManager {
 
     public updateBox(state?: AppInitState) {
         if (!state) return;
+        console.log("updateBox", state);
         const box = this.getBox(state.id);
         if (box) {
             this.teleBoxManager.update(box.id, {
@@ -120,15 +125,17 @@ export class BoxManager {
         if (rect) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
-            this.manager.appProxies.forEach(proxy => {
-                proxy.appEmitter.emit("containerRectUpdate", this.teleBoxManager.containerRect);
+            this.appProxies.forEach(proxy => {
+                if (this.teleBoxManager) {
+                    proxy.appEmitter.emit("containerRectUpdate", this.teleBoxManager.containerRect);
+                }
             });
         }
     }
 
     private addBoxListeners(appId: string, box: ReadonlyTeleBox) {
-        box.events.on(TeleBoxEventType.Move, debounce(params => emitter.emit("move", { appId, ...params }), 5));
-        box.events.on(TeleBoxEventType.Resize, debounce(params => emitter.emit("resize", { appId, ...params }), 5));
+        box.events.on(TeleBoxEventType.Move, debounce(params => emitter.emit("move", { appId, ...params }), 500));
+        box.events.on(TeleBoxEventType.Resize, debounce(params => emitter.emit("resize", { appId, ...params }), 500));
         box.events.on(TeleBoxEventType.Focus, () => {
             log("focus", appId);
             emitter.emit("focus", { appId });

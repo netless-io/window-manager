@@ -1,14 +1,16 @@
 import Emittery from "emittery";
-import { AppEmitterEvent, WindowManager } from "./index";
+import { BoxManager } from "./BoxManager";
+import { AppEmitterEvent, AppManager } from "./index";
 
 export class AppContext<T = any> {
-    private manager: WindowManager;
-    private appId: string;
-    public readonly emitter: Emittery<AppEmitterEvent<T>>
 
-    constructor(manager: WindowManager, appId: string, appEmitter: Emittery<AppEmitterEvent<T>>) {
-        this.manager = manager;
-        this.appId = appId;
+    public readonly emitter: Emittery<AppEmitterEvent<T>>;
+
+    constructor(
+        private manager: AppManager,
+        private boxManager: BoxManager,
+        private appId: string,
+        appEmitter: Emittery<AppEmitterEvent<T>>) {
         this.emitter = appEmitter;
     }
 
@@ -21,7 +23,7 @@ export class AppContext<T = any> {
     }
 
     public getView() {
-        let view = WindowManager.viewManager.getView(this.appId);
+        let view = this.manager.viewManager.getView(this.appId);
         if (!view) {
             view = this.createView();
         }
@@ -33,11 +35,11 @@ export class AppContext<T = any> {
     }
 
     public getIsWritable(): boolean {
-        return this.manager.canOperate && Boolean(this.manager.boxManager?.boxIsFocus(this.appId)) ;
+        return this.manager.canOperate && Boolean(this.boxManager.boxIsFocus(this.appId));
     }
 
     public getBox() {
-        return this.manager.boxManager.getBox(this.appId);
+        return this.boxManager.getBox(this.appId);
     }
 
     public setAttributes(attributes: T) {
@@ -62,12 +64,12 @@ export class AppContext<T = any> {
 
     private createView() {
         const room = this.manager.displayer;
-        const view = WindowManager.viewManager.createView(this.appId);
-        const mainViewElement = WindowManager.viewManager.mainView.divElement;
+        const view = this.manager.viewManager.createView(this.appId);
+        const mainViewElement = this.manager.viewManager.mainView.divElement;
         if (!mainViewElement) {
             throw new Error(`create app main view must bind divElement`);
         }
-        WindowManager.viewManager.addMainViewListener();
+        this.manager.viewManager.addMainViewListener();
         (view as any).cameraman.disableCameraTransform = true;
         const initScenePath = this.getInitScenePath();
         if (initScenePath) {
@@ -76,7 +78,7 @@ export class AppContext<T = any> {
                 view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
             }
         }
-        WindowManager.viewManager.swtichViewToWriter(this.appId);
+        this.manager.viewManager.swtichViewToWriter(this.appId);
         return view;
     }
 }

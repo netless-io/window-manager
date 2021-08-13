@@ -1,6 +1,6 @@
 import Emittery from 'emittery';
 import PPT from './PPT';
-import { App } from './typings';
+import { NetlessApp } from './typings';
 import { AppCreateError } from './error';
 import { AppListeners } from './AppListener';
 import { AppProxy } from './AppProxy';
@@ -40,7 +40,7 @@ export type WindowMangerAttributes = {
 }
 
 export type apps = {
-    [key: string]: App
+    [key: string]: NetlessApp
 }
 
 export type AddAppOptions = {
@@ -92,41 +92,121 @@ export const emitter: Emittery = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
-    public static instance: WindowManager;
     public static displayer: Displayer;
     public static root: HTMLElement | null;
-    public static viewManager: ViewManager;
     public static debug = false;
-    public boxManager: BoxManager;
-    public viewCameraManager: ViewCameraManager;
 
-    public appListeners: AppListeners;
-    public appProxies: Map<string, AppProxy> = new Map();
-    private attributesDisposer: any;
-    public static appClasses: Map<string, App> = new Map();
-    private allAppsCreated = false;
+    public appListeners?: AppListeners;
+    public static appClasses: Map<string, NetlessApp> = new Map();
+
+    private appManager?: AppManager;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
-        emitter.onAny(this.eventListener);
+    }
 
-        WindowManager.instance = this;
-        WindowManager.displayer = this.displayer;
-        this.viewCameraManager = new ViewCameraManager(this);
-        WindowManager.viewManager = new ViewManager(this.displayer as Room, this, this.viewCameraManager);
-        this.boxManager = new BoxManager(WindowManager.viewManager.mainView, this);
-        this.appListeners = new AppListeners(this.displayer, this.boxManager, this);
+    public static onCreate() {
+        emitter.emit("onCreated");
+    }
+
+    /**
+     * 初始化插件
+     * 
+     * @static
+     * @param {Room} room
+     * @returns {Promise<WindowManager>}
+     * @memberof WindowManager
+     */
+    public static async use(room: Room, root: HTMLElement, debug?: boolean): Promise<WindowManager> {
+        let manager = room.getInvisiblePlugin(WindowManager.kind);
+        if (!manager) {
+            manager = await room.createInvisiblePlugin(WindowManager, {});
+        }
+        this.root = root;
+        this.debug = Boolean(debug);
+        (manager as WindowManager).appManager = new AppManager(manager as WindowManager);
+        emitter.emit("onCreated");
+        return manager as WindowManager;
+    }
+
+    /**
+     * 注册插件
+     *
+     * @param {NetlessApp} app
+     * @memberof WindowManager
+     */
+    public static register(app: NetlessApp) {
+        this.appClasses.set(app.kind, app);
+    }
+
+    /**
+     * 创建 main View
+     *
+     * @returns {View}
+     * @memberof WindowManager
+     */
+    public createMainView(): View {
+        return this.appManager?.viewManager.mainView!;
+    }
+
+    /**
+     * 创建一个 app 至白板
+     *
+     * @param {AddAppParams} params
+     * @memberof WindowManager
+     */
+    public async addApp(params: AddAppParams) {
+        this.appManager?.addApp(params);
+    }
+
+    /**
+     * app destroy 回调
+     *
+     * @param {string} kind
+     * @param {(error: Error) => void} listener
+     * @memberof WindowManager
+    */
+     public onAppDestroy(kind: string, listener: (error: Error) => void) {
+        emitter.once(`destroy-${kind}`).then(listener);
+    }
+
+    public onDestroy() {
+        this.appManager?.destroy();
+    }
+}
+
+export class AppManager {
+    public displayer: Displayer;
+    public boxManager: BoxManager;
+    public viewCameraManager: ViewCameraManager;
+    public viewManager: ViewManager;
+    public appProxies: Map<string, AppProxy> = new Map();
+
+    private appListeners: AppListeners;
+    private attributesDisposer: any;
+    private allAppsCreated = false;
+
+    constructor(
+        private windowManger: WindowManager,
+    ) {
+        this.displayer = windowManger.displayer;
+        this.viewCameraManager = new ViewCameraManager();
+        this.viewManager = new ViewManager(this.displayer as Room, this, this.viewCameraManager);
+        this.boxManager = new BoxManager(this.viewManager.mainView, this.appProxies);
+        this.appListeners = new AppListeners(this.displayer, this.boxManager, this.viewManager, this.appProxies);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
 
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);
+            emitter.onAny(this.eventListener);
             this.attributesDisposer = autorun(() => {
                 const apps = this.attributes.apps;
                 this.attributesUpdateCallback(apps);
             });
         });
     }
+
 
     /**
      * 插件更新 attributes 时的回调
@@ -153,56 +233,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
     }
-
-    public static onCreate() {
-        emitter.emit("onCreated");
-    }
-
-    /**
-     * 初始化插件
-     * 
-     * @static
-     * @param {Room} room
-     * @returns {Promise<WindowManager>}
-     * @memberof WindowManager
-     */
-    public static async use(room: Room, root: HTMLElement, debug?: boolean): Promise<WindowManager> {
-        let manger = room.getInvisiblePlugin(WindowManager.kind);
-        if (!manger) {
-            manger = await room.createInvisiblePlugin(WindowManager, {});
-        }
-        this.root = root;
-        this.debug = Boolean(debug);
-        (manger as WindowManager).boxManager.setupBoxManager();
-        return manger as WindowManager;
-    }
-
-    /**
-     * 注册插件
-     *
-     * @param {App} app
-     * @memberof WindowManager
-     */
-    public static register(app: App) {
-        this.appClasses.set(app.kind, app);
-    }
-
-    /**
-     * 创建 main View
-     *
-     * @returns {View}
-     * @memberof WindowManager
-     */
-    public createMainView(): View {
-        return WindowManager.viewManager.mainView;
-    }
-
-    /**
-     * 创建一个 app 至白板
-     *
-     * @param {AddAppParams} params
-     * @memberof WindowManager
-     */
+    
     public async addApp(params: AddAppParams) {
         log("addApp", params);
         try {
@@ -216,13 +247,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
     }
-
+    
     private async baseInsertApp(params: BaseInsertParams) {
         const id = AppProxy.genId(params.kind, params.options);
         if (this.appProxies.has(id)) {
             return;
         }
-        const appProxy = new AppProxy(params, this, this.boxManager);
+        const appProxy = new AppProxy(params, this, this.boxManager, this.appProxies);
         if (appProxy) {
             await appProxy.baseInsertApp();
             return appProxy;
@@ -231,15 +262,66 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    /**
-     * app destroy 回调
-     *
-     * @param {string} kind
-     * @param {(error: Error) => void} listener
-     * @memberof WindowManager
-     */
-    public onAppDestroy(kind: string, listener: (error: Error) => void) {
-        emitter.once(`destroy-${kind}`).then(listener);
+    private displayerStateListener = (state: Partial<DisplayerState>) => {
+        const sceneState = state.sceneState
+        if (sceneState) {
+            const scenePath = sceneState.scenePath;
+            this.appProxies.forEach((appProxy) => {
+                if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
+                    appProxy.emitAppSceneStateChange(sceneState);
+                }
+            });
+        }
+    }
+
+    private get eventName() {
+        return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
+    }
+
+    public get canOperate() {
+        if (isRoom(this.displayer)) {
+            return (this.displayer as Room).isWritable;
+        } else {
+            return false;
+        }
+    }
+
+    public get attributes() {
+        return this.windowManger.attributes;
+    }
+
+    public get room() {
+        return isRoom(this.displayer) ? this.displayer as Room : undefined;
+    }
+
+    public getAppInitPath(appId: string): string | undefined {
+        const attrs = this.attributes["apps"][appId];
+        if (attrs) {
+            return attrs?.options.scenePath;
+        }
+    }
+
+
+    public safeSetAttributes(attributes: any) {
+        if (this.canOperate) {
+            this.windowManger.setAttributes(attributes);
+        }
+    }
+
+    public safeUpdateAttributes(keys: string[], value: any) {
+        if (this.canOperate) {
+            this.windowManger.updateAttributes(keys, value);
+        }
+    }
+
+    private updateAppState(appId: string, stateName: AppAttributes, state: any) {
+        this.safeUpdateAttributes(["apps", appId, "state", stateName], state);
+    }
+
+    private safeDispatchMagixEvent(event: string, payload: any) {
+        if (this.canOperate) {
+            (this.displayer as Room).dispatchMagixEvent(event, payload);
+        }
     }
 
     private eventListener = (eventName: string, payload: any) => {
@@ -253,22 +335,25 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 if (!this.allAppsCreated) return;
                 this.safeDispatchMagixEvent(Events.AppFocus, payload);
                 this.safeSetAttributes({ focus: payload.appId });
-                WindowManager.viewManager.swtichViewToWriter(payload.appId);
+                this.viewManager.swtichViewToWriter(payload.appId);
                 break;
             }
             case "blur": {
                 this.safeDispatchMagixEvent(Events.AppBlur, payload);
             }
             case "resize": {
-                this.safeDispatchMagixEvent(Events.AppResize, payload);
-                this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
+                if (!this.allAppsCreated) return;
+                if (payload.width && payload.height) {
+                    this.safeDispatchMagixEvent(Events.AppResize, payload);
+                    this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
+                }
                 break;
             }
             case TeleBoxState.Minimized:
             case TeleBoxState.Maximized:
             case TeleBoxState.Normal: {
                 this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
-                this.setAttributes({ boxState: eventName });
+                this.safeSetAttributes({ boxState: eventName });
                 break;
             }
             case "snapshot": {
@@ -288,78 +373,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private displayerStateListener = (state: Partial<DisplayerState>) => {
-        const sceneState = state.sceneState
-        if (sceneState) {
-            const scenePath = sceneState.scenePath;
-            this.appProxies.forEach((appProxy) => {
-                if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
-                    appProxy.emitAppSceneStateChange(sceneState);
-                }
-            });
-        }
-    }
-
-    public onDestroy() {
-        emitter.offAny(this.eventListener);
-        this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
-        this.appListeners.removeListeners();
-        this.attributesDisposer();
-    }
-
-    public safeSetAttributes(attributes: any) {
-        if (this.canOperate) {
-            this.setAttributes(attributes);
-        }
-    }
-
-    public safeUpdateAttributes(keys: string[], value: any) {
-        if (this.canOperate) {
-            this.updateAttributes(keys, value);
-        }
-    }
-
-    public get canOperate() {
-        if (isRoom(this.displayer)) {
-            return (this.displayer as Room).isWritable;
-        } else {
-            return false;
-        }
-    }
-
     public focusByAttributes(apps: any) {
-        if (apps && Object.keys(apps).length === this.boxManager.appBoxMap.size) {
+        if (apps && Object.keys(apps).length === this.boxManager!.appBoxMap.size) {
             const focusAppId = this.attributes.focus;
             if (focusAppId) {
-                this.boxManager.focusBox({ appId: focusAppId });
+                this.boxManager!.focusBox({ appId: focusAppId });
             }
             this.allAppsCreated = true;
         }
     }
 
-    private safeDispatchMagixEvent(event: string, payload: any) {
-        if (this.canOperate) {
-            (this.displayer as Room).dispatchMagixEvent(event, payload);
-        }
-    }
-
-    public get room() {
-        return isRoom(this.displayer) ? this.displayer as Room : undefined;
-    }
-
-    private get eventName() {
-        return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
-    }
-
-    public getAppInitPath(appId: string): string | undefined {
-        const attrs = this.attributes["apps"][appId];
-        if (attrs) {
-            return attrs?.options.scenePath;
-        }
-    }
-
-    private updateAppState(appId: string, stateName: AppAttributes, state: any) {
-        this.safeUpdateAttributes(["apps", appId, "state", stateName], state);
+    public destroy() {
+        this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
+        this.appListeners.removeListeners();
+        emitter.offAny(this.eventListener);
+        this.attributesDisposer();
     }
 }
 

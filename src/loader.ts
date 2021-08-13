@@ -1,5 +1,5 @@
 import { getItem, setItem } from "./storage";
-import { App } from "./typings";
+import { NetlessApp } from "./typings";
 
 const TIMEOUT = 10000; // 10 秒超时
 
@@ -15,7 +15,7 @@ export const getScript = async (url: string, key: string) => {
     }
 }
 
-export const executeScript = (text: string, name: string): App => {
+export const executeScript = (text: string, name: string): NetlessApp => {
     let result = Function(text)();
     if (typeof result === "undefined") {
         // @ts-ignore

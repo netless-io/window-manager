@@ -3,3 +3,9 @@
     top: 0;
     left: 0;
 }
+
+.telebox-collector {
+    position: absolute;
+    right: 5px;
+    bottom: 10px;
+}

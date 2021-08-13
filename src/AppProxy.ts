@@ -10,13 +10,14 @@ import {
     AppListenerKeys,
     AppSyncAttributes,
     setAppOptions,
-    WindowManager
+    WindowManager,
+    AppManager
     } from './index';
 import { BoxManager } from './BoxManager';
 import { Events, AppAttributes, AppEvents } from './constants';
 import { log } from './log';
 import { AppContext } from './AppContext';
-import { App } from "./typings";
+import { NetlessApp } from "./typings";
 import { loadApp } from './loader';
 import { AppCreateError } from './error';
 
@@ -29,14 +30,15 @@ export class AppProxy {
 
     constructor(
         private params: AddAppParams,
-        private manager: WindowManager,
+        private manager: AppManager,
         private boxManager: BoxManager,
+        private appProxies: Map<string, AppProxy>,
     ) {
         this.id = AppProxy.genId(params.kind, params.options);
-        if (this.manager.appProxies.has(this.id)) {
+        if (this.appProxies.has(this.id)) {
             throw new AppCreateError();
         }
-        this.manager.appProxies.set(this.id, this);
+        this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
         this.appListener = this.makeAppEventListener(this.id);
         this.scenePath = this.params.options?.scenePath;
@@ -104,9 +106,9 @@ export class AppProxy {
         return appImpl;
     }
 
-    private async setupApp(appId: string, app: App, options?: setAppOptions) {
+    private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, appId, this.appEmitter);
+        const context = new AppContext(this.manager, this.boxManager, appId, this.appEmitter);
         try {
             emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getAppInitState(appId);
@@ -114,7 +116,6 @@ export class AppProxy {
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
                 await app.setup(context);
-                this.appEmitter.emit("create", undefined);
             });
             this.boxManager.createBox({
                 appId: appId, app, options
@@ -156,14 +157,14 @@ export class AppProxy {
         this.manager.safeUpdateAttributes(["apps", this.id], undefined);
         if (needCloseBox) {
             this.boxManager.closeBox(this.id);
-            WindowManager.viewManager.destoryView(this.id);
+            this.manager.viewManager.destoryView(this.id);
         }
 
         if (this.disposer) {
             this.disposer();
         }
         this.cleanAppAttributes();
-        this.manager.appProxies.delete(this.id);
+        this.appProxies.delete(this.id);
     }
 
     public emitAppSceneStateChange(sceneState: SceneState) {
