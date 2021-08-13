@@ -96,8 +96,10 @@ export class AppProxy {
             if (!appImpl) {
                 throw new Error("app need register");
             }
-        } else {
-            appImpl = typeof params.src === "string" ? await loadApp(params.kind, params.src) : undefined;
+        } else if (typeof params.src === "string") {
+            appImpl = await loadApp(params.kind, params.src);
+        } else if (typeof params.src === "object") {
+            appImpl = params.src;
         }
         return appImpl;
     }

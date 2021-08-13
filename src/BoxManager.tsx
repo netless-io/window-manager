@@ -107,8 +107,11 @@ export class BoxManager {
         const box = this.getBox(state.id);
         if (box) {
             this.teleBoxManager.update(box.id, {
-                x: state.x, y: state.y, width: state.width, height: state.height, focus: state.focus
+                x: state.x, y: state.y, width: state.width, height: state.height
             });
+            if (state.focus) {
+                this.teleBoxManager.update(box.id, { focus: true });
+            }
             this.teleBoxManager.setState(state.boxState);
             (box as TeleBox).setSnapshot(state.snapshotRect);
         }

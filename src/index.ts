@@ -52,7 +52,7 @@ export type setAppOptions = AddAppOptions & { appOptions?: any };
 
 export type AddAppParams = {
     kind: string;
-    // 插件地址(本地插件不需要传)
+    // app 地址(本地 app 不需要传)
     src?: string;
     // 窗口配置
     options?: AddAppOptions;
@@ -62,13 +62,12 @@ export type AddAppParams = {
 
 type BaseInsertParams = {
     kind: string;
-    // 插件地址(本地插件不需要传)
+    // app 地址(本地 app 不需要传)
     src?: string;
     // 窗口配置
     options?: AddAppOptions;
     // 初始化 attributes
     attributes?: any;
-    appClass?: App;
 }
 
 export type AppSyncAttributes = {
