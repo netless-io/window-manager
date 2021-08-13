@@ -1,24 +1,24 @@
 
 export enum Events {
-    PluginMove = "PluginMove",
-    PluginFocus = "PluginFocus",
-    PluginResize = "PluginResize",
-    PluginBlur = "PluginBlur",
-    PluginBoxStateChange = "PluginBoxStateChange",
-    PluginSnapshot = "PluginSnapshot",
+    AppMove = "AppMove",
+    AppFocus = "AppFocus",
+    AppResize = "AppResize",
+    AppBlur = "AppBlur",
+    AppBoxStateChange = "AppBoxStateChange",
+    AppSnapshot = "AppSnapshot",
     GetAttributes = "GetAttributes",
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
     InitReplay = "InitReplay",
     WindowCreated = "WindowCreated",
 }
 
-export enum PluginAttributes {
+export enum AppAttributes {
     Size = "size",
     Position = "position",
     SnapshotRect = "SnapshotRect"
 }
 
-export enum PluginEvents {
+export enum AppEvents {
     setBoxSize = "setBoxSize",
     setBoxMinSize = "setBoxMinSize",
     destroy = "destroy",

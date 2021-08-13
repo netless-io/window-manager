@@ -1,8 +1,8 @@
 import { TeleBoxRect, ReadonlyTeleBox } from 'telebox-insider';
 import { SceneState, WhiteScene } from 'white-web-sdk';
-import { PluginContext } from './PluginContext';
+import { AppContext } from './AppContext';
 
-export interface Plugin<T = any, K = any> {
+export interface App<T = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
@@ -15,10 +15,10 @@ export interface Plugin<T = any, K = any> {
         /** Minimum box height relative to whiteboard. 0~1. Default 0. */
         minheight?: number;
     };
-    setup: (context: PluginContext<T>, pluginArgs: K) => void;
+    setup: (context: AppContext<T>) => void;
 };
 
-export type PluginEmitterEvent<T = any> = {
+export type AppEmitterEvent<T = any> = {
     create: void,
     /**
      *  before plugin destroyed
@@ -36,8 +36,8 @@ export type PluginEmitterEvent<T = any> = {
     containerRectUpdate: TeleBoxRect,
 }
 
-export type PluginListenerKeys = keyof PluginEmitterEvent;
+export type AppListenerKeys = keyof AppEmitterEvent;
 
-export type { PluginContext } from "./PluginContext";
+export type { AppContext } from "./AppContext";
 export type { ReadonlyTeleBox, TeleBoxRect };
 export type { SceneState, WhiteScene };

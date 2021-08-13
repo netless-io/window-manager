@@ -1,5 +1,5 @@
 import { getItem, setItem } from "./storage";
-import { Plugin } from "./typings";
+import { App } from "./typings";
 
 const TIMEOUT = 10000; // 10 秒超时
 
@@ -15,7 +15,7 @@ export const getScript = async (url: string, key: string) => {
     }
 }
 
-export const executeScript = (text: string, name: string): Plugin => {
+export const executeScript = (text: string, name: string): App => {
     let result = Function(text)();
     if (typeof result === "undefined") {
         // @ts-ignore
@@ -24,7 +24,7 @@ export const executeScript = (text: string, name: string): Plugin => {
     return result;
 }
 
-export const loadPlugin = async (name: string, url: string) => {
+export const loadApp = async (name: string, url: string) => {
     const text = await getScript(url, name);
     try {
         return executeScript(text, name);

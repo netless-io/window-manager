@@ -15,23 +15,20 @@ import {
     ViewVisionMode,
     autorun
 } from 'white-web-sdk';
-import { loadPlugin } from "./loader";
 import { log } from "./log";
-import { Plugin, PluginEmitterEvent, PluginListenerKeys } from "./typings";
-import { PluginContext } from "./PluginContext";
-import { PluginListeners } from "./PluginListener";
+import { App, AppEmitterEvent, AppListenerKeys } from "./typings";
+import { AppListeners } from "./AppListener";
 import { ViewCameraManager } from "./ViewCameraManager";
 import { ViewManager } from "./ViewManager";
 import "./style.css";
 import "telebox-insider/dist/style.css";
 import {
     Events,
-    PluginAttributes,
-    PluginEvents,
+    AppAttributes,
+    AppEvents,
 } from "./constants";
-import get from "lodash.get";
-import { PluginProxy } from "./PluginProxy";
-import { PluginCreateError } from "./error";
+import { AppProxy } from "./AppProxy";
+import { AppCreateError } from "./error";
 
 (window as any).PPT = PPT;
 
@@ -42,41 +39,46 @@ export type WindowMangerAttributes = {
     [key: string]: any,
 }
 
-export type Plugins = {
-    [key: string]: Plugin
+export type apps = {
+    [key: string]: App
 }
 
-export type AddPluginOptions = {
+export type AddAppOptions = {
     scenePath?: string;
     title?: string;
 }
 
-export type setPluginOptions = AddPluginOptions & { pluginOptions?: any };
+export type setAppOptions = AddAppOptions & { appOptions?: any };
 
-export type InsertComponentToWrapperParams = {
-    pluginId: string;
-    plugin: Plugin;
-    emitter: Emittery<PluginEmitterEvent>;
-    initScenePath?: string;
-    pluginOptions?: any,
-    options?: AddPluginOptions
-}
-
-export type AddPluginParams = {
+export type AddAppParams = {
     kind: string;
-    plugin?: string;
-    options?: AddPluginOptions;
-    pluginArgs?: any;
+    // 插件地址(本地插件不需要传)
+    src?: string;
+    // 窗口配置
+    options?: AddAppOptions;
+    // 初始化 attributes
+    attributes?: any;
 }
 
-export type PluginSyncAttributes = {
+type BaseInsertParams = {
+    kind: string;
+    // 插件地址(本地插件不需要传)
+    src?: string;
+    // 窗口配置
+    options?: AddAppOptions;
+    // 初始化 attributes
+    attributes?: any;
+    appClass?: Plugin;
+}
+
+export type AppSyncAttributes = {
     kind: string,
     url?: string,
     options: any,
     state?: any
 }
 
-export type PluginInitState = {
+export type AppInitState = {
     id: string,
     x?: number,
     y?: number,
@@ -99,10 +101,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public boxManager: BoxManager;
     public viewCameraManager: ViewCameraManager;
 
-    public pluginListeners: PluginListeners;
-    public pluginProxies: Map<string, PluginProxy> = new Map();
+    public appListeners: AppListeners;
+    public appProxies: Map<string, AppProxy> = new Map();
     private attributesDisposer: any;
-    public static pluginClasses: Map<string, Plugin> = new Map();
+    public static appClasses: Map<string, App> = new Map();
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -113,9 +115,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.viewCameraManager = new ViewCameraManager(this);
         WindowManager.viewManager = new ViewManager(this.displayer as Room, this, this.viewCameraManager);
         this.boxManager = new BoxManager(WindowManager.viewManager.mainView, this);
-        this.pluginListeners = new PluginListeners(this.displayer, this.boxManager, this);
+        this.appListeners = new AppListeners(this.displayer, this.boxManager, this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
-        this.pluginListeners.addListeners();
+        this.appListeners.addListeners();
         setTimeout(() => {
             this.attributesDisposer = autorun(() => {
                 const attributes = this.attributes;
@@ -131,18 +133,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @memberof WindowManager
      */
     public attributesUpdateCallback(attributes: any) {
-        const plugins = attributes.plugins;
-        if (plugins) {
-            for (const id in plugins) {
-                if (!this.pluginProxies.has(id)) {
-                    const plugin = plugins[id];
+        const apps = attributes.apps;
+        if (apps) {
+            for (const id in apps) {
+                if (!this.appProxies.has(id)) {
+                    const plugin = apps[id];
                     let pluginClass = plugin.url;
                     if (!pluginClass) {
-                        pluginClass = WindowManager.pluginClasses.get(plugin.kind);
+                        pluginClass = WindowManager.appClasses.get(plugin.kind);
                     }
-                    this.baseInsertPlugin({
+                    this.baseInsertApp({
                         kind: plugin.kind,
-                        plugin: pluginClass,
+                        src: pluginClass,
                         options: plugin.options
                     });
                 }
@@ -172,11 +174,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 注册插件
      *
-     * @param {Plugin} plugin
+     * @param {App} app
      * @memberof WindowManager
      */
-    public static register(plugin: Plugin) {
-        this.pluginClasses.set(plugin.kind, plugin);
+    public static register(app: App) {
+        this.appClasses.set(app.kind, app);
     }
 
     /**
@@ -190,34 +192,34 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     /**
-     * 创建一个插件至白板
+     * 创建一个 app 至白板
      *
-     * @param {AddPluginParams} params
+     * @param {AddAppParams} params
      * @memberof WindowManager
      */
-    public async addPlugin(params: AddPluginParams) {
-        log("addPlugin", params);
+    public async addApp(params: AddAppParams) {
+        log("addApp", params);
         try {
-            const pluginProxy = await this.baseInsertPlugin(params);
-            if (pluginProxy) {
-                pluginProxy.setupAttributes();
+            const appProxy = await this.baseInsertApp(params);
+            if (appProxy) {
+                appProxy.setupAttributes(params.attributes);
             }
         } catch (error) {
-            if (error instanceof PluginCreateError) {
+            if (error instanceof AppCreateError) {
                 console.log(error);
             }
         }
     }
 
-    private async baseInsertPlugin(params: AddPluginParams) {
-        const id = PluginProxy.genId(params.kind, params.options);
-        if (this.pluginProxies.has(id)) {
+    private async baseInsertApp(params: BaseInsertParams) {
+        const id = AppProxy.genId(params.kind, params.options);
+        if (this.appProxies.has(id)) {
             return;
         }
-        const pluginProxy = new PluginProxy(params, this, this.boxManager);
-        if (pluginProxy) {
-            await pluginProxy.baseInsertPlugin();
-            return pluginProxy;
+        const appProxy = new AppProxy(params, this, this.boxManager);
+        if (appProxy) {
+            await appProxy.baseInsertApp();
+            return appProxy;
         } else {
             console.log("plugin create failed", params);
         }
@@ -237,40 +239,40 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private eventListener = (eventName: string, payload: any) => {
         switch (eventName) {
             case "move": {
-                this.safeDispatchMagixEvent(Events.PluginMove, payload);
-                this.updatePluginState(payload.pluginId, PluginAttributes.Position, { x: payload.x, y: payload.y });
+                this.safeDispatchMagixEvent(Events.AppMove, payload);
+                this.updateAppState(payload.appId, AppAttributes.Position, { x: payload.x, y: payload.y });
                 break;
             }
             case "focus": {
-                this.safeDispatchMagixEvent(Events.PluginFocus, payload);
-                this.safeSetAttributes({ focus: payload.pluginId });
-                WindowManager.viewManager.swtichViewToWriter(payload.pluginId);
+                this.safeDispatchMagixEvent(Events.AppFocus, payload);
+                this.safeSetAttributes({ focus: payload.appId });
+                WindowManager.viewManager.swtichViewToWriter(payload.appId);
                 break;
             }
             case "blur": {
-                this.safeDispatchMagixEvent(Events.PluginBlur, payload);
+                this.safeDispatchMagixEvent(Events.AppBlur, payload);
             }
             case "resize": {
-                this.safeDispatchMagixEvent(Events.PluginResize, payload);
-                this.updatePluginState(payload.pluginId, PluginAttributes.Size, { width: payload.width, height: payload.height });
+                this.safeDispatchMagixEvent(Events.AppResize, payload);
+                this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
                 break;
             }
             case TeleBoxState.Minimized:
             case TeleBoxState.Maximized:
             case TeleBoxState.Normal: {
-                this.safeDispatchMagixEvent(Events.PluginBoxStateChange, {...payload, state: eventName });
+                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
                 this.setAttributes({ boxState: eventName });
                 break;
             }
             case "snapshot": {
-                this.safeDispatchMagixEvent(Events.PluginSnapshot, payload);
-                this.updatePluginState(payload.pluginId, PluginAttributes.SnapshotRect, payload.rect);
+                this.safeDispatchMagixEvent(Events.AppSnapshot, payload);
+                this.updateAppState(payload.appId, AppAttributes.SnapshotRect, payload.rect);
                 break;
             }
             case "close": {
-                const pluginProxy = this.pluginProxies.get(payload.pluginId);
-                if (pluginProxy) {
-                    pluginProxy.destroy(false, payload.error)
+                const appProxy = this.appProxies.get(payload.appId);
+                if (appProxy) {
+                    appProxy.destroy(false, payload.error)
                 }
                 break;
             }
@@ -283,9 +285,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         const sceneState = state.sceneState
         if (sceneState) {
             const scenePath = sceneState.scenePath;
-            this.pluginProxies.forEach((pluginProxy) => {
-                if (pluginProxy.scenePath && scenePath.startsWith(pluginProxy.scenePath)) {
-                    pluginProxy.emitPluginSceneStateChange(sceneState);
+            this.appProxies.forEach((appProxy) => {
+                if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
+                    appProxy.emitAppSceneStateChange(sceneState);
                 }
             });
         }
@@ -294,7 +296,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public onDestroy() {
         emitter.offAny(this.eventListener);
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
-        this.pluginListeners.removeListeners();
+        this.appListeners.removeListeners();
         this.attributesDisposer();
     }
 
@@ -333,14 +335,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public getPluginInitPath(pluginId: string): string | undefined {
-        const pluginAttributes = this.attributes["plugins"][pluginId];
+        const pluginAttributes = this.attributes["apps"][pluginId];
         if (pluginAttributes) {
             return pluginAttributes?.options.scenePath;
         }
     }
 
-    private updatePluginState(pluginId: string, stateName: PluginAttributes, state: any) {
-        this.safeUpdateAttributes(["plugins", pluginId, "state", stateName], state);
+    private updateAppState(pluginId: string, stateName: AppAttributes, state: any) {
+        this.safeUpdateAttributes(["apps", pluginId, "state", stateName], state);
     }
 }
 

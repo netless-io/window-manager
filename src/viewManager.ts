@@ -24,36 +24,36 @@ export class ViewManager {
         return mainView;
     }
 
-    public createView(pluginId: string): View {
+    public createView(appId: string): View {
         const view = this.room.views.createView();
-        const cameraListener = this.viewCameraListener(pluginId, view);
-        this.viewListeners.set(pluginId, cameraListener);
+        const cameraListener = this.viewCameraListener(appId, view);
+        this.viewListeners.set(appId, cameraListener);
         view.callbacks.on("onCameraUpdated", cameraListener);
         view.mode = ViewVisionMode.Freedom;
-        this.views.set(pluginId, view);
+        this.views.set(appId, view);
         return view;
     }
 
-    public destoryView(pluginId: string) {
-        const view = this.views.get(pluginId);
+    public destoryView(appId: string) {
+        const view = this.views.get(appId);
         if (view) {
-            const viewListener = this.viewListeners.get(pluginId);
+            const viewListener = this.viewListeners.get(appId);
             if (viewListener) {
                 view.callbacks.off("onCameraUpdated", viewListener);
-                this.viewCameraManager.deleteCamera(pluginId);
+                this.viewCameraManager.deleteCamera(appId);
             }
             view.release();
-            this.views.delete(pluginId);
+            this.views.delete(appId);
         }
     }
 
-    public getView(pluginId: string) {
-        return this.views.get(pluginId);
+    public getView(appId: string) {
+        return this.views.get(appId);
     }
 
-    public swtichViewToWriter(pluginId: string) {
+    public swtichViewToWriter(appId: string) {
         if (!this.manager.canOperate) return;
-        const view = this.views.get(pluginId);
+        const view = this.views.get(appId);
         if (view) {
             this.room.views.forEach(roomView => {
                 if (roomView.mode === ViewVisionMode.Writable) {
@@ -63,7 +63,7 @@ export class ViewManager {
             });
             if (view.focusScenePath) {
                 this.room.setScenePath(view.focusScenePath);
-                const viewCamera = this.viewCameraManager.getCamera(pluginId);
+                const viewCamera = this.viewCameraManager.getCamera(appId);
                 view.mode = ViewVisionMode.Writable;
                 if (viewCamera) {
                     view.moveCamera({ ...viewCamera, animationMode: AnimationMode.Immediately });
@@ -72,8 +72,8 @@ export class ViewManager {
         }
     }
 
-    public switchViewToFreedom(pluginId: string) {
-        const view = this.views.get(pluginId);
+    public switchViewToFreedom(appId: string) {
+        const view = this.views.get(appId);
         if (view) {
             if (!view.focusScenePath) {
                 view.focusScenePath = this.room.state.sceneState.scenePath;

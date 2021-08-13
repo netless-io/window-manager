@@ -1,4 +1,4 @@
 
-export class PluginCreateError extends Error {
-    message = "plugin already exists and cannot be created again";
+export class AppCreateError extends Error {
+    message = "app already exists and cannot be created again";
 }
