@@ -36,7 +36,7 @@ type SetBoxMinSizeParams = AppId & { minWidth: number, minHeight: number };
 type SetBoxTitleParams = AppId & { title: string };
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
-    private appBoxMap: Map<string, string> = new Map();
+    public appBoxMap: Map<string, string> = new Map();
 
     constructor(
         private mainView: View,
@@ -47,7 +47,6 @@ export class BoxManager {
     }
 
     public createBox(params: CreateBoxParams) {
-        console.log("create box", params);
         const { width, height } = params.app.config ?? {};
         const title = params.options?.title || params.appId;
         const box = this.teleBoxManager.create({
@@ -60,7 +59,6 @@ export class BoxManager {
         this.appBoxMap.set(params.appId, box.id);
         this.teleBoxManager.events.on(TeleBoxManagerEventType.State, state => {
             if (state) {
-                log("state change", state);
                 emitter.emit(state, undefined);
             }
         });

@@ -1,7 +1,11 @@
-import Emittery from "emittery";
+import Emittery from 'emittery';
 import PPT from './PPT';
-import { BoxManager, TeleBoxState } from "./BoxManager";
+import { App } from './typings';
+import { AppCreateError } from './error';
+import { AppListeners } from './AppListener';
+import { AppProxy } from './AppProxy';
 import {
+    autorun,
     CameraBound,
     CameraState,
     Displayer,
@@ -12,23 +16,19 @@ import {
     isRoom,
     Room,
     View,
-    ViewVisionMode,
-    autorun
-} from 'white-web-sdk';
-import { log } from "./log";
-import { App, AppEmitterEvent, AppListenerKeys } from "./typings";
-import { AppListeners } from "./AppListener";
-import { ViewCameraManager } from "./ViewCameraManager";
-import { ViewManager } from "./ViewManager";
-import "./style.css";
-import "telebox-insider/dist/style.css";
+    ViewVisionMode
+    } from 'white-web-sdk';
+import { BoxManager, TeleBoxState } from './BoxManager';
+import { log } from './log';
+import { ViewCameraManager } from './ViewCameraManager';
+import { ViewManager } from './ViewManager';
+import './style.css';
+import 'telebox-insider/dist/style.css';
 import {
     Events,
     AppAttributes,
     AppEvents,
 } from "./constants";
-import { AppProxy } from "./AppProxy";
-import { AppCreateError } from "./error";
 
 (window as any).PPT = PPT;
 
@@ -104,6 +104,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public appProxies: Map<string, AppProxy> = new Map();
     private attributesDisposer: any;
     public static appClasses: Map<string, App> = new Map();
+    private allAppsCreated = false;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -117,12 +118,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.appListeners = new AppListeners(this.displayer, this.boxManager, this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
-        setTimeout(() => {
+
+        emitter.once("onCreated").then(async () => {
+            await this.attributesUpdateCallback(this.attributes.apps);
             this.attributesDisposer = autorun(() => {
-                const attributes = this.attributes;
-                this.attributesUpdateCallback(attributes);
+                const apps = this.attributes.apps;
+                this.attributesUpdateCallback(apps);
             });
-        }, 50);
+        });
     }
 
     /**
@@ -131,8 +134,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @param {*} attributes
      * @memberof WindowManager
      */
-    public attributesUpdateCallback(attributes: any) {
-        const apps = attributes.apps;
+    public async attributesUpdateCallback(apps: any) {
         if (apps) {
             for (const id in apps) {
                 if (!this.appProxies.has(id)) {
@@ -141,14 +143,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     if (!appImpl) {
                         appImpl = WindowManager.appClasses.get(app.kind);
                     }
-                    this.baseInsertApp({
+                    await this.baseInsertApp({
                         kind: app.kind,
                         src: appImpl,
                         options: app.options
                     });
+                    this.focusByAttributes(apps);
                 }
             }
         }
+    }
+
+    public static onCreate() {
+        emitter.emit("onCreated");
     }
 
     /**
@@ -243,6 +250,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 break;
             }
             case "focus": {
+                if (!this.allAppsCreated) return;
                 this.safeDispatchMagixEvent(Events.AppFocus, payload);
                 this.safeSetAttributes({ focus: payload.appId });
                 WindowManager.viewManager.swtichViewToWriter(payload.appId);
@@ -316,6 +324,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             return (this.displayer as Room).isWritable;
         } else {
             return false;
+        }
+    }
+
+    public focusByAttributes(apps: any) {
+        if (apps && Object.keys(apps).length === this.boxManager.appBoxMap.size) {
+            const focusAppId = this.attributes.focus;
+            if (focusAppId) {
+                this.boxManager.focusBox({ appId: focusAppId });
+            }
+            this.allAppsCreated = true;
         }
     }
 
