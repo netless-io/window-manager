@@ -1,3 +1,4 @@
+import get from "lodash.get";
 import { AnimationMode, Camera, Room, Size, View, ViewVisionMode } from "white-web-sdk";
 import { AppManager } from "./index";
 import { log } from "./log";
@@ -64,6 +65,12 @@ export class ViewManager {
                 }
                 roomView.mode = ViewVisionMode.Freedom;
             });
+            if (!view.focusScenePath) {
+                const pluginOptions = get(this.manager.attributes, ["apps", appId, "options"]);
+                if (pluginOptions) {
+                    view.focusScenePath = pluginOptions?.scenePath;
+                }
+            }
             if (view.focusScenePath) {
                 this.room.setScenePath(view.focusScenePath);
                 const viewCamera = this.viewCameraManager.getCamera(appId);
