@@ -52,7 +52,7 @@ export class AppProxy {
         }
     }
 
-    public setupAttributes(appAttrs: any): void {
+    public setupAttributes(): void {
         const params = this.params;
         const attributes = this.manager.attributes;
         if (!attributes.apps) {
@@ -69,7 +69,6 @@ export class AppProxy {
             [AppAttributes.SnapshotRect]: {},
         });
         this.manager.safeSetAttributes({ focus: this.id });
-        this.manager.safeSetAttributes({ [this.id]: appAttrs });
     }
 
     public async baseInsertApp() {
@@ -116,6 +115,7 @@ export class AppProxy {
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
                 await app.setup(context);
+                this.manager.viewManager.swtichViewToWriter(appId);
             });
             this.boxManager.createBox({
                 appId: appId, app, options

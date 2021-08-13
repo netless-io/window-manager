@@ -238,15 +238,15 @@ export class AppManager {
     
     public async addApp(params: AddAppParams) {
         log("addApp", params);
+        const id = AppProxy.genId(params.kind, params.options);
+        if (this.appProxies.has(id)) {
+            return;
+        }
         try {
-            const id = AppProxy.genId(params.kind, params.options);
-            if (this.appProxies.has(id)) {
-                return;
-            }
             this.safeSetAttributes({ [id]: params.attributes });
             const appProxy = await this.baseInsertApp(params);
             if (appProxy) {
-                appProxy.setupAttributes(params.attributes);
+                appProxy.setupAttributes();
                 if (params.options?.scenePath) {
                     this.setupScenePath(params.options.scenePath);
                 }
@@ -254,6 +254,9 @@ export class AppManager {
         } catch (error) {
             if (error instanceof AppCreateError) {
                 console.log(error);
+                if (this.attributes[id]) {
+                    this.safeSetAttributes({ [id]: undefined });
+                }
             }
         }
     }
@@ -354,7 +357,6 @@ export class AppManager {
                 break;
             }
             case "focus": {
-                if (!this.allAppsCreated) return;
                 this.safeDispatchMagixEvent(Events.AppFocus, payload);
                 this.safeSetAttributes({ focus: payload.appId });
                 this.viewManager.swtichViewToWriter(payload.appId);
@@ -364,11 +366,8 @@ export class AppManager {
                 this.safeDispatchMagixEvent(Events.AppBlur, payload);
             }
             case "resize": {
-                if (!this.allAppsCreated) return;
-                if (payload.width && payload.height) {
-                    this.safeDispatchMagixEvent(Events.AppResize, payload);
-                    this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
-                }
+                this.safeDispatchMagixEvent(Events.AppResize, payload);
+                this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
                 break;
             }
             case TeleBoxState.Minimized: {
