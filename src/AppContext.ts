@@ -70,7 +70,6 @@ export class AppContext<T = any> {
             throw new Error(`create app main view must bind divElement`);
         }
         this.manager.viewManager.addMainViewListener();
-        (view as any).cameraman.disableCameraTransform = true;
         const initScenePath = this.getInitScenePath();
         if (initScenePath) {
             const viewScenes = room.entireScenes()[initScenePath];
