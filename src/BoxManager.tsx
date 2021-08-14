@@ -42,9 +42,10 @@ export class BoxManager {
     constructor(
         private mainView: View,
         private appProxies: Map<string, AppProxy>,
+        collector?: HTMLElement
     ) {
         this.mainView = mainView;
-        this.teleBoxManager = this.setupBoxManager();
+        this.teleBoxManager = this.setupBoxManager(collector);
     }
 
     public createBox(params: CreateBoxParams) {
@@ -67,16 +68,21 @@ export class BoxManager {
     }
 
     public setupBoxManager(collector?: HTMLElement) {
-        const root = WindowManager.root ? WindowManager.root : document.body;
+        const root = WindowManager.wrapper ? WindowManager.wrapper : document.body;
         const rect = root.getBoundingClientRect();
-        const manager = new TeleBoxManager({
+        const initManagerState: any = {
             root: root,
             containerRect: {
                 x: 0, y: 0,
                 width: rect.width, height: rect.height
             },
-            fence: false
-        });
+            fence: false,
+        }
+        if (collector) {
+            const teleBoxCollector = new TeleBoxCollector().mount(collector);
+            initManagerState.collector = teleBoxCollector;
+        }
+        const manager = new TeleBoxManager(initManagerState);
         if (this.teleBoxManager) {
             this.teleBoxManager.destroy();
         }

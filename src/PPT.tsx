@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { AppContext } from './AppContext';
-import { Room, View } from 'white-web-sdk';
+import { View } from "./typings";
 
 type PPTWrapperProps = {
     view: View;
@@ -80,7 +80,7 @@ export default {
         });
         console.log("isWritable", context.getIsWritable());
         context.emitter.on("sceneStateChange", (state: any) => {
-            console.log(state);
+            // console.log(state);
         });
         context.setAttributes({ a:1, b:2 });
         setTimeout(() => {
@@ -89,7 +89,7 @@ export default {
         const box = context.getBox();
         console.log("context context", box?.$content);
         if (box) {
-            const view = context.getView();
+            const view = context.getView()!;
             const initScenePath = context.getInitScenePath();
             ReactDOM.render(
                 <PPTWrapper

@@ -135,23 +135,23 @@ export class ViewManager {
 }
 
 
-export const setupContinaer = (root: HTMLElement) => {
-    const continaer = createContinaer();
+export const setupWrapper = (root: HTMLElement) => {
+    const wrapper = createWrapper();
     const mainViewElement = initMaiViewElement();
-    const centerAera = document.createElement("div");
-    centerAera.style.width = "100%";
-    centerAera.style.height = "100%";
-    centerAera.style.display = "flex";
-    centerAera.style.justifyContent = "center";
-    centerAera.style.alignItems = "center";
-    centerAera.appendChild(continaer);
-    continaer.appendChild(mainViewElement);
-    root.appendChild(centerAera);
+    const centerArea = document.createElement("div");
+    centerArea.style.width = "100%";
+    centerArea.style.height = "100%";
+    centerArea.style.display = "flex";
+    centerArea.style.justifyContent = "center";
+    centerArea.style.alignItems = "center";
+    centerArea.appendChild(wrapper);
+    wrapper.appendChild(mainViewElement);
+    root.appendChild(centerArea);
     rootResizeObserver.observe(root);
-    return { continaer, mainViewElement };
+    return { wrapper, mainViewElement };
 }
 
-export const createContinaer = () => {
+export const createWrapper = () => {
     const continaer = document.createElement("div");
     continaer.style.overflow = "hidden";
     continaer.style.position = "relative";
@@ -172,9 +172,9 @@ const updateContinaerSize = (rect: DOMRectReadOnly) => {
         width =  (rect.height / 9) * 16;
         height = rect.height;
     }
-    if (WindowManager.root) {
-        WindowManager.root.style.width = width + "px";
-        WindowManager.root.style.height = height + "px";
+    if (WindowManager.wrapper) {
+        WindowManager.wrapper.style.width = width + "px";
+        WindowManager.wrapper.style.height = height + "px";
     }
 };
 

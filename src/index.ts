@@ -1,7 +1,7 @@
 import Emittery from 'emittery';
 import PPT from './PPT';
 import { NetlessApp } from './typings';
-import { AppCreateError, AppManagerNotInitError } from './error';
+import { AppCreateError, AppManagerNotInitError, ParamsInvalidError, WhiteWebSDKInvalidError } from './error';
 import { AppListeners } from './AppListener';
 import { AppProxy } from './AppProxy';
 import {
@@ -22,7 +22,7 @@ import {
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
 import { log } from './log';
 import { ViewCameraManager } from './ViewCameraManager';
-import { setupContinaer, ViewManager } from './ViewManager';
+import { setupWrapper, ViewManager } from './ViewManager';
 import './style.css';
 import 'telebox-insider/dist/style.css';
 import {
@@ -31,6 +31,7 @@ import {
     AppEvents,
 } from "./constants";
 import get from 'lodash.get';
+import { AttributesDelegate } from './AttributesDelegate';
 
 (window as any).PPT = PPT;
 
@@ -95,7 +96,7 @@ export const emitter: Emittery = new Emittery();
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static displayer: Displayer;
-    public static root: HTMLElement | null;
+    public static wrapper: HTMLElement | null;
     public static debug = false;
 
     public appListeners?: AppListeners;
@@ -108,23 +109,29 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     /**
-     * 初始化插件
-     * 
+     * 添加一个 app 到白板
+     *
      * @static
      * @param {Room} room
+     * @param {HTMLElement} continaer
+     * @param {HTMLElement} [collector]
+     * @param {{ debug: boolean }} [options]
      * @returns {Promise<WindowManager>}
      * @memberof WindowManager
      */
-    public static async mount(room: Room, root: HTMLElement, options?: { debug: boolean }): Promise<WindowManager> {
+    public static async mount(room: Room, continaer: HTMLElement, collector?: HTMLElement, options?: { debug: boolean }): Promise<WindowManager> {
         this.checkVersion();
+        if (!continaer) {
+            throw new Error(`continaer must provide`);
+        }
         let manager = room.getInvisiblePlugin(WindowManager.kind);
         if (!manager) {
             manager = await room.createInvisiblePlugin(WindowManager, {});
         }
         this.debug = Boolean(options?.debug);
-        const { continaer, mainViewElement } = setupContinaer(root);
-        WindowManager.root = continaer;
-        (manager as WindowManager).appManager = new AppManager(manager as WindowManager);
+        const { wrapper, mainViewElement } = setupWrapper(continaer);
+        WindowManager.wrapper = wrapper;
+        (manager as WindowManager).appManager = new AppManager(manager as WindowManager, collector);
         (manager as WindowManager).bindMainView(mainViewElement);
         emitter.emit("onCreated");
         return manager as WindowManager;
@@ -160,8 +167,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @param {AddAppParams} params
      * @memberof WindowManager
      */
-    public async addApp(params: AddAppParams) {
+    public addApp(params: AddAppParams) {
         if (this.appManager) {
+            if (!params.kind || typeof params.kind !== "string") {
+                throw new ParamsInvalidError();
+            }
             this.appManager.addApp(params);
         } else {
             throw new AppManagerNotInitError();
@@ -183,6 +193,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.appManager?.destroy();
     }
 
+    public unmount() {
+        this.appManager?.destroy();
+    }
+
     private bindMainView(divElement: HTMLDivElement) {
         if (this.appManager) {
             const mainView = this.appManager.viewManager.mainView;
@@ -193,102 +207,116 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private static checkVersion() {
         const version = WhiteVersion.split(".").join("");
         if (parseInt(version) < 21316) {
-            throw new Error("white-web-sdk must large than 2.13.16");
+            throw new WhiteWebSDKInvalidError("2.13.16");
         }
     }
 }
 
 export class AppManager {
-    public displayer: Displayer;
-    public boxManager: BoxManager;
-    public viewCameraManager: ViewCameraManager;
-    public viewManager: ViewManager;
-    public appProxies: Map<string, AppProxy> = new Map();
+  public displayer: Displayer;
+  public boxManager: BoxManager;
+  public viewCameraManager: ViewCameraManager;
+  public viewManager: ViewManager;
+  public appProxies: Map<string, AppProxy> = new Map();
+  public delegate = new AttributesDelegate(this);
 
-    private appListeners: AppListeners;
-    private attributesDisposer: any;
+  private appListeners: AppListeners;
+  private attributesDisposer: any;
 
-    constructor(
-        private windowManger: WindowManager,
-    ) {
-        this.displayer = windowManger.displayer;
-        this.viewCameraManager = new ViewCameraManager();
-        this.viewManager = new ViewManager(this.displayer as Room, this, this.viewCameraManager);
-        this.boxManager = new BoxManager(this.viewManager.mainView, this.appProxies);
-        this.appListeners = new AppListeners(this.displayer, this.boxManager, this.viewManager, this.appProxies);
-        this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
-        this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
-        this.appListeners.addListeners();
+  constructor(private windowManger: WindowManager, collector?: HTMLElement) {
+    this.displayer = windowManger.displayer;
+    this.viewCameraManager = new ViewCameraManager();
+    this.viewManager = new ViewManager(
+      this.displayer as Room,
+      this,
+      this.viewCameraManager
+    );
+    this.boxManager = new BoxManager(
+      this.viewManager.mainView,
+      this.appProxies,
+      collector
+    );
+    this.appListeners = new AppListeners(
+      this.displayer,
+      this.boxManager,
+      this.viewManager,
+      this.appProxies
+    );
+    this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
+    this.displayer.callbacks.on(
+      "onEnableWriteNowChanged",
+      this.displayerWritableListener
+    );
+    this.appListeners.addListeners();
 
-        emitter.once("onCreated").then(async () => {
-            await this.attributesUpdateCallback(this.attributes.apps);
-            emitter.onAny(this.eventListener);
-            this.attributesDisposer = autorun(() => {
-                const apps = this.attributes.apps;
-                this.attributesUpdateCallback(apps);
-            });
-        });
-    }
+    emitter.once("onCreated").then(async () => {
+      await this.attributesUpdateCallback(this.attributes.apps);
+      emitter.onAny(this.eventListener);
+      this.attributesDisposer = autorun(() => {
+        const apps = this.attributes.apps;
+        this.attributesUpdateCallback(apps);
+      });
+    });
+  }
 
-
-    /**
-     * 插件更新 attributes 时的回调
-     *
-     * @param {*} attributes
-     * @memberof WindowManager
-     */
-    public async attributesUpdateCallback(apps: any) {
-        if (apps) {
-            for (const id in apps) {
-                if (!this.appProxies.has(id)) {
-                    const app = apps[id];
-                    let appImpl = app.src;
-                    if (!appImpl) {
-                        appImpl = WindowManager.appClasses.get(app.kind);
-                    }
-                    await this.baseInsertApp({
-                        kind: app.kind,
-                        src: appImpl,
-                        options: app.options
-                    });
-                    this.focusByAttributes(apps);
-                }
-            }
+  /**
+   * 插件更新 attributes 时的回调
+   *
+   * @param {*} attributes
+   * @memberof WindowManager
+   */
+  public async attributesUpdateCallback(apps: any) {
+    if (apps) {
+      for (const id in apps) {
+        if (!this.appProxies.has(id)) {
+          const app = apps[id];
+          let appImpl = app.src;
+          if (!appImpl) {
+            appImpl = WindowManager.appClasses.get(app.kind);
+          }
+          await this.baseInsertApp({
+            kind: app.kind,
+            src: appImpl,
+            options: app.options,
+          });
+          this.focusByAttributes(apps);
         }
+      }
     }
-    
-    public async addApp(params: AddAppParams) {
-        log("addApp", params);
-        const id = AppProxy.genId(params.kind, params.options);
-        if (this.appProxies.has(id)) {
-            return;
-        }
-        try {
-            this.safeSetAttributes({ [id]: params.attributes });
-            const appProxy = await this.baseInsertApp(params, true);
-            if (appProxy) {
-                appProxy.setupAttributes();
-                if (params.options?.scenePath) {
-                    this.setupScenePath(params.options.scenePath);
-                }
-                this.viewManager.swtichViewToWriter(id);
-            }
-        } catch (error) {
-            if (error instanceof AppCreateError) {
-                console.log(error);
-                if (this.attributes[id]) {
-                    this.safeSetAttributes({ [id]: undefined });
-                }
-            }
-        }
+  }
+
+  public async addApp(params: AddAppParams) {
+    log("addApp", params);
+    const id = AppProxy.genId(params.kind, params.options);
+    if (this.appProxies.has(id)) {
+      return;
     }
-    
+    try {
+      this.safeSetAttributes({ [id]: params.attributes });
+      const appProxy = await this.baseInsertApp(params, true);
+      if (appProxy) {
+        appProxy.setupAttributes();
+        if (params.options?.scenePath) {
+          this.setupScenePath(params.options.scenePath);
+        }
+        this.viewManager.swtichViewToWriter(id);
+      }
+    } catch (error) {
+      if (error instanceof AppCreateError) {
+        console.log(error);
+        if (this.attributes[id]) {
+          this.safeSetAttributes({ [id]: undefined });
+        }
+      }
+    }
+  }
+
     private async baseInsertApp(params: BaseInsertParams, focus?: boolean) {
         const id = AppProxy.genId(params.kind, params.options);
         if (this.appProxies.has(id)) {
             return;
         }
-        const appProxy = new AppProxy(params, this, this.boxManager, this.appProxies);
+        const appProxy = new AppProxy(params, this);
         if (appProxy) {
             await appProxy.baseInsertApp(focus);
             return appProxy;
@@ -297,166 +325,195 @@ export class AppManager {
         }
     }
 
-    private setupScenePath(scenePath: string) {
-        const scenes = this.displayer.entireScenes()[scenePath];
-        if (!scenes) {
-            this.room?.putScenes(scenePath, [{ name: "1" }]);
-        }
+  private setupScenePath(scenePath: string) {
+    const scenes = this.displayer.entireScenes()[scenePath];
+    if (!scenes) {
+      this.room?.putScenes(scenePath, [{ name: "1" }]);
     }
+  }
 
-    private displayerStateListener = (state: Partial<DisplayerState>) => {
-        const sceneState = state.sceneState
-        if (sceneState) {
-            const scenePath = sceneState.scenePath;
-            this.appProxies.forEach((appProxy) => {
-                if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
-                    appProxy.emitAppSceneStateChange(sceneState);
-                }
-            });
+  private displayerStateListener = (state: Partial<DisplayerState>) => {
+    const sceneState = state.sceneState;
+    if (sceneState) {
+      const scenePath = sceneState.scenePath;
+      this.appProxies.forEach((appProxy) => {
+        if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
+          appProxy.emitAppSceneStateChange(sceneState);
         }
+      });
     }
+  };
 
-    private displayerWritableListener = () => {
-        this.appProxies.forEach((appProxy) => {
-            appProxy.emitAppIsWritableChange(this.displayer.enableWriteNow);
+  private displayerWritableListener = () => {
+    this.appProxies.forEach((appProxy) => {
+      appProxy.emitAppIsWritableChange(this.displayer.enableWriteNow);
+    });
+  };
+
+  private get eventName() {
+    return isRoom(this.displayer)
+      ? "onRoomStateChanged"
+      : "onPlayerStateChanged";
+  }
+
+  public get canOperate() {
+    if (isRoom(this.displayer)) {
+      return (this.displayer as Room).isWritable;
+    } else {
+      return false;
+    }
+  }
+
+  public get attributes() {
+    return this.windowManger.attributes;
+  }
+
+  public get room() {
+    return isRoom(this.displayer) ? (this.displayer as Room) : undefined;
+  }
+
+  public getAppInitPath(appId: string): string | undefined {
+    const attrs = this.delegate.getAppAttributes(appId);
+    if (attrs) {
+      return attrs?.options?.scenePath;
+    }
+  }
+
+  public safeSetAttributes(attributes: any) {
+    if (this.canOperate) {
+      this.windowManger.setAttributes(attributes);
+    }
+  }
+
+  public safeUpdateAttributes(keys: string[], value: any) {
+    if (this.canOperate) {
+      this.windowManger.updateAttributes(keys, value);
+    }
+  }
+
+  private updateAppState(appId: string, stateName: AppAttributes, state: any) {
+    this.safeUpdateAttributes(["apps", appId, "state", stateName], state);
+  }
+
+  private safeDispatchMagixEvent(event: string, payload: any) {
+    if (this.canOperate) {
+      (this.displayer as Room).dispatchMagixEvent(event, payload);
+    }
+  }
+
+  private eventListener = (eventName: string, payload: any) => {
+    switch (eventName) {
+      case "move": {
+        this.safeDispatchMagixEvent(Events.AppMove, payload);
+        this.updateAppState(payload.appId, AppAttributes.Position, {
+          x: payload.x,
+          y: payload.y,
+        });
+        break;
+      }
+      case "focus": {
+        this.safeDispatchMagixEvent(Events.AppFocus, payload);
+        this.safeSetAttributes({ focus: payload.appId });
+        this.viewManager.swtichViewToWriter(payload.appId);
+        break;
+      }
+      case "blur": {
+        this.safeDispatchMagixEvent(Events.AppBlur, payload);
+        break;
+      }
+      case "resize": {
+        if (payload.width && payload.height) {
+          this.safeDispatchMagixEvent(Events.AppResize, payload);
+          this.updateAppState(payload.appId, AppAttributes.Size, {
+            width: payload.width,
+            height: payload.height,
+          });
+        }
+        break;
+      }
+      case TELE_BOX_STATE.Minimized: {
+        this.safeDispatchMagixEvent(Events.AppBoxStateChange, {
+          ...payload,
+          state: eventName,
+        });
+        this.safeSetAttributes({ boxState: eventName });
+        this.viewManager.switchMainViewToWriter();
+        break;
+      }
+      case TELE_BOX_STATE.Maximized: {
+        this.safeDispatchMagixEvent(Events.AppBoxStateChange, {
+          ...payload,
+          state: eventName,
+        });
+        this.safeSetAttributes({ boxState: eventName });
+        this.swtichFocusAppToWritable();
+        break;
+      }
+      case TELE_BOX_STATE.Normal: {
+        this.safeDispatchMagixEvent(Events.AppBoxStateChange, {
+          ...payload,
+          state: eventName,
+        });
+        this.safeSetAttributes({ boxState: eventName });
+        this.swtichFocusAppToWritable();
+        break;
+      }
+      case "snapshot": {
+        this.safeDispatchMagixEvent(Events.AppSnapshot, payload);
+        this.updateAppState(
+          payload.appId,
+          AppAttributes.SnapshotRect,
+          payload.rect
+        );
+        break;
+      }
+      case "close": {
+        const appProxy = this.appProxies.get(payload.appId);
+        if (appProxy) {
+          appProxy.destroy(false, payload.error);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  private swtichFocusAppToWritable() {
+    const focusAppId = this.delegate.focus;
+    if (focusAppId) {
+      const view = this.viewManager.getView(focusAppId);
+      if (view) {
+        this.viewManager.swtichViewToWriter(focusAppId);
+      }
+    }
+  }
+
+  public focusByAttributes(apps: any) {
+    if (apps && Object.keys(apps).length === this.boxManager!.appBoxMap.size) {
+      const focusAppId = this.delegate.focus;
+      if (focusAppId) {
+        this.boxManager.focusBox({ appId: focusAppId });
+      }
+    }
+  }
+
+  public destroy() {
+    this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
+    this.displayer.callbacks.off(
+      "onEnableWriteNowChanged",
+      this.displayerWritableListener
+    );
+    this.appListeners.removeListeners();
+    emitter.offAny(this.eventListener);
+    this.attributesDisposer();
+    WindowManager.wrapper = null;
+    if (this.appProxies.size) {
+        this.appProxies.forEach(appProxy => {
+            appProxy.destroy(true);
         });
     }
-
-    private get eventName() {
-        return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
-    }
-
-    public get canOperate() {
-        if (isRoom(this.displayer)) {
-            return (this.displayer as Room).isWritable;
-        } else {
-            return false;
-        }
-    }
-
-    public get attributes() {
-        return this.windowManger.attributes;
-    }
-
-    public get room() {
-
-        return isRoom(this.displayer) ? this.displayer as Room : undefined;
-    }
-
-    public getAppInitPath(appId: string): string | undefined {
-        const attrs = get(this.attributes, ["apps", appId]);
-        if (attrs) {
-            return attrs?.options?.scenePath;
-        }
-    }
-
-    public safeSetAttributes(attributes: any) {
-        if (this.canOperate) {
-            this.windowManger.setAttributes(attributes);
-        }
-    }
-
-    public safeUpdateAttributes(keys: string[], value: any) {
-        if (this.canOperate) {
-            this.windowManger.updateAttributes(keys, value);
-        }
-    }
-
-    private updateAppState(appId: string, stateName: AppAttributes, state: any) {
-        this.safeUpdateAttributes(["apps", appId, "state", stateName], state);
-    }
-
-    private safeDispatchMagixEvent(event: string, payload: any) {
-        if (this.canOperate) {
-            (this.displayer as Room).dispatchMagixEvent(event, payload);
-        }
-    }
-
-    private eventListener = (eventName: string, payload: any) => {
-        switch (eventName) {
-            case "move": {
-                this.safeDispatchMagixEvent(Events.AppMove, payload);
-                this.updateAppState(payload.appId, AppAttributes.Position, { x: payload.x, y: payload.y });
-                break;
-            }
-            case "focus": {
-                this.safeDispatchMagixEvent(Events.AppFocus, payload);
-                this.safeSetAttributes({ focus: payload.appId });
-                this.viewManager.swtichViewToWriter(payload.appId);
-                break;
-            }
-            case "blur": {
-                this.safeDispatchMagixEvent(Events.AppBlur, payload);
-                break;
-            }
-            case "resize": {
-                if (payload.width && payload.height) {
-                    this.safeDispatchMagixEvent(Events.AppResize, payload);
-                    this.updateAppState(payload.appId, AppAttributes.Size, { width: payload.width, height: payload.height });
-                }
-                break;
-            }
-            case TELE_BOX_STATE.Minimized: {
-                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
-                this.safeSetAttributes({ boxState: eventName });
-                this.viewManager.switchMainViewToWriter();
-                break;
-            }
-            case TELE_BOX_STATE.Maximized: {
-                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
-                this.safeSetAttributes({ boxState: eventName });
-                this.swtichFocusAppToWritable();
-                break;
-            }
-            case TELE_BOX_STATE.Normal: {
-                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
-                this.safeSetAttributes({ boxState: eventName });
-                this.swtichFocusAppToWritable();
-                break;
-            }
-            case "snapshot": {
-                this.safeDispatchMagixEvent(Events.AppSnapshot, payload);
-                this.updateAppState(payload.appId, AppAttributes.SnapshotRect, payload.rect);
-                break;
-            }
-            case "close": {
-                const appProxy = this.appProxies.get(payload.appId);
-                if (appProxy) {
-                    appProxy.destroy(false, payload.error)
-                }
-                break;
-            }
-            default:
-                break;
-        }
-    }
-
-    private swtichFocusAppToWritable() {
-        const focusAppId = this.attributes.focus;
-        if (focusAppId) {
-            const view = this.viewManager.getView(focusAppId);
-            if (view) {
-                this.viewManager.swtichViewToWriter(focusAppId);
-            }
-        }
-    }
-
-    public focusByAttributes(apps: any) {
-        if (apps && Object.keys(apps).length === this.boxManager!.appBoxMap.size) {
-            const focusAppId = this.attributes.focus;
-            if (focusAppId) {
-                this.boxManager!.focusBox({ appId: focusAppId });
-            }
-        }
-    }
-
-    public destroy() {
-        this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
-        this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
-        this.appListeners.removeListeners();
-        emitter.offAny(this.eventListener);
-        this.attributesDisposer();
-    }
+  }
 }
 
 export * from "./typings";

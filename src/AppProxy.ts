@@ -19,20 +19,21 @@ import { log } from './log';
 import { AppContext } from './AppContext';
 import { NetlessApp } from "./typings";
 import { loadApp } from './loader';
-import { AppCreateError } from './error';
+import { AppCreateError, AppNotRegisterError } from './error';
 
 export class AppProxy {
-    private id: string;
+    public id: string;
+    public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
+
     private appListener: any;
     private disposer: any;
-    public scenePath?: string;
+    private boxManager = this.manager.boxManager;
+    private appProxies = this.manager.appProxies;
 
     constructor(
         private params: AddAppParams,
         private manager: AppManager,
-        private boxManager: BoxManager,
-        private appProxies: Map<string, AppProxy>,
     ) {
         this.id = AppProxy.genId(params.kind, params.options);
         if (this.appProxies.has(this.id)) {
@@ -53,22 +54,7 @@ export class AppProxy {
     }
 
     public setupAttributes(): void {
-        const params = this.params;
-        const attributes = this.manager.attributes;
-        if (!attributes.apps) {
-            this.manager.safeSetAttributes({ apps: {} });
-        }
-        let attrs: AppSyncAttributes = { kind: params.kind, options: params.options };
-        if (typeof params.src === "string") {
-            attrs.src = params.src;
-        }
-        this.manager.safeUpdateAttributes(["apps", this.id], attrs);
-        this.manager.safeUpdateAttributes(["apps", this.id, "state"],{
-            [AppAttributes.Size]: { width: 0, height: 0 },
-            [AppAttributes.Position]: { x: 0, y: 0 },
-            [AppAttributes.SnapshotRect]: {},
-        });
-        this.manager.safeSetAttributes({ focus: this.id });
+       this.manager.delegate.setupAppAttributes(this.params, this.id);
     }
 
     public async baseInsertApp(focus?: boolean) {
@@ -82,7 +68,7 @@ export class AppProxy {
             }
             this.boxManager.updateManagerRect();
             if (focus) {
-                this.boxManager.focusBox({ appId: this.id });
+                this.focusBox();
             }
             return {
                 appId: this.id, app: appImpl
@@ -96,13 +82,17 @@ export class AppProxy {
         return this.boxManager.getBox(this.id);
     }
 
+    private focusBox() {
+        this.boxManager.focusBox({ appId: this.id });
+    }
+
     private async getAppImpl() {
         const params = this.params;
         let appImpl;
         if (params.src === undefined) {
             appImpl = WindowManager.appClasses.get(params.kind);
             if (!appImpl) {
-                throw new Error("app need register");
+                throw new AppNotRegisterError(params.kind);
             }
         } else if (typeof params.src === "string") {
             appImpl = await loadApp(params.kind, params.src);
@@ -114,7 +104,7 @@ export class AppProxy {
 
     private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, this.boxManager, appId, this.appEmitter);
+        const context = new AppContext(this.manager, appId, this.appEmitter);
         try {
             emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getAppInitState(appId);
@@ -135,7 +125,7 @@ export class AppProxy {
     }
 
     public getAppInitState = (id: string) => {
-        const attrs = get(this.manager.attributes, ["apps", id, "state"]);
+        const attrs = this.manager.delegate.getAppState(id);
         if (!attrs) return;
         const position = attrs?.[AppAttributes.Position];
         const focus = this.manager.attributes.focus;
@@ -163,7 +153,6 @@ export class AppProxy {
         this.appEmitter.emit("destroy", { error });
         this.appEmitter.offAny(this.appListener);
         emitter.emit(`destroy-${this.id}`, { error });
-        this.manager.safeUpdateAttributes(["apps", this.id], undefined);
         if (needCloseBox) {
             this.boxManager.closeBox(this.id);
             this.manager.viewManager.destoryView(this.id);
@@ -172,7 +161,7 @@ export class AppProxy {
         if (this.disposer) {
             this.disposer();
         }
-        this.cleanAppAttributes();
+        this.manager.delegate.cleanAppAttributes(this.id);
         this.appProxies.delete(this.id);
     }
 
@@ -228,13 +217,5 @@ export class AppProxy {
             this.appEmitter.emit("attributesUpdate", attrs);
         });
         this.disposer = disposer;
-    }
-
-    private cleanAppAttributes() {
-        this.manager.safeSetAttributes({ [this.id]: undefined });
-        const focus = this.manager.attributes["focus"];
-        if (focus === this.id) {
-            this.manager.safeSetAttributes({ focus: undefined });
-        }
     }
 }

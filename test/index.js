@@ -58,7 +58,7 @@ sdk.joinRoom({
     room.setScenePath("/init")
     const manager = room.getInvisiblePlugin(WindowManager.kind);
     window.InvisiblePlugin = InvisiblePlugin;
-    WindowManager.mount(room, continaer, { debug: true })
+    WindowManager.mount(room, continaer, undefined, { debug: true });
     window.manager = manager;
 
     // const mainView = manager.createMainView();

@@ -1,17 +1,21 @@
 import Emittery from "emittery";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent, AppManager } from "./index";
+import { ViewManager } from "./ViewManager";
 
 export class AppContext<T = any> {
 
     public readonly emitter: Emittery<AppEmitterEvent<T>>;
+    private viewManager: ViewManager;
+    private boxManager: BoxManager;
 
     constructor(
         private manager: AppManager,
-        private boxManager: BoxManager,
         private appId: string,
         appEmitter: Emittery<AppEmitterEvent<T>>) {
         this.emitter = appEmitter;
+        this.viewManager = this.manager.viewManager;
+        this.boxManager = this.manager.boxManager;
     }
 
     public getDisplayer() {
@@ -23,7 +27,7 @@ export class AppContext<T = any> {
     }
 
     public getView() {
-        let view = this.manager.viewManager.getView(this.appId);
+        let view = this.viewManager.getView(this.appId);
         if (!view) {
             view = this.createView();
         }
@@ -64,12 +68,10 @@ export class AppContext<T = any> {
 
     private createView() {
         const room = this.manager.displayer;
-        const view = this.manager.viewManager.createView(this.appId);
-        const mainViewElement = this.manager.viewManager.mainView.divElement;
-        if (!mainViewElement) {
-            throw new Error(`create app main view must bind divElement`);
-        }
-        this.manager.viewManager.addMainViewListener();
+        const view = this.viewManager.createView(this.appId);
+        const mainViewElement = this.viewManager.mainView.divElement;
+        if (!mainViewElement) return;
+        this.viewManager.addMainViewListener();
         const initScenePath = this.getInitScenePath();
         if (initScenePath) {
             const viewScenes = room.entireScenes()[initScenePath];
@@ -77,7 +79,7 @@ export class AppContext<T = any> {
                 view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
             }
         }
-        this.manager.viewManager.swtichViewToWriter(this.appId);
+        this.viewManager.swtichViewToWriter(this.appId);
         return view;
     }
 }
