@@ -1,5 +1,5 @@
 import { Displayer, Event } from "white-web-sdk";
-import { TeleBox, TeleBoxState } from "telebox-insider";
+import { TeleBox, TELE_BOX_STATE } from "telebox-insider";
 import { BoxManager } from "./BoxManager";
 import { Events } from "./constants";
 import { ViewManager } from "./ViewManager";
@@ -63,7 +63,7 @@ export class AppListeners {
     private appBoxStateListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.setBoxState(event.payload.state);
-            if (event.payload === TeleBoxState.Minimized) {
+            if (event.payload === TELE_BOX_STATE.Minimized) {
                 this.viewManager.switchMainViewToWriter();
             }
         }

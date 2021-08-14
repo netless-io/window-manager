@@ -6,17 +6,17 @@ import {
     ReadonlyTeleBox,
     TeleBox,
     TeleBoxCollector,
-    TeleBoxEventType,
+    TELE_BOX_EVENT,
     TeleBoxManager,
-    TeleBoxState,
-    TeleBoxManagerEventType
+    TELE_BOX_STATE,
+    TELE_BOX_MANAGER_EVENT
 } from 'telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
 import { log } from './log';
 import { AppProxy } from './AppProxy';
 
-export { TeleBoxState };
+export { TELE_BOX_STATE };
 
 export type CreateBoxParams = {
     appId: string,
@@ -59,7 +59,7 @@ export class BoxManager {
         emitter.emit(`${params.appId}${Events.WindowCreated}`);
         this.addBoxListeners(params.appId, box);
         this.appBoxMap.set(params.appId, box.id);
-        this.teleBoxManager.events.on(TeleBoxManagerEventType.State, state => {
+        this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
                 emitter.emit(state, undefined);
             }
@@ -136,17 +136,17 @@ export class BoxManager {
     }
 
     private addBoxListeners(appId: string, box: ReadonlyTeleBox) {
-        box.events.on(TeleBoxEventType.Move, debounce(params => emitter.emit("move", { appId, ...params }), 500));
-        box.events.on(TeleBoxEventType.Resize, debounce(params => emitter.emit("resize", { appId, ...params }), 500));
-        box.events.on(TeleBoxEventType.Focus, () => {
+        box.events.on(TELE_BOX_EVENT.Move, debounce(params => emitter.emit("move", { appId, ...params }), 500));
+        box.events.on(TELE_BOX_EVENT.Resize, debounce(params => emitter.emit("resize", { appId, ...params }), 500));
+        box.events.on(TELE_BOX_EVENT.Focus, () => {
             log("focus", appId);
             emitter.emit("focus", { appId });
         });
-        box.events.on(TeleBoxEventType.Blur, () => emitter.emit("blur", { appId }));
-        box.events.on(TeleBoxEventType.Snapshot, rect => {
+        box.events.on(TELE_BOX_EVENT.Blur, () => emitter.emit("blur", { appId }));
+        box.events.on(TELE_BOX_EVENT.Snapshot, rect => {
             emitter.emit("snapshot", { appId, rect });
         });
-        box.events.on(TeleBoxEventType.Close, () => emitter.emit("close", { appId }));
+        box.events.on(TELE_BOX_EVENT.Close, () => emitter.emit("close", { appId }));
     }
 
     public moveBox({ appId, x, y }: MoveBoxParams) {
@@ -190,7 +190,7 @@ export class BoxManager {
         });
     }
 
-    public setBoxState(state: TeleBoxState) {
+    public setBoxState(state: TELE_BOX_STATE) {
         this.teleBoxManager.setState(state, true);
     }
 }

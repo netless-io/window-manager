@@ -19,7 +19,7 @@ import {
     ViewVisionMode,
     WhiteVersion
     } from 'white-web-sdk';
-import { BoxManager, TeleBoxState } from './BoxManager';
+import { BoxManager, TELE_BOX_STATE } from './BoxManager';
 import { log } from './log';
 import { ViewCameraManager } from './ViewCameraManager';
 import { setupContinaer, ViewManager } from './ViewManager';
@@ -37,7 +37,7 @@ import get from 'lodash.get';
 
 export type WindowMangerAttributes = {
     modelValue?: string,
-    boxState: TeleBoxState,
+    boxState: TELE_BOX_STATE,
     [key: string]: any,
 }
 
@@ -87,7 +87,7 @@ export type AppInitState = {
     height?: number,
     focus?: boolean,
     snapshotRect?: any,
-    boxState: TeleBoxState,
+    boxState: TELE_BOX_STATE,
 }
 
 export const emitter: Emittery = new Emittery();
@@ -396,19 +396,19 @@ export class AppManager {
                 }
                 break;
             }
-            case TeleBoxState.Minimized: {
+            case TELE_BOX_STATE.Minimized: {
                 this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
                 this.safeSetAttributes({ boxState: eventName });
                 this.viewManager.switchMainViewToWriter();
                 break;
             }
-            case TeleBoxState.Maximized: {
+            case TELE_BOX_STATE.Maximized: {
                 this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
                 this.safeSetAttributes({ boxState: eventName });
                 this.swtichFocusAppToWritable();
                 break;
             }
-            case TeleBoxState.Normal: {
+            case TELE_BOX_STATE.Normal: {
                 this.safeDispatchMagixEvent(Events.AppBoxStateChange, {...payload, state: eventName });
                 this.safeSetAttributes({ boxState: eventName });
                 this.swtichFocusAppToWritable();

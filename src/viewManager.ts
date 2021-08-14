@@ -1,6 +1,6 @@
 import get from "lodash.get";
 import { AnimationMode, Camera, Room, Size, View, ViewVisionMode } from "white-web-sdk";
-import { AppManager } from "./index";
+import { AppManager, WindowManager } from "./index";
 import { log } from "./log";
 import { ViewCameraManager } from "./ViewCameraManager";
 
@@ -139,6 +139,7 @@ export const setupContinaer = (root: HTMLElement) => {
     const mainViewElement = initMaiViewElement();
     continaer.appendChild(mainViewElement);
     root.appendChild(continaer);
+    rootResizeObserver.observe(root);
     return { continaer, mainViewElement };
 }
 
@@ -147,8 +148,7 @@ export const createContinaer = () => {
     continaer.style.overflow = "hidden";
     continaer.style.position = "relative";
     continaer.style.width = "100%";
-    continaer.style.height = "100%";
-    return continaer
+    return continaer;
 }
 
 export const initMaiViewElement = () => {
@@ -157,3 +157,21 @@ export const initMaiViewElement = () => {
     element.style.height = "100%";
     return element;
 }
+
+const updateContinaerSize = (rect: DOMRectReadOnly) => {
+    const width = rect.width;
+    const height = (width / 16) * 9;
+    if (height < rect.height) {
+
+    }
+    // if (WindowManager.root) {
+    //     WindowManager.root.style.height = height + "px";
+    // }
+}
+
+export const rootResizeObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+        const rect = entry.contentRect;
+        updateContinaerSize(rect);
+    }
+});
