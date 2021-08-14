@@ -148,6 +148,7 @@ export const createContinaer = () => {
     continaer.style.overflow = "hidden";
     continaer.style.position = "relative";
     continaer.style.width = "100%";
+    continaer.style.height = "100%";
     return continaer;
 }
 
@@ -159,10 +160,11 @@ export const initMaiViewElement = () => {
 }
 
 const updateContinaerSize = (rect: DOMRectReadOnly) => {
-    const width = rect.width;
-    const height = (width / 16) * 9;
-    if (height < rect.height) {
-
+    let width = rect.width;
+    let height = (width / 16) * 9;
+    if (height > rect.height) {
+        width =  (rect.height / 9) * 16;
+        height = rect.height;
     }
     // if (WindowManager.root) {
     //     WindowManager.root.style.height = height + "px";
