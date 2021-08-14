@@ -71,7 +71,7 @@ export class AppProxy {
         this.manager.safeSetAttributes({ focus: this.id });
     }
 
-    public async baseInsertApp() {
+    public async baseInsertApp(focus?: boolean) {
         const params = this.params; 
         if (params.kind) {
             const appImpl = await this.getAppImpl();
@@ -81,6 +81,9 @@ export class AppProxy {
                 throw new Error(`app load failed ${params.kind} ${params.src}`);
             }
             this.boxManager.updateManagerRect();
+            if (focus) {
+                this.boxManager.focusBox({ appId: this.id });
+            }
             return {
                 appId: this.id, app: appImpl
             }

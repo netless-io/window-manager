@@ -132,3 +132,28 @@ export class ViewManager {
         };
     }
 }
+
+
+export const setupContinaer = (root: HTMLElement) => {
+    const continaer = createContinaer();
+    const mainViewElement = initMaiViewElement();
+    continaer.appendChild(mainViewElement);
+    root.appendChild(continaer);
+    return { continaer, mainViewElement };
+}
+
+export const createContinaer = () => {
+    const continaer = document.createElement("div");
+    continaer.style.overflow = "hidden";
+    continaer.style.position = "relative";
+    continaer.style.width = "100%";
+    continaer.style.height = "100%";
+    return continaer
+}
+
+export const initMaiViewElement = () => {
+    const element = document.createElement("div");
+    element.style.width = "100%";
+    element.style.height = "100%";
+    return element;
+}

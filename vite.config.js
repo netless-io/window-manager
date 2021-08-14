@@ -17,7 +17,6 @@ export default defineConfig(({ command, mode }) => {
             sourcemap: false,
             rollupOptions: {
                 external: ["react", "white-web-sdk", "react-dom"],
-                // plugins: [styles({ mode: "inject" })]
             },
             minify: false,
         },

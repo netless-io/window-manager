@@ -1,7 +1,7 @@
 import Emittery from 'emittery';
 import PPT from './PPT';
 import { NetlessApp } from './typings';
-import { AppCreateError } from './error';
+import { AppCreateError, AppManagerNotInitError } from './error';
 import { AppListeners } from './AppListener';
 import { AppProxy } from './AppProxy';
 import {
@@ -16,12 +16,13 @@ import {
     isRoom,
     Room,
     View,
-    ViewVisionMode
+    ViewVisionMode,
+    WhiteVersion
     } from 'white-web-sdk';
 import { BoxManager, TeleBoxState } from './BoxManager';
 import { log } from './log';
 import { ViewCameraManager } from './ViewCameraManager';
-import { ViewManager } from './ViewManager';
+import { setupContinaer, ViewManager } from './ViewManager';
 import './style.css';
 import 'telebox-insider/dist/style.css';
 import {
@@ -106,10 +107,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         super(context);
     }
 
-    public static onCreate() {
-        emitter.emit("onCreated");
-    }
-
     /**
      * 初始化插件
      * 
@@ -118,14 +115,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @returns {Promise<WindowManager>}
      * @memberof WindowManager
      */
-    public static async use(room: Room, root: HTMLElement, debug?: boolean): Promise<WindowManager> {
+    public static async mount(room: Room, root: HTMLElement, options?: { debug: boolean }): Promise<WindowManager> {
+        this.checkVersion();
         let manager = room.getInvisiblePlugin(WindowManager.kind);
         if (!manager) {
             manager = await room.createInvisiblePlugin(WindowManager, {});
         }
-        this.root = root;
-        this.debug = Boolean(debug);
+        this.debug = Boolean(options?.debug);
+        const { continaer, mainViewElement } = setupContinaer(root);
+        WindowManager.root = continaer;
         (manager as WindowManager).appManager = new AppManager(manager as WindowManager);
+        (manager as WindowManager).bindMainView(mainViewElement);
         emitter.emit("onCreated");
         return manager as WindowManager;
     }
@@ -147,7 +147,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @memberof WindowManager
      */
     public createMainView(): View {
-        return this.appManager?.viewManager.mainView!;
+        if (this.appManager) {
+            return this.appManager.viewManager.mainView!;
+        } else {
+            throw new AppManagerNotInitError();
+        }
     }
 
     /**
@@ -157,7 +161,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @memberof WindowManager
      */
     public async addApp(params: AddAppParams) {
-        this.appManager?.addApp(params);
+        if (this.appManager) {
+            this.appManager.addApp(params);
+        } else {
+            throw new AppManagerNotInitError();
+        }
     }
 
     /**
@@ -174,6 +182,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public onDestroy() {
         this.appManager?.destroy();
     }
+
+    private bindMainView(divElement: HTMLDivElement) {
+        if (this.appManager) {
+            const mainView = this.appManager.viewManager.mainView;
+            mainView.divElement = divElement;
+        }
+    }
+
+    private static checkVersion() {
+        const version = WhiteVersion.split(".").join("");
+        if (parseInt(version) < 21316) {
+            throw new Error("white-web-sdk must large than 2.13.16");
+        }
+    }
 }
 
 export class AppManager {
@@ -185,7 +207,6 @@ export class AppManager {
 
     private appListeners: AppListeners;
     private attributesDisposer: any;
-    private allAppsCreated = false;
 
     constructor(
         private windowManger: WindowManager,
@@ -244,7 +265,7 @@ export class AppManager {
         }
         try {
             this.safeSetAttributes({ [id]: params.attributes });
-            const appProxy = await this.baseInsertApp(params);
+            const appProxy = await this.baseInsertApp(params, true);
             if (appProxy) {
                 appProxy.setupAttributes();
                 if (params.options?.scenePath) {
@@ -262,14 +283,14 @@ export class AppManager {
         }
     }
     
-    private async baseInsertApp(params: BaseInsertParams) {
+    private async baseInsertApp(params: BaseInsertParams, focus?: boolean) {
         const id = AppProxy.genId(params.kind, params.options);
         if (this.appProxies.has(id)) {
             return;
         }
         const appProxy = new AppProxy(params, this, this.boxManager, this.appProxies);
         if (appProxy) {
-            await appProxy.baseInsertApp();
+            await appProxy.baseInsertApp(focus);
             return appProxy;
         } else {
             console.log("app create failed", params);
@@ -318,6 +339,7 @@ export class AppManager {
     }
 
     public get room() {
+
         return isRoom(this.displayer) ? this.displayer as Room : undefined;
     }
 
@@ -425,7 +447,6 @@ export class AppManager {
             if (focusAppId) {
                 this.boxManager!.focusBox({ appId: focusAppId });
             }
-            this.allAppsCreated = true;
         }
     }
 

@@ -8,27 +8,10 @@ const continaer = document.createElement("div");
 continaer.id = "root"
 continaer.style.width = "80vw";
 continaer.style.height = "90vh";
-continaer.style.overflow = "hidden";
 continaer.style.marginTop = "2vh";
 continaer.style.marginLeft = "10vw";
-continaer.style.position = "relative";
 continaer.style.border = "1px solid";
 
-const root = document.createElement("div");
-root.textContent = "whiteboard";
-root.style.width = "100%";
-root.style.height = "100%";
-
-// root.style.backgroundColor = "gray";
-
-continaer.appendChild(root)
-
-
-// const pptDom = document.createElement("div");
-// pptDom.style.width = "80vw";
-// pptDom.style.height = "80vh";
-// pptDom.style.marginLeft = "10vw";
-// pptDom.style.marginTop = "10vh";
 
 const rightBar = document.createElement("div");
 rightBar.style.width = "10vw";
@@ -75,13 +58,13 @@ sdk.joinRoom({
     room.setScenePath("/init")
     const manager = room.getInvisiblePlugin(WindowManager.kind);
     window.InvisiblePlugin = InvisiblePlugin;
-    WindowManager.use(room, document.getElementById("root"), true);
+    WindowManager.mount(room, continaer, { debug: true })
     window.manager = manager;
 
-    const mainView = manager.createMainView();
-    mainView.mode = ViewVisionMode.Writable;
-    mainView.divElement = root;
-    window.mainView = mainView;
+    // const mainView = manager.createMainView();
+    // mainView.mode = ViewVisionMode.Writable;
+    // mainView.divElement = root;
+    // window.mainView = mainView;
 
     manager.onAppDestroy(PPT.kind, (error) => {
         console.log("onAppDestroy", error)
