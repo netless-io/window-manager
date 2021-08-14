@@ -80,7 +80,7 @@ export default {
         });
         console.log("isWritable", context.getIsWritable());
         context.emitter.on("sceneStateChange", (state: any) => {
-            // console.log(state);
+            console.log(state);
         });
         context.setAttributes({ a:1, b:2 });
         setTimeout(() => {

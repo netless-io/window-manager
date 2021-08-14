@@ -1,3 +1,4 @@
+import debounce from "lodash.debounce";
 import get from "lodash.get";
 import { AnimationMode, Camera, Room, Size, View, ViewVisionMode } from "white-web-sdk";
 import { AppManager, WindowManager } from "./index";
@@ -137,8 +138,15 @@ export class ViewManager {
 export const setupContinaer = (root: HTMLElement) => {
     const continaer = createContinaer();
     const mainViewElement = initMaiViewElement();
+    const centerAera = document.createElement("div");
+    centerAera.style.width = "100%";
+    centerAera.style.height = "100%";
+    centerAera.style.display = "flex";
+    centerAera.style.justifyContent = "center";
+    centerAera.style.alignItems = "center";
+    centerAera.appendChild(continaer);
     continaer.appendChild(mainViewElement);
-    root.appendChild(continaer);
+    root.appendChild(centerAera);
     rootResizeObserver.observe(root);
     return { continaer, mainViewElement };
 }
@@ -147,8 +155,6 @@ export const createContinaer = () => {
     const continaer = document.createElement("div");
     continaer.style.overflow = "hidden";
     continaer.style.position = "relative";
-    continaer.style.width = "100%";
-    continaer.style.height = "100%";
     return continaer;
 }
 
@@ -166,10 +172,11 @@ const updateContinaerSize = (rect: DOMRectReadOnly) => {
         width =  (rect.height / 9) * 16;
         height = rect.height;
     }
-    // if (WindowManager.root) {
-    //     WindowManager.root.style.height = height + "px";
-    // }
-}
+    if (WindowManager.root) {
+        WindowManager.root.style.width = width + "px";
+        WindowManager.root.style.height = height + "px";
+    }
+};
 
 export const rootResizeObserver = new ResizeObserver(entries => {
     for (const entry of entries) {

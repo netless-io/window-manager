@@ -117,7 +117,9 @@ export class BoxManager {
             if (state.focus) {
                 this.teleBoxManager.update(box.id, { focus: true });
             }
-            this.teleBoxManager.setState(state.boxState);
+            if (state.boxState) {
+                this.teleBoxManager.setState(state.boxState);
+            }
             (box as TeleBox).setSnapshot(state.snapshotRect);
         }
     }
@@ -136,8 +138,12 @@ export class BoxManager {
     }
 
     private addBoxListeners(appId: string, box: ReadonlyTeleBox) {
-        box.events.on(TELE_BOX_EVENT.Move, debounce(params => emitter.emit("move", { appId, ...params }), 500));
-        box.events.on(TELE_BOX_EVENT.Resize, debounce(params => emitter.emit("resize", { appId, ...params }), 500));
+        box.events.on(TELE_BOX_EVENT.Move, debounce(params => {
+            emitter.emit("move", { appId, ...params });
+        }, 500));
+        box.events.on(TELE_BOX_EVENT.Resize, debounce(params => {
+            emitter.emit("resize", { appId, ...params });
+        }, 500));
         box.events.on(TELE_BOX_EVENT.Focus, () => {
             log("focus", appId);
             emitter.emit("focus", { appId });

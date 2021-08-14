@@ -87,7 +87,7 @@ export type AppInitState = {
     height?: number,
     focus?: boolean,
     snapshotRect?: any,
-    boxState: TELE_BOX_STATE,
+    boxState?: TELE_BOX_STATE,
 }
 
 export const emitter: Emittery = new Emittery();
