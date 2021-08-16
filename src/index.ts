@@ -305,10 +305,10 @@ export class AppManager {
             return;
         }
         try {
+            this.delegate.setupAppAttributes(params, id);
             this.safeSetAttributes({ [id]: params.attributes });
             const appProxy = await this.baseInsertApp(params, true);
             if (appProxy) {
-                appProxy.setupAttributes();
                 if (params.options?.scenePath) {
                     this.setupScenePath(params.options.scenePath);
                 }
@@ -321,6 +321,7 @@ export class AppManager {
                     this.safeSetAttributes({ [id]: undefined });
                 }
             }
+            this.delegate.cleanAppAttributes(id);
         }
     }
 

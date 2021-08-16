@@ -14,7 +14,7 @@ export class AttributesDelegate {
         private manager: AppManager
     ) {}
 
-    public get apps() {
+    public apps() {
         return get(this.manager.attributes, [Fields.Apps]);
     }
 
@@ -23,11 +23,11 @@ export class AttributesDelegate {
     }
 
     public getAppAttributes(id: string) {
-        return get(this.apps, [id]);
+        return get(this.apps(), [id]);
     }
 
     public getAppState(id: string) {
-        return get(this.apps, [id, Fields.State]);
+        return get(this.apps(), [id, Fields.State]);
     }
 
     public setupAppAttributes(params: AddAppParams, id: string) {

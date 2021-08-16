@@ -53,10 +53,6 @@ export class AppProxy {
         }
     }
 
-    public setupAttributes(): void {
-       this.manager.delegate.setupAppAttributes(this.params, this.id);
-    }
-
     public async baseInsertApp(focus?: boolean) {
         const params = this.params; 
         if (params.kind) {
