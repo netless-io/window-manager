@@ -1,5 +1,5 @@
 import Emittery from "emittery";
-import { View } from "white-web-sdk";
+import { Room, View } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent, AppManager } from "./index";
 import { ViewManager } from "./ViewManager";
@@ -53,18 +53,6 @@ export class AppContext<T = any> {
 
     public updateAttributes(keys: string[], value: any) {
         this.manager.safeUpdateAttributes([this.appId, ...keys], value);
-    }
-
-    public setScenePath(scenePath: string) {
-        this.manager.room?.setScenePath(scenePath);
-    }
-
-    public pptNextStep() {
-        this.manager.room?.pptNextStep();
-    }
-
-    public pptPreviousStep() {
-        this.manager.room?.pptPreviousStep();
     }
 
     private createView(): View {
