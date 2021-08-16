@@ -20,7 +20,8 @@ export class AppListeners {
         this.displayer.addMagixEventListener(Events.AppFocus, this.appFocusListener);
         this.displayer.addMagixEventListener(Events.AppBlur, this.appBlurListener);
         this.displayer.addMagixEventListener(Events.AppBoxStateChange, this.appBoxStateListener);
-        this.displayer.addMagixEventListener(Events.AppSnapshot, this.appSnapShotListener);
+        this.displayer.addMagixEventListener(Events.AppSnapshot, this.appSnapshotListener);
+        this.displayer.addMagixEventListener(Events.AppClose, this.appCloseListener);
     }
 
     public removeListeners() {
@@ -29,7 +30,8 @@ export class AppListeners {
         this.displayer.removeMagixEventListener(Events.AppFocus, this.appFocusListener);
         this.displayer.removeMagixEventListener(Events.AppBlur, this.appBlurListener);
         this.displayer.removeMagixEventListener(Events.AppBoxStateChange, this.appBoxStateListener);
-        this.displayer.removeMagixEventListener(Events.AppSnapshot, this.appSnapShotListener)
+        this.displayer.removeMagixEventListener(Events.AppSnapshot, this.appSnapshotListener);
+        this.displayer.removeMagixEventListener(Events.AppClose, this.appCloseListener);
     }
 
     private appMoveListener = (event: Event) => {
@@ -69,12 +71,18 @@ export class AppListeners {
         }
     }
 
-    private appSnapShotListener = (event: Event) => {
+    private appSnapshotListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             const box = this.boxManager.getBox(event.payload.appId) as TeleBox;
             if (box) {
                 box.setSnapshot(event.payload.rect);
             }
+        }
+    }
+
+    private appCloseListener = (event: Event) => {
+        if (event.authorId !== this.displayer.observerId) {
+            this.boxManager.closeBox(event.payload.appId);
         }
     }
 }

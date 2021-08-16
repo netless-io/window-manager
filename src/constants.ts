@@ -6,6 +6,7 @@ export enum Events {
     AppBlur = "AppBlur",
     AppBoxStateChange = "AppBoxStateChange",
     AppSnapshot = "AppSnapshot",
+    AppClose = "AppClose",
     GetAttributes = "GetAttributes",
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
     InitReplay = "InitReplay",
@@ -23,4 +24,3 @@ export enum AppEvents {
     setBoxMinSize = "setBoxMinSize",
     destroy = "destroy",
 }
-

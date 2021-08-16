@@ -21,6 +21,7 @@ export class ViewManager {
 
     public createMainView(): View {
         const mainView = this.room.views.createView();
+        this.viewCameraManager.setCamera("mainView", mainView.camera);
         mainView.callbacks.on("onCameraUpdated", this.viewCameraListener("mainView", mainView));
         mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager.updateManagerRect());
         mainView.mode = ViewVisionMode.Writable;
@@ -31,6 +32,7 @@ export class ViewManager {
         const view = this.room.views.createView();
         const cameraListener = this.viewCameraListener(appId, view);
         this.viewListeners.set(appId, cameraListener);
+        this.viewCameraManager.setCamera(appId, view.camera);
         view.callbacks.on("onCameraUpdated", cameraListener);
         view.mode = ViewVisionMode.Freedom;
         this.views.set(appId, view);
@@ -172,7 +174,7 @@ const updateContinaerSize = (rect: DOMRectReadOnly) => {
         width =  (rect.height / 9) * 16;
         height = rect.height;
     }
-    if (WindowManager.wrapper) {
+    if (WindowManager.wrapper && width > 0 && height > 0) {
         WindowManager.wrapper.style.width = width + "px";
         WindowManager.wrapper.style.height = height + "px";
     }

@@ -132,7 +132,7 @@ export class BoxManager {
 
     public updateManagerRect() {
         const rect = this.mainView.divElement?.getBoundingClientRect();
-        if (rect) {
+        if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
             this.appProxies.forEach(proxy => {
