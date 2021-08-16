@@ -6,7 +6,8 @@ import { AppAttributes } from "./constants";
 export enum Fields {
     Apps = "apps",
     Focus = "focus",
-    State = "state"
+    State = "state",
+    BoxState = "boxState",
 }
 export class AttributesDelegate {
     constructor(
@@ -58,5 +59,13 @@ export class AttributesDelegate {
 
     public cleanFocus() {
         this.manager.safeSetAttributes({ [Fields.Focus]: undefined });
+    }
+
+    public cleanAttributes() {
+        this.manager.safeSetAttributes({
+            [Fields.Apps]: undefined,
+            [Fields.BoxState]: undefined,
+            [Fields.Focus]: undefined,
+        });
     }
 }

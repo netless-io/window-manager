@@ -108,7 +108,7 @@ export class AppProxy {
         try {
             emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getAppInitState(appId);
-                this.boxManager.updateBox(boxInitState);
+                this.boxManager.updateBoxState(boxInitState);
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
                 await app.setup(context);

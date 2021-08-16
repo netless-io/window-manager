@@ -1,11 +1,3 @@
-.netless-window-manager {
-   width: 100%;
-   height: 100%;
-   display: flex;
-   justify-content: center;
-   align-items: center;
-}
-
 .netless-window-manager .main-view {
     width: 100%;
     height: 100%;
@@ -17,7 +9,9 @@
     bottom: 15px;
 }
 
-.netless-window-manager .wrapper {
+.netless-window-manager.wrapper {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     position: relative;
 }

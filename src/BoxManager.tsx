@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { AddAppOptions, emitter, AppInitState, WindowManager } from './index';
+import { AddAppOptions, emitter, AppInitState, WindowManager, AppManager } from './index';
 import { Events } from './constants';
 import { NetlessApp } from './typings';
 import {
@@ -9,7 +9,8 @@ import {
     TELE_BOX_EVENT,
     TeleBoxManager,
     TELE_BOX_STATE,
-    TELE_BOX_MANAGER_EVENT
+    TELE_BOX_MANAGER_EVENT,
+    TeleBoxManagerUpdateConfig
 } from 'telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
@@ -40,6 +41,7 @@ export class BoxManager {
     public appBoxMap: Map<string, string> = new Map();
 
     constructor(
+        private manager: AppManager,
         private mainView: View,
         private appProxies: Map<string, AppProxy>,
         collector?: HTMLElement
@@ -105,12 +107,19 @@ export class BoxManager {
         }
     }
 
+    public updateBox(appId: string, config: TeleBoxManagerUpdateConfig) {
+        const boxId = this.appBoxMap.get(appId);
+        if (boxId) {
+            return this.teleBoxManager.update(boxId, config);
+        }
+    }
+
     public boxIsFocus(appId: string) {
         const box = this.getBox(appId);
         return box?.focus;
     }
 
-    public updateBox(state?: AppInitState) {
+    public updateBoxState(state?: AppInitState) {
         if (!state) return;
         const box = this.getBox(state.id);
         if (box) {
@@ -151,10 +160,15 @@ export class BoxManager {
             emitter.emit("resize", { appId, ...params });
         }, 500));
         box.events.on(TELE_BOX_EVENT.Focus, () => {
-            log("focus", appId);
-            emitter.emit("focus", { appId });
+            if (this.manager.canOperate) {
+                emitter.emit("focus", { appId });
+            } else {
+                this.updateBox(appId, { focus: false });
+            }
         });
-        box.events.on(TELE_BOX_EVENT.Blur, () => emitter.emit("blur", { appId }));
+        box.events.on(TELE_BOX_EVENT.Blur, () => {
+            emitter.emit("blur", { appId });
+        });
         box.events.on(TELE_BOX_EVENT.Snapshot, rect => {
             emitter.emit("snapshot", { appId, rect });
         });
@@ -197,9 +211,11 @@ export class BoxManager {
     }
 
     public blurAllBox() {
-        this.teleBoxManager.updateAll({
-            focus: false
-        });
+        this.teleBoxManager.updateAll({ focus: false });
+    }
+
+    public updateAll(config: TeleBoxManagerUpdateConfig) {
+        this.teleBoxManager.updateAll(config);
     }
 
     public setBoxState(state: TELE_BOX_STATE) {

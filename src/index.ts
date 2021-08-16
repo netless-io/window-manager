@@ -31,7 +31,6 @@ import {
     AppEvents,
     REQUIRE_VERSION,
 } from "./constants";
-import get from 'lodash.get';
 import { AttributesDelegate } from './AttributesDelegate';
 
 (window as any).PPT = PPT;
@@ -178,6 +177,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
+    public get mainView() {
+        return this.appManager!.viewManager.mainView;
+    }
+
+    public get camera() {
+        return this.appManager!.viewManager.mainView.camera;
+    }
+
     /**
      * app destroy 回调
      *
@@ -236,6 +243,7 @@ export class AppManager {
             this.cameraStore
         );
         this.boxManager = new BoxManager(
+            this,
             this.viewManager.mainView,
             this.appProxies,
             collector
@@ -348,9 +356,10 @@ export class AppManager {
         }
     };
 
-    private displayerWritableListener = () => {
+    private displayerWritableListener = (isReadonly: boolean) => {
+        this.boxManager.teleBoxManager.setReadonly(isReadonly);
         this.appProxies.forEach((appProxy) => {
-            appProxy.emitAppIsWritableChange(this.displayer.enableWriteNow);
+            appProxy.emitAppIsWritableChange(!isReadonly);
         });
     };
 
@@ -373,7 +382,7 @@ export class AppManager {
     }
 
     public get room() {
-        return isRoom(this.displayer) ? (this.displayer as Room) : undefined;
+        return this.canOperate ? (this.displayer as Room) : undefined;
     }
 
     public getAppInitPath(appId: string): string | undefined {
@@ -514,13 +523,13 @@ export class AppManager {
         this.appListeners.removeListeners();
         emitter.offAny(this.eventListener);
         this.attributesDisposer();
-        WindowManager.wrapper = null;
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
                 appProxy.destroy(true);
             });
         }
         this.viewManager.destroy();
+        this.delegate.cleanAttributes();
     }
 }
 

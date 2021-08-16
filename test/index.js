@@ -49,11 +49,9 @@ window.Manager = Manager;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
     roomToken: process.env.ROOM_TOKEN,
-    // wrappedComponents: [WindowManagerWrapper],
     invisiblePlugins: [WindowManager],
     useMultiViews: true
 }).then(room => {
-
     window.room = room;
     room.setScenePath("/init")
     const manager = room.getInvisiblePlugin(WindowManager.kind);
