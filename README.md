@@ -41,6 +41,7 @@ manager.mainView.callbacks.on("onSizeUpdated", (size) => {
 ```javascript
 import { WhiteWebSdk } from "white-web-sdk";
 import { WindowManager, BuildinApps } from "@netless/window-manager";
+import "@netless/window-manager/dist/style.css";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: "appIdentifier"
