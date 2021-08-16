@@ -23,7 +23,7 @@ export type AppEmitterEvent<T = any> = {
      *  before plugin destroyed
      */
     destroy: { error?: Error },
-    attributesUpdate: T,
+    attributesUpdate: T | undefined,
     /**
      * room isWritable change or box blur
      */
