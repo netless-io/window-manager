@@ -40,9 +40,7 @@ manager.mainView.callbacks.on("onSizeUpdated", (size) => {
 ### 接入
 ```javascript
 import { WhiteWebSdk } from "white-web-sdk";
-import { WindowManager } from "@netless/window-manager";
-
-WindowManager.register(APP); // APP 为应用实例
+import { WindowManager, BuildinApps } from "@netless/window-manager";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: "appIdentifier"
@@ -64,15 +62,21 @@ sdk.joinRoom({
 
 ```
 
-### 添加 app 到白板上
+### 添加静态 PPT 到白板上
 ```javascript
 manager.addApp({
-    kind: App.kind,
+    kind: BuildinApps.StaticDocsViewer,
     options: {
-        scenePath: "/xxxx",
+        scenePath: "/docs-viewer",
         title: "app1"
     },
     attributes: {
+        pages: [{
+            src: "http://xxx.com/1.png", // 白板静态转换结果中的 url
+            width: 800, // 白板静态转换结果中的 width
+            height: 400, //  // 白板静态转换结果中的 height
+            thumbnail: "http://xxx.com/preview/1.png" //可选 preview url
+        }]
         // 插件需要的属性值
     }
 });
