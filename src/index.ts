@@ -1,5 +1,4 @@
 import Emittery from 'emittery';
-import PPT from './PPT';
 import { NetlessApp } from './typings';
 import { AppCreateError, AppManagerNotInitError, ParamsInvalidError, WhiteWebSDKInvalidError } from './error';
 import { AppListeners } from './AppListener';
@@ -24,7 +23,7 @@ import { log } from './log';
 import { CameraStore } from './CameraStore';
 import { setupWrapper, ViewManager } from './ViewManager';
 import './style.css';
-import 'telebox-insider/dist/style.css';
+import '@netless/telebox-insider/dist/style.css';
 import {
     Events,
     AppAttributes,
@@ -32,9 +31,11 @@ import {
     REQUIRE_VERSION,
 } from "./constants";
 import { AttributesDelegate } from './AttributesDelegate';
+import DocsViewer from "@netless/app-docs-viewer";
 
-(window as any).PPT = PPT;
-
+export enum BuildinApps {
+    StaticDocsViewer = DocsViewer.kind
+}
 
 export type WindowMangerAttributes = {
     modelValue?: string,
@@ -532,5 +533,7 @@ export class AppManager {
         this.delegate.cleanAttributes();
     }
 }
+
+WindowManager.register(DocsViewer);
 
 export * from "./typings";

@@ -1,5 +1,5 @@
 import { Displayer, Event } from "white-web-sdk";
-import { TeleBox, TELE_BOX_STATE } from "telebox-insider";
+import { TeleBox, TELE_BOX_STATE } from "@netless/telebox-insider";
 import { BoxManager } from "./BoxManager";
 import { Events } from "./constants";
 import { ViewManager } from "./ViewManager";

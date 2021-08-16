@@ -11,7 +11,7 @@ import {
     TELE_BOX_STATE,
     TELE_BOX_MANAGER_EVENT,
     TeleBoxManagerUpdateConfig
-} from 'telebox-insider';
+} from '@netless/telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import debounce from 'lodash.debounce';
 import { log } from './log';

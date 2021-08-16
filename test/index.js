@@ -44,7 +44,7 @@ const sdk = new WhiteWebSdk({
 
 const { WindowManager } = Manager;
 window.WindowManager = WindowManager;
-WindowManager.register(PPT);
+
 window.Manager = Manager;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
@@ -59,39 +59,80 @@ sdk.joinRoom({
     WindowManager.mount(room, continaer, undefined, { debug: true });
     window.manager = manager;
 
-    // const mainView = manager.createMainView();
-    // mainView.mode = ViewVisionMode.Writable;
-    // mainView.divElement = root;
-    // window.mainView = mainView;
-
-    manager.onAppDestroy(PPT.kind, (error) => {
+    manager.onAppDestroy(Manager.BuildinApps.StaticDocsViewer, (error) => {
         console.log("onAppDestroy", error)
     })
 
     button2.addEventListener("click", () => {
         manager.addApp({
-            kind: PPT.kind,
+            kind: Manager.BuildinApps.StaticDocsViewer,
             options: {
-                scenePath: "/2e57c840f98a11eb9b03a12989ba200c/80b1ae4e-f9f6-4cf3-82c8-9e6642c3902e",
+                scenePath: "/test2",
                 title: "ppt1",
             },
             attributes: {
-                a: 1
+                pages: [
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/1.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/2.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/3.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/4.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/5.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/6.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/7.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/8.png",
+                        "width": 714
+                    },
+                    {
+                        "height": 1010,
+                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/9.png",
+                        "width": 714
+                    }
+                ]
             }
         });
     });
-    button3.addEventListener("click", () => {
-        manager.addApp({
-            kind: PPT.kind,
-            options: {
-                scenePath: "/2e57c840f98a11eb9b03a12989ba200c/9260d43b-d48a-4936-b54c-06d0d4c1716d",
-                title: "ppt2"
-            },
-            attributes: {
-                a: 1
-            }
-        });
-    });
+    // button3.addEventListener("click", () => {
+    //     manager.addApp({
+    //         kind: PPT.kind,
+    //         options: {
+    //             scenePath: "/2e57c840f98a11eb9b03a12989ba200c/9260d43b-d48a-4936-b54c-06d0d4c1716d",
+    //             title: "ppt2"
+    //         },
+    //         attributes: {
+    //             a: 1
+    //         }
+    //     });
+    // });
 })
 
 
