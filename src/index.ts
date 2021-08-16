@@ -31,10 +31,10 @@ import {
     REQUIRE_VERSION,
 } from "./constants";
 import { AttributesDelegate } from './AttributesDelegate';
-import DocsViewer from "@netless/app-docs-viewer";
+import AppDocsViewer from "@netless/app-docs-viewer";
 
 export enum BuildinApps {
-    StaticDocsViewer = DocsViewer.kind
+    DocsViewer = AppDocsViewer.kind
 }
 
 export type WindowMangerAttributes = {
@@ -203,6 +203,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public unmount() {
         this.appManager?.destroy();
+        super.onDestroy();
     }
 
     private bindMainView(divElement: HTMLDivElement) {
@@ -535,6 +536,6 @@ export class AppManager {
     }
 }
 
-WindowManager.register(DocsViewer);
+WindowManager.register(AppDocsViewer);
 
 export * from "./typings";

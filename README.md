@@ -53,20 +53,27 @@ sdk.joinRoom({
     invisiblePlugins: [WindowManager],
     useMultiViews: true, // 多窗口必须用开启 useMultiViews
 }).then(async room => {
-    const manager = await WindowManager.mount(
-        room, // 房间实例
-        continaer, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
-        collector, // 可选, 用于多窗口最小化挂载的 dom
-        { debug: true } // 可选, 调试用
-    );
+    let manager = room.getInvisiblePlugin(WindowManager.kind);
+    if (!manager) {
+        manager = await WindowManager.mount(
+            room, // 房间实例
+            continaer, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
+            collector, // 可选, 用于多窗口最小化挂载的 dom
+            { debug: true } // 可选, 调试用
+        );
+    }
 });
-
 ```
 
-### 添加静态 PPT 到白板上
+## APP
+静态和动态 PPT 是作为 `App` 插入到白板, 并持久化到白板中
+
+`App` 或会在页面刷新时自动创建出来, 不需要重复插入
+
+### 添加静态 PPT 到白板上
 ```javascript
 manager.addApp({
-    kind: BuildinApps.StaticDocsViewer,
+    kind: BuildinApps.DocsViewer,
     options: {
         scenePath: "/docs-viewer",
         title: "app1"
@@ -81,6 +88,27 @@ manager.addApp({
         // 插件需要的属性值
     }
 });
+```
+
+
+### 添加动态 PPT 到白板上
+```javascript
+manager.addApp({
+    kind: BuildinApps.DocsViewer,
+    options: {
+        scenePath: "/ppt-scene-path", // 动态 PPT 所在 ScenePath
+        title: "app1"
+    },
+    attributes: {
+       dynamic: true,  // 用来标示动态 ppt
+    }
+});
+```
+
+
+## 手动销毁 `WindowManager`
+```javascript
+manager.unmount()
 ```
 
 
