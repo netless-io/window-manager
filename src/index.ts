@@ -33,8 +33,8 @@ import {
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
 
-export enum BuildinApps {
-    DocsViewer = AppDocsViewer.kind
+export const BuildinApps = {
+    DocsViewer: AppDocsViewer.kind as string
 }
 
 export type WindowMangerAttributes = {
