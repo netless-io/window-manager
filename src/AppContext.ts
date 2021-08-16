@@ -1,4 +1,5 @@
 import Emittery from "emittery";
+import { View } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent, AppManager } from "./index";
 import { ViewManager } from "./ViewManager";
@@ -66,12 +67,10 @@ export class AppContext<T = any> {
         this.manager.room?.pptPreviousStep();
     }
 
-    private createView() {
+    private createView(): View {
         const room = this.manager.displayer;
         this.viewManager.switchMainViewToFreedom();
         const view = this.viewManager.createView(this.appId);
-        const mainViewElement = this.viewManager.mainView.divElement;
-        if (!mainViewElement) return;
         this.viewManager.addMainViewListener();
         const initScenePath = this.getInitScenePath();
         if (initScenePath) {
