@@ -3,10 +3,12 @@ import get from "lodash.get";
 import { AnimationMode, Camera, Room, Size, View, ViewVisionMode } from "white-web-sdk";
 import { AppManager, WindowManager } from "./index";
 import { log } from "./log";
-import { ViewCameraManager } from "./ViewCameraManager";
+import { CameraStore } from "./CameraStore";
 
 export class ViewManager {
-
+    public static root: HTMLElement | null;
+    public static lastSize: Size | null;
+    public static centerArea: HTMLElement | null;
     public mainView: View;
     private views: Map<string, View> = new Map();
     private viewListeners: Map<string, any> = new Map();
@@ -15,14 +17,14 @@ export class ViewManager {
     constructor(
         private room: Room, 
         private manager: AppManager,
-        private viewCameraManager: ViewCameraManager) {
+        private cameraStore: CameraStore) {
         this.mainView = this.createMainView();
     }
 
     public createMainView(): View {
         const mainView = this.room.views.createView();
-        this.viewCameraManager.setCamera("mainView", mainView.camera);
-        mainView.callbacks.on("onCameraUpdated", this.viewCameraListener("mainView", mainView));
+        this.cameraStore.setCamera("mainView", mainView.camera);
+        mainView.callbacks.on("onCameraUpdated", this.cameraListener("mainView", mainView));
         mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager.updateManagerRect());
         mainView.mode = ViewVisionMode.Writable;
         return mainView;
@@ -30,9 +32,9 @@ export class ViewManager {
 
     public createView(appId: string): View {
         const view = this.room.views.createView();
-        const cameraListener = this.viewCameraListener(appId, view);
+        const cameraListener = this.cameraListener(appId, view);
         this.viewListeners.set(appId, cameraListener);
-        this.viewCameraManager.setCamera(appId, view.camera);
+        this.cameraStore.setCamera(appId, view.camera);
         view.callbacks.on("onCameraUpdated", cameraListener);
         view.mode = ViewVisionMode.Freedom;
         this.views.set(appId, view);
@@ -45,7 +47,7 @@ export class ViewManager {
             const viewListener = this.viewListeners.get(appId);
             if (viewListener) {
                 view.callbacks.off("onCameraUpdated", viewListener);
-                this.viewCameraManager.deleteCamera(appId);
+                this.cameraStore.deleteCamera(appId);
             }
             view.release();
             this.views.delete(appId);
@@ -76,7 +78,7 @@ export class ViewManager {
             }
             if (view.focusScenePath) {
                 this.room.setScenePath(view.focusScenePath);
-                const viewCamera = this.viewCameraManager.getCamera(appId);
+                const viewCamera = this.cameraStore.getCamera(appId);
                 view.mode = ViewVisionMode.Writable;
                 if (viewCamera) {
                     view.moveCamera({ ...viewCamera, animationMode: AnimationMode.Immediately });
@@ -85,14 +87,22 @@ export class ViewManager {
         }
     }
 
-    public switchViewToFreedom(appId: string) {
+    public switchAppToFreedom(appId: string) {
         const view = this.views.get(appId);
         if (view) {
-            if (!view.focusScenePath) {
-                view.focusScenePath = this.room.state.sceneState.scenePath;
-            }
-            view.mode = ViewVisionMode.Freedom;
+            this.switchViewToFreedom(view);
         }
+    }
+
+    public switchMainViewToFreedom() {
+        this.switchViewToFreedom(this.mainView);
+    }
+
+    private switchViewToFreedom(view: View) {
+        if (!view.focusScenePath) {
+            view.focusScenePath = this.room.state.sceneState.scenePath;
+        }
+        view.mode = ViewVisionMode.Freedom;
     }
 
     public switchMainViewToWriter() {
@@ -106,7 +116,7 @@ export class ViewManager {
             });
             if (this.mainView.focusScenePath) {
                 this.room.setScenePath(this.mainView.focusScenePath);
-                const mainViewCamera = this.viewCameraManager.getCamera("mainView");
+                const mainViewCamera = this.cameraStore.getCamera("mainView");
                 this.mainView.mode = ViewVisionMode.Writable;
                 if (mainViewCamera) {
                     this.mainView.moveCamera({ ...mainViewCamera, animationMode: AnimationMode.Immediately });
@@ -127,12 +137,21 @@ export class ViewManager {
         }
     }
 
-    public viewCameraListener(id: string, view: View) {
+    public cameraListener(id: string, view: View) {
         return (camera: Camera) => {
-            if (view.mode === ViewVisionMode.Writable) {
-                this.viewCameraManager.setCamera(id, camera);
-            }
+            this.cameraStore.setCamera(id, camera);
         };
+    }
+
+    public destroy() {
+        if (ViewManager.root) {
+            if (ViewManager.centerArea) {
+                ViewManager.root.removeChild(ViewManager.centerArea);
+            }
+            ViewManager.root = null;
+            ViewManager.lastSize = null;
+            ViewManager.centerArea = null;
+        }
     }
 }
 
@@ -141,48 +160,60 @@ export const setupWrapper = (root: HTMLElement) => {
     const wrapper = createWrapper();
     const mainViewElement = initMaiViewElement();
     const centerArea = document.createElement("div");
-    centerArea.style.width = "100%";
-    centerArea.style.height = "100%";
-    centerArea.style.display = "flex";
-    centerArea.style.justifyContent = "center";
-    centerArea.style.alignItems = "center";
+    centerArea.className = "netless-window-manager";
     centerArea.appendChild(wrapper);
     wrapper.appendChild(mainViewElement);
     root.appendChild(centerArea);
+    ViewManager.centerArea = centerArea;
+    ViewManager.root = root;
+    WindowManager.wrapper = wrapper;
+    const rootSize = getClientSize(root);
+    ViewManager.lastSize = rootSize;
+    updateWrapperSize(rootSize);
     rootResizeObserver.observe(root);
     return { wrapper, mainViewElement };
 }
 
+const getClientSize = (dom: HTMLElement) => {
+    return { width: dom.clientWidth, height: dom.clientHeight };
+}
+
 export const createWrapper = () => {
-    const continaer = document.createElement("div");
-    continaer.style.overflow = "hidden";
-    continaer.style.position = "relative";
-    return continaer;
+    const wrapper = document.createElement("div");
+    wrapper.className = "wrapper";
+    return wrapper;
 }
 
 export const initMaiViewElement = () => {
     const element = document.createElement("div");
-    element.style.width = "100%";
-    element.style.height = "100%";
+    element.className = "main-view";
     return element;
 }
 
-const updateContinaerSize = (rect: DOMRectReadOnly) => {
-    let width = rect.width;
+// 保证挂载区域是一个 16:9 的区域
+const updateWrapperSize = (size: { width: number, height: number }) => {
+    let width = size.width;
     let height = (width / 16) * 9;
-    if (height > rect.height) {
-        width =  (rect.height / 9) * 16;
-        height = rect.height;
+    if (height > size.height) {
+        width =  (size.height / 9) * 16;
+        height = size.height;
     }
     if (WindowManager.wrapper && width > 0 && height > 0) {
-        WindowManager.wrapper.style.width = width + "px";
-        WindowManager.wrapper.style.height = height + "px";
+        const widthPx = Math.floor(width) + "px";
+        const heightPx = Math.floor(height) + "px";
+        WindowManager.wrapper.style.width = widthPx;
+        WindowManager.wrapper.style.height = heightPx;
     }
 };
 
 export const rootResizeObserver = new ResizeObserver(entries => {
     for (const entry of entries) {
         const rect = entry.contentRect;
-        updateContinaerSize(rect);
+        const width = Math.ceil(rect.width);
+        const height = Math.ceil(rect.height);
+        if (width !== ViewManager.lastSize?.width || height !== ViewManager.lastSize?.height) {
+            updateWrapperSize({ width, height });
+            ViewManager.lastSize = { width, height };
+        }
     }
 });

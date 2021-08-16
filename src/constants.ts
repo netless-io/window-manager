@@ -24,3 +24,5 @@ export enum AppEvents {
     setBoxMinSize = "setBoxMinSize",
     destroy = "destroy",
 }
+
+export const REQUIRE_VERSION = "2.13.16";

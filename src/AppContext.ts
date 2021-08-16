@@ -68,6 +68,7 @@ export class AppContext<T = any> {
 
     private createView() {
         const room = this.manager.displayer;
+        this.viewManager.switchMainViewToFreedom();
         const view = this.viewManager.createView(this.appId);
         const mainViewElement = this.viewManager.mainView.divElement;
         if (!mainViewElement) return;

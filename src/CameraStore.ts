@@ -1,6 +1,6 @@
-import { Camera } from "white-web-sdk";
+import { Camera } from 'white-web-sdk';
 
-export class ViewCameraManager {
+export class CameraStore {
     private cameras: Map<string, Camera> = new Map();
 
     public setCamera(id: string, camera: Camera) {

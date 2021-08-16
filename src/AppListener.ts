@@ -58,7 +58,7 @@ export class AppListeners {
             if (proxy) {
                 proxy.appEmitter.emit("writableChange", false);
             }
-            this.viewManager.switchViewToFreedom(event.payload.appId);
+            this.viewManager.switchAppToFreedom(event.payload.appId);
         }
     }
 

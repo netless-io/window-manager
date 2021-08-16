@@ -21,7 +21,7 @@ import {
 } from 'white-web-sdk';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
 import { log } from './log';
-import { ViewCameraManager } from './ViewCameraManager';
+import { CameraStore } from './CameraStore';
 import { setupWrapper, ViewManager } from './ViewManager';
 import './style.css';
 import 'telebox-insider/dist/style.css';
@@ -29,6 +29,7 @@ import {
     Events,
     AppAttributes,
     AppEvents,
+    REQUIRE_VERSION,
 } from "./constants";
 import get from 'lodash.get';
 import { AttributesDelegate } from './AttributesDelegate';
@@ -124,17 +125,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (!continaer) {
             throw new Error(`continaer must provide`);
         }
-        let manager = room.getInvisiblePlugin(WindowManager.kind);
+        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
         if (!manager) {
-            manager = await room.createInvisiblePlugin(WindowManager, {});
+            manager = await room.createInvisiblePlugin(WindowManager, {}) as WindowManager;
         }
         this.debug = Boolean(options?.debug);
-        const { wrapper, mainViewElement } = setupWrapper(continaer);
-        WindowManager.wrapper = wrapper;
-        (manager as WindowManager).appManager = new AppManager(manager as WindowManager, collector);
-        (manager as WindowManager).bindMainView(mainViewElement);
+        const { mainViewElement } = setupWrapper(continaer);
+        manager.appManager = new AppManager(manager, collector);
+        manager.bindMainView(mainViewElement);
         emitter.emit("onCreated");
-        return manager as WindowManager;
+        return manager;
     }
 
     /**
@@ -205,17 +205,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private static checkVersion() {
-        const version = WhiteVersion.split(".").join("");
-        if (parseInt(version) < 21316) {
-            throw new WhiteWebSDKInvalidError("2.13.16");
+        const version = this.getVersionNumber(WhiteVersion);
+        if (version < this.getVersionNumber(REQUIRE_VERSION)) {
+            throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);
         }
+    }
+
+    private static getVersionNumber(version: string) {
+        return parseInt(version.split(".").join(""));
     }
 }
 
 export class AppManager {
     public displayer: Displayer;
     public boxManager: BoxManager;
-    public viewCameraManager: ViewCameraManager;
+    public cameraStore: CameraStore;
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();
     public delegate = new AttributesDelegate(this);
@@ -225,11 +229,11 @@ export class AppManager {
 
     constructor(private windowManger: WindowManager, collector?: HTMLElement) {
         this.displayer = windowManger.displayer;
-        this.viewCameraManager = new ViewCameraManager();
+        this.cameraStore = new CameraStore();
         this.viewManager = new ViewManager(
             this.displayer as Room,
             this,
-            this.viewCameraManager
+            this.cameraStore
         );
         this.boxManager = new BoxManager(
             this.viewManager.mainView,
@@ -516,6 +520,7 @@ export class AppManager {
                 appProxy.destroy(true);
             });
         }
+        this.viewManager.destroy();
     }
 }
 
