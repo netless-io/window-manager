@@ -104,7 +104,7 @@ manager.addApp({
 });
 ```
 
-
+## InvisibleApp
 ### register `invisibleApp`
 ```javascript
 manager.registerInvisibleApp(appId) // string appId 是自己生成的 id
