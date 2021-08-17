@@ -14,6 +14,9 @@ export interface NetlessApp<T = any> {
         minwidth?: number;
         /** Minimum box height. Relative to whiteboard if 0~1, otherwise absolute pixel. Default 0. */
         minheight?: number;
+
+        /** Maintain a fixed width-height ratio for content. Default false. */
+        fixContentRatio?: boolean;
     };
     setup: (context: AppContext<T>) => void;
 };
