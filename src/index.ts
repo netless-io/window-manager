@@ -29,9 +29,14 @@ import {
     AppAttributes,
     AppEvents,
     REQUIRE_VERSION,
+    INVISIBLE_APPS,
 } from "./constants";
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
+import PPT from "./PPT";
+
+(window as any).PPT = PPT;
+
 
 export const BuildinApps = {
     DocsViewer: AppDocsViewer.kind as string
@@ -99,11 +104,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static displayer: Displayer;
     public static wrapper: HTMLElement | null;
     public static debug = false;
+    private static isCreated = false;
 
     public appListeners?: AppListeners;
     public static appClasses: Map<string, NetlessApp> = new Map();
 
     private appManager?: AppManager;
+    private invisableAppEmitter = new Emittery<{
+        attributesUpdate: { appId: string, attributes: any }
+    }>();
+    private appsDisposer: Map<string, any> = new Map();
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -123,7 +133,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static async mount(room: Room, continaer: HTMLElement, collector?: HTMLElement, options?: { debug: boolean }): Promise<WindowManager> {
         this.checkVersion();
         if (!continaer) {
-            throw new Error(`continaer must provide`);
+            throw new Error("[WindowManager]: Continaer must provide");
+        }
+        if (WindowManager.isCreated) {
+            throw new Error("[WindowManager]: Already created cannot be created again");
         }
         let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
         if (!manager) {
@@ -134,6 +147,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         manager.appManager = new AppManager(manager, collector);
         manager.bindMainView(mainViewElement);
         emitter.emit("onCreated");
+        WindowManager.isCreated = true;
         return manager;
     }
 
@@ -198,18 +212,80 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public onDestroy() {
-        this.appManager?.destroy();
+        this._destroy();
     }
 
     public unmount() {
+       this._destroy();
+    }
+
+    private _destroy() {
         this.appManager?.destroy();
         super.onDestroy();
+        if (this.appsDisposer.size) {
+            this.appsDisposer.forEach(disposer => disposer());
+        }
+        this.invisableAppEmitter.clearListeners();
+        WindowManager.isCreated = false;
+    }
+
+    public registerInvisibleApp(appId: string) {
+        if (!this.attributes[INVISIBLE_APPS]) {
+            this.safeSetAttributes({ [INVISIBLE_APPS]: {} });
+        }
+        this.safeUpdateAttributes([INVISIBLE_APPS, appId], {});
+        const disposer = autorun(() => {
+            const attrs = this.attributes[INVISIBLE_APPS][appId];
+            this.invisableAppEmitter.emit("attributesUpdate", { appId: appId, attributes: attrs });
+        });
+        this.appsDisposer.set(appId, disposer);
+    }
+
+    public unregisterInvisibleApp(appId: string) {
+        if (!this.attributes[INVISIBLE_APPS]) {
+            return;
+        }
+        this.safeUpdateAttributes([INVISIBLE_APPS, appId], undefined);
+        const disposer = this.appsDisposer.get(appId);
+        if (disposer) {
+            disposer();
+            this.appsDisposer.delete(appId);
+        }
+    }
+
+    public updateInvisibleAppAttributes(appId: string, key: string, value: any) {
+        if (!this.appsDisposer.has(appId)) {
+            throw new Error("[WindowManager]: before update invisible app attributes, must register invisible app");
+        }
+        if (!this.attributes[INVISIBLE_APPS][appId]) {
+            this.safeUpdateAttributes([INVISIBLE_APPS, appId], {});
+        }
+        this.safeUpdateAttributes([INVISIBLE_APPS, appId, key], value);
     }
 
     private bindMainView(divElement: HTMLDivElement) {
         if (this.appManager) {
             const mainView = this.appManager.viewManager.mainView;
             mainView.divElement = divElement;
+        }
+    }
+    public get canOperate() {
+        if (isRoom(this.displayer)) {
+            return (this.displayer as Room).isWritable;
+        } else {
+            return false;
+        }
+    }
+
+    public safeSetAttributes(attributes: any) {
+        if (this.canOperate) {
+            this.setAttributes(attributes);
+        }
+    }
+
+    public safeUpdateAttributes(keys: string[], value: any) {
+        if (this.canOperate) {
+            this.updateAttributes(keys, value);
         }
     }
 
@@ -372,38 +448,30 @@ export class AppManager {
             : "onPlayerStateChanged";
     }
 
-    public get canOperate() {
-        if (isRoom(this.displayer)) {
-            return (this.displayer as Room).isWritable;
-        } else {
-            return false;
-        }
-    }
-
     public get attributes() {
         return this.windowManger.attributes;
+    }
+
+    public get canOperate() {
+        return this.windowManger.canOperate;
     }
 
     public get room() {
         return this.canOperate ? (this.displayer as Room) : undefined;
     }
 
+    public safeSetAttributes(attributes: any) {
+        this.windowManger.safeSetAttributes(attributes);
+    }
+
+    public safeUpdateAttributes(keys: string[], value: any) {
+        this.windowManger.safeUpdateAttributes(keys, value);
+    }
+
     public getAppInitPath(appId: string): string | undefined {
         const attrs = this.delegate.getAppAttributes(appId);
         if (attrs) {
             return attrs?.options?.scenePath;
-        }
-    }
-
-    public safeSetAttributes(attributes: any) {
-        if (this.canOperate) {
-            this.windowManger.setAttributes(attributes);
-        }
-    }
-
-    public safeUpdateAttributes(keys: string[], value: any) {
-        if (this.canOperate) {
-            this.windowManger.updateAttributes(keys, value);
         }
     }
 
@@ -429,7 +497,7 @@ export class AppManager {
             }
             case "focus": {
                 this.safeDispatchMagixEvent(Events.AppFocus, payload);
-                this.safeSetAttributes({ focus: payload.appId });
+                this.windowManger.safeSetAttributes({ focus: payload.appId });
                 this.viewManager.swtichViewToWriter(payload.appId);
                 break;
             }

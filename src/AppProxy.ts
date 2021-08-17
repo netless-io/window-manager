@@ -1,5 +1,4 @@
 import Emittery from 'emittery';
-import get from 'lodash.get';
 import { autorun, SceneState } from "white-web-sdk";
 import {
     AddAppOptions,
@@ -20,6 +19,7 @@ import { AppContext } from './AppContext';
 import { NetlessApp } from "./typings";
 import { loadApp } from './loader';
 import { AppCreateError, AppNotRegisterError } from './error';
+import { isEqual } from "lodash-es";
 
 export class AppProxy {
     public id: string;
@@ -30,6 +30,7 @@ export class AppProxy {
     private disposer: any;
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
+    private lastAttrs: any;
 
     constructor(
         private params: AddAppParams,
@@ -60,7 +61,7 @@ export class AppProxy {
             if (appImpl) {
                 await this.setupApp(this.id, appImpl, params.options);
             } else {
-                throw new Error(`app load failed ${params.kind} ${params.src}`);
+                throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
             }
             this.boxManager.updateManagerRect();
             if (focus) {
@@ -70,7 +71,7 @@ export class AppProxy {
                 appId: this.id, app: appImpl
             }
         } else {
-            // throw new Error("kind and app is require");
+            throw new Error("[WindowManager]: kind require");
         }
     }
 
@@ -116,7 +117,7 @@ export class AppProxy {
                 appId: appId, app, options
             });
         } catch (error) {
-            throw new Error(`app setup error: ${error.message}`);
+            throw new Error(`[WindowManager]: app setup error: ${error.message}`);
         }
     }
 
@@ -210,7 +211,10 @@ export class AppProxy {
     private appAttributesUpdateListener = (appId: string) => {
         const disposer = autorun(() => {
             const attrs = this.manager.attributes[appId];
-            this.appEmitter.emit("attributesUpdate", attrs);
+            if (!isEqual(this.lastAttrs, attrs)) {
+                this.appEmitter.emit("attributesUpdate", attrs);
+                this.lastAttrs = attrs;
+            }
         });
         this.disposer = disposer;
     }

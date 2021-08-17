@@ -13,7 +13,7 @@ import {
     TeleBoxManagerUpdateConfig
 } from '@netless/telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
-import debounce from 'lodash.debounce';
+import { debounce } from 'lodash-es';
 import { log } from './log';
 import { AppProxy } from './AppProxy';
 

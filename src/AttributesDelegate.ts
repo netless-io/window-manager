@@ -1,5 +1,5 @@
 import { AddAppParams, AppManager, AppSyncAttributes } from "./index";
-import get from "lodash.get";
+import { get } from "lodash-es";
 import { AppAttributes } from "./constants";
 
 

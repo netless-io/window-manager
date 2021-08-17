@@ -44,7 +44,7 @@ const sdk = new WhiteWebSdk({
 
 const { WindowManager } = Manager;
 window.WindowManager = WindowManager;
-
+WindowManager.register(PPT);
 window.Manager = Manager;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
@@ -122,16 +122,24 @@ sdk.joinRoom({
         });
     });
     button3.addEventListener("click", () => {
+        // manager.addApp({
+        //     kind: Manager.BuildinApps.DocsViewer,
+        //     options: {
+        //         scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/ebf25a59-f695-4c1d-835e-642f28fe7502",
+        //         title: "ppt2"
+        //     },
+        //     attributes: {
+        //         dynamic: true
+        //     }
+        // });
+
         manager.addApp({
-            kind: Manager.BuildinApps.DocsViewer,
+            kind: PPT.kind,
             options: {
                 scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/ebf25a59-f695-4c1d-835e-642f28fe7502",
-                title: "ppt2"
-            },
-            attributes: {
-                dynamic: true
+                title: "ppt3"
             }
-        });
+        })
     });
 })
 

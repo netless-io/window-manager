@@ -1,4 +1,4 @@
-import get from "lodash.get";
+import { get } from "lodash-es";
 import { AnimationMode, Camera, Displayer, Room, Size, View, ViewVisionMode } from "white-web-sdk";
 import { AppManager, WindowManager } from "./index";
 import { log } from "./log";

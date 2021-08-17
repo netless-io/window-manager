@@ -55,15 +55,12 @@ sdk.joinRoom({
     invisiblePlugins: [WindowManager],
     useMultiViews: true, // 多窗口必须用开启 useMultiViews
 }).then(async room => {
-    let manager = room.getInvisiblePlugin(WindowManager.kind);
-    if (!manager) {
-        manager = await WindowManager.mount(
-            room, // 房间实例
-            continaer, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
-            collector, // 可选, 用于多窗口最小化挂载的 dom
-            { debug: true } // 可选, 调试用
-        );
-    }
+    const manager = await WindowManager.mount(
+        room, // 房间实例
+        continaer, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
+        collector, // 可选, 用于多窗口最小化挂载的 dom
+        { debug: true } // 可选, 调试用
+    );
 });
 ```
 
@@ -72,7 +69,7 @@ sdk.joinRoom({
 
 `App` 或会在页面刷新时自动创建出来, 不需要重复插入
 
-### 添加静态 PPT 到白板上
+### 添加静态 PPT 到白板上
 ```javascript
 manager.addApp({
     kind: BuildinApps.DocsViewer,
@@ -105,6 +102,29 @@ manager.addApp({
        dynamic: true,  // 用来标示动态 ppt
     }
 });
+```
+
+
+### register `invisibleApp`
+```javascript
+manager.registerInvisibleApp(appId) // string appId 是自己生成的 id
+```
+
+### 更新 `invisibleApp` 的 `attributes`
+```javascript
+manager.updateInvisibleAppAttributes(appId, "size", { x: 1, y: 1 }) // app 的 attributes, key 和 value 可以是自定义的任何值
+```
+
+### 监听 `invisibleApp` 的 `attributesUpdate`
+```javascript
+manager.invisableAppEmitter.on("attributesUpdate", (data) => {
+    // data = { appId, attributes }
+})
+```
+
+### unregister `invisibleApp`
+```javascript
+manager.unregisterInvisibleApp(appId)
 ```
 
 
