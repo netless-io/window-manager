@@ -187,6 +187,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
+    /**
+     * 设置 mainView 的 ScenePath, 并且切换白板为可写状态
+     *
+     * @param {string} scenePath
+     * @memberof WindowManager
+     */
+    public setMainViewScenePath(scenePath: string) {
+        if (this.room) {
+            this.safeSetAttributes({ _mainScenePath: scenePath });
+            this.appManager?.viewManager.switchMainViewToWriter();
+            this.room.setScenePath(scenePath);
+        }
+    }
+
     public get mainView() {
         return this.appManager!.viewManager.mainView;
     }
@@ -224,14 +238,25 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.appManager) {
             const mainView = this.appManager.viewManager.mainView;
             mainView.divElement = divElement;
+            const scenePath = this.appManager.delegate.getMainViewScenePath();
+            if (scenePath) {
+                mainView.focusScenePath = scenePath;
+            } else {
+                this.setMainViewScenePath(this.displayer.state.sceneState.scenePath);
+            }
         }
     }
+
     public get canOperate() {
         if (isRoom(this.displayer)) {
             return (this.displayer as Room).isWritable;
         } else {
             return false;
         }
+    }
+
+    public get room() {
+        return this.canOperate ? (this.displayer as Room) : undefined;
     }
 
     public safeSetAttributes(attributes: any) {
@@ -367,13 +392,6 @@ export class AppManager {
             return appProxy;
         } else {
             console.log("app create failed", params);
-        }
-    }
-
-    private setupScenePath(scenePath: string) {
-        const scenes = this.displayer.entireScenes()[scenePath];
-        if (!scenes) {
-            this.room?.putScenes(scenePath, [{ name: "1" }]);
         }
     }
 

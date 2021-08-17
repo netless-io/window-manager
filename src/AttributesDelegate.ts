@@ -68,4 +68,8 @@ export class AttributesDelegate {
             [Fields.Focus]: undefined,
         });
     }
+
+    public getMainViewScenePath() {
+        return this.manager.attributes["_mainScenePath"];
+    }
 }
