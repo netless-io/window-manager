@@ -19,7 +19,6 @@
       "allowSyntheticDefaultImports": true,
       "experimentalDecorators": true,
       "moduleResolution": "node",
-      "types" : ["./node_modules/@netless/telebox-insider/dist"],
       "allowJs": true,
     },
     "include": [

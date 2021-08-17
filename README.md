@@ -70,12 +70,14 @@ sdk.joinRoom({
 `App` 或会在页面刷新时自动创建出来, 不需要重复插入
 
 ### 添加静态 PPT 到白板上
+因为实现方式的原因, 静态 PPT 添加到白板时需要一个空白的 `scenePath`, 需要在 `addApp` 之前需要先 `putScenes`
 ```javascript
+room.putScenes("/docs-viewer", [{ name: "1" }])
 manager.addApp({
     kind: BuildinApps.DocsViewer,
     options: {
         scenePath: "/docs-viewer",
-        title: "app1"
+        title: "app1", // 可选
     },
     attributes: {
         pages: [{
@@ -84,7 +86,6 @@ manager.addApp({
             height: 400, //  // 白板静态转换结果中的 height
             thumbnail: "http://xxx.com/preview/1.png" //可选 preview url
         }]
-        // 插件需要的属性值
     }
 });
 ```
@@ -96,37 +97,13 @@ manager.addApp({
     kind: BuildinApps.DocsViewer,
     options: {
         scenePath: "/ppt-scene-path", // 动态 PPT 所在 ScenePath
-        title: "app1"
+        title: "app2" // 可选
     },
     attributes: {
        dynamic: true,  // 用来标示动态 ppt
     }
 });
 ```
-
-## InvisibleApp
-### register `invisibleApp`
-```javascript
-manager.registerInvisibleApp(appId) // string appId 是自己生成的 id
-```
-
-### 更新 `invisibleApp` 的 `attributes`
-```javascript
-manager.updateInvisibleAppAttributes(appId, "size", { x: 1, y: 1 }) // app 的 attributes, key 和 value 可以是自定义的任何值
-```
-
-### 监听 `invisibleApp` 的 `attributesUpdate`
-```javascript
-manager.invisableAppEmitter.on("attributesUpdate", (data) => {
-    // data = { appId, attributes }
-})
-```
-
-### unregister `invisibleApp`
-```javascript
-manager.unregisterInvisibleApp(appId)
-```
-
 
 ## 手动销毁 `WindowManager`
 ```javascript

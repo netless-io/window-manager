@@ -12,7 +12,6 @@ import {
     WindowManager,
     AppManager
     } from './index';
-import { BoxManager } from './BoxManager';
 import { Events, AppAttributes, AppEvents } from './constants';
 import { log } from './log';
 import { AppContext } from './AppContext';

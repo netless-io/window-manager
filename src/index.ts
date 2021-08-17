@@ -29,7 +29,6 @@ import {
     AppAttributes,
     AppEvents,
     REQUIRE_VERSION,
-    INVISIBLE_APPS,
 } from "./constants";
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
@@ -110,10 +109,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static appClasses: Map<string, NetlessApp> = new Map();
 
     private appManager?: AppManager;
-    private invisableAppEmitter = new Emittery<{
-        attributesUpdate: { appId: string, attributes: any }
-    }>();
-    private appsDisposer: Map<string, any> = new Map();
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -222,45 +217,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private _destroy() {
         this.appManager?.destroy();
         super.onDestroy();
-        if (this.appsDisposer.size) {
-            this.appsDisposer.forEach(disposer => disposer());
-        }
-        this.invisableAppEmitter.clearListeners();
         WindowManager.isCreated = false;
-    }
-
-    public registerInvisibleApp(appId: string) {
-        if (!this.attributes[INVISIBLE_APPS]) {
-            this.safeSetAttributes({ [INVISIBLE_APPS]: {} });
-        }
-        this.safeUpdateAttributes([INVISIBLE_APPS, appId], {});
-        const disposer = autorun(() => {
-            const attrs = this.attributes[INVISIBLE_APPS][appId];
-            this.invisableAppEmitter.emit("attributesUpdate", { appId: appId, attributes: attrs });
-        });
-        this.appsDisposer.set(appId, disposer);
-    }
-
-    public unregisterInvisibleApp(appId: string) {
-        if (!this.attributes[INVISIBLE_APPS]) {
-            return;
-        }
-        this.safeUpdateAttributes([INVISIBLE_APPS, appId], undefined);
-        const disposer = this.appsDisposer.get(appId);
-        if (disposer) {
-            disposer();
-            this.appsDisposer.delete(appId);
-        }
-    }
-
-    public updateInvisibleAppAttributes(appId: string, key: string, value: any) {
-        if (!this.appsDisposer.has(appId)) {
-            throw new Error("[WindowManager]: before update invisible app attributes, must register invisible app");
-        }
-        if (!this.attributes[INVISIBLE_APPS][appId]) {
-            this.safeUpdateAttributes([INVISIBLE_APPS, appId], {});
-        }
-        this.safeUpdateAttributes([INVISIBLE_APPS, appId, key], value);
     }
 
     private bindMainView(divElement: HTMLDivElement) {
@@ -386,9 +343,6 @@ export class AppManager {
             this.safeSetAttributes({ [id]: params.attributes });
             const appProxy = await this.baseInsertApp(params, true);
             if (appProxy) {
-                if (params.options?.scenePath) {
-                    this.setupScenePath(params.options.scenePath);
-                }
                 this.viewManager.swtichViewToWriter(id);
             }
         } catch (error) {

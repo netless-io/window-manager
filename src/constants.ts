@@ -25,8 +25,6 @@ export enum AppEvents {
     destroy = "destroy",
 }
 
-export const INVISIBLE_APPS = "invisibleApps";
-
 export const REQUIRE_VERSION = "2.13.16";
 
 export const MIN_WIDTH = 0.4;
