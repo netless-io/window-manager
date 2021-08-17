@@ -8,17 +8,11 @@
 `方法`
 - `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
 - `room.disableCameraTransform` 用 `manager.mainView.disableCameraTransform` 代替
-- room.scalePptToFit()
-- room.moveCamera()
-- room.moveCameraToContain()
-- room.setCameraBound()
+- `room.scalePptToFit()` 暂无代替
+- `room.moveCamera()` 用 `manager.mainView.moveCamera()` 代替
+- `room.moveCameraToContain()` 用 `manager.mainView.moveCameraToContain()` 代替
+- `room.setCameraBound()` 用 `manager.mainView.setCameraBound()` 代替
 
-关于 `camera` 的所有操作, 请使用
-```
-manager.mainView.moveCamera()
-manager.mainView.moveCameraToContain()
-manager.mainView.setCameraBound()
-```
 
 `state`
 - room.state.cameraState
@@ -35,7 +29,6 @@ manager.mainView.callbacks.on("onSizeUpdated", (size) => {
     console.log(size)
 })
 ```
-
 
 并且暂不支持原本的主播模式
 
