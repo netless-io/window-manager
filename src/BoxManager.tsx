@@ -54,6 +54,7 @@ export class BoxManager {
         if (!this.teleBoxManager) return;
         const { width, height } = params.app.config ?? {};
         const title = params.options?.title || params.appId;
+
         const box = this.teleBoxManager.create({
             title: title,
             width: width, height: height,

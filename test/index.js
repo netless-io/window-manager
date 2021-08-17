@@ -7,7 +7,7 @@ import { scenes } from "./test";
 const continaer = document.createElement("div");
 continaer.id = "root"
 continaer.style.width = "80vw";
-continaer.style.height = "90vh";
+continaer.style.height = "35vw";
 continaer.style.marginTop = "2vh";
 continaer.style.marginLeft = "10vw";
 continaer.style.border = "1px solid";
@@ -65,7 +65,7 @@ sdk.joinRoom({
 
     button2.addEventListener("click", () => {
         manager.addApp({
-            kind: Manager.BuildinApps.StaticDocsViewer,
+            kind: Manager.BuildinApps.DocsViewer,
             options: {
                 scenePath: "/test2",
                 title: "ppt1",
@@ -121,18 +121,18 @@ sdk.joinRoom({
             }
         });
     });
-    // button3.addEventListener("click", () => {
-    //     manager.addApp({
-    //         kind: PPT.kind,
-    //         options: {
-    //             scenePath: "/2e57c840f98a11eb9b03a12989ba200c/9260d43b-d48a-4936-b54c-06d0d4c1716d",
-    //             title: "ppt2"
-    //         },
-    //         attributes: {
-    //             a: 1
-    //         }
-    //     });
-    // });
+    button3.addEventListener("click", () => {
+        manager.addApp({
+            kind: Manager.BuildinApps.DocsViewer,
+            options: {
+                scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/ebf25a59-f695-4c1d-835e-642f28fe7502",
+                title: "ppt2"
+            },
+            attributes: {
+                dynamic: true
+            }
+        });
+    });
 })
 
 

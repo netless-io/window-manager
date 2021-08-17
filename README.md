@@ -6,6 +6,8 @@
 会造成原本以下 `room` 上的一些方法和 `state` 失效
 
 `方法`
+- `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
+- `room.disableCameraTransform` 用 `manager.mainView.disableCameraTransform` 代替
 - room.scalePptToFit()
 - room.moveCamera()
 - room.moveCameraToContain()
