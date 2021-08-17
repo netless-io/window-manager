@@ -1,6 +1,6 @@
 import Emittery from 'emittery';
 import { AddAppOptions, emitter, AppInitState, WindowManager, AppManager } from './index';
-import { Events } from './constants';
+import { Events, MIN_HEIGHT, MIN_WIDTH } from './constants';
 import { NetlessApp } from './typings';
 import {
     ReadonlyTeleBox,
@@ -58,6 +58,7 @@ export class BoxManager {
         const box = this.teleBoxManager.create({
             title: title,
             width: width, height: height,
+            minWidth: MIN_WIDTH, minHeight: MIN_HEIGHT
         });
 
         emitter.emit(`${params.appId}${Events.WindowCreated}`);
