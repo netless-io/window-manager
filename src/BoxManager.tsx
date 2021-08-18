@@ -10,7 +10,8 @@ import {
     TeleBoxManager,
     TELE_BOX_STATE,
     TELE_BOX_MANAGER_EVENT,
-    TeleBoxManagerUpdateConfig
+    TeleBoxManagerUpdateConfig,
+    TeleBoxManagerCreateConfig
 } from '@netless/telebox-insider';
 import { View, WhiteScene } from 'white-web-sdk';
 import { debounce } from 'lodash-es';
@@ -52,14 +53,32 @@ export class BoxManager {
 
     public createBox(params: CreateBoxParams) {
         if (!this.teleBoxManager) return;
-        const { width, height } = params.app.config ?? {};
+        const { width, height, minwidth, minheight } = params.app.config ?? {};
         const title = params.options?.title || params.appId;
+        const rect = this.teleBoxManager.containerRect;
+        let minWidth = MIN_WIDTH / rect.width;
+        let minHeight = MIN_HEIGHT / rect.height;
+        if (minwidth) {
+            minWidth = minwidth / rect.width;
+        }
+        if (minheight) {
+            minHeight = minheight / rect.height;
+        }
+        const createBoxConfig: {
+            title: string, width?: number, height?: number, minWidth?: number, minHeight?: number
+        } = {
+            title, minWidth, minHeight
+        }
 
-        const box = this.teleBoxManager.create({
-            title: title,
-            width: width, height: height,
-            minWidth: MIN_WIDTH, minHeight: MIN_HEIGHT
-        });
+        if (width && width > 0) {
+            createBoxConfig.width = width;
+        }
+
+        if (height && height > 0) {
+            createBoxConfig.height = width;
+        }
+
+        const box = this.teleBoxManager.create(createBoxConfig);
 
         emitter.emit(`${params.appId}${Events.WindowCreated}`);
         this.addBoxListeners(params.appId, box);
@@ -146,7 +165,7 @@ export class BoxManager {
         if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
-            this.appProxies.forEach(proxy => {
+            this.appProxies.forEach((proxy) => {
                 if (this.teleBoxManager) {
                     proxy.appEmitter.emit("containerRectUpdate", this.teleBoxManager.containerRect);
                 }

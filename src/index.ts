@@ -16,6 +16,7 @@ import {
     Room,
     View,
     ViewVisionMode,
+    WhiteScene,
     WhiteVersion
 } from 'white-web-sdk';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
@@ -55,6 +56,7 @@ export type apps = {
 export type AddAppOptions = {
     scenePath?: string;
     title?: string;
+    scenes?: WhiteScene[],
 }
 
 export type setAppOptions = AddAppOptions & { appOptions?: any };
@@ -83,7 +85,8 @@ export type AppSyncAttributes = {
     kind: string,
     src?: string,
     options: any,
-    state?: any
+    state?: any,
+    isDynamicPPT?: boolean,
 }
 
 export type AppInitState = {
@@ -182,7 +185,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (!params.kind || typeof params.kind !== "string") {
                 throw new ParamsInvalidError();
             }
-            const appId = await this.appManager.addApp(params);
+            let isDynamicPPT = false;
+            if (params.options) {
+                const { scenePath, scenes, title } = params.options;
+                if (scenePath && scenes && scenes.length > 0) {
+                    if (this.isDynamicPPT(scenes)) {
+                        isDynamicPPT = true;
+                        this.room?.putScenes(scenePath, scenes);
+                    } else {
+                        this.room?.putScenes(scenePath, [{ name: title || "1" }]);
+                    }
+                }
+            }
+
+            const appId = await this.appManager.addApp(params, isDynamicPPT);
             return appId
         } else {
             throw new AppManagerNotInitError();
@@ -225,7 +241,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-
     /**
      * 切换 mainView 为可写
      *
@@ -233,14 +248,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      */
     public switchMainViewToWriter() {
         this.appManager?.viewManager.switchMainViewToWriter();
-    }
-
-    public get mainView() {
-        return this.appManager!.viewManager.mainView;
-    }
-
-    public get camera() {
-        return this.appManager!.viewManager.mainView.camera;
     }
 
     /**
@@ -252,6 +259,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     */
     public onAppDestroy(kind: string, listener: (error: Error) => void) {
         emitter.once(`destroy-${kind}`).then(listener);
+    }
+
+    public get mainView() {
+        return this.appManager!.viewManager.mainView;
+    }
+
+    public get camera() {
+        return this.appManager!.viewManager.mainView.camera;
     }
 
     public onDestroy() {
@@ -318,6 +333,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (scenes && index !== undefined) {
             return scenes[index]?.name
         }
+    }
+
+    private isDynamicPPT(scenes: WhiteScene[]) {
+        const sceneSrc = scenes[0]?.ppt?.src;
+        return sceneSrc?.startsWith("pptx://");
     }
 
     private static checkVersion() {
@@ -406,7 +426,7 @@ export class AppManager {
         }
     }
 
-    public async addApp(params: AddAppParams): Promise<string> {
+    public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string> {
         log("addApp", params);
         const id = AppProxy.genId(params.kind, params.options);
         if (this.appProxies.has(id)) {
@@ -414,8 +434,9 @@ export class AppManager {
         }
         try {
             this.appStatus.set(id, AppStatus.StartCreate);
-            this.delegate.setupAppAttributes(params, id);
+            this.delegate.setupAppAttributes(params, id, isDynamicPPT);
             this.safeSetAttributes({ [id]: params.attributes });
+            
             const appProxy = await this.baseInsertApp(params, true);
             this.viewManager.swtichViewToWriter(id);
             return appProxy.id;

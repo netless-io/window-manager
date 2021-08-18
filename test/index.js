@@ -1,8 +1,14 @@
-import { WhiteWebSdk, InvisiblePlugin, ViewVisionMode } from "white-web-sdk";
+import { WhiteWebSdk, createPlugins } from "white-web-sdk";
 import * as Manager from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
+import "video.js/dist/video-js.css";
+import { videoJsPlugin } from "@netless/video-js-plugin";
 import { scenes } from "./test";
+
+const plugins = createPlugins({ "video.js": videoJsPlugin() });
+
+plugins.setPluginContext("video.js", { enable: true, verbose: true });
 
 const continaer = document.createElement("div");
 continaer.id = "root"
@@ -21,6 +27,8 @@ const button1 = document.createElement("button")
 button1.textContent = "课件1"
 const button2 = document.createElement("button")
 button2.textContent = "课件2"
+const button4= document.createElement("button");
+button4.textContent = "插入视频"
 
 rightBar.style.position = "fixed";
 rightBar.style.right = 0;
@@ -34,12 +42,16 @@ rightBar.appendChild(button2);
 rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(button3);
+rightBar.appendChild(document.createElement("br"))
+rightBar.appendChild(document.createElement("br"))
+rightBar.appendChild(button4);
 
 document.body.appendChild(continaer);
 document.body.appendChild(rightBar);
 
 const sdk = new WhiteWebSdk({
-    appIdentifier: process.env.APPID
+    appIdentifier: process.env.APPID,
+    plugins
 });
 
 const { WindowManager } = Manager;
@@ -135,12 +147,22 @@ sdk.joinRoom({
         manager.addApp({
             kind: PPT.kind,
             options: {
-                scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/ebf25a59-f695-4c1d-835e-642f28fe7502",
-                title: "ppt3"
+                scenePath: "/test-add-app",
+                title: "ppt3",
+                scenes: [{ src: "http://www.baidu.com" }]
             }
         })
     });
-})
 
+    button4.addEventListener("click", () => {
+        room.insertPlugin("video.js", {
+            originX: -300 / 2,
+            originY: -200 / 2,
+            width: 300,
+            height: 200,
+            attributes: { src: "https://flat-storage.oss-accelerate.aliyuncs.com/cloud-storage/b7333e1f-e945-4aec-8346-cfe33b82a7ce.mp4" },
+        });
+    })
+})
 
 

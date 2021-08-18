@@ -10,7 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "normalize.css": "^8.0.1"
+    "@netless/video-js-plugin": "^0.3.7",
+    "normalize.css": "^8.0.1",
+    "video.js": "^7.14.3"
   },
   "devDependencies": {
     "poi": "^12.10.3"

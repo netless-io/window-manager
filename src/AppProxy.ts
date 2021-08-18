@@ -11,7 +11,7 @@ import {
     setAppOptions,
     WindowManager,
     AppManager
-    } from './index';
+} from './index';
 import { Events, AppAttributes, AppEvents } from './constants';
 import { log } from './log';
 import { AppContext } from './AppContext';
@@ -54,7 +54,7 @@ export class AppProxy {
     }
 
     public async baseInsertApp(focus?: boolean) {
-        const params = this.params; 
+        const params = this.params;
         if (params.kind) {
             const appImpl = await this.getAppImpl();
             if (appImpl) {

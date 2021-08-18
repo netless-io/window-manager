@@ -1,5 +1,5 @@
 import { AddAppParams, AppManager, AppSyncAttributes } from "./index";
-import { get } from "lodash-es";
+import { get, pick } from "lodash-es";
 import { AppAttributes } from "./constants";
 
 
@@ -22,7 +22,7 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.Focus]);
     }
 
-    public getAppAttributes(id: string) {
+    public getAppAttributes(id: string): AppSyncAttributes {
         return get(this.apps(), [id]);
     }
 
@@ -30,19 +30,24 @@ export class AttributesDelegate {
         return get(this.apps(), [id, Fields.State]);
     }
 
-    public setupAppAttributes(params: AddAppParams, id: string) {
+    public setupAppAttributes(params: AddAppParams, id: string, isDynamicPPT: boolean) {
         const attributes = this.manager.attributes;
         if (!attributes.apps) {
             this.manager.safeSetAttributes({ apps: {} });
         }
-        let attrs: AppSyncAttributes = { kind: params.kind, options: params.options };
+        const attrNames = ["scenePath", "title"];
+        if (!isDynamicPPT) {
+            attrNames.push("scenes");
+        }
+        const options = pick(params.options, attrNames);
+        let attrs: AppSyncAttributes = { kind: params.kind, options, isDynamicPPT };
         if (typeof params.src === "string") {
             attrs.src = params.src;
         }
         this.manager.safeUpdateAttributes([Fields.Apps, id], attrs);
         this.manager.safeUpdateAttributes([Fields.Apps, id, Fields.State],{
-            [AppAttributes.Size]: { width: 0, height: 0 },
-            [AppAttributes.Position]: { x: 0, y: 0 },
+            [AppAttributes.Size]: {},
+            [AppAttributes.Position]: {},
             [AppAttributes.SnapshotRect]: {},
         });
         this.manager.safeSetAttributes({ [Fields.Focus]: id });

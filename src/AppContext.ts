@@ -1,6 +1,6 @@
 import { ReadonlyTeleBox } from "@netless/telebox-insider";
 import Emittery from "emittery";
-import { Room, View } from "white-web-sdk";
+import { Room, View, WhiteScene } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent, AppManager } from "./index";
 import { ViewManager } from "./ViewManager";
@@ -10,6 +10,7 @@ export class AppContext<T = any> {
     public readonly emitter: Emittery<AppEmitterEvent<T>>;
     private viewManager: ViewManager;
     private boxManager: BoxManager;
+    private delegate = this.manager.delegate;
 
     constructor(
         private manager: AppManager,
@@ -26,6 +27,18 @@ export class AppContext<T = any> {
 
     public getAttributes(): T | undefined {
         return this.manager.attributes[this.appId];
+    }
+
+    public getScenes(): WhiteScene[] | undefined {
+        const appAttr = this.delegate.getAppAttributes(this.appId);
+        if (appAttr.isDynamicPPT) {
+            const initScenePath = this.getInitScenePath();
+            if (initScenePath) {
+                return this.manager.displayer.entireScenes()[initScenePath];
+            }
+        } else {
+            return appAttr.options["scenes"];
+        }
     }
 
     public getView() {
