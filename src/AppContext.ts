@@ -85,7 +85,7 @@ export class AppContext<T = any> {
                 view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
             }
         }
-        this.viewManager.swtichViewToWriter(this.appId);
+        this.viewManager.switchViewToWriter(this.appId);
         return view;
     }
 }

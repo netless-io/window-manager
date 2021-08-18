@@ -48,7 +48,7 @@ export class AppListeners {
     private appFocusListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.focusBox(event.payload);
-            this.viewManager.swtichViewToWriter(event.payload.appId);
+            this.viewManager.switchViewToWriter(event.payload.appId);
         }
     }
 
