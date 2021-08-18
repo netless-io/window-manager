@@ -225,6 +225,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
+
+    /**
+     * 切换 mainView 为可写
+     *
+     * @memberof WindowManager
+     */
+    public switchMainViewToWriter() {
+        this.appManager?.viewManager.switchMainViewToWriter();
+    }
+
     public get mainView() {
         return this.appManager!.viewManager.mainView;
     }

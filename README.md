@@ -15,10 +15,10 @@
 - `room.scalePptToFit()` 暂无代替
 - `room.moveCamera()` 用 `manager.mainView.moveCamera()` 代替
 - `room.moveCameraToContain()` 用 `manager.mainView.moveCameraToContain()` 代替
+- `room.convertToPointInWorld()` 用 `manager.mainView.convertToPointInWorld()` 代替
 - `room.setCameraBound()` 用 `manager.mainView.setCameraBound()` 代替
 - `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
 - `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
-
 
 `camera`
 - `room.state.cameraState` 用 `manager.mainView.camera` 和 `manager.mainView.size` 代替
@@ -102,6 +102,11 @@ const appId = await manager.addApp({
        dynamic: true,  // 用来标示动态 ppt
     }
 });
+```
+
+### 切换 `mainView` 为可写状态
+```javascript
+manager.switchMainViewToWriter();
 ```
 
 ### 切换 `mainView` `scenePath`
