@@ -18,7 +18,8 @@ export enum Events {
 export enum AppAttributes {
     Size = "size",
     Position = "position",
-    SnapshotRect = "SnapshotRect"
+    SnapshotRect = "SnapshotRect",
+    SceneIndex = "SceneIndex",
 }
 
 export enum AppEvents {

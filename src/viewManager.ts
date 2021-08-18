@@ -1,5 +1,5 @@
 import { get } from "lodash-es";
-import { AnimationMode, Camera, Displayer, Room, Size, View, ViewVisionMode } from "white-web-sdk";
+import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewVisionMode } from "white-web-sdk";
 import { AppManager, WindowManager } from "./index";
 import { log } from "./log";
 import { CameraStore } from "./CameraStore";
@@ -26,7 +26,7 @@ export class ViewManager {
         this.cameraStore.setCamera("mainView", mainView.camera);
         mainView.callbacks.on("onCameraUpdated", this.cameraListener("mainView", mainView));
         mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager.updateManagerRect());
-        mainView.mode = ViewVisionMode.Writable;
+        this.setViewMode(mainView, ViewVisionMode.Writable);
         return mainView;
     }
 
@@ -36,7 +36,7 @@ export class ViewManager {
         this.viewListeners.set(appId, cameraListener);
         this.cameraStore.setCamera(appId, view.camera);
         view.callbacks.on("onCameraUpdated", cameraListener);
-        view.mode = ViewVisionMode.Freedom;
+        this.setViewMode(view, ViewVisionMode.Freedom);
         this.views.set(appId, view);
         return view;
     }
@@ -58,7 +58,7 @@ export class ViewManager {
         return this.views.get(appId);
     }
 
-    public swtichViewToWriter(appId: string) {
+    public switchViewToWriter(appId: string) {
         if (!this.manager.canOperate) return;
         const view = this.views.get(appId);
         if (view) {
@@ -67,8 +67,8 @@ export class ViewManager {
             this.displayer.views.forEach(roomView => {
                 if (roomView.mode === ViewVisionMode.Writable) {
                     roomView.focusScenePath = this.scenePath;
+                    this.setViewMode(roomView, ViewVisionMode.Freedom);
                 }
-                roomView.mode = ViewVisionMode.Freedom;
             });
             if (!view.focusScenePath) {
                 const pluginOptions = get(this.manager.attributes, ["apps", appId, "options"]);
@@ -79,10 +79,29 @@ export class ViewManager {
             if (view.focusScenePath) {
                 this.manager.room?.setScenePath(view.focusScenePath);
                 const viewCamera = this.cameraStore.getCamera(appId);
-                view.mode = ViewVisionMode.Writable;
+                this.setViewMode(view, ViewVisionMode.Writable);
                 if (viewCamera) {
                     view.moveCamera({ ...viewCamera, animationMode: AnimationMode.Immediately });
                 }
+            }
+        }
+    }
+
+    public switchViewToWriterWithScenePath(appId: string) {
+        if (!this.manager.canOperate) return;
+        const view = this.views.get(appId);
+        if (view) {
+            if (view.mode === ViewVisionMode.Writable) return;
+            const writableView = this.displayer.views.writableView;
+            if (writableView) {
+                writableView.focusScenePath = this.scenePath;
+                this.setViewMode(writableView, ViewVisionMode.Freedom);
+            }
+            const appProxy = this.manager.appProxies.get(appId);
+            const sceneName = appProxy?.getSceneName();
+            if (appProxy && sceneName) {
+                const scenePath = `${appProxy.scenePath}/${sceneName}`;
+                this.manager.room?.setScenePath(scenePath);
             }
         }
     }
@@ -102,7 +121,7 @@ export class ViewManager {
         if (!view.focusScenePath) {
             view.focusScenePath = this.scenePath;
         }
-        view.mode = ViewVisionMode.Freedom;
+        this.setViewMode(view, ViewVisionMode.Freedom);
     }
 
     public switchMainViewToWriter() {
@@ -113,12 +132,12 @@ export class ViewManager {
                 if (roomView.mode === ViewVisionMode.Writable) {
                     roomView.focusScenePath = this.scenePath;
                 }
-                roomView.mode = ViewVisionMode.Freedom;
+                this.setViewMode(roomView, ViewVisionMode.Freedom);
             });
             if (this.mainView.focusScenePath) {
                 this.manager.room?.setScenePath(this.mainView.focusScenePath);
                 const mainViewCamera = this.cameraStore.getCamera("mainView");
-                this.mainView.mode = ViewVisionMode.Writable;
+                this.setViewMode(this.mainView, ViewVisionMode.Writable);
                 if (mainViewCamera) {
                     this.mainView.moveCamera({ ...mainViewCamera, animationMode: AnimationMode.Immediately });
                 }
@@ -135,6 +154,12 @@ export class ViewManager {
                 this.switchMainViewToWriter();
             });
             this.mainViewIsAddListener = true;
+        }
+    }
+
+    private setViewMode(view: View, mode: ViewVisionMode) {
+        if (view.mode !== mode) {
+            view.mode = mode;
         }
     }
 

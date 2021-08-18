@@ -71,7 +71,7 @@ export type AddAppParams = {
     attributes?: any;
 }
 
-type BaseInsertParams = {
+export type BaseInsertParams = {
     kind: string;
     // app 地址(本地 app 不需要传)
     src?: string;
@@ -79,6 +79,7 @@ type BaseInsertParams = {
     options?: AddAppOptions;
     // 初始化 attributes
     attributes?: any;
+    isDynamicPPT?: boolean;
 }
 
 export type AppSyncAttributes = {
@@ -98,6 +99,7 @@ export type AppInitState = {
     focus?: boolean,
     snapshotRect?: any,
     boxState?: TELE_BOX_STATE,
+    sceneIndex?: number,
 }
 
 export const emitter: Emittery = new Emittery();
@@ -419,6 +421,7 @@ export class AppManager {
                         kind: app.kind,
                         src: appImpl,
                         options: app.options,
+                        isDynamicPPT: app.isDynamicPPT
                     });
                     this.focusByAttributes(apps);
                 }
@@ -435,10 +438,10 @@ export class AppManager {
         try {
             this.appStatus.set(id, AppStatus.StartCreate);
             this.delegate.setupAppAttributes(params, id, isDynamicPPT);
-            this.safeSetAttributes({ [id]: params.attributes });
-            
+            this.safeSetAttributes({ [id]: params.attributes || {} });
+
             const appProxy = await this.baseInsertApp(params, true);
-            this.viewManager.swtichViewToWriter(id);
+            this.viewManager.switchViewToWriter(id);
             return appProxy.id;
         } catch (error) {
             this.delegate.cleanAppAttributes(id);
@@ -476,6 +479,9 @@ export class AppManager {
             this.appProxies.forEach((appProxy) => {
                 if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
                     appProxy.emitAppSceneStateChange(sceneState);
+                    if (sceneState.index !== appProxy.sceneIndex) {
+                        appProxy.setSceneIndex(sceneState.index);
+                    }
                 }
             });
         }
@@ -537,9 +543,7 @@ export class AppManager {
         }
     }
 
-    private updateAppState(appId: string, stateName: AppAttributes, state: any) {
-        this.safeUpdateAttributes(["apps", appId, "state", stateName], state);
-    }
+
 
     private safeDispatchMagixEvent(event: string, payload: any) {
         if (this.canOperate) {
@@ -551,7 +555,7 @@ export class AppManager {
         switch (eventName) {
             case "move": {
                 this.safeDispatchMagixEvent(Events.AppMove, payload);
-                this.updateAppState(payload.appId, AppAttributes.Position, {
+                this.delegate.updateAppState(payload.appId, AppAttributes.Position, {
                     x: payload.x,
                     y: payload.y,
                 });
@@ -560,7 +564,7 @@ export class AppManager {
             case "focus": {
                 this.safeDispatchMagixEvent(Events.AppFocus, payload);
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                this.viewManager.swtichViewToWriter(payload.appId);
+                this.viewManager.switchViewToWriter(payload.appId);
                 break;
             }
             case "blur": {
@@ -570,7 +574,7 @@ export class AppManager {
             case "resize": {
                 if (payload.width && payload.height) {
                     this.safeDispatchMagixEvent(Events.AppResize, payload);
-                    this.updateAppState(payload.appId, AppAttributes.Size, {
+                    this.delegate.updateAppState(payload.appId, AppAttributes.Size, {
                         width: payload.width,
                         height: payload.height,
                     });
@@ -608,7 +612,7 @@ export class AppManager {
             }
             case "snapshot": {
                 this.safeDispatchMagixEvent(Events.AppSnapshot, payload);
-                this.updateAppState(
+                this.delegate.updateAppState(
                     payload.appId,
                     AppAttributes.SnapshotRect,
                     payload.rect
@@ -633,7 +637,7 @@ export class AppManager {
         if (focusAppId) {
             const view = this.viewManager.getView(focusAppId);
             if (view) {
-                this.viewManager.swtichViewToWriter(focusAppId);
+                this.viewManager.switchViewToWriter(focusAppId);
             }
         }
     }

@@ -147,9 +147,9 @@ sdk.joinRoom({
         manager.addApp({
             kind: PPT.kind,
             options: {
-                scenePath: "/test-add-app",
+                scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/64005f4e-9183-4686-8705-9dbfac00df5f",
                 title: "ppt3",
-                scenes: [{ src: "http://www.baidu.com" }]
+                scenes: [{ ppt: { src: "pptx://12312" } }]
             }
         })
     });

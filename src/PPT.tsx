@@ -70,7 +70,7 @@ export default {
     },
     setup: (context: AppContext) => {
         console.log("setup", context);
-        console.log(context.getInitScenePath());
+        console.log(context.getScenes());
 
         // context.setAttributes({ aaaaa: 1 });
         // context.emit("setBoxSize", { width: 400, height: 400 });

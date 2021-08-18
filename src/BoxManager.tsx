@@ -176,10 +176,10 @@ export class BoxManager {
     private addBoxListeners(appId: string, box: ReadonlyTeleBox) {
         box.events.on(TELE_BOX_EVENT.Move, debounce(params => {
             emitter.emit("move", { appId, ...params });
-        }, 500));
+        }, 200));
         box.events.on(TELE_BOX_EVENT.Resize, debounce(params => {
             emitter.emit("resize", { appId, ...params });
-        }, 500));
+        }, 200));
         box.events.on(TELE_BOX_EVENT.Focus, () => {
             if (this.manager.canOperate) {
                 emitter.emit("focus", { appId });

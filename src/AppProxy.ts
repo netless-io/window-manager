@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { autorun, SceneState } from "white-web-sdk";
+import { autorun, SceneState, WhiteScene } from "white-web-sdk";
 import {
     AddAppOptions,
     AddAppParams,
@@ -10,7 +10,8 @@ import {
     AppSyncAttributes,
     setAppOptions,
     WindowManager,
-    AppManager
+    AppManager,
+    BaseInsertParams
 } from './index';
 import { Events, AppAttributes, AppEvents } from './constants';
 import { log } from './log';
@@ -24,6 +25,7 @@ export class AppProxy {
     public id: string;
     public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
+    public scenes?: WhiteScene[];
 
     private appListener: any;
     private disposer: any;
@@ -32,7 +34,7 @@ export class AppProxy {
     private lastAttrs: any;
 
     constructor(
-        private params: AddAppParams,
+        private params: BaseInsertParams,
         private manager: AppManager,
     ) {
         this.id = AppProxy.genId(params.kind, params.options);
@@ -42,7 +44,15 @@ export class AppProxy {
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
         this.appListener = this.makeAppEventListener(this.id);
-        this.scenePath = this.params.options?.scenePath;
+        const options = this.params.options;
+        if (options) {
+            this.scenePath = options.scenePath;
+            if (this.params.isDynamicPPT && this.scenePath) {
+                this.scenes = this.manager.displayer.entireScenes()[this.scenePath];
+            } else {
+                this.scenes = options.scenes;
+            }
+        }
     }
 
     public static genId(kind: string, options?: AddAppOptions) {
@@ -50,6 +60,20 @@ export class AppProxy {
             return `${kind}-${options.scenePath}`;
         } else {
             return kind;
+        }
+    }
+
+    public get sceneIndex() {
+        return this.manager.delegate.getAppSceneIndex(this.id);
+    }
+
+    public setSceneIndex(index: number) {
+        return this.manager.delegate.updateAppState(this.id, AppAttributes.SceneIndex, index);
+    }
+
+    public getSceneName() {
+        if (this.sceneIndex) {
+            return this.scenes?.[this.sceneIndex].name;
         }
     }
 
@@ -109,7 +133,7 @@ export class AppProxy {
                 this.appAttributesUpdateListener(appId);
                 await app.setup(context);
                 if (boxInitState?.focus) {
-                    this.manager.viewManager.swtichViewToWriter(appId);
+                    this.manager.viewManager.switchViewToWriter(appId);
                 }
             });
             this.boxManager.createBox({
@@ -127,6 +151,7 @@ export class AppProxy {
         const focus = this.manager.attributes.focus;
         const size = attrs?.[AppAttributes.Size];
         const snapshotRect = attrs?.[AppAttributes.SnapshotRect];
+        const sceneIndex = attrs?.[AppAttributes.SceneIndex];
         const boxState = this.manager.attributes["boxState"];
         let payload = { boxState } as AppInitState;
         if (position) {
@@ -140,6 +165,9 @@ export class AppProxy {
         }
         if (snapshotRect) {
             payload = { ...payload, snapshotRect };
+        }
+        if (sceneIndex) {
+            payload = { ...payload, sceneIndex }
         }
         emitter.emit(Events.InitReplay, payload);
         return payload;

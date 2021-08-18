@@ -49,8 +49,13 @@ export class AttributesDelegate {
             [AppAttributes.Size]: {},
             [AppAttributes.Position]: {},
             [AppAttributes.SnapshotRect]: {},
+            [AppAttributes.SceneIndex]: {}
         });
         this.manager.safeSetAttributes({ [Fields.Focus]: id });
+    }
+
+    public updateAppState(appId: string, stateName: AppAttributes, state: any) {
+        this.manager.safeUpdateAttributes([Fields.Apps, appId, Fields.State, stateName], state);
     }
 
     public cleanAppAttributes(id: string) {
@@ -74,6 +79,15 @@ export class AttributesDelegate {
             _mainScenePath: undefined,
             _mainSceneIndex: undefined,
         });
+    }
+
+    public getAppSceneIndex(id: string) {
+        return this.getAppState(id)?.[AppAttributes.SceneIndex];
+    }
+
+    public getScenePath(id: string) {
+        const index = this.getAppSceneIndex(id);
+        const scenes = this.manager.displayer.entireScenes();
     }
 
     public getMainViewScenePath() {
