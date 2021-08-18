@@ -11,6 +11,8 @@ export enum Events {
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
     InitReplay = "InitReplay",
     WindowCreated = "WindowCreated",
+    SetMainViewScenePath = "SetMainViewScenePath",
+    SetMainViewSceneIndex = "SetMainViewSceneIndex",
 }
 
 export enum AppAttributes {

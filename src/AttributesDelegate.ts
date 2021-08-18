@@ -66,10 +66,16 @@ export class AttributesDelegate {
             [Fields.Apps]: undefined,
             [Fields.BoxState]: undefined,
             [Fields.Focus]: undefined,
+            _mainScenePath: undefined,
+            _mainSceneIndex: undefined,
         });
     }
 
     public getMainViewScenePath() {
         return this.manager.attributes["_mainScenePath"];
+    }
+
+    public getMainViewSceneIndex() {
+        return this.manager.attributes["_mainSceneIndex"];
     }
 }

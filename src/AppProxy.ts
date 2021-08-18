@@ -147,7 +147,7 @@ export class AppProxy {
 
     public destroy(needCloseBox: boolean, error?: Error) {
         this.appEmitter.emit("destroy", { error });
-        this.appEmitter.offAny(this.appListener);
+        this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}`, { error });
         if (needCloseBox) {
             this.boxManager.closeBox(this.id);

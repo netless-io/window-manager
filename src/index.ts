@@ -176,15 +176,26 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @param {AddAppParams} params
      * @memberof WindowManager
      */
-    public addApp(params: AddAppParams) {
+    public async addApp(params: AddAppParams) {
         if (this.appManager) {
             if (!params.kind || typeof params.kind !== "string") {
                 throw new ParamsInvalidError();
             }
-            this.appManager.addApp(params);
+            const appId = await this.appManager.addApp(params);
+            return appId
         } else {
             throw new AppManagerNotInitError();
         }
+    }
+
+    /**
+     * 关闭 APP
+     *
+     * @param {string} appId
+     * @memberof AppManager
+     */
+    public async closeApp(appId: string) {
+        return this.appManager?.closeApp(appId);
     }
 
     /**
@@ -194,10 +205,22 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @memberof WindowManager
      */
     public setMainViewScenePath(scenePath: string) {
-        if (this.room) {
-            this.safeSetAttributes({ _mainScenePath: scenePath });
-            this.appManager?.viewManager.switchMainViewToWriter();
-            this.room.setScenePath(scenePath);
+        if (this.appManager) {
+            this.appManager.setMainViewScenePath(scenePath);
+            this.safeDispatchMagixEvent(Events.SetMainViewScenePath, { scenePath });
+        }
+    }
+
+    /**
+     * 设置 mainView 的 SceneIndex, 并且切换白板为可写状态
+     *
+     * @param {number} index
+     * @memberof WindowManager
+     */
+    public setMainViewSceneIndex(index: number) {
+        if (this.appManager) {
+            this.appManager.setMainViewSceneIndex(index);
+            this.safeDispatchMagixEvent(Events.SetMainViewSceneIndex, { index });
         }
     }
 
@@ -224,14 +247,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this._destroy();
     }
 
-    public unmount() {
-       this._destroy();
+    public destroy() {
+        this._destroy();
+        super.destroy();
     }
 
     private _destroy() {
         this.appManager?.destroy();
-        super.onDestroy();
         WindowManager.isCreated = false;
+        super.onDestroy();
     }
 
     private bindMainView(divElement: HTMLDivElement) {
@@ -239,8 +263,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             const mainView = this.appManager.viewManager.mainView;
             mainView.divElement = divElement;
             const scenePath = this.appManager.delegate.getMainViewScenePath();
+            const sceneIndex = this.appManager.delegate.getMainViewSceneIndex();
+            const sceneName = this.getSceneName(scenePath, sceneIndex);
             if (scenePath) {
-                mainView.focusScenePath = scenePath;
+                mainView.focusScenePath = sceneName ? scenePath + `/${sceneName}` : scenePath;
             } else {
                 this.setMainViewScenePath(this.displayer.state.sceneState.scenePath);
             }
@@ -271,6 +297,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
+    private safeDispatchMagixEvent(event: string, payload: any) {
+        if (this.canOperate) {
+            (this.displayer as Room).dispatchMagixEvent(event, payload);
+        }
+    }
+
+    private getSceneName(scenePath: string, index?: number) {
+        const scenes = this.displayer.entireScenes()[scenePath];
+        if (scenes && index !== undefined) {
+            return scenes[index]?.name
+        }
+    }
+
     private static checkVersion() {
         const version = this.getVersionNumber(WhiteVersion);
         if (version < this.getVersionNumber(REQUIRE_VERSION)) {
@@ -294,7 +333,7 @@ export class AppManager {
     private appListeners: AppListeners;
     private attributesDisposer: any;
 
-    constructor(private windowManger: WindowManager, collector?: HTMLElement) {
+    constructor(public windowManger: WindowManager, collector?: HTMLElement) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
         this.viewManager = new ViewManager(
@@ -309,8 +348,7 @@ export class AppManager {
             collector
         );
         this.appListeners = new AppListeners(
-            this.displayer,
-            this.boxManager,
+            this,
             this.viewManager,
             this.appProxies
         );
@@ -357,41 +395,42 @@ export class AppManager {
         }
     }
 
-    public async addApp(params: AddAppParams) {
+    public async addApp(params: AddAppParams): Promise<string> {
         log("addApp", params);
         const id = AppProxy.genId(params.kind, params.options);
         if (this.appProxies.has(id)) {
-            return;
+            throw new AppCreateError();
         }
         try {
             this.delegate.setupAppAttributes(params, id);
             this.safeSetAttributes({ [id]: params.attributes });
             const appProxy = await this.baseInsertApp(params, true);
-            if (appProxy) {
-                this.viewManager.swtichViewToWriter(id);
-            }
+            this.viewManager.swtichViewToWriter(id);
+            return appProxy.id;
         } catch (error) {
-            if (error instanceof AppCreateError) {
-                console.log(error);
-                if (this.attributes[id]) {
-                    this.safeSetAttributes({ [id]: undefined });
-                }
-            }
             this.delegate.cleanAppAttributes(id);
+            throw error;
+        }
+    }
+
+    public async closeApp(appId: string) {
+        const appProxy = this.appProxies.get(appId);
+        if (appProxy) {
+            appProxy.destroy(true);
         }
     }
 
     private async baseInsertApp(params: BaseInsertParams, focus?: boolean) {
         const id = AppProxy.genId(params.kind, params.options);
         if (this.appProxies.has(id)) {
-            return;
+            throw new AppCreateError();
         }
         const appProxy = new AppProxy(params, this);
         if (appProxy) {
             await appProxy.baseInsertApp(focus);
             return appProxy;
         } else {
-            console.log("app create failed", params);
+            throw new Error()
         }
     }
 
@@ -438,6 +477,22 @@ export class AppManager {
 
     public safeUpdateAttributes(keys: string[], value: any) {
         this.windowManger.safeUpdateAttributes(keys, value);
+    }
+
+    public setMainViewScenePath(scenePath: string) {
+        if (this.room) {
+            this.safeSetAttributes({ _mainScenePath: scenePath });
+            this.viewManager.switchMainViewToWriter();
+            this.room.setScenePath(scenePath);
+        }
+    }
+
+    public setMainViewSceneIndex(index: number) {
+        if (this.room) {
+            this.safeSetAttributes({ _mainSceneIndex: index });
+            this.viewManager.switchMainViewToWriter();
+            this.room.setSceneIndex(index);
+        }
     }
 
     public getAppInitPath(appId: string): string | undefined {

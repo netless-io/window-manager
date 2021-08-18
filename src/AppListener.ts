@@ -1,15 +1,16 @@
-import { Displayer, Event } from "white-web-sdk";
+import { Event } from "white-web-sdk";
 import { TeleBox, TELE_BOX_STATE } from "@netless/telebox-insider";
-import { BoxManager } from "./BoxManager";
 import { Events } from "./constants";
 import { ViewManager } from "./ViewManager";
 import { AppProxy } from "./AppProxy";
+import { AppManager } from "./index";
 
 export class AppListeners {
+    private displayer = this.manager.displayer;
+    private boxManager = this.manager.boxManager;
 
     constructor(
-        private displayer: Displayer,
-        private boxManager: BoxManager,
+        private manager: AppManager,
         private viewManager: ViewManager,
         private appProxies: Map<string, AppProxy>) {
     }
@@ -22,6 +23,8 @@ export class AppListeners {
         this.displayer.addMagixEventListener(Events.AppBoxStateChange, this.appBoxStateListener);
         this.displayer.addMagixEventListener(Events.AppSnapshot, this.appSnapshotListener);
         this.displayer.addMagixEventListener(Events.AppClose, this.appCloseListener);
+        this.displayer.addMagixEventListener(Events.SetMainViewScenePath, this.setScenePathListener);
+        this.displayer.addMagixEventListener(Events.SetMainViewSceneIndex, this.setSceneIndexListener);
     }
 
     public removeListeners() {
@@ -32,6 +35,8 @@ export class AppListeners {
         this.displayer.removeMagixEventListener(Events.AppBoxStateChange, this.appBoxStateListener);
         this.displayer.removeMagixEventListener(Events.AppSnapshot, this.appSnapshotListener);
         this.displayer.removeMagixEventListener(Events.AppClose, this.appCloseListener);
+        this.displayer.removeMagixEventListener(Events.SetMainViewScenePath, this.setScenePathListener);
+        this.displayer.removeMagixEventListener(Events.SetMainViewSceneIndex, this.setSceneIndexListener);
     }
 
     private appMoveListener = (event: Event) => {
@@ -45,14 +50,14 @@ export class AppListeners {
             this.boxManager.focusBox(event.payload);
         }
     }
-    
+
     private appResizeListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.resizeBox(event.payload);
         }
     }
 
-    private appBlurListener =  (event: Event) => {
+    private appBlurListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             const proxy = this.appProxies.get(event.payload.appId);
             if (proxy) {
@@ -83,6 +88,18 @@ export class AppListeners {
     private appCloseListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.closeBox(event.payload.appId);
+        }
+    }
+
+    private setScenePathListener = (event: Event) => {
+        if (event.authorId !== this.displayer.observerId) {
+            this.manager.windowManger.setMainViewScenePath(event.payload.scenePath);
+        }
+    }
+
+    private setSceneIndexListener = (event: Event) => {
+        if (event.authorId !== this.displayer.observerId) {
+            this.manager.windowManger.setMainViewSceneIndex(event.payload.index);
         }
     }
 }
