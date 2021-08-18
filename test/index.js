@@ -51,12 +51,11 @@ sdk.joinRoom({
     roomToken: process.env.ROOM_TOKEN,
     invisiblePlugins: [WindowManager],
     useMultiViews: true
-}).then(room => {
+}).then(async room => {
     window.room = room;
     room.setScenePath("/init")
-    const manager = room.getInvisiblePlugin(WindowManager.kind);
-    window.InvisiblePlugin = InvisiblePlugin;
-    WindowManager.mount(room, continaer, undefined, { debug: true });
+
+    const manager = await WindowManager.mount(room, continaer, undefined, { debug: true });
     window.manager = manager;
 
     manager.onAppDestroy(Manager.BuildinApps.StaticDocsViewer, (error) => {

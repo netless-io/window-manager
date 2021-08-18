@@ -29,6 +29,7 @@ import {
     AppAttributes,
     AppEvents,
     REQUIRE_VERSION,
+    AppStatus,
 } from "./constants";
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
@@ -255,7 +256,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private _destroy() {
         this.appManager?.destroy();
         WindowManager.isCreated = false;
-        super.onDestroy();
     }
 
     private bindMainView(divElement: HTMLDivElement) {
@@ -328,6 +328,7 @@ export class AppManager {
     public cameraStore: CameraStore;
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();
+    public appStatus: Map<string, AppStatus> = new Map();
     public delegate = new AttributesDelegate(this);
 
     private appListeners: AppListeners;
@@ -378,7 +379,7 @@ export class AppManager {
     public async attributesUpdateCallback(apps: any) {
         if (apps) {
             for (const id in apps) {
-                if (!this.appProxies.has(id)) {
+                if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
                     let appImpl = app.src;
                     if (!appImpl) {
@@ -402,6 +403,7 @@ export class AppManager {
             throw new AppCreateError();
         }
         try {
+            this.appStatus.set(id, AppStatus.StartCreate);
             this.delegate.setupAppAttributes(params, id);
             this.safeSetAttributes({ [id]: params.attributes });
             const appProxy = await this.baseInsertApp(params, true);
@@ -428,8 +430,10 @@ export class AppManager {
         const appProxy = new AppProxy(params, this);
         if (appProxy) {
             await appProxy.baseInsertApp(focus);
+            this.appStatus.set(id, AppStatus.CreateSuccess);
             return appProxy;
         } else {
+            this.appStatus.delete(id);
             throw new Error()
         }
     }

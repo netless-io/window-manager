@@ -1,3 +1,4 @@
+import { ReadonlyTeleBox } from "@netless/telebox-insider";
 import Emittery from "emittery";
 import { Room, View } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
@@ -43,8 +44,12 @@ export class AppContext<T = any> {
         return this.manager.canOperate && Boolean(this.boxManager.boxIsFocus(this.appId));
     }
 
-    public getBox() {
-        return this.boxManager.getBox(this.appId);
+    public getBox(): ReadonlyTeleBox {
+        return this.boxManager.getBox(this.appId)!;
+    }
+
+    public getRoom(): Room | undefined {
+        return this.manager.room;
     }
 
     public setAttributes(attributes: T) {

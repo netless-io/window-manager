@@ -27,6 +27,12 @@ export enum AppEvents {
     destroy = "destroy",
 }
 
+export enum AppStatus {
+    StartCreate = "StartCreate",
+    CreateSuccess = "CreateSuccess",
+    Failed = "Failed"
+}
+
 export const REQUIRE_VERSION = "2.13.16";
 
 export const MIN_WIDTH = 0.4;
