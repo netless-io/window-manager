@@ -1,4 +1,4 @@
-import { View, ViewVisionMode } from "white-web-sdk";
+import { Room, View, ViewVisionMode } from "white-web-sdk";
 import { Events } from "./constants";
 import { AppManager } from "./index";
 
@@ -35,7 +35,7 @@ export class ViewSwitcher {
                 const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
                 if (mainViewScenePath) {
                     setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
-                    this.manager.room?.setScenePath(mainViewScenePath);
+                    setScenePath(this.manager.room, mainViewScenePath);
                     this.manager.viewManager.switchMainViewToWriter();
                 }
             }
@@ -46,5 +46,11 @@ export class ViewSwitcher {
 export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
     if (view.focusScenePath !== focusScenePath) {
         view.focusScenePath = focusScenePath;
+    }
+}
+
+export const setScenePath = (room: Room | undefined, scenePath: string) => {
+    if (room) {
+        room.setScenePath(scenePath);
     }
 }

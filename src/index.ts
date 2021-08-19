@@ -35,7 +35,7 @@ import {
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
 import PPT from "./PPT";
-import { setViewFocusScenePath, ViewSwitcher } from './ViewSwitcher';
+import { setScenePath, setViewFocusScenePath, ViewSwitcher } from './ViewSwitcher';
 
 (window as any).PPT = PPT;
 
@@ -533,7 +533,7 @@ export class AppManager {
         if (this.room) {
             this.safeSetAttributes({ _mainScenePath: scenePath });
             this.viewManager.switchMainViewToWriter();
-            this.room.setScenePath(scenePath);
+            setScenePath(this.room, scenePath);
         }
     }
 
@@ -601,7 +601,7 @@ export class AppManager {
                 this.viewManager.switchMainViewToWriter();
                 const mainViewScenePath = this.delegate.getMainViewScenePath();
                 if (mainViewScenePath) {
-                    this.room?.setScenePath(mainViewScenePath);
+                    setScenePath(this.room, mainViewScenePath);
                 }
                 this.safeDispatchMagixEvent(Events.MainViewFocus, {});
                 break;
@@ -649,7 +649,7 @@ export class AppManager {
                     this.viewManager.switchMainViewToWriter();
                     const mainViewScenePath = this.delegate.getMainViewScenePath();
                     if (mainViewScenePath) {
-                        this.room?.setScenePath(mainViewScenePath);
+                        setScenePath(this.room, mainViewScenePath);
                     }
                 }, 100);
                 break;

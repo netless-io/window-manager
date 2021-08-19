@@ -96,7 +96,7 @@ export class AppContext<T = any> {
             view.divElement = dom;
             setTimeout(() => { // 渲染需要时间，延迟 refresh
                 this.getRoom()?.refreshViewSize();
-            }, 50);
+            }, 1000);
         }
     }
 }

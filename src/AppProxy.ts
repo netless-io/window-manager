@@ -20,7 +20,7 @@ import { NetlessApp } from "./typings";
 import { loadApp } from './loader';
 import { AppCreateError, AppNotRegisterError } from './error';
 import { isEqual } from "lodash-es";
-import { setViewFocusScenePath } from './ViewSwitcher';
+import { setScenePath, setViewFocusScenePath } from './ViewSwitcher';
 
 export class AppProxy {
     public id: string;
@@ -285,7 +285,7 @@ export class AppProxy {
     public setScenePath() {
         const fullScenePath = this.getFullScenePath();
         if (this.manager.room && fullScenePath && this.view) {
-            this.manager.room.setScenePath(fullScenePath);
+            setScenePath(this.manager.room, fullScenePath);
         }
     }
 
