@@ -593,9 +593,14 @@ export class AppManager {
                 });
                 this.safeSetAttributes({ boxState: eventName });
                 this.viewManager.switchWritableAppToFreedom();
-                this.viewManager.switchMainViewToWriter();
                 this.delegate.cleanFocus();
                 this.boxManager.blurFocusBox();
+                this.viewManager.switchMainViewToWriter();
+                const mainViewScenePath = this.delegate.getMainViewScenePath();
+                if (mainViewScenePath) {
+                    this.room?.setScenePath(mainViewScenePath);
+                }
+                this.safeDispatchMagixEvent(Events.MainViewFocus, {});
                 break;
             }
             case TELE_BOX_STATE.Maximized: {

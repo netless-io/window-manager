@@ -18,8 +18,8 @@
     "white-web-sdk": "^2.13.16"
   },
   "dependencies": {
-    "@netless/app-docs-viewer": "^0.1.7",
-    "@netless/telebox-insider": "^0.1.4",
+    "@netless/app-docs-viewer": "^0.1.8",
+    "@netless/telebox-insider": "^0.1.5",
     "emittery": "^0.9.2",
     "localforage": "^1.9.0",
     "lodash-es": "^4.17.21",
