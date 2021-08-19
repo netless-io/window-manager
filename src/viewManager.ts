@@ -3,6 +3,7 @@ import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewV
 import { AppManager, WindowManager } from "./index";
 import { log } from "./log";
 import { CameraStore } from "./CameraStore";
+import { Events } from "./constants";
 
 export class ViewManager {
     public mainView: View;
@@ -17,7 +18,7 @@ export class ViewManager {
         this.mainView = this.createMainView();
     }
 
-    private get scenePath() {
+    public get currentScenePath() {
         return this.displayer.state.sceneState.scenePath;
     }
 
@@ -58,59 +59,23 @@ export class ViewManager {
         return this.views.get(appId);
     }
 
-    public switchViewToWriter(appId: string) {
-        if (!this.manager.canOperate) return;
-        const view = this.views.get(appId);
-        if (view) {
-            if (view.mode === ViewVisionMode.Writable &&
-                view.focusScenePath === this.scenePath) return;
-            this.displayer.views.forEach(roomView => {
-                if (roomView.mode === ViewVisionMode.Writable) {
-                    roomView.focusScenePath = this.scenePath;
-                    this.setViewMode(roomView, ViewVisionMode.Freedom);
-                }
-            });
-            if (!view.focusScenePath) {
-                const pluginOptions = get(this.manager.attributes, ["apps", appId, "options"]);
-                if (pluginOptions) {
-                    view.focusScenePath = pluginOptions?.scenePath;
-                }
-            }
-            if (view.focusScenePath) {
-                this.manager.room?.setScenePath(view.focusScenePath);
-                const viewCamera = this.cameraStore.getCamera(appId);
-                this.setViewMode(view, ViewVisionMode.Writable);
-                if (viewCamera) {
-                    view.moveCamera({ ...viewCamera, animationMode: AnimationMode.Immediately });
-                }
-            }
-        }
-    }
-
-    public switchViewToWriterWithScenePath(appId: string) {
-        if (!this.manager.canOperate) return;
-        const view = this.views.get(appId);
-        if (view) {
-            if (view.mode === ViewVisionMode.Writable) return;
-            const writableView = this.displayer.views.writableView;
-            if (writableView) {
-                writableView.focusScenePath = this.scenePath;
-                this.setViewMode(writableView, ViewVisionMode.Freedom);
-            }
-            const appProxy = this.manager.appProxies.get(appId);
-            const sceneName = appProxy?.getSceneName();
-            if (appProxy && sceneName) {
-                const scenePath = `${appProxy.scenePath}/${sceneName}`;
-                this.manager.room?.setScenePath(scenePath);
-            }
-        }
-    }
-
     public switchAppToFreedom(appId: string) {
         const view = this.views.get(appId);
         if (view) {
             this.switchViewToFreedom(view);
         }
+    }
+
+    public switchWritableAppToFreedom() {
+        this.manager.appProxies.forEach(appProxy => {
+            if (appProxy.view?.mode === ViewVisionMode.Writable) {
+                const fullPath = appProxy.getFullScenePath();
+                if (appProxy.view.focusScenePath !== fullPath) {
+                    appProxy.view.focusScenePath = fullPath;
+                }
+                appProxy.view.mode = ViewVisionMode.Freedom;
+            }
+        });
     }
 
     public switchMainViewToFreedom() {
@@ -119,7 +84,7 @@ export class ViewManager {
 
     private switchViewToFreedom(view: View) {
         if (!view.focusScenePath) {
-            view.focusScenePath = this.scenePath;
+            view.focusScenePath = this.currentScenePath;
         }
         this.setViewMode(view, ViewVisionMode.Freedom);
     }
@@ -128,20 +93,11 @@ export class ViewManager {
         if (!this.manager.canOperate) return;
         if (this.mainView) {
             if (this.mainView.mode === ViewVisionMode.Writable) return;
-            this.displayer.views.forEach(roomView => {
-                if (roomView.mode === ViewVisionMode.Writable) {
-                    roomView.focusScenePath = this.scenePath;
-                }
-                this.setViewMode(roomView, ViewVisionMode.Freedom);
-            });
-            if (this.mainView.focusScenePath) {
-                this.manager.room?.setScenePath(this.mainView.focusScenePath);
-                const mainViewCamera = this.cameraStore.getCamera("mainView");
+            const mainViewCamera = this.cameraStore.getCamera("mainView");
                 this.setViewMode(this.mainView, ViewVisionMode.Writable);
                 if (mainViewCamera) {
                     this.mainView.moveCamera({ ...mainViewCamera, animationMode: AnimationMode.Immediately });
                 }
-            }
         }
     }
 
@@ -150,14 +106,20 @@ export class ViewManager {
         if (this.mainView.divElement) {
             this.mainView.divElement.addEventListener("click", () => {
                 if (this.mainView.mode === ViewVisionMode.Writable) return;
-                this.manager.boxManager.blurAllBox();
+                this.switchWritableAppToFreedom();
+                this.manager.delegate.cleanFocus();
                 this.switchMainViewToWriter();
+                const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+                if (mainViewScenePath) {
+                    this.manager.room?.setScenePath(mainViewScenePath);
+                }
+                this.manager.safeDispatchMagixEvent(Events.MainViewFocus, {});
             });
             this.mainViewIsAddListener = true;
         }
     }
 
-    private setViewMode(view: View, mode: ViewVisionMode) {
+    public setViewMode(view: View, mode: ViewVisionMode) {
         if (view.mode !== mode) {
             view.mode = mode;
         }

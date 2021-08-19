@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { autorun, SceneState, WhiteScene } from "white-web-sdk";
+import { AnimationMode, autorun, SceneState, ViewVisionMode, WhiteScene } from "white-web-sdk";
 import {
     AddAppOptions,
     AddAppParams,
@@ -31,6 +31,7 @@ export class AppProxy {
     private disposer: any;
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
+    private viewManager = this.manager.viewManager;
     private lastAttrs: any;
 
     constructor(
@@ -71,9 +72,19 @@ export class AppProxy {
         return this.manager.delegate.updateAppState(this.id, AppAttributes.SceneIndex, index);
     }
 
+    public get view() {
+        return this.manager.viewManager.getView(this.id);
+    }
+
     public getSceneName() {
-        if (this.sceneIndex) {
-            return this.scenes?.[this.sceneIndex].name;
+        if (this.sceneIndex !== undefined) {
+            return this.scenes?.[this.sceneIndex]?.name;
+        }
+    }
+
+    public getFullScenePath() {
+        if (this.scenePath && this.getSceneName()) {
+            return `${this.scenePath}/${this.getSceneName()}`;
         }
     }
 
@@ -133,16 +144,30 @@ export class AppProxy {
                 this.appAttributesUpdateListener(appId);
                 await app.setup(context);
                 if (boxInitState?.focus) {
-                    this.manager.viewManager.switchViewToWriter(appId);
+                    this.switchToWritable();
                 }
             });
             this.boxManager.createBox({
                 appId: appId, app, options
-            });
+            }); 
         } catch (error) {
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
         }
     }
+
+    public switchToWritable() {
+        if (this.view) {
+            if (this.view.mode === ViewVisionMode.Writable) return;
+            this.viewManager.switchWritableAppToFreedom();
+            if (this.manager.mainView.mode === ViewVisionMode.Writable) {
+                this.manager.delegate.setMainViewFocusPath();
+                this.manager.mainView.mode = ViewVisionMode.Freedom
+            }
+            this.view.mode = ViewVisionMode.Writable;
+            this.recoverCamera();
+        }
+    }
+
 
     public getAppInitState = (id: string) => {
         const attrs = this.manager.delegate.getAppState(id);
@@ -244,5 +269,22 @@ export class AppProxy {
             }
         });
         this.disposer = disposer;
+    }
+
+    private recoverCamera() {
+        const camera = this.manager.cameraStore.getCamera(this.id);
+        if (camera) {
+            this.view?.moveCamera({ 
+                ...camera,
+                animationMode: AnimationMode.Immediately
+            })
+        }
+    }
+
+    public setScenePath() {
+        const fullScenePath = this.getFullScenePath();
+        if (this.manager.room && fullScenePath) {
+            this.manager.room.setScenePath(fullScenePath);
+        }
     }
 }

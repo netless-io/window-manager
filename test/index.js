@@ -80,56 +80,21 @@ sdk.joinRoom({
             options: {
                 scenePath: "/test2",
                 title: "ppt1",
-            },
-            attributes: {
-                pages: [
+                scenes: [
                     {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/1.png",
-                        "width": 714
+                       name: "1",
+                       ppt: { "height": 1010,
+                       "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/1.png",
+                       "width": 714}
                     },
                     {
-                        "height": 1010,
+                        name: "2",
+                        ppt: {"height": 1010,
                         "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/2.png",
-                        "width": 714
+                        "width": 714}
                     },
-                    {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/3.png",
-                        "width": 714
-                    },
-                    {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/4.png",
-                        "width": 714
-                    },
-                    {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/5.png",
-                        "width": 714
-                    },
-                    {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/6.png",
-                        "width": 714
-                    },
-                    {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/7.png",
-                        "width": 714
-                    },
-                    {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/8.png",
-                        "width": 714
-                    },
-                    {
-                        "height": 1010,
-                        "src": "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/9.png",
-                        "width": 714
-                    }
                 ]
-            }
+            },
         });
     });
     button3.addEventListener("click", () => {
@@ -147,7 +112,7 @@ sdk.joinRoom({
         manager.addApp({
             kind: PPT.kind,
             options: {
-                scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/64005f4e-9183-4686-8705-9dbfac00df5f",
+                scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/5bee2e5a-21f1-4616-b131-f48c0fcf370c",
                 title: "ppt3",
                 scenes: [{ ppt: { src: "pptx://12312" } }]
             }

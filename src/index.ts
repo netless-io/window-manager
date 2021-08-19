@@ -441,7 +441,7 @@ export class AppManager {
             this.safeSetAttributes({ [id]: params.attributes || {} });
 
             const appProxy = await this.baseInsertApp(params, true);
-            this.viewManager.switchViewToWriter(id);
+            // this.viewManager.switchViewToWriterWithScenePath(id);
             return appProxy.id;
         } catch (error) {
             this.delegate.cleanAppAttributes(id);
@@ -512,6 +512,10 @@ export class AppManager {
         return this.canOperate ? (this.displayer as Room) : undefined;
     }
 
+    public get mainView() {
+        return this.windowManger.mainView;
+    }
+
     public safeSetAttributes(attributes: any) {
         this.windowManger.safeSetAttributes(attributes);
     }
@@ -543,9 +547,7 @@ export class AppManager {
         }
     }
 
-
-
-    private safeDispatchMagixEvent(event: string, payload: any) {
+    public safeDispatchMagixEvent(event: string, payload: any) {
         if (this.canOperate) {
             (this.displayer as Room).dispatchMagixEvent(event, payload);
         }
@@ -562,9 +564,13 @@ export class AppManager {
                 break;
             }
             case "focus": {
-                this.safeDispatchMagixEvent(Events.AppFocus, payload);
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                this.viewManager.switchViewToWriter(payload.appId);
+                const appProxy = this.appProxies.get(payload.appId);
+                if (appProxy) {
+                    appProxy.switchToWritable();
+                    appProxy.setScenePath();
+                }
+                this.safeDispatchMagixEvent(Events.AppFocus, payload);
                 break;
             }
             case "blur": {
@@ -633,13 +639,7 @@ export class AppManager {
     };
 
     private swtichFocusAppToWritable() {
-        const focusAppId = this.delegate.focus;
-        if (focusAppId) {
-            const view = this.viewManager.getView(focusAppId);
-            if (view) {
-                this.viewManager.switchViewToWriter(focusAppId);
-            }
-        }
+        
     }
 
     public focusByAttributes(apps: any) {

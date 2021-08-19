@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { AnimationMode } from 'white-web-sdk';
 import { AppContext } from './AppContext';
 import { View } from "./typings";
 
@@ -34,6 +35,7 @@ class PPTWrapper extends React.Component<PPTWrapperProps, PPTWrapperState> {
         this.props.view.divElement = ref;
         // this.props.view.focusScenePath = `${this.props.initScenePath}/${this.props.scenes[0].name}`;
     };
+
 
     // nextPage = () => {
     //     this.setState({ page: this.state.page + 1 });
@@ -81,6 +83,22 @@ export default {
         context.emitter.on("sceneStateChange", (state: any) => {
             // console.log(state);
         });
+        const view = context.getView();
+        view.callbacks.on("onSizeUpdated", () => {
+            const scenes = context.getScenes();
+            if (scenes) {
+                const scene = scenes[0];
+                if (scene.ppt) {
+                    const { width, height } = scene.ppt;
+                    view.moveCameraToContain({
+                        originX: -width / 2,
+                        originY: -height / 2,
+                        width, height,
+                        animationMode: AnimationMode.Immediately
+                    })
+                }
+            }
+        })
         context.setAttributes({ a:1, b:2 });
         setTimeout(() => {
             context.updateAttributes(["a"], 3);

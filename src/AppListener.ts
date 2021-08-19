@@ -1,4 +1,4 @@
-import { Event } from "white-web-sdk";
+import { Event, ViewVisionMode } from "white-web-sdk";
 import { TeleBox, TELE_BOX_STATE } from "@netless/telebox-insider";
 import { Events } from "./constants";
 import { ViewManager } from "./ViewManager";
@@ -25,6 +25,12 @@ export class AppListeners {
         this.displayer.addMagixEventListener(Events.AppClose, this.appCloseListener);
         this.displayer.addMagixEventListener(Events.SetMainViewScenePath, this.setScenePathListener);
         this.displayer.addMagixEventListener(Events.SetMainViewSceneIndex, this.setSceneIndexListener);
+        this.displayer.addMagixEventListener(Events.MainViewFocus, (event) => {
+            if (event.authorId !== this.displayer.observerId) {
+                this.viewManager.switchWritableAppToFreedom();
+                this.viewManager.switchMainViewToWriter();
+            }
+        })
     }
 
     public removeListeners() {
@@ -48,7 +54,10 @@ export class AppListeners {
     private appFocusListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.focusBox(event.payload);
-            this.viewManager.switchViewToWriter(event.payload.appId);
+            const appProxy = this.manager.appProxies.get(event.payload.appId);
+            if (appProxy) {
+                appProxy.switchToWritable();
+            }
         }
     }
 
@@ -63,8 +72,10 @@ export class AppListeners {
             const proxy = this.appProxies.get(event.payload.appId);
             if (proxy) {
                 proxy.appEmitter.emit("writableChange", false);
+                if (proxy.view?.mode === ViewVisionMode.Writable) {
+                    this.viewManager.switchWritableAppToFreedom();
+                }
             }
-            this.viewManager.switchAppToFreedom(event.payload.appId);
         }
     }
 

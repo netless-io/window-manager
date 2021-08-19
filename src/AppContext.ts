@@ -31,13 +31,13 @@ export class AppContext<T = any> {
 
     public getScenes(): WhiteScene[] | undefined {
         const appAttr = this.delegate.getAppAttributes(this.appId);
-        if (appAttr.isDynamicPPT) {
-            const initScenePath = this.getInitScenePath();
-            if (initScenePath) {
-                return this.manager.displayer.entireScenes()[initScenePath];
+        if (appAttr?.isDynamicPPT) {
+            const appProxy = this.manager.appProxies.get(this.appId);
+            if (appProxy) {
+                return appProxy.scenes;
             }
         } else {
-            return appAttr.options["scenes"];
+            return appAttr?.options["scenes"];
         }
     }
 
@@ -74,18 +74,15 @@ export class AppContext<T = any> {
     }
 
     private createView(): View {
-        const room = this.manager.displayer;
-        this.viewManager.switchMainViewToFreedom();
         const view = this.viewManager.createView(this.appId);
         this.viewManager.addMainViewListener();
-        const initScenePath = this.getInitScenePath();
-        if (initScenePath) {
-            const viewScenes = room.entireScenes()[initScenePath];
-            if (viewScenes) {
-                view.focusScenePath = `${initScenePath}/${viewScenes[0].name}`;
+        const appProxy = this.manager.appProxies.get(this.appId);
+        if (appProxy) {
+            const fullPath = appProxy.getFullScenePath();
+            if (fullPath) {
+                view.focusScenePath = fullPath;
             }
         }
-        this.viewManager.switchViewToWriter(this.appId);
         return view;
     }
 }

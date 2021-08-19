@@ -49,7 +49,7 @@ export class AttributesDelegate {
             [AppAttributes.Size]: {},
             [AppAttributes.Position]: {},
             [AppAttributes.SnapshotRect]: {},
-            [AppAttributes.SceneIndex]: {}
+            [AppAttributes.SceneIndex]: 0
         });
         this.manager.safeSetAttributes({ [Fields.Focus]: id });
     }
@@ -85,16 +85,19 @@ export class AttributesDelegate {
         return this.getAppState(id)?.[AppAttributes.SceneIndex];
     }
 
-    public getScenePath(id: string) {
-        const index = this.getAppSceneIndex(id);
-        const scenes = this.manager.displayer.entireScenes();
-    }
-
     public getMainViewScenePath() {
         return this.manager.attributes["_mainScenePath"];
     }
 
     public getMainViewSceneIndex() {
         return this.manager.attributes["_mainSceneIndex"];
+    }
+
+    // TODO 处理 index
+    public setMainViewFocusPath() {
+        const scenePath = this.getMainViewScenePath();
+        if (scenePath) {
+            this.manager.mainView.focusScenePath = scenePath;
+        }
     }
 }

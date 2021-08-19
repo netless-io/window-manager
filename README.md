@@ -72,20 +72,12 @@ sdk.joinRoom({
 ### 添加静态 PPT 到白板上
 因为实现方式的原因, 静态 PPT 添加到白板时需要一个空白的 `scenePath`, 需要在 `addApp` 之前需要先 `putScenes`
 ```javascript
-room.putScenes("/docs-viewer", [{ name: "1" }])
 const appId = await manager.addApp({
     kind: BuildinApps.DocsViewer,
     options: {
         scenePath: "/docs-viewer",
         title: "app1", // 可选
-    },
-    attributes: {
-        pages: [{
-            src: "http://xxx.com/1.png", // 白板静态转换结果中的 url
-            width: 800, // 白板静态转换结果中的 width
-            height: 400, //  // 白板静态转换结果中的 height
-            thumbnail: "http://xxx.com/preview/1.png" //可选 preview url
-        }]
+        scenes: [], // WhiteScene[] 静态 WhiteScene 数据
     }
 });
 ```
@@ -98,10 +90,8 @@ const appId = await manager.addApp({
     options: {
         scenePath: "/ppt-scene-path", // 动态 PPT 所在 ScenePath
         title: "app2" // 可选
+        scenes: [], // WhiteScene[] 动态 WhiteScene 数据
     },
-    attributes: {
-       dynamic: true,  // 用来标示动态 ppt
-    }
 });
 ```
 
