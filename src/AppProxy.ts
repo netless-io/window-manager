@@ -145,6 +145,7 @@ export class AppProxy {
                 await app.setup(context);
                 if (boxInitState?.focus) {
                     this.switchToWritable();
+                    this.setScenePath();
                 }
             });
             this.boxManager.createBox({

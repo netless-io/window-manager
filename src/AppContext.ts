@@ -70,6 +70,9 @@ export class AppContext<T = any> {
     }
 
     public updateAttributes(keys: string[], value: any) {
+        if (!this.manager.attributes[this.appId]) {
+            this.manager.safeSetAttributes({ [this.appId]: {} });
+        }
         this.manager.safeUpdateAttributes([this.appId, ...keys], value);
     }
 

@@ -13,7 +13,7 @@ plugins.setPluginContext("video.js", { enable: true, verbose: true });
 const continaer = document.createElement("div");
 continaer.id = "root"
 continaer.style.width = "80vw";
-continaer.style.height = "35vw";
+continaer.style.height = "45vw";
 continaer.style.marginTop = "2vh";
 continaer.style.marginLeft = "10vw";
 continaer.style.border = "1px solid";
@@ -78,7 +78,7 @@ sdk.joinRoom({
         manager.addApp({
             kind: Manager.BuildinApps.DocsViewer,
             options: {
-                scenePath: "/test2",
+                scenePath: "/test4",
                 title: "ppt1",
                 scenes: [
                     {
@@ -112,7 +112,7 @@ sdk.joinRoom({
         manager.addApp({
             kind: PPT.kind,
             options: {
-                scenePath: "/e1f274f0fe8911eb9841b3776c1e2c17/5bee2e5a-21f1-4616-b131-f48c0fcf370c",
+                scenePath: "/6b19cb7000a111ecb299bb05d7b75708/976e0e22-5dac-4e0d-af18-4fa0f9021aa9",
                 title: "ppt3",
                 scenes: [{ ppt: { src: "pptx://12312" } }]
             }

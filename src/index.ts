@@ -195,7 +195,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                         isDynamicPPT = true;
                         this.room?.putScenes(scenePath, scenes);
                     } else {
-                        this.room?.putScenes(scenePath, [{ name: title || "1" }]);
+                        this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                     }
                 }
             }
@@ -441,7 +441,6 @@ export class AppManager {
             this.safeSetAttributes({ [id]: params.attributes || {} });
 
             const appProxy = await this.baseInsertApp(params, true);
-            // this.viewManager.switchViewToWriterWithScenePath(id);
             return appProxy.id;
         } catch (error) {
             this.delegate.cleanAppAttributes(id);
@@ -593,9 +592,10 @@ export class AppManager {
                     state: eventName,
                 });
                 this.safeSetAttributes({ boxState: eventName });
+                this.viewManager.switchWritableAppToFreedom();
                 this.viewManager.switchMainViewToWriter();
                 this.delegate.cleanFocus();
-                this.boxManager.blurAllBox();
+                this.boxManager.blurFocusBox();
                 break;
             }
             case TELE_BOX_STATE.Maximized: {
