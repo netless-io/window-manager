@@ -64,6 +64,7 @@ export class AppListeners {
     private appResizeListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.resizeBox(event.payload);
+            this.manager.room?.refreshViewSize();
         }
     }
 

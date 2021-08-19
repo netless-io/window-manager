@@ -191,13 +191,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (params.options) {
                 const { scenePath, scenes } = params.options;
                 if (scenePath && scenes && scenes.length > 0) {
-                    if (this.isDynamicPPT(scenes)) {
-                        isDynamicPPT = true;
-                        if (!this.displayer.entireScenes()[scenePath]) {
+                    if (!this.displayer.entireScenes()[scenePath]) {
+                        if (this.isDynamicPPT(scenes)) {
+                            isDynamicPPT = true;
                             this.room?.putScenes(scenePath, scenes);
+                        } else {
+                            this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                         }
-                    } else {
-                        this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                     }
                 }
             }
@@ -585,6 +585,7 @@ export class AppManager {
                         width: payload.width,
                         height: payload.height,
                     });
+                    this.room?.refreshViewSize();
                 }
                 break;
             }
@@ -661,7 +662,7 @@ export class AppManager {
     };
 
     private swtichFocusAppToWritable() {
-        
+
     }
 
     public focusByAttributes(apps: any) {
