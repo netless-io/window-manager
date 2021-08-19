@@ -105,19 +105,26 @@ export class ViewManager {
         if (this.mainViewIsAddListener) return;
         if (this.mainView.divElement) {
             this.mainView.divElement.addEventListener("click", () => {
-                if (this.mainView.mode === ViewVisionMode.Writable) return;
-                this.switchWritableAppToFreedom();
-                this.manager.delegate.cleanFocus();
-                this.switchMainViewToWriter();
-                this.manager.boxManager.blurFocusBox();
-                const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
-                if (mainViewScenePath) {
-                    this.manager.room?.setScenePath(mainViewScenePath);
-                }
-                this.manager.safeDispatchMagixEvent(Events.MainViewFocus, {});
+               this.manViewClickHandler();
             });
+            this.mainView.divElement.addEventListener("touchend", () => {
+                this.manViewClickHandler();
+            })
             this.mainViewIsAddListener = true;
         }
+    }
+
+    private manViewClickHandler() {
+        if (this.mainView.mode === ViewVisionMode.Writable) return;
+        this.switchWritableAppToFreedom();
+        this.manager.delegate.cleanFocus();
+        this.switchMainViewToWriter();
+        this.manager.boxManager.blurFocusBox();
+        const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+        if (mainViewScenePath) {
+            this.manager.room?.setScenePath(mainViewScenePath);
+        }
+        this.manager.safeDispatchMagixEvent(Events.MainViewFocus, {});
     }
 
     public setViewMode(view: View, mode: ViewVisionMode) {

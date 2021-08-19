@@ -189,11 +189,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             let isDynamicPPT = false;
             if (params.options) {
-                const { scenePath, scenes, title } = params.options;
+                const { scenePath, scenes } = params.options;
                 if (scenePath && scenes && scenes.length > 0) {
                     if (this.isDynamicPPT(scenes)) {
                         isDynamicPPT = true;
-                        this.room?.putScenes(scenePath, scenes);
+                        if (!this.displayer.entireScenes()[scenePath]) {
+                            this.room?.putScenes(scenePath, scenes);
+                        }
                     } else {
                         this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                     }
@@ -636,6 +638,21 @@ export class AppManager {
                 if (appProxy) {
                     appProxy.destroy(false, payload.error);
                 }
+                this.viewManager.switchWritableAppToFreedom();
+                const mainViewScenePath = this.delegate.getMainViewScenePath();
+                if (mainViewScenePath) {
+                    this.mainView.focusScenePath = mainViewScenePath;
+                }
+                if (this.displayer.views.writableView) {
+                    this.displayer.views.writableView.mode = ViewVisionMode.Freedom;
+                }
+                setTimeout(() => { // view release 完成不能立马切, 可能会报错
+                    this.viewManager.switchMainViewToWriter();
+                    const mainViewScenePath = this.delegate.getMainViewScenePath();
+                    if (mainViewScenePath) {
+                        this.room?.setScenePath(mainViewScenePath);
+                    }
+                }, 100);
                 break;
             }
             default:
