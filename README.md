@@ -77,7 +77,7 @@ const appId = await manager.addApp({
     options: {
         scenePath: "/docs-viewer",
         title: "app1", // 可选
-        scenes: [], // WhiteScene[] 静态 WhiteScene 数据
+        scenes: [], // SceneDefinition[] 静态 Scene 数据
     }
 });
 ```
@@ -90,7 +90,7 @@ const appId = await manager.addApp({
     options: {
         scenePath: "/ppt-scene-path", // 动态 PPT 所在 ScenePath
         title: "app2" // 可选
-        scenes: [], // WhiteScene[] 动态 WhiteScene 数据
+        scenes: [], // SceneDefinition[] 动态 Scene 数据
     },
 });
 ```

@@ -13,7 +13,7 @@ import {
     TeleBoxManagerUpdateConfig,
     TeleBoxManagerCreateConfig
 } from '@netless/telebox-insider';
-import { View, WhiteScene } from 'white-web-sdk';
+import { View } from 'white-web-sdk';
 import { debounce } from 'lodash-es';
 import { log } from './log';
 import { AppProxy } from './AppProxy';
@@ -233,6 +233,14 @@ export class BoxManager {
 
     public blurAllBox() {
         this.teleBoxManager.updateAll({ focus: false });
+    }
+
+    public blurFocusBox() {
+        const focusBoxs = this.teleBoxManager.query({ focus: true });
+        if (focusBoxs.length) {
+            const box = focusBoxs[0];
+            this.teleBoxManager.update(box.id, { focus: false });
+        }
     }
 
     public updateAll(config: TeleBoxManagerUpdateConfig) {

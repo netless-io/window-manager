@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { AnimationMode, autorun, SceneState, ViewVisionMode, WhiteScene } from "white-web-sdk";
+import { AnimationMode, autorun, SceneState, ViewVisionMode, SceneDefinition } from "white-web-sdk";
 import {
     AddAppOptions,
     AddAppParams,
@@ -25,7 +25,7 @@ export class AppProxy {
     public id: string;
     public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
-    public scenes?: WhiteScene[];
+    public scenes?: SceneDefinition[];
 
     private appListener: any;
     private disposer: any;

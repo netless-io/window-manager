@@ -109,6 +109,7 @@ export class ViewManager {
                 this.switchWritableAppToFreedom();
                 this.manager.delegate.cleanFocus();
                 this.switchMainViewToWriter();
+                this.manager.boxManager.blurFocusBox();
                 const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
                 if (mainViewScenePath) {
                     this.manager.room?.setScenePath(mainViewScenePath);

@@ -1,5 +1,5 @@
 node_modules
 test/
 tsconfig.json
-viteconfig.json
+vite.config.json
 yarn.lock

@@ -16,7 +16,7 @@ import {
     Room,
     View,
     ViewVisionMode,
-    WhiteScene,
+    SceneDefinition,
     WhiteVersion
 } from 'white-web-sdk';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
@@ -56,7 +56,7 @@ export type apps = {
 export type AddAppOptions = {
     scenePath?: string;
     title?: string;
-    scenes?: WhiteScene[],
+    scenes?: SceneDefinition[],
 }
 
 export type setAppOptions = AddAppOptions & { appOptions?: any };
@@ -337,7 +337,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private isDynamicPPT(scenes: WhiteScene[]) {
+    private isDynamicPPT(scenes: SceneDefinition[]) {
         const sceneSrc = scenes[0]?.ppt?.src;
         return sceneSrc?.startsWith("pptx://");
     }
