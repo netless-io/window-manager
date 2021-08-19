@@ -23,11 +23,6 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@hyrious/xml-js@1.6.14":
-  version "1.6.14"
-  resolved "https://registry.npmjs.org/@hyrious/xml-js/-/xml-js-1.6.14.tgz#82685fb5063f9d3d15b82802acad75bac45cf2c5"
-  integrity sha512-+B2nG+ORK9ympbaw5GKDFJWyHKZVFvNfIWl2nq3wiYnnvEVuMLZQzIzz7hx1nJIi5C9MODr3NVUEenu/O/Sxbg==
-
 "@netless/app-docs-viewer@^0.1.9":
   version "0.1.9"
   resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.9.tgz#867c9161f9ba5943df8f6707bc87d42e9ee2347e"
@@ -48,6 +43,11 @@
   dependencies:
     eventemitter3 "^4.0.7"
     stylefire "^7.0.3"
+
+"@netless/xml-js@1.6.15":
+  version "1.6.15"
+  resolved "https://registry.npmjs.org/@netless/xml-js/-/xml-js-1.6.15.tgz#46516d547b21149bcca732bb199d664791b3240a"
+  integrity sha512-e0emMs7YtDB/ATUns1SJ61R9n9nfVvwwFodoc539Qt0ScksaCLCaFWgpEbLloj9sr60ry6Xd8QFHKULFIZB6zA==
 
 "@popmotion/easing@^1.0.1":
   version "1.0.2"
@@ -2337,13 +2337,13 @@ which-boxed-primitive@^1.0.2:
     is-string "^1.0.5"
     is-symbol "^1.0.3"
 
-white-web-sdk@^2.13.16:
-  version "2.13.16"
-  resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.13.16.tgz#ec83ad622d017adeb6641bb7e8b9f7bd35a5edf5"
-  integrity sha512-Kc4K16Sr0v8wskap8aQHDAzaEv2ArOc5Apc0GNj4Oq+ZeOdMldNtNZH6CU5mGLtCf3CnC3REGRg2gyM1GlICow==
+white-web-sdk@^2.13.18:
+  version "2.13.18"
+  resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.13.18.tgz#137daf5bc82c91d5fcd07074338a005d25bc5fe6"
+  integrity sha512-+6bifhfIY5HSO/12E5oB8eaemLN+GNqUPsj+AZMQhF/ER4B0d7OGX05FDsgEL0AGNVMa48Gsa7SjvokU3PauNQ==
   dependencies:
-    "@hyrious/xml-js" "1.6.14"
     "@netless/canvas-polyfill" "^0.0.4"
+    "@netless/xml-js" "1.6.15"
     atob "^2.1.2"
     bezier-js "^2.4.4"
     color "^3.1.0"

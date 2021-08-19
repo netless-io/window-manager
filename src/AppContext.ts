@@ -88,4 +88,14 @@ export class AppContext<T = any> {
         }
         return view;
     }
+
+    public mountView(dom: HTMLDivElement): void {
+        const view = this.getView();
+        if (view) {
+            view.divElement = dom;
+            setTimeout(() => { // 渲染需要时间，延迟 refresh
+                this.getRoom()?.refreshViewSize();
+            }, 50);
+        }
+    }
 }

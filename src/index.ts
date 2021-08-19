@@ -191,11 +191,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (params.options) {
                 const { scenePath, scenes } = params.options;
                 if (scenePath && scenes && scenes.length > 0) {
-                    if (!this.displayer.entireScenes()[scenePath]) {
-                        if (this.isDynamicPPT(scenes)) {
-                            isDynamicPPT = true;
+                    if (this.isDynamicPPT(scenes)) {
+                        isDynamicPPT = true;
+                        if (!this.displayer.entireScenes()[scenePath]) {
                             this.room?.putScenes(scenePath, scenes);
-                        } else {
+                        }
+                    } else {
+                        if (!this.displayer.entireScenes()[scenePath]) {
                             this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                         }
                     }
