@@ -1,6 +1,7 @@
 import { AddAppParams, AppManager, AppSyncAttributes } from "./index";
 import { get, pick } from "lodash-es";
 import { AppAttributes } from "./constants";
+import { setViewFocusScenePath } from "./ViewSwitcher";
 
 
 export enum Fields {
@@ -97,7 +98,7 @@ export class AttributesDelegate {
     public setMainViewFocusPath() {
         const scenePath = this.getMainViewScenePath();
         if (scenePath) {
-            this.manager.mainView.focusScenePath = scenePath;
+            setViewFocusScenePath( this.manager.mainView, scenePath);
         }
     }
 }

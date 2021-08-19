@@ -4,6 +4,7 @@ import { AppManager, WindowManager } from "./index";
 import { log } from "./log";
 import { CameraStore } from "./CameraStore";
 import { Events } from "./constants";
+import { setViewFocusScenePath } from "./ViewSwitcher";
 
 export class ViewManager {
     public mainView: View;
@@ -25,7 +26,7 @@ export class ViewManager {
     public createMainView(): View {
         const mainView = this.displayer.views.createView();
         this.cameraStore.setCamera("mainView", mainView.camera);
-        mainView.callbacks.on("onCameraUpdated", this.cameraListener("mainView", mainView));
+        mainView.callbacks.on("onCameraUpdated", this.cameraListener("mainView"));
         mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager.updateManagerRect());
         this.setViewMode(mainView, ViewVisionMode.Writable);
         return mainView;
@@ -33,10 +34,11 @@ export class ViewManager {
 
     public createView(appId: string): View {
         const view = this.displayer.views.createView();
-        const cameraListener = this.cameraListener(appId, view);
+        const cameraListener = this.cameraListener(appId);
         this.viewListeners.set(appId, cameraListener);
         this.cameraStore.setCamera(appId, view.camera);
         view.callbacks.on("onCameraUpdated", cameraListener);
+
         this.setViewMode(view, ViewVisionMode.Freedom);
         this.views.set(appId, view);
         return view;
@@ -70,8 +72,8 @@ export class ViewManager {
         this.manager.appProxies.forEach(appProxy => {
             if (appProxy.view?.mode === ViewVisionMode.Writable) {
                 const fullPath = appProxy.getFullScenePath();
-                if (appProxy.view.focusScenePath !== fullPath) {
-                    appProxy.view.focusScenePath = fullPath;
+                if (appProxy.view.focusScenePath !== fullPath && fullPath) {
+                    setViewFocusScenePath(appProxy.view, fullPath);
                 }
                 appProxy.view.mode = ViewVisionMode.Freedom;
             }
@@ -84,7 +86,7 @@ export class ViewManager {
 
     private switchViewToFreedom(view: View) {
         if (!view.focusScenePath) {
-            view.focusScenePath = this.currentScenePath;
+            setViewFocusScenePath(view, this.currentScenePath);
         }
         this.setViewMode(view, ViewVisionMode.Freedom);
     }
@@ -122,15 +124,9 @@ export class ViewManager {
     }
 
     private manViewClickHandler() {
-        if (this.mainView.mode === ViewVisionMode.Writable) return;
-        this.switchWritableAppToFreedom();
         this.manager.delegate.cleanFocus();
-        this.switchMainViewToWriter();
         this.manager.boxManager.blurFocusBox();
-        const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
-        if (mainViewScenePath) {
-            this.manager.room?.setScenePath(mainViewScenePath);
-        }
+        this.manager.viewSwitcher.refreshViews();
         this.manager.safeDispatchMagixEvent(Events.MainViewFocus, {});
     }
 
@@ -140,7 +136,7 @@ export class ViewManager {
         }
     }
 
-    public cameraListener(id: string, view: View) {
+    public cameraListener(id: string) {
         return (camera: Camera) => {
             this.cameraStore.setCamera(id, camera);
         };
@@ -154,7 +150,6 @@ export class ViewManager {
         }
     }
 }
-
 
 export const setupWrapper = (root: HTMLElement) => {
     const wrapper = createWrapper();

@@ -110,9 +110,9 @@ sdk.joinRoom({
         // });
 
         manager.addApp({
-            kind: PPT.kind,
+            kind: Manager.BuildinApps.DocsViewer,
             options: {
-                scenePath: "/6b19cb7000a111ecb299bb05d7b75708/976e0e22-5dac-4e0d-af18-4fa0f9021aa9",
+                scenePath: "/6b19cb7000a111ecb299bb05d7b75708/a0455ff3-fa5b-46fc-bb65-493e14ae4666",
                 title: "ppt3",
                 scenes: [{ ppt: { src: "pptx://12312" } }]
             }

@@ -4,6 +4,7 @@ import { Room, View, SceneDefinition } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent, AppManager } from "./index";
 import { ViewManager } from "./ViewManager";
+import { setViewFocusScenePath } from "./ViewSwitcher";
 
 export class AppContext<T = any> {
 
@@ -83,7 +84,7 @@ export class AppContext<T = any> {
         if (appProxy) {
             const fullPath = appProxy.getFullScenePath();
             if (fullPath) {
-                view.focusScenePath = fullPath;
+                setViewFocusScenePath(view, fullPath);
             }
         }
         return view;

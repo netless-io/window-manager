@@ -23,10 +23,10 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@netless/app-docs-viewer@^0.1.9":
-  version "0.1.9"
-  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.9.tgz#867c9161f9ba5943df8f6707bc87d42e9ee2347e"
-  integrity sha512-ztXj5IE8WeqeRyp1EY/NaZHatjWdZQsdndOr+LscVJICO8pFNrmdpXipbL+HQqj28r4Lq22SbLta4tXwCJCzWQ==
+"@netless/app-docs-viewer@^0.1.10":
+  version "0.1.10"
+  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.10.tgz#0023639618d7820c043b907ea9e2104be6518c34"
+  integrity sha512-TTlfdmVZ9BIdunCqRyU/+0nKXAV9JW936h6qCI6j5knZ0UlIa+oyTg3AvBVD4BsjYCaVOfW4zQg2LFfY2KH7TQ==
   dependencies:
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"
@@ -36,10 +36,10 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@^0.1.5":
-  version "0.1.5"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.5.tgz#facb6fc40b9049f7c48b71344c4ff14f1e9fde1b"
-  integrity sha512-JzVS5bS+x/dujv/srchANKsIKmAzC19vay1s102iuF+HqWZfiBgEWpzK05NLRsvJRWo9qI6ZwHfptes+OEadsg==
+"@netless/telebox-insider@^0.1.6":
+  version "0.1.6"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.6.tgz#b0f9bef7fbf78a20fbc04f4d55bca35c99e2cf44"
+  integrity sha512-CFK1c/hYdqJqYFuaqrxguTeYHfsVA8T9ABs0jpkB6d97QjIZmol6eeT2Qx7n/c8A0JuP/wdLJb9A/QH7mHgj0Q==
   dependencies:
     eventemitter3 "^4.0.7"
     stylefire "^7.0.3"

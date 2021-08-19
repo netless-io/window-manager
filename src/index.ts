@@ -35,6 +35,7 @@ import {
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
 import PPT from "./PPT";
+import { setViewFocusScenePath, ViewSwitcher } from './ViewSwitcher';
 
 (window as any).PPT = PPT;
 
@@ -297,7 +298,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             const sceneIndex = this.appManager.delegate.getMainViewSceneIndex();
             const sceneName = this.getSceneName(scenePath, sceneIndex);
             if (scenePath) {
-                mainView.focusScenePath = sceneName ? scenePath + `/${sceneName}` : scenePath;
+                setViewFocusScenePath(mainView, sceneName ? scenePath + `/${sceneName}` : scenePath);
             } else {
                 this.setMainViewScenePath(this.displayer.state.sceneState.scenePath);
             }
@@ -366,6 +367,7 @@ export class AppManager {
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
     public delegate = new AttributesDelegate(this);
+    public viewSwitcher = new ViewSwitcher(this);
 
     private appListeners: AppListeners;
     private attributesDisposer: any;
@@ -568,11 +570,7 @@ export class AppManager {
             }
             case "focus": {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                const appProxy = this.appProxies.get(payload.appId);
-                if (appProxy) {
-                    appProxy.switchToWritable();
-                    appProxy.setScenePath();
-                }
+                this.viewSwitcher.refreshViews();
                 this.safeDispatchMagixEvent(Events.AppFocus, payload);
                 break;
             }
@@ -614,7 +612,6 @@ export class AppManager {
                     state: eventName,
                 });
                 this.safeSetAttributes({ boxState: eventName });
-                this.swtichFocusAppToWritable();
                 break;
             }
             case TELE_BOX_STATE.Normal: {
@@ -623,7 +620,6 @@ export class AppManager {
                     state: eventName,
                 });
                 this.safeSetAttributes({ boxState: eventName });
-                this.swtichFocusAppToWritable();
                 break;
             }
             case "snapshot": {
@@ -644,7 +640,7 @@ export class AppManager {
                 this.viewManager.switchWritableAppToFreedom();
                 const mainViewScenePath = this.delegate.getMainViewScenePath();
                 if (mainViewScenePath) {
-                    this.mainView.focusScenePath = mainViewScenePath;
+                    setViewFocusScenePath(this.mainView, mainViewScenePath);
                 }
                 if (this.displayer.views.writableView) {
                     this.displayer.views.writableView.mode = ViewVisionMode.Freedom;
@@ -662,10 +658,6 @@ export class AppManager {
                 break;
         }
     };
-
-    private swtichFocusAppToWritable() {
-
-    }
 
     public focusByAttributes(apps: any) {
         if (apps && Object.keys(apps).length === this.boxManager!.appBoxMap.size) {

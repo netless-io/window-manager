@@ -27,10 +27,9 @@ export class AppListeners {
         this.displayer.addMagixEventListener(Events.SetMainViewSceneIndex, this.setSceneIndexListener);
         this.displayer.addMagixEventListener(Events.MainViewFocus, (event) => {
             if (event.authorId !== this.displayer.observerId) {
-                this.viewManager.switchWritableAppToFreedom();
-                this.viewManager.switchMainViewToWriter();
+                this.manager.viewSwitcher.refreshViews();
             }
-        })
+        });
     }
 
     public removeListeners() {
@@ -57,6 +56,7 @@ export class AppListeners {
             const appProxy = this.manager.appProxies.get(event.payload.appId);
             if (appProxy) {
                 appProxy.switchToWritable();
+                appProxy.recoverCamera();
             }
         }
     }

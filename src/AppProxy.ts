@@ -20,6 +20,7 @@ import { NetlessApp } from "./typings";
 import { loadApp } from './loader';
 import { AppCreateError, AppNotRegisterError } from './error';
 import { isEqual } from "lodash-es";
+import { setViewFocusScenePath } from './ViewSwitcher';
 
 export class AppProxy {
     public id: string;
@@ -150,7 +151,7 @@ export class AppProxy {
             });
             this.boxManager.createBox({
                 appId: appId, app, options
-            }); 
+            });
         } catch (error) {
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
         }
@@ -165,7 +166,6 @@ export class AppProxy {
                 this.manager.mainView.mode = ViewVisionMode.Freedom
             }
             this.view.mode = ViewVisionMode.Writable;
-            this.recoverCamera();
         }
     }
 
@@ -272,20 +272,30 @@ export class AppProxy {
         this.disposer = disposer;
     }
 
-    private recoverCamera() {
+    public recoverCamera() {
         const camera = this.manager.cameraStore.getCamera(this.id);
         if (camera) {
             this.view?.moveCamera({ 
                 ...camera,
                 animationMode: AnimationMode.Immediately
-            })
+            });
         }
     }
 
     public setScenePath() {
         const fullScenePath = this.getFullScenePath();
-        if (this.manager.room && fullScenePath) {
+        if (this.manager.room && fullScenePath && this.view) {
             this.manager.room.setScenePath(fullScenePath);
+        }
+    }
+
+    public switchToFreedom() {
+        if (this.view && this.view.mode === ViewVisionMode.Writable) {
+            const scenePath = this.getFullScenePath();
+            if (scenePath) {
+                setViewFocusScenePath(this.view, scenePath);
+                this.view.mode = ViewVisionMode.Freedom;
+            }
         }
     }
 }
