@@ -1,2 +1,5 @@
 node_modules
 test/
+tsconfig.json
+viteconfig.json
+yarn.lock
