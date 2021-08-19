@@ -104,14 +104,21 @@ export class ViewManager {
     public addMainViewListener() {
         if (this.mainViewIsAddListener) return;
         if (this.mainView.divElement) {
-            this.mainView.divElement.addEventListener("click", () => {
-               this.manViewClickHandler();
-            });
-            this.mainView.divElement.addEventListener("touchend", () => {
-                this.manViewClickHandler();
-            })
+            this.mainView.divElement.addEventListener("click", this.manViewClickListener);
+            this.mainView.divElement.addEventListener("touchend", this.manViewClickListener);
             this.mainViewIsAddListener = true;
         }
+    }
+
+    public removeMainViewListener() {
+        if (this.mainView.divElement) {
+            this.mainView.divElement.removeEventListener("click", this.manViewClickListener);
+            this.mainView.divElement.removeEventListener("touchend", this.manViewClickListener);
+        }
+    }
+
+    private manViewClickListener = () => {
+        this.manViewClickHandler();
     }
 
     private manViewClickHandler() {
@@ -140,6 +147,7 @@ export class ViewManager {
     }
 
     public destroy() {
+        this.removeMainViewListener();
         if (WindowManager.wrapper) {
             WindowManager.wrapper.parentNode?.removeChild(WindowManager.wrapper);
             WindowManager.wrapper = null;

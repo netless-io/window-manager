@@ -13,13 +13,14 @@
 `方法`
 - `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
 - `room.disableCameraTransform` 用 `manager.mainView.disableCameraTransform` 代替
-- `room.scalePptToFit()` 暂无代替
+- `room.scalePptToFit()` 暂无代替,不再推荐调用 `scalePptToFit`
 - `room.moveCamera()` 用 `manager.mainView.moveCamera()` 代替
 - `room.moveCameraToContain()` 用 `manager.mainView.moveCameraToContain()` 代替
 - `room.convertToPointInWorld()` 用 `manager.mainView.convertToPointInWorld()` 代替
 - `room.setCameraBound()` 用 `manager.mainView.setCameraBound()` 代替
 - `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
 - `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
+- `
 
 `camera`
 - `room.state.cameraState` 用 `manager.mainView.camera` 和 `manager.mainView.size` 代替
@@ -70,7 +71,6 @@ sdk.joinRoom({
 `App` 或会在页面刷新时自动创建出来, 不需要重复插入
 
 ### 添加静态 PPT 到白板上
-因为实现方式的原因, 静态 PPT 添加到白板时需要一个空白的 `scenePath`, 需要在 `addApp` 之前需要先 `putScenes`
 ```javascript
 const appId = await manager.addApp({
     kind: BuildinApps.DocsViewer,
@@ -119,7 +119,7 @@ manager.setMainViewSceneIndex(sceneIndex)
 
 ## 手动销毁 `WindowManager`
 ```javascript
-manager.unmount()
+manager.destroy()
 ```
 
 
