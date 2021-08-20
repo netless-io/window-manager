@@ -2,6 +2,7 @@
 import path from "path";
 import { defineConfig } from "vite";
 import analyze from 'rollup-plugin-analyzer'
+import { dependencies ,peerDependencies } from "./package.json"
 
 
 export default defineConfig(({ command, mode }) => {
@@ -18,7 +19,10 @@ export default defineConfig(({ command, mode }) => {
             outDir: "dist",
             sourcemap: false,
             rollupOptions: {
-                external: ["react", "white-web-sdk", "react-dom"],
+                external: Object.keys({
+                    ...dependencies,
+                    ...peerDependencies,
+                }),
             },
             minify: false,
         },
