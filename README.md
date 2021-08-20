@@ -106,16 +106,28 @@ manager.switchMainViewToWriter();
 manager.setMainViewScenePath(scenePath)
 ```
 
-### 关闭 `App`
-```javascript
-manager.closeApp(appId)
-```
-
 ### 切换 `mainView` `sceneIndex`
 切换主白板的 `SceneIndex` 并把主白板设置为可写状态
 ```javascript
 manager.setMainViewSceneIndex(sceneIndex)
 ```
+
+### 获取 `mainView` `scenePath`
+```javascript
+manager.getMainViewScenePath()
+```
+
+### 获取 `mainView` `sceneIndex`
+```javascript
+manager.getMainViewSceneIndex()
+```
+
+### 关闭 `App`
+```javascript
+manager.closeApp(appId)
+```
+
+
 
 ## 手动销毁 `WindowManager`
 ```javascript

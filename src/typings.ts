@@ -14,6 +14,9 @@ export interface NetlessApp<T = any> {
         minwidth?: number;
         /** Minimum box height relative to whiteboard. 0~1. Default 340 / 720. */
         minheight?: number;
+
+        /** App only single instance. */
+        singleton?: boolean;
     };
     setup: (context: AppContext<T>) => void;
 };

@@ -4,7 +4,7 @@ import { Room, View, SceneDefinition } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent, AppManager } from "./index";
 import { ViewManager } from "./ViewManager";
-import { setViewFocusScenePath } from "./ViewSwitcher";
+import { setScenePath, setViewFocusScenePath } from "./Common";
 
 export class AppContext<T = any> {
 

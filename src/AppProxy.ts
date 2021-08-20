@@ -19,8 +19,9 @@ import { AppContext } from './AppContext';
 import { NetlessApp } from "./typings";
 import { loadApp } from './loader';
 import { AppCreateError, AppNotRegisterError } from './error';
-import { isEqual, times } from "lodash-es";
-import { setScenePath, setViewFocusScenePath } from './ViewSwitcher';
+import { isEqual } from "lodash-es";
+import { genAppId, setScenePath, setViewFocusScenePath } from './Common';
+
 
 export class AppProxy {
     public id: string;
@@ -34,15 +35,15 @@ export class AppProxy {
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
     private lastAttrs: any;
+    private kind: string;
 
     constructor(
         private params: BaseInsertParams,
         private manager: AppManager,
+        appId: string
     ) {
-        this.id = AppProxy.genId(params.kind, params.options);
-        if (this.appProxies.has(this.id)) {
-            throw new AppCreateError();
-        }
+        this.kind = params.kind;
+        this.id = appId;
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
         this.appListener = this.makeAppEventListener(this.id);
@@ -58,14 +59,6 @@ export class AppProxy {
         }
         this.createView();
         this.addCameraListener();
-    }
-
-    public static genId(kind: string, options?: AddAppOptions) {
-        if (options && options.scenePath) {
-            return `${kind}-${options.scenePath}`;
-        } else {
-            return kind;
-        }
     }
 
     public get sceneIndex() {
@@ -90,6 +83,10 @@ export class AppProxy {
         if (this.scenePath && this.getSceneName()) {
             return `${this.scenePath}/${this.getSceneName()}`;
         }
+    }
+
+    public appImpl(kind: string) {
+        return WindowManager.appClasses.get(kind);
     }
 
     public async baseInsertApp(focus?: boolean) {

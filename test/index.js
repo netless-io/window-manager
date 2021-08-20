@@ -120,12 +120,12 @@ sdk.joinRoom({
     });
 
     button4.addEventListener("click", () => {
-        manager.addApp({
-            kind: Manager.BuildinApps.MediaPlayer,
-            attributes: {
-                src: "https://flat-storage.oss-accelerate.aliyuncs.com/cloud-storage/b7333e1f-e945-4aec-8346-cfe33b82a7ce.mp4"
-            }
-        })
+        // manager.addApp({
+        //     kind: Manager.BuildinApps.MediaPlayer,
+        //     attributes: {
+        //         src: "https://flat-storage.oss-accelerate.aliyuncs.com/cloud-storage/b7333e1f-e945-4aec-8346-cfe33b82a7ce.mp4"
+        //     }
+        // })
         // room.insertPlugin("video.js", {
         //     originX: -300 / 2,
         //     originY: -200 / 2,
@@ -133,6 +133,13 @@ sdk.joinRoom({
         //     height: 200,
         //     attributes: {  },
         // });
+        manager.addApp({
+            kind: Manager.BuildinApps.MediaPlayer,
+            attributes: {
+                src: "https://flat-storage.oss-cn-hangzhou.aliyuncs.com/cloud-storage/5c26682a-c950-43b2-b7a5-74def6c43dfb.mp4"
+            }
+        })
+        
     })
 })
 

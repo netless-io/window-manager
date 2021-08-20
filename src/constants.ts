@@ -31,8 +31,6 @@ export enum AppEvents {
 
 export enum AppStatus {
     StartCreate = "StartCreate",
-    CreateSuccess = "CreateSuccess",
-    Failed = "Failed"
 }
 
 export const REQUIRE_VERSION = "2.13.16";

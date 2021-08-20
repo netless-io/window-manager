@@ -4,7 +4,7 @@ import { AppManager, WindowManager } from "./index";
 import { log } from "./log";
 import { CameraStore } from "./CameraStore";
 import { Events } from "./constants";
-import { setViewFocusScenePath } from "./ViewSwitcher";
+import {  setScenePath, setViewFocusScenePath } from "./Common";
 
 export class ViewManager {
     public mainView: View;
@@ -162,4 +162,3 @@ export const initMaiViewElement = () => {
     element.className = "main-view";
     return element;
 }
-

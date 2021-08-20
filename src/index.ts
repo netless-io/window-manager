@@ -35,7 +35,8 @@ import {
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
 import AppMediaPlayer from "@netless/app-media-player";
-import { setScenePath, setViewFocusScenePath, ViewSwitcher } from './ViewSwitcher';
+import { ViewSwitcher } from './ViewSwitcher';
+import { genAppId, setScenePath, setViewFocusScenePath, } from './Common';
 
 
 export const BuildinApps = {
@@ -187,6 +188,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (!params.kind || typeof params.kind !== "string") {
                 throw new ParamsInvalidError();
             }
+            const appImpl = WindowManager.appClasses.get(params.kind);
+            if (appImpl && appImpl.config?.singleton) {
+                if (this.appManager.appProxies.has(params.kind)) {
+                    throw new AppCreateError();
+                }
+            }
             let isDynamicPPT = false;
             if (params.options) {
                 const { scenePath, scenes } = params.options;
@@ -245,6 +252,27 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             this.appManager.setMainViewSceneIndex(index);
             this.safeDispatchMagixEvent(Events.SetMainViewSceneIndex, { index });
         }
+    }
+
+    /**
+     * 返回 mainView 的 ScenePath
+     * 
+     * @returns {string} scenePath
+     * @memberof WindowManager
+     */
+    public getMainViewScenePath(): string {
+        return this.appManager?.delegate.getMainViewScenePath();
+    }
+
+    
+    /**
+     * 返回 mainView 的 SceneIndex
+     * 
+     * @returns {number} sceneIndex
+     * @memberof WindowManager
+     */
+    public getMianViewSceneIndex(): number {
+        return this.appManager?.delegate.getMainViewSceneIndex();
     }
 
     /**
@@ -427,28 +455,24 @@ export class AppManager {
                         src: appImpl,
                         options: app.options,
                         isDynamicPPT: app.isDynamicPPT
-                    });
+                    }, id);
                     this.focusByAttributes(apps);
                 }
             }
         }
     }
 
-    public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string> {
+    public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
         log("addApp", params);
-        const id = AppProxy.genId(params.kind, params.options);
-        if (this.appProxies.has(id)) {
-            throw new AppCreateError();
-        }
         try {
-            this.appStatus.set(id, AppStatus.StartCreate);
-            this.delegate.setupAppAttributes(params, id, isDynamicPPT);
-            this.safeSetAttributes({ [id]: params.attributes || {} });
+            const appId = genAppId(params.kind, params.options?.scenePath);
+            this.appStatus.set(appId, AppStatus.StartCreate);
+            this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
+            this.safeSetAttributes({ [appId]: params.attributes || {} });
 
-            const appProxy = await this.baseInsertApp(params, true);
-            return appProxy.id;
+            const appProxy = await this.baseInsertApp(params, appId, true);
+            return appProxy?.id;
         } catch (error) {
-            this.delegate.cleanAppAttributes(id);
             throw error;
         }
     }
@@ -460,19 +484,20 @@ export class AppManager {
         }
     }
 
-    private async baseInsertApp(params: BaseInsertParams, focus?: boolean) {
-        const id = AppProxy.genId(params.kind, params.options);
-        if (this.appProxies.has(id)) {
-            throw new AppCreateError();
+    private async baseInsertApp(params: BaseInsertParams, appId: string, focus?: boolean) {
+        this.appStatus.set(appId, AppStatus.StartCreate);
+        if (this.appProxies.has(appId)) {
+            console.warn("[WindowManager]: app duplicate exists and cannot be created again");
+            return;
         }
-        const appProxy = new AppProxy(params, this);
+        const appProxy = new AppProxy(params, this, appId);
         if (appProxy) {
             await appProxy.baseInsertApp(focus);
-            this.appStatus.set(id, AppStatus.CreateSuccess);
+            this.appStatus.delete(appId);
             return appProxy;
         } else {
-            this.appStatus.delete(id);
-            throw new Error()
+            this.appStatus.delete(appId);
+            throw new Error("");
         }
     }
 
@@ -539,6 +564,10 @@ export class AppManager {
 
     public setMainViewSceneIndex(index: number) {
         if (this.room) {
+            const mainViewScenePath = this.delegate.getMainViewScenePath();
+            if (mainViewScenePath) {
+                setScenePath(this.room, mainViewScenePath);
+            }
             this.safeSetAttributes({ _mainSceneIndex: index });
             this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);

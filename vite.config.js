@@ -1,6 +1,8 @@
 /* eslint-disable import/no-anonymous-default-export */
 import path from "path";
 import { defineConfig } from "vite";
+import analyze from 'rollup-plugin-analyzer'
+
 
 export default defineConfig(({ command, mode }) => {
     const isProd = mode === "production";

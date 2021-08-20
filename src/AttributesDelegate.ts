@@ -1,7 +1,7 @@
 import { AddAppParams, AppManager, AppSyncAttributes } from "./index";
 import { get, pick } from "lodash-es";
 import { AppAttributes } from "./constants";
-import { setViewFocusScenePath } from "./ViewSwitcher";
+import { setViewFocusScenePath } from "./Common";
 
 
 export enum Fields {
