@@ -56,7 +56,7 @@ const sdk = new WhiteWebSdk({
 
 const { WindowManager } = Manager;
 window.WindowManager = WindowManager;
-WindowManager.register(PPT);
+// WindowManager.register(PPT);
 window.Manager = Manager;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,

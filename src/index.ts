@@ -35,10 +35,7 @@ import {
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
 import AppMediaPlayer from "@netless/app-media-player";
-import PPT from "./PPT";
 import { setScenePath, setViewFocusScenePath, ViewSwitcher } from './ViewSwitcher';
-
-(window as any).PPT = PPT;
 
 
 export const BuildinApps = {
