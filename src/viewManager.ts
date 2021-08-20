@@ -34,11 +34,7 @@ export class ViewManager {
 
     public createView(appId: string): View {
         const view = this.displayer.views.createView();
-        const cameraListener = this.cameraListener(appId);
-        this.viewListeners.set(appId, cameraListener);
         this.cameraStore.setCamera(appId, view.camera);
-        view.callbacks.on("onCameraUpdated", cameraListener);
-
         this.setViewMode(view, ViewVisionMode.Freedom);
         this.views.set(appId, view);
         return view;
@@ -47,11 +43,6 @@ export class ViewManager {
     public destoryView(appId: string) {
         const view = this.views.get(appId);
         if (view) {
-            const viewListener = this.viewListeners.get(appId);
-            if (viewListener) {
-                view.callbacks.off("onCameraUpdated", viewListener);
-                this.cameraStore.deleteCamera(appId);
-            }
             view.release();
             this.views.delete(appId);
         }
@@ -95,11 +86,11 @@ export class ViewManager {
         if (!this.manager.canOperate) return;
         if (this.mainView) {
             if (this.mainView.mode === ViewVisionMode.Writable) return;
-            const mainViewCamera = this.cameraStore.getCamera("mainView");
-                this.setViewMode(this.mainView, ViewVisionMode.Writable);
-                if (mainViewCamera) {
-                    this.mainView.moveCamera({ ...mainViewCamera, animationMode: AnimationMode.Immediately });
-                }
+            const camera = this.cameraStore.getCamera("mainView");
+            this.setViewMode(this.mainView, ViewVisionMode.Writable);
+            if (camera) {
+                this.mainView.moveCamera({ ...camera, animationMode: AnimationMode.Immediately });
+            }
         }
     }
 

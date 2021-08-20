@@ -19,12 +19,14 @@
   },
   "dependencies": {
     "@netless/app-docs-viewer": "^0.1.10",
+    "@netless/app-media-player": "^0.1.0-alpha.0",
     "@netless/telebox-insider": "^0.1.6",
     "emittery": "^0.9.2",
     "localforage": "^1.9.0",
     "lodash-es": "^4.17.21",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "video.js": "^7.14.3"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^20.0.0",

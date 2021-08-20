@@ -10,9 +10,9 @@ export interface NetlessApp<T = any> {
          /** Box height relative to whiteboard. 0~1. Default 0.5. */
         height?: number;
 
-        /** Minimum box width. Relative to whiteboard if 0~1, otherwise absolute pixel. Default 200. */
+        /** Minimum box width relative to whiteboard. 0~1. Default 340 / 720. */
         minwidth?: number;
-        /** Minimum box height. Relative to whiteboard if 0~1, otherwise absolute pixel. Default 200. */
+        /** Minimum box height relative to whiteboard. 0~1. Default 340 / 720. */
         minheight?: number;
     };
     setup: (context: AppContext<T>) => void;

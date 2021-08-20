@@ -27,7 +27,9 @@ export class AppListeners {
         this.displayer.addMagixEventListener(Events.SetMainViewSceneIndex, this.setSceneIndexListener);
         this.displayer.addMagixEventListener(Events.MainViewFocus, (event) => {
             if (event.authorId !== this.displayer.observerId) {
-                this.manager.viewSwitcher.refreshViews();
+                setTimeout(() => {
+                    this.manager.viewSwitcher.refreshViews();
+                }, 100);
             }
         });
     }
@@ -53,11 +55,9 @@ export class AppListeners {
     private appFocusListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.focusBox(event.payload);
-            const appProxy = this.manager.appProxies.get(event.payload.appId);
-            if (appProxy) {
-                appProxy.switchToWritable();
-                appProxy.recoverCamera();
-            }
+            setTimeout(() => {
+                this.manager.viewSwitcher.refreshViews();
+            }, 50);
         }
     }
 
@@ -101,6 +101,10 @@ export class AppListeners {
     private appCloseListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
             this.boxManager.closeBox(event.payload.appId);
+            const appProxy = this.manager.appProxies.get(event.payload.appId);
+            if (appProxy) {
+                appProxy.destroy(true);
+            }
         }
     }
 

@@ -19,27 +19,27 @@ export class ViewSwitcher {
     }
 
     public refreshViews() {
-        setTimeout(() => {
-            const focus = this.manager.delegate.focus;
-            if (focus) {
-                const appProxy = this.manager.appProxies.get(focus);
-                if (appProxy) {
-                    if (appProxy.view?.mode === ViewVisionMode.Writable) return;
-                    appProxy.switchToWritable();
-                    appProxy.setScenePath();
-                    appProxy.recoverCamera();
-                }
-            } else {
-                if (this.manager.mainView.mode === ViewVisionMode.Writable) return;
-                this.switchWriteToFreedom();
-                const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
-                if (mainViewScenePath) {
-                    setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
-                    setScenePath(this.manager.room, mainViewScenePath);
-                    this.manager.viewManager.switchMainViewToWriter();
-                }
+        const focus = this.manager.delegate.focus;
+        if (focus) {
+            const appProxy = this.manager.appProxies.get(focus);
+            if (appProxy) {
+                if (appProxy.view?.mode === ViewVisionMode.Writable) return;
+                appProxy.removeCameraListener();
+                appProxy.setScenePath();
+                appProxy.switchToWritable();
+                appProxy.recoverCamera();
+                appProxy.addCameraListener();
             }
-        }, 50);
+        } else {
+            if (this.manager.mainView.mode === ViewVisionMode.Writable) return;
+            const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+            if (mainViewScenePath) {
+                setScenePath(this.manager.room, mainViewScenePath);
+                this.switchWriteToFreedom();
+                setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
+                this.manager.viewManager.switchMainViewToWriter();
+            }
+        }
     }
 }
 
@@ -51,6 +51,8 @@ export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
 
 export const setScenePath = (room: Room | undefined, scenePath: string) => {
     if (room) {
-        room.setScenePath(scenePath);
+        if (room.state.sceneState.scenePath !== scenePath) {
+            room.setScenePath(scenePath);
+        }
     }
 }

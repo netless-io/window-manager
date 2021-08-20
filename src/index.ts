@@ -34,6 +34,7 @@ import {
 } from "./constants";
 import { AttributesDelegate } from './AttributesDelegate';
 import AppDocsViewer from "@netless/app-docs-viewer";
+import AppMediaPlayer from "@netless/app-media-player";
 import PPT from "./PPT";
 import { setScenePath, setViewFocusScenePath, ViewSwitcher } from './ViewSwitcher';
 
@@ -41,7 +42,8 @@ import { setScenePath, setViewFocusScenePath, ViewSwitcher } from './ViewSwitche
 
 
 export const BuildinApps = {
-    DocsViewer: AppDocsViewer.kind as string
+    DocsViewer: AppDocsViewer.kind as string,
+    MediaPlayer: AppMediaPlayer.kind as string,
 }
 
 export type WindowMangerAttributes = {
@@ -489,6 +491,7 @@ export class AppManager {
                     }
                 }
             });
+            this.viewSwitcher.refreshViews();
         }
     };
 
@@ -642,9 +645,6 @@ export class AppManager {
                 if (mainViewScenePath) {
                     setViewFocusScenePath(this.mainView, mainViewScenePath);
                 }
-                if (this.displayer.views.writableView) {
-                    this.displayer.views.writableView.mode = ViewVisionMode.Freedom;
-                }
                 setTimeout(() => { // view release 完成不能立马切, 可能会报错
                     this.viewManager.switchMainViewToWriter();
                     const mainViewScenePath = this.delegate.getMainViewScenePath();
@@ -688,5 +688,6 @@ export class AppManager {
 }
 
 WindowManager.register(AppDocsViewer);
+WindowManager.register(AppMediaPlayer);
 
 export * from "./typings";

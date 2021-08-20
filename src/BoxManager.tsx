@@ -53,21 +53,22 @@ export class BoxManager {
 
     public createBox(params: CreateBoxParams) {
         if (!this.teleBoxManager) return;
-        const { width, height, minwidth, minheight } = params.app.config ?? {};
+        let { width, height, minwidth = MIN_WIDTH, minheight = MIN_HEIGHT } = params.app.config ?? {};
         const title = params.options?.title || params.appId;
         const rect = this.teleBoxManager.containerRect;
-        let minWidth = MIN_WIDTH / rect.width;
-        let minHeight = MIN_HEIGHT / rect.height;
-        if (minwidth) {
-            minWidth = minwidth / rect.width;
+
+        if (minwidth > 1) {
+            minwidth = minwidth / rect.width;
         }
-        if (minheight) {
-            minHeight = minheight / rect.height;
+
+        if (minheight > 1) {
+            minheight = minheight / rect.height;
         }
+
         const createBoxConfig: {
             title: string, width?: number, height?: number, minWidth?: number, minHeight?: number
         } = {
-            title, minWidth, minHeight
+            title, minWidth: minwidth, minHeight: minheight
         }
 
         if (width && width > 0) {

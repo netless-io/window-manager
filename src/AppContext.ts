@@ -42,12 +42,8 @@ export class AppContext<T = any> {
         }
     }
 
-    public getView() {
-        let view = this.viewManager.getView(this.appId);
-        if (!view) {
-            view = this.createView();
-        }
-        return view;
+    public getView(): View | undefined {
+        return this.viewManager.getView(this.appId);;
     }
 
     public getInitScenePath() {
@@ -71,23 +67,9 @@ export class AppContext<T = any> {
     }
 
     public updateAttributes(keys: string[], value: any) {
-        if (!this.manager.attributes[this.appId]) {
-            this.manager.safeSetAttributes({ [this.appId]: {} });
+        if (this.manager.attributes[this.appId]) {
+            this.manager.safeUpdateAttributes([this.appId, ...keys], value);
         }
-        this.manager.safeUpdateAttributes([this.appId, ...keys], value);
-    }
-
-    private createView(): View {
-        const view = this.viewManager.createView(this.appId);
-        this.viewManager.addMainViewListener();
-        const appProxy = this.manager.appProxies.get(this.appId);
-        if (appProxy) {
-            const fullPath = appProxy.getFullScenePath();
-            if (fullPath) {
-                setViewFocusScenePath(view, fullPath);
-            }
-        }
-        return view;
     }
 
     public mountView(dom: HTMLDivElement): void {

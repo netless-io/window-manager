@@ -37,5 +37,5 @@ export enum AppStatus {
 
 export const REQUIRE_VERSION = "2.13.16";
 
-export const MIN_WIDTH = 200;
-export const MIN_HEIGHT = 200;
+export const MIN_WIDTH = 340 / 720;
+export const MIN_HEIGHT = 340 / 720;

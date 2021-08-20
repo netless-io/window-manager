@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { AnimationMode, autorun, SceneState, ViewVisionMode, SceneDefinition } from "white-web-sdk";
+import { AnimationMode, autorun, SceneState, ViewVisionMode, SceneDefinition, Camera, View } from "white-web-sdk";
 import {
     AddAppOptions,
     AddAppParams,
@@ -19,7 +19,7 @@ import { AppContext } from './AppContext';
 import { NetlessApp } from "./typings";
 import { loadApp } from './loader';
 import { AppCreateError, AppNotRegisterError } from './error';
-import { isEqual } from "lodash-es";
+import { isEqual, times } from "lodash-es";
 import { setScenePath, setViewFocusScenePath } from './ViewSwitcher';
 
 export class AppProxy {
@@ -49,12 +49,15 @@ export class AppProxy {
         const options = this.params.options;
         if (options) {
             this.scenePath = options.scenePath;
-            if (this.params.isDynamicPPT && this.scenePath) {
+            const attr = this.manager.delegate.getAppAttributes(this.id)
+            if (attr?.isDynamicPPT && this.scenePath) {
                 this.scenes = this.manager.displayer.entireScenes()[this.scenePath];
             } else {
                 this.scenes = options.scenes;
             }
         }
+        this.createView();
+        this.addCameraListener();
     }
 
     public static genId(kind: string, options?: AddAppOptions) {
@@ -205,14 +208,16 @@ export class AppProxy {
         emitter.emit(`destroy-${this.id}`, { error });
         if (needCloseBox) {
             this.boxManager.closeBox(this.id);
-            this.manager.viewManager.destoryView(this.id);
         }
-
         if (this.disposer) {
             this.disposer();
         }
         this.manager.delegate.cleanAppAttributes(this.id);
         this.appProxies.delete(this.id);
+        this.manager.cameraStore.deleteCamera(this.id);
+        this.removeCameraListener();
+        this.manager.viewManager.destoryView(this.id);
+        this.manager.appStatus.delete(this.id);
     }
 
     public emitAppSceneStateChange(sceneState: SceneState) {
@@ -274,8 +279,8 @@ export class AppProxy {
 
     public recoverCamera() {
         const camera = this.manager.cameraStore.getCamera(this.id);
-        if (camera) {
-            this.view?.moveCamera({ 
+        if (camera && this.view) {
+            this.view?.moveCamera({
                 ...camera,
                 animationMode: AnimationMode.Immediately
             });
@@ -298,4 +303,27 @@ export class AppProxy {
             }
         }
     }
+
+    public addCameraListener() {
+        this.view?.callbacks.on("onCameraUpdated", this.cameraListener);
+    }
+
+    public removeCameraListener() {
+        this.view?.callbacks.off("onCameraUpdated", this.cameraListener);
+    }
+
+    private createView(): View {
+        const view = this.viewManager.createView(this.id);
+        this.viewManager.addMainViewListener();
+        const fullPath = this.getFullScenePath();
+        if (fullPath) {
+            setViewFocusScenePath(view, fullPath);
+        }
+        return view;
+    }
+
+    private cameraListener = (camera: Camera) => {
+        this.manager.cameraStore.setCamera(this.id, camera);
+    }
+
 }

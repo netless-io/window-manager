@@ -70,28 +70,28 @@ sdk.joinRoom({
 
 `App` 或会在页面刷新时自动创建出来, 不需要重复插入
 
-### 添加静态 PPT 到白板上
+### 添加静态/动态 PPT 到白板上
 ```javascript
 const appId = await manager.addApp({
     kind: BuildinApps.DocsViewer,
     options: {
         scenePath: "/docs-viewer",
-        title: "app1", // 可选
-        scenes: [], // SceneDefinition[] 静态 Scene 数据
+        title: "docs1", // 可选
+        scenes: [], // SceneDefinition[] 静态/动态 Scene 数据
     }
 });
 ```
 
-
-### 添加动态 PPT 到白板上
+### 添加音视频到白板
 ```javascript
 const appId = await manager.addApp({
-    kind: BuildinApps.DocsViewer,
+    kind: BuildinApps.MediaPlayer,
     options: {
-        scenePath: "/ppt-scene-path", // 动态 PPT 所在 ScenePath
-        title: "app2" // 可选
-        scenes: [], // SceneDefinition[] 动态 Scene 数据
+        title: "test.mp3" // 可选
     },
+    attributes: {
+        src: "xxxx" // 音视频 url
+    }
 });
 ```
 

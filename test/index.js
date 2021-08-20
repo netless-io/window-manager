@@ -65,11 +65,11 @@ sdk.joinRoom({
     useMultiViews: true
 }).then(async room => {
     window.room = room;
-    room.setScenePath("/init")
+    // room.setScenePath("/init")
 
     const manager = await WindowManager.mount(room, continaer, undefined, { debug: true });
-    window.manager = manager;
 
+    window.manager = manager;
     manager.onAppDestroy(Manager.BuildinApps.StaticDocsViewer, (error) => {
         console.log("onAppDestroy", error)
     })
@@ -120,13 +120,19 @@ sdk.joinRoom({
     });
 
     button4.addEventListener("click", () => {
-        room.insertPlugin("video.js", {
-            originX: -300 / 2,
-            originY: -200 / 2,
-            width: 300,
-            height: 200,
-            attributes: { src: "https://flat-storage.oss-accelerate.aliyuncs.com/cloud-storage/b7333e1f-e945-4aec-8346-cfe33b82a7ce.mp4" },
-        });
+        manager.addApp({
+            kind: Manager.BuildinApps.MediaPlayer,
+            attributes: {
+                src: "https://flat-storage.oss-accelerate.aliyuncs.com/cloud-storage/b7333e1f-e945-4aec-8346-cfe33b82a7ce.mp4"
+            }
+        })
+        // room.insertPlugin("video.js", {
+        //     originX: -300 / 2,
+        //     originY: -200 / 2,
+        //     width: 300,
+        //     height: 200,
+        //     attributes: {  },
+        // });
     })
 })
 
