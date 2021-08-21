@@ -17,7 +17,7 @@ export default defineConfig(({ command, mode }) => {
                 fileName: "index"
             },
             outDir: "dist",
-            sourcemap: false,
+            sourcemap: true,
             rollupOptions: {
                 external: Object.keys({
                     ...dependencies,

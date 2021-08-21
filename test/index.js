@@ -1,5 +1,5 @@
 import { WhiteWebSdk, createPlugins } from "white-web-sdk";
-import { WindowManager } from "../dist/index.es";
+import { WindowManager, BuildinApps } from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
@@ -54,10 +54,8 @@ const sdk = new WhiteWebSdk({
     plugins
 });
 
-// const { WindowManager } = Manager;
 window.WindowManager = WindowManager;
-// WindowManager.register(PPT);
-// window.Manager = Manager;
+
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
     roomToken: process.env.ROOM_TOKEN,
@@ -70,13 +68,13 @@ sdk.joinRoom({
     const manager = await WindowManager.mount(room, continaer, undefined, { debug: true });
 
     window.manager = manager;
-    manager.onAppDestroy(Manager.BuildinApps.StaticDocsViewer, (error) => {
+    manager.onAppDestroy(BuildinApps.DocsViewer, (error) => {
         console.log("onAppDestroy", error)
     })
 
     button2.addEventListener("click", () => {
         manager.addApp({
-            kind: Manager.BuildinApps.DocsViewer,
+            kind: BuildinApps.DocsViewer,
             options: {
                 scenePath: "/test4",
                 title: "ppt1",
@@ -110,7 +108,7 @@ sdk.joinRoom({
         // });
 
         manager.addApp({
-            kind: Manager.BuildinApps.DocsViewer,
+            kind: BuildinApps.DocsViewer,
             options: {
                 scenePath: "/6b19cb7000a111ecb299bb05d7b75708/a0455ff3-fa5b-46fc-bb65-493e14ae4666",
                 title: "ppt3",
@@ -134,7 +132,7 @@ sdk.joinRoom({
         //     attributes: {  },
         // });
         manager.addApp({
-            kind: Manager.BuildinApps.MediaPlayer,
+            kind: BuildinApps.MediaPlayer,
             attributes: {
                 src: "https://flat-storage.oss-cn-hangzhou.aliyuncs.com/cloud-storage/5c26682a-c950-43b2-b7a5-74def6c43dfb.mp4"
             }

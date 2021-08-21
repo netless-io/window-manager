@@ -17,7 +17,7 @@ import { Events, AppAttributes, AppEvents } from './constants';
 import { log } from './log';
 import { AppContext } from './AppContext';
 import { NetlessApp } from "./typings";
-import { loadApp } from './loader';
+// import { loadApp } from './loader'; TODO fix localforge import
 import { AppCreateError, AppNotRegisterError } from './error';
 import { isEqual } from "lodash-es";
 import { genAppId, setScenePath, setViewFocusScenePath } from './Common';
@@ -127,7 +127,8 @@ export class AppProxy {
                 throw new AppNotRegisterError(params.kind);
             }
         } else if (typeof params.src === "string") {
-            appImpl = await loadApp(params.kind, params.src);
+            // appImpl = await loadApp(params.kind, params.src);
+            throw new Error(`[WindowManager]: load remote script Not currently supported`);
         } else if (typeof params.src === "object") {
             appImpl = params.src;
         }
