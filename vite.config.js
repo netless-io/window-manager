@@ -12,7 +12,7 @@ export default defineConfig(({ command, mode }) => {
         build: {
             lib: {
                 entry: path.resolve(__dirname, "src/index.ts"),
-                formats: ["es", "cjs", "umd"],
+                formats: ["es","umd"], // TODO cjs 版本待修复
                 name: "WindowManager",
                 fileName: "index"
             },

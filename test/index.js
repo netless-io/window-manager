@@ -1,5 +1,5 @@
 import { WhiteWebSdk, createPlugins } from "white-web-sdk";
-import * as Manager from "../dist/index.es";
+import { WindowManager } from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
@@ -54,10 +54,10 @@ const sdk = new WhiteWebSdk({
     plugins
 });
 
-const { WindowManager } = Manager;
+// const { WindowManager } = Manager;
 window.WindowManager = WindowManager;
 // WindowManager.register(PPT);
-window.Manager = Manager;
+// window.Manager = Manager;
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
     roomToken: process.env.ROOM_TOKEN,

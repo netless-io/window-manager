@@ -38,20 +38,20 @@
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"
 
-"@netless/app-media-player@^0.1.0-alpha.0":
-  version "0.1.0-alpha.0"
-  resolved "https://registry.npmjs.org/@netless/app-media-player/-/app-media-player-0.1.0-alpha.0.tgz#4a50c8198211ddf6fc1d284b8c480926e2a1fbc3"
-  integrity sha512-U6ubldEL51Jzii8c3sLGP2NI0/87wJClKyFJxtTWKZVhlTjamQih8RwHV0mdPnKE5OHrBiMEE5ZzYCT0ypYkzw==
+"@netless/app-media-player@0.1.0-alpha.1":
+  version "0.1.0-alpha.1"
+  resolved "https://registry.npmjs.org/@netless/app-media-player/-/app-media-player-0.1.0-alpha.1.tgz#22c963a9fc3b55c2423b89aed5d95f9612a809b9"
+  integrity sha512-tgTx3LEX7ssQXF1l7lVQqCGpWpab0jI8KC4R0YzPIdtBSIvEe5OZfjAaa2u4sw5iQHdK+bEe+PKdV2jTwOe5ow==
 
 "@netless/canvas-polyfill@^0.0.4":
   version "0.0.4"
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@^0.1.6":
-  version "0.1.6"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.6.tgz#b0f9bef7fbf78a20fbc04f4d55bca35c99e2cf44"
-  integrity sha512-CFK1c/hYdqJqYFuaqrxguTeYHfsVA8T9ABs0jpkB6d97QjIZmol6eeT2Qx7n/c8A0JuP/wdLJb9A/QH7mHgj0Q==
+"@netless/telebox-insider@^0.1.8":
+  version "0.1.8"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.8.tgz#cce78b595e2e7324073a8d34cd634be6867dbb2e"
+  integrity sha512-R0HZLzlAYSCCI72FWEjX2m0TrGNnLpXVWok3D8xF4WQZ32HL42RDFMZV+3+kUs4nZ9ucemoxq/6fuovLaP4H0w==
   dependencies:
     eventemitter3 "^4.0.7"
     stylefire "^7.0.3"
@@ -2410,7 +2410,7 @@ vendors@^1.0.0:
   resolved "https://registry.npmjs.org/vendors/-/vendors-1.0.4.tgz#e2b800a53e7a29b93506c3cf41100d16c4c4ad8e"
   integrity sha512-/juG65kTL4Cy2su4P8HjtkTxk6VmJDiOPBufWniqQ6wknac6jNiXS9vU+hO3wgusiyqWlzTbVHi0dyJqRONg3w==
 
-"video.js@^6 || ^7", video.js@^7.14.3:
+video.js@>=7, "video.js@^6 || ^7":
   version "7.14.3"
   resolved "https://registry.npmjs.org/video.js/-/video.js-7.14.3.tgz#0b612c09a0a81ef9bce65c710e73291cb06dc32c"
   integrity sha512-6avCdSIfn5ss5NOgoQfY/xEfPNcz9DXSw+ZN80NwPguCdRd4VL4y40b/d7osYJwyCdF+YkvhqAW7dw4s0vBigg==
