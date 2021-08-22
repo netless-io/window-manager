@@ -98,7 +98,7 @@ const appId = await manager.addApp({
 
 ### 设置所有 `app` 的 `readonly`
 ```javascript
-manager.setReadonly(true) // 所有窗口变成 readonly 状态
+manager.setReadonly(true) // 所有窗口变成 readonly 状态
 manager.setReadonly(false) // 解锁设置的 readonly, 注意如果当前白板的 isWritable 为 false 以白板的状态为最高优先级
 ```
 
