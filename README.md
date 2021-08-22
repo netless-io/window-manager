@@ -59,7 +59,6 @@ sdk.joinRoom({
     const manager = await WindowManager.mount(
         room, // 房间实例
         continaer, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
-        "/init", // 指定下面主白板的 path
         collector, // 可选, 用于多窗口最小化挂载的 dom
         { debug: true } // 可选, 调试用
     );

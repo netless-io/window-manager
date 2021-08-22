@@ -148,7 +148,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static async mount(
         room: Room,
         continaer: HTMLElement,
-        mainViewPath: string,
         collector?: HTMLElement,
         options?: { debug: boolean }
     ): Promise<WindowManager> {
@@ -165,7 +164,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         this.debug = Boolean(options?.debug);
         const { mainViewElement } = setupWrapper(continaer);
-        manager.appManager = new AppManager(manager, mainViewPath, collector);
+        manager.appManager = new AppManager(manager, collector);
         manager.bindMainView(mainViewElement);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
@@ -429,7 +428,7 @@ export class AppManager {
     private appListeners: AppListeners;
     private attributesDisposer: any;
 
-    constructor(public windowManger: WindowManager, mainViewPath: string, collector?: HTMLElement) {
+    constructor(public windowManger: WindowManager, collector?: HTMLElement) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
         this.viewManager = new ViewManager(
@@ -454,8 +453,6 @@ export class AppManager {
             this.displayerWritableListener
         );
         this.appListeners.addListeners();
-
-        this.safeSetAttributes({ _mainScenePath: mainViewPath });
 
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);

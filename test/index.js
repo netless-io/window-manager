@@ -68,7 +68,6 @@ sdk.joinRoom({
     const manager = await WindowManager.mount(
         room,
         continaer,
-        "/init", 
         undefined, 
         { debug: true });
 
