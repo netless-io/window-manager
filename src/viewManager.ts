@@ -27,7 +27,7 @@ export class ViewManager {
         const mainView = this.displayer.views.createView();
         this.cameraStore.setCamera("mainView", mainView.camera);
         mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager.updateManagerRect());
-        setViewMode(mainView, ViewVisionMode.Writable);
+        this.switchMainViewModeToWriter();
         return mainView;
     }
 

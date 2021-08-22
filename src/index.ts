@@ -338,12 +338,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public destroy() {
         this._destroy();
-        super.destroy();
     }
 
     private _destroy() {
         this.appManager?.destroy();
         WindowManager.isCreated = false;
+        log("Destroyed");
     }
 
     private bindMainView(divElement: HTMLDivElement) {
@@ -509,7 +509,7 @@ export class AppManager {
     public async closeApp(appId: string) {
         const appProxy = this.appProxies.get(appId);
         if (appProxy) {
-            appProxy.destroy(true);
+            appProxy.destroy(true, true);
         }
     }
 
@@ -590,19 +590,16 @@ export class AppManager {
     public setMainViewScenePath(scenePath: string) {
         if (this.room) {
             this.safeSetAttributes({ _mainScenePath: scenePath });
-            // this.viewManager.switchMainViewToWriter();
-            setScenePath(this.room, scenePath);
+            this.viewSwitcher.freedomAllViews();
+            this.viewManager.switchMainViewToWriter();
         }
     }
 
     public setMainViewSceneIndex(index: number) {
         if (this.room) {
-            const mainViewScenePath = this.delegate.getMainViewScenePath();
-            if (mainViewScenePath) {
-                setScenePath(this.room, mainViewScenePath);
-            }
             this.safeSetAttributes({ _mainSceneIndex: index });
-            // this.viewManager.switchMainViewToWriter();
+            this.viewSwitcher.freedomAllViews();
+            this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);
         }
     }
@@ -707,19 +704,10 @@ export class AppManager {
                 });
                 const appProxy = this.appProxies.get(payload.appId);
                 if (appProxy) {
-                    appProxy.destroy(false, payload.error);
-                }
-                // this.viewManager.switchWritableAppToFreedom();
-                const mainViewScenePath = this.delegate.getMainViewScenePath();
-                if (mainViewScenePath) {
-                    setViewFocusScenePath(this.mainView, mainViewScenePath);
+                    appProxy.destroy(false, true, payload.error);
                 }
                 setTimeout(() => { // view release 完成不能立马切, 可能会报错
-                    // this.viewManager.switchMainViewToWriter();
-                    const mainViewScenePath = this.delegate.getMainViewScenePath();
-                    if (mainViewScenePath) {
-                        setScenePath(this.room, mainViewScenePath);
-                    }
+                    this.viewSwitcher.refreshViews();
                 }, 100);
                 break;
             }
@@ -755,11 +743,10 @@ export class AppManager {
         this.attributesDisposer();
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
-                appProxy.destroy(true);
+                appProxy.destroy(true, false);
             });
         }
         this.viewManager.destroy();
-        this.delegate.cleanAttributes();
         userEmitter.clearListeners();
     }
 }

@@ -163,13 +163,17 @@ export class AppProxy {
 
     public switchToWritable() {
         if (this.view) {
-            if (this.view.mode === ViewVisionMode.Writable) return;
-            if (this.manager.mainView.mode === ViewVisionMode.Writable) {
-                this.manager.delegate.setMainViewFocusPath();
-                setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
+            try {
+                if (this.view.mode === ViewVisionMode.Writable) return;
+                if (this.manager.mainView.mode === ViewVisionMode.Writable) {
+                    this.manager.delegate.setMainViewFocusPath();
+                    setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
+                }
+                setViewMode(this.view, ViewVisionMode.Writable);
+                userEmitter.emit("mainViewModeChange", ViewVisionMode.Freedom);
+            } catch (error) {
+                log("switch view faild", error);
             }
-            setViewMode(this.view, ViewVisionMode.Writable);
-            userEmitter.emit("mainViewModeChange", ViewVisionMode.Freedom);
         }
     }
 
@@ -306,7 +310,7 @@ export class AppProxy {
         this.manager.cameraStore.setCamera(this.id, camera);
     }
 
-    public destroy(needCloseBox: boolean, error?: Error) {
+    public destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
         this.appEmitter.emit("destroy", { error });
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}`, { error });
@@ -316,7 +320,9 @@ export class AppProxy {
         if (this.disposer) {
             this.disposer();
         }
-        this.manager.delegate.cleanAppAttributes(this.id);
+        if (cleanAttrs) {
+            this.manager.delegate.cleanAppAttributes(this.id);
+        }
         this.appProxies.delete(this.id);
         this.manager.cameraStore.deleteCamera(this.id);
         this.removeCameraListener();

@@ -119,7 +119,7 @@ export class AppListeners {
         this.boxManager.closeBox(payload.appId);
         const appProxy = this.manager.appProxies.get(payload.appId);
         if (appProxy) {
-            appProxy.destroy(true);
+            appProxy.destroy(true, true);
         }
     }
 
