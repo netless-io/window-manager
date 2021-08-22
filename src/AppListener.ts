@@ -1,6 +1,6 @@
 import { Event, ViewVisionMode } from "white-web-sdk";
 import { TeleBox, TELE_BOX_STATE } from "@netless/telebox-insider";
-import { Events } from "./constants";
+import { Events, MagixEventName } from "./constants";
 import { ViewManager } from "./ViewManager";
 import { AppProxy } from "./AppProxy";
 import { AppManager } from "./index";
@@ -16,107 +16,127 @@ export class AppListeners {
     }
 
     public addListeners() {
-        this.displayer.addMagixEventListener(Events.AppMove, this.appMoveListener);
-        this.displayer.addMagixEventListener(Events.AppResize, this.appResizeListener);
-        this.displayer.addMagixEventListener(Events.AppFocus, this.appFocusListener);
-        this.displayer.addMagixEventListener(Events.AppBlur, this.appBlurListener);
-        this.displayer.addMagixEventListener(Events.AppBoxStateChange, this.appBoxStateListener);
-        this.displayer.addMagixEventListener(Events.AppSnapshot, this.appSnapshotListener);
-        this.displayer.addMagixEventListener(Events.AppClose, this.appCloseListener);
-        this.displayer.addMagixEventListener(Events.SetMainViewScenePath, this.setScenePathListener);
-        this.displayer.addMagixEventListener(Events.SetMainViewSceneIndex, this.setSceneIndexListener);
-        this.displayer.addMagixEventListener(Events.MainViewFocus, (event) => {
-            if (event.authorId !== this.displayer.observerId) {
-                setTimeout(() => {
-                    this.manager.viewSwitcher.refreshViews();
-                }, 100);
-            }
-        });
+        this.displayer.addMagixEventListener(MagixEventName, this.mainMagixEventListener);
     }
 
     public removeListeners() {
-        this.displayer.removeMagixEventListener(Events.AppMove, this.appMoveListener);
-        this.displayer.removeMagixEventListener(Events.AppResize, this.appResizeListener);
-        this.displayer.removeMagixEventListener(Events.AppFocus, this.appFocusListener);
-        this.displayer.removeMagixEventListener(Events.AppBlur, this.appBlurListener);
-        this.displayer.removeMagixEventListener(Events.AppBoxStateChange, this.appBoxStateListener);
-        this.displayer.removeMagixEventListener(Events.AppSnapshot, this.appSnapshotListener);
-        this.displayer.removeMagixEventListener(Events.AppClose, this.appCloseListener);
-        this.displayer.removeMagixEventListener(Events.SetMainViewScenePath, this.setScenePathListener);
-        this.displayer.removeMagixEventListener(Events.SetMainViewSceneIndex, this.setSceneIndexListener);
+        this.displayer.removeMagixEventListener(MagixEventName, this.mainMagixEventListener);
     }
 
-    private appMoveListener = (event: Event) => {
+    private mainMagixEventListener = (event: Event) => {
         if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.moveBox(event.payload);
-        }
-    }
-
-    private appFocusListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.focusBox(event.payload);
-            setTimeout(() => {
-                this.manager.viewSwitcher.refreshViews();
-            }, 50);
-        }
-    }
-
-    private appResizeListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.resizeBox(event.payload);
-            this.manager.room?.refreshViewSize();
-        }
-    }
-
-    private appBlurListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            const proxy = this.appProxies.get(event.payload.appId);
-            if (proxy) {
-                proxy.appEmitter.emit("writableChange", false);
-                if (proxy.view?.mode === ViewVisionMode.Writable) {
-                    this.viewManager.switchWritableAppToFreedom();
+            const data = event.payload;
+            switch (data.eventName) {
+                case Events.AppMove: {
+                    this.appMoveHandler(data.payload)
+                    break;
                 }
+                case Events.AppFocus: {
+                    this.appFocusHandler(data.payload);
+                    break;
+                }
+                case Events.AppResize: {
+                    this.appResizeHandler(data.payload);
+                    break;
+                }
+                case Events.AppBlur: {
+                    this.appBlurHandler(data.payload);
+                    break;
+                }
+                case Events.AppBoxStateChange: {
+                    this.appBoxStateHandler(data.payload);
+                    break;
+                }
+                case Events.AppSnapshot: {
+                    this.appSnapshotHandler(data.payload);
+                    break;
+                }
+                case Events.AppClose: {
+                    this.appCloseHandler(data.payload);
+                    break;
+                }
+                case Events.SetMainViewScenePath: {
+                    this.setScenePathHandler(data.payload);
+                    break;
+                }
+                case Events.SetMainViewSceneIndex: {
+                    this.setSceneIndexHandler(data.payload);
+                    break;
+                }
+                case Events.MainViewFocus: {
+                    this.mainViewFocusHandler(data.payload);
+                    break;
+                }
+                case Events.SwitchViewsToFreedom: {
+                    this.switchViewsToFreedomHandler();
+                    break;
+                }
+                default:
+                    break;
             }
         }
     }
 
-    private appBoxStateListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.setBoxState(event.payload.state);
-            if (event.payload === TELE_BOX_STATE.Minimized) {
-                this.viewManager.switchMainViewToWriter();
+    private appMoveHandler = (payload: any) => {
+        this.boxManager.moveBox(payload);
+    }
+
+    private appFocusHandler = (payload: any) => {
+        this.boxManager.focusBox(payload);
+        this.manager.viewSwitcher.refreshViews();
+    }
+
+    private appResizeHandler = (payload: any) => {
+        this.boxManager.resizeBox(payload);
+        this.manager.room?.refreshViewSize();
+    }
+
+    private appBlurHandler = (payload: any) => {
+        const proxy = this.appProxies.get(payload.appId);
+        if (proxy) {
+            proxy.appEmitter.emit("writableChange", false);
+            if (proxy.view?.mode === ViewVisionMode.Writable) {
+                // this.viewManager.switchWritableAppToFreedom();
             }
         }
     }
 
-    private appSnapshotListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            const box = this.boxManager.getBox(event.payload.appId) as TeleBox;
-            if (box) {
-                box.setSnapshot(event.payload.rect);
-            }
+    private appBoxStateHandler = (payload: any) => {
+        this.boxManager.setBoxState(payload.state);
+        if (payload.state === TELE_BOX_STATE.Minimized) {
+            // this.viewManager.switchMainViewToWriter();
         }
     }
 
-    private appCloseListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.boxManager.closeBox(event.payload.appId);
-            const appProxy = this.manager.appProxies.get(event.payload.appId);
-            if (appProxy) {
-                appProxy.destroy(true);
-            }
+    private appSnapshotHandler = (payload: any) => {
+        const box = this.boxManager.getBox(payload.appId) as TeleBox;
+        if (box) {
+            box.setSnapshot(payload.rect);
         }
     }
 
-    private setScenePathListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.manager.windowManger.setMainViewScenePath(event.payload.scenePath);
+    private appCloseHandler = (payload: any) => {
+        this.boxManager.closeBox(payload.appId);
+        const appProxy = this.manager.appProxies.get(payload.appId);
+        if (appProxy) {
+            appProxy.destroy(true);
         }
     }
 
-    private setSceneIndexListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            this.manager.windowManger.setMainViewSceneIndex(event.payload.index);
-        }
+    private setScenePathHandler = (payload: any) => {
+        this.manager.windowManger.setMainViewScenePath(payload.scenePath);
+    }
+
+    private setSceneIndexHandler = (payload: any) => {
+        this.manager.windowManger.setMainViewSceneIndex(payload.index);
+    }
+
+    private mainViewFocusHandler = (payload: any) => {
+        this.manager.boxManager.blurFocusBox();
+        this.manager.viewSwitcher.freedomAllViews();
+    }
+
+    private switchViewsToFreedomHandler = () => {
+        this.manager.viewSwitcher.freedomAllViews();
     }
 }

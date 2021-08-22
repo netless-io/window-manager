@@ -65,11 +65,20 @@ sdk.joinRoom({
     window.room = room;
     // room.setScenePath("/init")
 
-    const manager = await WindowManager.mount(room, continaer, undefined, { debug: true });
+    const manager = await WindowManager.mount(
+        room,
+        continaer,
+        "/init", 
+        undefined, 
+        { debug: true });
 
     window.manager = manager;
     manager.onAppDestroy(BuildinApps.DocsViewer, (error) => {
         console.log("onAppDestroy", error)
+    });
+
+    manager.onMainViewModeChange(mode => {
+        console.log("onMainViewModeChange", mode);
     })
 
     button2.addEventListener("click", () => {

@@ -14,7 +14,10 @@ export enum Events {
     SetMainViewScenePath = "SetMainViewScenePath",
     SetMainViewSceneIndex = "SetMainViewSceneIndex",
     MainViewFocus = "MainViewFocus",
+    SwitchViewsToFreedom = "SwitchViewsToFreedom",
 }
+
+export const MagixEventName = "__WindowManger";
 
 export enum AppAttributes {
     Size = "size",
@@ -37,3 +40,5 @@ export const REQUIRE_VERSION = "2.13.16";
 
 export const MIN_WIDTH = 340 / 720;
 export const MIN_HEIGHT = 340 / 720;
+
+export const SET_SCENEPATH_DELAY = 100; // 设置 sceenPath 的延迟事件

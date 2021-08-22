@@ -1,15 +1,14 @@
 import { get } from "lodash-es";
 import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewVisionMode } from "white-web-sdk";
-import { AppManager, WindowManager } from "./index";
+import { AppManager, emitter, userEmitter, WindowManager } from "./index";
 import { log } from "./log";
 import { CameraStore } from "./CameraStore";
-import { Events } from "./constants";
-import {  setScenePath, setViewFocusScenePath } from "./Common";
+import { Events, MagixEventName, SET_SCENEPATH_DELAY } from "./constants";
+import {  setScenePath, setViewFocusScenePath, setViewMode } from "./Common";
 
 export class ViewManager {
     public mainView: View;
     private views: Map<string, View> = new Map();
-    private viewListeners: Map<string, any> = new Map();
     private mainViewIsAddListener = false;
 
     constructor(
@@ -17,6 +16,7 @@ export class ViewManager {
         private manager: AppManager,
         private cameraStore: CameraStore) {
         this.mainView = this.createMainView();
+        this.addMainViewCameraListener();
     }
 
     public get currentScenePath() {
@@ -26,16 +26,15 @@ export class ViewManager {
     public createMainView(): View {
         const mainView = this.displayer.views.createView();
         this.cameraStore.setCamera("mainView", mainView.camera);
-        mainView.callbacks.on("onCameraUpdated", this.cameraListener("mainView"));
         mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager.updateManagerRect());
-        this.setViewMode(mainView, ViewVisionMode.Writable);
+        setViewMode(mainView, ViewVisionMode.Writable);
         return mainView;
     }
 
     public createView(appId: string): View {
         const view = this.displayer.views.createView();
         this.cameraStore.setCamera(appId, view.camera);
-        this.setViewMode(view, ViewVisionMode.Freedom);
+        setViewMode(view, ViewVisionMode.Freedom);
         this.views.set(appId, view);
         return view;
     }
@@ -52,85 +51,72 @@ export class ViewManager {
         return this.views.get(appId);
     }
 
-    public switchAppToFreedom(appId: string) {
-        const view = this.views.get(appId);
-        if (view) {
-            this.switchViewToFreedom(view);
-        }
+    private addMainViewCameraListener() {
+        this.mainView.callbacks.on("onCameraUpdated", this.mainViewCameraListener);
     }
 
-    public switchWritableAppToFreedom() {
-        this.manager.appProxies.forEach(appProxy => {
-            if (appProxy.view?.mode === ViewVisionMode.Writable) {
-                const fullPath = appProxy.getFullScenePath();
-                if (appProxy.view.focusScenePath !== fullPath && fullPath) {
-                    setViewFocusScenePath(appProxy.view, fullPath);
-                }
-                appProxy.view.mode = ViewVisionMode.Freedom;
-            }
-        });
+    private removeMainViewCameraListener() {
+        this.mainView.callbacks.off("onCameraUpdated", this.mainViewCameraListener);
     }
 
     public switchMainViewToFreedom() {
-        this.switchViewToFreedom(this.mainView);
+        this.manager.delegate.setMainViewFocusPath();
+        setViewMode(this.mainView, ViewVisionMode.Freedom);
     }
 
-    private switchViewToFreedom(view: View) {
-        if (!view.focusScenePath) {
-            setViewFocusScenePath(view, this.currentScenePath);
-        }
-        this.setViewMode(view, ViewVisionMode.Freedom);
-    }
-
-    public switchMainViewToWriter() {
+    public switchMainViewModeToWriter() {
         if (!this.manager.canOperate) return;
         if (this.mainView) {
             if (this.mainView.mode === ViewVisionMode.Writable) return;
-            const camera = this.cameraStore.getCamera("mainView");
-            this.setViewMode(this.mainView, ViewVisionMode.Writable);
-            if (camera) {
-                this.mainView.moveCamera({ ...camera, animationMode: AnimationMode.Immediately });
-            }
+            setViewMode(this.mainView, ViewVisionMode.Writable);
+            userEmitter.emit("mainViewModeChange", ViewVisionMode.Writable);
         }
     }
 
     public addMainViewListener() {
         if (this.mainViewIsAddListener) return;
         if (this.mainView.divElement) {
-            this.mainView.divElement.addEventListener("click", this.manViewClickListener);
-            this.mainView.divElement.addEventListener("touchend", this.manViewClickListener);
+            this.mainView.divElement.addEventListener("click", this.mainViewClickListener);
+            this.mainView.divElement.addEventListener("touchend", this.mainViewClickListener);
             this.mainViewIsAddListener = true;
         }
     }
 
     public removeMainViewListener() {
         if (this.mainView.divElement) {
-            this.mainView.divElement.removeEventListener("click", this.manViewClickListener);
-            this.mainView.divElement.removeEventListener("touchend", this.manViewClickListener);
+            this.mainView.divElement.removeEventListener("click", this.mainViewClickListener);
+            this.mainView.divElement.removeEventListener("touchend", this.mainViewClickListener);
         }
     }
 
-    private manViewClickListener = () => {
-        this.manViewClickHandler();
+    private mainViewClickListener = () => {
+        this.mainViewClickHandler();
     }
 
-    private manViewClickHandler() {
+    public mainViewClickHandler() {
         this.manager.delegate.cleanFocus();
+        this.manager.viewSwitcher.freedomAllViews();
+        this.manager.dispatchIntenalEvent(Events.SwitchViewsToFreedom, {});
+        this.manager.dispatchIntenalEvent(Events.MainViewFocus, {});
         this.manager.boxManager.blurFocusBox();
-        this.manager.viewSwitcher.refreshViews();
-        this.manager.safeDispatchMagixEvent(Events.MainViewFocus, {});
+        this.manager.viewManager.switchMainViewToWriter();
     }
 
-    public setViewMode(view: View, mode: ViewVisionMode) {
-        if (view.mode !== mode) {
-            view.mode = mode;
-        }
+    private mainViewCameraListener = (camera: Camera) => {
+        this.cameraStore.setCamera("mainView", camera);
     }
 
-    public cameraListener(id: string) {
-        return (camera: Camera) => {
-            this.cameraStore.setCamera(id, camera);
-        };
+    public switchMainViewToWriter() {
+        setTimeout(() => {
+            const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+            if (mainViewScenePath) {
+                this.removeMainViewCameraListener();
+                setScenePath(this.manager.room, mainViewScenePath);
+                this.switchMainViewModeToWriter();
+                this.manager.cameraStore.recoverCamera("mainView", this.mainView);
+                this.addMainViewCameraListener();
+            }
+        }, SET_SCENEPATH_DELAY);
     }
 
     public destroy() {

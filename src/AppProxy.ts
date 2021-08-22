@@ -11,7 +11,8 @@ import {
     setAppOptions,
     WindowManager,
     AppManager,
-    BaseInsertParams
+    BaseInsertParams,
+    userEmitter
 } from './index';
 import { Events, AppAttributes, AppEvents } from './constants';
 import { log } from './log';
@@ -20,7 +21,7 @@ import { NetlessApp } from "./typings";
 // import { loadApp } from './loader'; TODO fix localforge import
 import { AppCreateError, AppNotRegisterError } from './error';
 import { isEqual } from "lodash-es";
-import { genAppId, setScenePath, setViewFocusScenePath } from './Common';
+import { genAppId, setScenePath, setViewFocusScenePath, setViewMode } from './Common';
 
 
 export class AppProxy {
@@ -57,8 +58,10 @@ export class AppProxy {
                 this.scenes = options.scenes;
             }
         }
-        this.createView();
-        this.addCameraListener();
+        if (this.params.options?.scenePath) { // 只有传入了 scenePath 的 App 才会创建 View
+            this.createView();
+            this.addCameraListener();
+        }
     }
 
     public get sceneIndex() {
@@ -101,6 +104,7 @@ export class AppProxy {
             this.boxManager.updateManagerRect();
             if (focus) {
                 this.focusBox();
+                this.manager.viewSwitcher.switchAppToWriter(this.id);
             }
             return {
                 appId: this.id, app: appImpl
@@ -146,12 +150,11 @@ export class AppProxy {
                 this.appAttributesUpdateListener(appId);
                 await app.setup(context);
                 if (boxInitState?.focus) {
-                    this.switchToWritable();
-                    this.setScenePath();
+                    this.manager.viewSwitcher.switchAppToWriter(this.id);
                 }
             });
             this.boxManager.createBox({
-                appId: appId, app, options
+                appId: appId, app, options, canOperate: this.manager.canOperate
             });
         } catch (error) {
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
@@ -161,15 +164,14 @@ export class AppProxy {
     public switchToWritable() {
         if (this.view) {
             if (this.view.mode === ViewVisionMode.Writable) return;
-            this.viewManager.switchWritableAppToFreedom();
             if (this.manager.mainView.mode === ViewVisionMode.Writable) {
                 this.manager.delegate.setMainViewFocusPath();
-                this.manager.mainView.mode = ViewVisionMode.Freedom
+                setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
             }
-            this.view.mode = ViewVisionMode.Writable;
+            setViewMode(this.view, ViewVisionMode.Writable);
+            userEmitter.emit("mainViewModeChange", ViewVisionMode.Freedom);
         }
     }
-
 
     public getAppInitState = (id: string) => {
         const attrs = this.manager.delegate.getAppState(id);
@@ -198,24 +200,6 @@ export class AppProxy {
         }
         emitter.emit(Events.InitReplay, payload);
         return payload;
-    }
-
-    public destroy(needCloseBox: boolean, error?: Error) {
-        this.appEmitter.emit("destroy", { error });
-        this.appEmitter.clearListeners();
-        emitter.emit(`destroy-${this.id}`, { error });
-        if (needCloseBox) {
-            this.boxManager.closeBox(this.id);
-        }
-        if (this.disposer) {
-            this.disposer();
-        }
-        this.manager.delegate.cleanAppAttributes(this.id);
-        this.appProxies.delete(this.id);
-        this.manager.cameraStore.deleteCamera(this.id);
-        this.removeCameraListener();
-        this.manager.viewManager.destoryView(this.id);
-        this.manager.appStatus.delete(this.id);
     }
 
     public emitAppSceneStateChange(sceneState: SceneState) {
@@ -276,13 +260,7 @@ export class AppProxy {
     }
 
     public recoverCamera() {
-        const camera = this.manager.cameraStore.getCamera(this.id);
-        if (camera && this.view) {
-            this.view?.moveCamera({
-                ...camera,
-                animationMode: AnimationMode.Immediately
-            });
-        }
+        this.manager.cameraStore.recoverCamera(this.id, this.view);
     }
 
     public setScenePath() {
@@ -297,8 +275,15 @@ export class AppProxy {
             const scenePath = this.getFullScenePath();
             if (scenePath) {
                 setViewFocusScenePath(this.view, scenePath);
-                this.view.mode = ViewVisionMode.Freedom;
+                setViewMode(this.view, ViewVisionMode.Freedom);
             }
+        }
+    }
+
+    public setViewFocusScenePath() {
+        const fullPath = this.getFullScenePath();
+        if (fullPath && this.view) {
+            setViewFocusScenePath(this.view, fullPath);
         }
     }
 
@@ -313,10 +298,7 @@ export class AppProxy {
     private createView(): View {
         const view = this.viewManager.createView(this.id);
         this.viewManager.addMainViewListener();
-        const fullPath = this.getFullScenePath();
-        if (fullPath) {
-            setViewFocusScenePath(view, fullPath);
-        }
+        this.setViewFocusScenePath();
         return view;
     }
 
@@ -324,4 +306,21 @@ export class AppProxy {
         this.manager.cameraStore.setCamera(this.id, camera);
     }
 
+    public destroy(needCloseBox: boolean, error?: Error) {
+        this.appEmitter.emit("destroy", { error });
+        this.appEmitter.clearListeners();
+        emitter.emit(`destroy-${this.id}`, { error });
+        if (needCloseBox) {
+            this.boxManager.closeBox(this.id);
+        }
+        if (this.disposer) {
+            this.disposer();
+        }
+        this.manager.delegate.cleanAppAttributes(this.id);
+        this.appProxies.delete(this.id);
+        this.manager.cameraStore.deleteCamera(this.id);
+        this.removeCameraListener();
+        this.manager.viewManager.destoryView(this.id);
+        this.manager.appStatus.delete(this.id);
+    }
 }

@@ -1,8 +1,15 @@
+import AppDocsViewer from '@netless/app-docs-viewer';
+import AppMediaPlayer from '@netless/app-media-player';
 import Emittery from 'emittery';
-import { NetlessApp } from './typings';
-import { AppCreateError, AppManagerNotInitError, ParamsInvalidError, WhiteWebSDKInvalidError } from './error';
+import {
+    AppCreateError,
+    AppManagerNotInitError,
+    ParamsInvalidError,
+    WhiteWebSDKInvalidError
+} from './error';
 import { AppListeners } from './AppListener';
 import { AppProxy } from './AppProxy';
+import { AttributesDelegate } from './AttributesDelegate';
 import {
     autorun,
     CameraBound,
@@ -14,15 +21,17 @@ import {
     InvisiblePluginContext,
     isRoom,
     Room,
+    SceneDefinition,
     View,
     ViewVisionMode,
-    SceneDefinition,
     WhiteVersion
 } from 'white-web-sdk';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
-import { log } from './log';
 import { CameraStore } from './CameraStore';
+import { log } from './log';
+import { NetlessApp } from './typings';
 import { setupWrapper, ViewManager } from './ViewManager';
+import { ViewSwitcher } from './ViewSwitcher';
 import './style.css';
 import '@netless/telebox-insider/dist/style.css';
 import {
@@ -31,13 +40,9 @@ import {
     AppEvents,
     REQUIRE_VERSION,
     AppStatus,
+    MagixEventName,
 } from "./constants";
-import { AttributesDelegate } from './AttributesDelegate';
-import AppDocsViewer from "@netless/app-docs-viewer";
-import AppMediaPlayer from "@netless/app-media-player";
-import { ViewSwitcher } from './ViewSwitcher';
 import { genAppId, setScenePath, setViewFocusScenePath, } from './Common';
-
 
 export const BuildinApps = {
     DocsViewer: AppDocsViewer.kind as string,
@@ -103,7 +108,14 @@ export type AppInitState = {
     sceneIndex?: number,
 }
 
-export const emitter: Emittery = new Emittery();
+export const emitter: Emittery<{
+    onCreated: undefined;
+    [key: string]: any
+}> = new Emittery();
+
+export const userEmitter: Emittery<{
+    mainViewModeChange: ViewVisionMode;
+}> = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
@@ -116,6 +128,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static appClasses: Map<string, NetlessApp> = new Map();
 
     private appManager?: AppManager;
+    public readonly?: boolean;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -132,7 +145,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @returns {Promise<WindowManager>}
      * @memberof WindowManager
      */
-    public static async mount(room: Room, continaer: HTMLElement, collector?: HTMLElement, options?: { debug: boolean }): Promise<WindowManager> {
+    public static async mount(
+        room: Room,
+        continaer: HTMLElement,
+        mainViewPath: string,
+        collector?: HTMLElement,
+        options?: { debug: boolean }
+    ): Promise<WindowManager> {
         this.checkVersion();
         if (!continaer) {
             throw new Error("[WindowManager]: Continaer must provide");
@@ -146,7 +165,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         this.debug = Boolean(options?.debug);
         const { mainViewElement } = setupWrapper(continaer);
-        manager.appManager = new AppManager(manager, collector);
+        manager.appManager = new AppManager(manager, mainViewPath, collector);
         manager.bindMainView(mainViewElement);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
@@ -237,7 +256,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setMainViewScenePath(scenePath: string) {
         if (this.appManager) {
             this.appManager.setMainViewScenePath(scenePath);
-            this.safeDispatchMagixEvent(Events.SetMainViewScenePath, { scenePath });
+            this.appManager.dispatchIntenalEvent(Events.SetMainViewScenePath, { scenePath })
         }
     }
 
@@ -250,7 +269,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setMainViewSceneIndex(index: number) {
         if (this.appManager) {
             this.appManager.setMainViewSceneIndex(index);
-            this.safeDispatchMagixEvent(Events.SetMainViewSceneIndex, { index });
+            this.appManager.dispatchIntenalEvent(Events.SetMainViewSceneIndex, { index });
         }
     }
 
@@ -264,15 +283,26 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.delegate.getMainViewScenePath();
     }
 
-    
+
     /**
      * 返回 mainView 的 SceneIndex
      * 
      * @returns {number} sceneIndex
      * @memberof WindowManager
      */
-    public getMianViewSceneIndex(): number {
+    public getMainViewSceneIndex(): number {
         return this.appManager?.delegate.getMainViewSceneIndex();
+    }
+
+    public onMainViewModeChange(listener: (mode: ViewVisionMode) => void) {
+        userEmitter.on("mainViewModeChange", listener);
+    }
+
+    public setReadonly(readonly: boolean) {
+        if (this.room?.isWritable) {
+            this.readonly = readonly;
+            this.appManager?.boxManager.teleBoxManager.setReadonly(readonly);
+        }
     }
 
     /**
@@ -281,7 +311,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @memberof WindowManager
      */
     public switchMainViewToWriter() {
-        this.appManager?.viewManager.switchMainViewToWriter();
+        this.appManager?.viewManager.mainViewClickHandler();
     }
 
     /**
@@ -399,7 +429,7 @@ export class AppManager {
     private appListeners: AppListeners;
     private attributesDisposer: any;
 
-    constructor(public windowManger: WindowManager, collector?: HTMLElement) {
+    constructor(public windowManger: WindowManager, mainViewPath: string, collector?: HTMLElement) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
         this.viewManager = new ViewManager(
@@ -424,6 +454,8 @@ export class AppManager {
             this.displayerWritableListener
         );
         this.appListeners.addListeners();
+
+        this.safeSetAttributes({ _mainScenePath: mainViewPath });
 
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);
@@ -465,7 +497,7 @@ export class AppManager {
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
         log("addApp", params);
         try {
-            const appId = genAppId(params.kind, params.options?.scenePath);
+            const appId = genAppId(params.kind);
             this.appStatus.set(appId, AppStatus.StartCreate);
             this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
             this.safeSetAttributes({ [appId]: params.attributes || {} });
@@ -518,7 +550,11 @@ export class AppManager {
     };
 
     private displayerWritableListener = (isReadonly: boolean) => {
-        this.boxManager.teleBoxManager.setReadonly(isReadonly);
+        if (this.windowManger.readonly === undefined) {
+            this.boxManager.teleBoxManager.setReadonly(isReadonly);
+        } else if (this.windowManger.readonly === false && isReadonly === true) {
+            this.boxManager.teleBoxManager.setReadonly(isReadonly);
+        }
         this.appProxies.forEach((appProxy) => {
             appProxy.emitAppIsWritableChange(!isReadonly);
         });
@@ -557,7 +593,7 @@ export class AppManager {
     public setMainViewScenePath(scenePath: string) {
         if (this.room) {
             this.safeSetAttributes({ _mainScenePath: scenePath });
-            this.viewManager.switchMainViewToWriter();
+            // this.viewManager.switchMainViewToWriter();
             setScenePath(this.room, scenePath);
         }
     }
@@ -569,7 +605,7 @@ export class AppManager {
                 setScenePath(this.room, mainViewScenePath);
             }
             this.safeSetAttributes({ _mainSceneIndex: index });
-            this.viewManager.switchMainViewToWriter();
+            // this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);
         }
     }
@@ -587,10 +623,10 @@ export class AppManager {
         }
     }
 
-    private eventListener = (eventName: string, payload: any) => {
+    private eventListener = (eventName: string | number, payload: any) => {
         switch (eventName) {
             case "move": {
-                this.safeDispatchMagixEvent(Events.AppMove, payload);
+                this.safeDispatchMagixEvent(MagixEventName, { eventName: Events.AppMove, payload });
                 this.delegate.updateAppState(payload.appId, AppAttributes.Position, {
                     x: payload.x,
                     y: payload.y,
@@ -599,17 +635,17 @@ export class AppManager {
             }
             case "focus": {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                this.viewSwitcher.refreshViews();
-                this.safeDispatchMagixEvent(Events.AppFocus, payload);
+                this.viewSwitcher.switchAppToWriter(payload.appId);
+                this.dispatchIntenalEvent(Events.AppFocus, payload);
                 break;
             }
             case "blur": {
-                this.safeDispatchMagixEvent(Events.AppBlur, payload);
+                this.safeDispatchMagixEvent(MagixEventName, { eventName: Events.AppBlur, payload });
                 break;
             }
             case "resize": {
                 if (payload.width && payload.height) {
-                    this.safeDispatchMagixEvent(Events.AppResize, payload);
+                    this.safeDispatchMagixEvent(MagixEventName, { eventName: Events.AppResize, payload });
                     this.delegate.updateAppState(payload.appId, AppAttributes.Size, {
                         width: payload.width,
                         height: payload.height,
@@ -619,40 +655,48 @@ export class AppManager {
                 break;
             }
             case TELE_BOX_STATE.Minimized: {
-                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {
-                    ...payload,
-                    state: eventName,
+                this.safeDispatchMagixEvent(MagixEventName, {
+                    eventName: Events.AppBoxStateChange, payload: {
+                        ...payload,
+                        state: eventName,
+                    }
                 });
                 this.safeSetAttributes({ boxState: eventName });
-                this.viewManager.switchWritableAppToFreedom();
+                // this.viewManager.switchWritableAppToFreedom();
                 this.delegate.cleanFocus();
                 this.boxManager.blurFocusBox();
-                this.viewManager.switchMainViewToWriter();
+                // this.viewManager.switchMainViewToWriter();
                 const mainViewScenePath = this.delegate.getMainViewScenePath();
                 if (mainViewScenePath) {
                     setScenePath(this.room, mainViewScenePath);
                 }
-                this.safeDispatchMagixEvent(Events.MainViewFocus, {});
+                this.safeDispatchMagixEvent(MagixEventName, { eventName: Events.MainViewFocus });
                 break;
             }
             case TELE_BOX_STATE.Maximized: {
-                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {
-                    ...payload,
-                    state: eventName,
+                this.safeDispatchMagixEvent(MagixEventName, {
+                    eventName: Events.AppBoxStateChange, payload: {
+                        ...payload,
+                        state: eventName,
+                    }
                 });
                 this.safeSetAttributes({ boxState: eventName });
                 break;
             }
             case TELE_BOX_STATE.Normal: {
-                this.safeDispatchMagixEvent(Events.AppBoxStateChange, {
-                    ...payload,
-                    state: eventName,
+                this.safeDispatchMagixEvent(MagixEventName, {
+                    eventName: Events.AppBoxStateChange, payload: {
+                        ...payload,
+                        state: eventName,
+                    }
                 });
                 this.safeSetAttributes({ boxState: eventName });
                 break;
             }
             case "snapshot": {
-                this.safeDispatchMagixEvent(Events.AppSnapshot, payload);
+                this.safeDispatchMagixEvent(MagixEventName, {
+                    eventName: Events.AppSnapshot, payload
+                });
                 this.delegate.updateAppState(
                     payload.appId,
                     AppAttributes.SnapshotRect,
@@ -661,18 +705,20 @@ export class AppManager {
                 break;
             }
             case "close": {
-                this.safeDispatchMagixEvent(Events.AppClose, payload);
+                this.safeDispatchMagixEvent(MagixEventName, {
+                    eventName: Events.AppClose, payload
+                });
                 const appProxy = this.appProxies.get(payload.appId);
                 if (appProxy) {
                     appProxy.destroy(false, payload.error);
                 }
-                this.viewManager.switchWritableAppToFreedom();
+                // this.viewManager.switchWritableAppToFreedom();
                 const mainViewScenePath = this.delegate.getMainViewScenePath();
                 if (mainViewScenePath) {
                     setViewFocusScenePath(this.mainView, mainViewScenePath);
                 }
                 setTimeout(() => { // view release 完成不能立马切, 可能会报错
-                    this.viewManager.switchMainViewToWriter();
+                    // this.viewManager.switchMainViewToWriter();
                     const mainViewScenePath = this.delegate.getMainViewScenePath();
                     if (mainViewScenePath) {
                         setScenePath(this.room, mainViewScenePath);
@@ -694,6 +740,13 @@ export class AppManager {
         }
     }
 
+    public dispatchIntenalEvent(event: Events, payload: any) {
+        this.safeDispatchMagixEvent(MagixEventName, {
+            eventName: event,
+            payload: payload
+        });
+    }
+
     public destroy() {
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
         this.displayer.callbacks.off(
@@ -710,6 +763,7 @@ export class AppManager {
         }
         this.viewManager.destroy();
         this.delegate.cleanAttributes();
+        userEmitter.clearListeners();
     }
 }
 

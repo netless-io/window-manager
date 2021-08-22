@@ -98,7 +98,7 @@ export class AttributesDelegate {
     public setMainViewFocusPath() {
         const scenePath = this.getMainViewScenePath();
         if (scenePath) {
-            setViewFocusScenePath( this.manager.mainView, scenePath);
+            setViewFocusScenePath(this.manager.mainView, scenePath);
         }
     }
 }

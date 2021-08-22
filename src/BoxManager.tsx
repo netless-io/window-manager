@@ -25,7 +25,8 @@ export type CreateBoxParams = {
     app: NetlessApp,
     view?: View,
     emitter?: Emittery,
-    options?: AddAppOptions
+    options?: AddAppOptions,
+    canOperate?: boolean
 };
 
 type AppId = { appId: string };
@@ -66,9 +67,10 @@ export class BoxManager {
         }
 
         const createBoxConfig: {
-            title: string, width?: number, height?: number, minWidth?: number, minHeight?: number
+            title: string, width?: number, height?: number, minWidth?: number, minHeight?: number, readonly: boolean
         } = {
-            title, minWidth: minwidth, minHeight: minheight
+            title, minWidth: minwidth, minHeight: minheight, readonly: !params.canOperate
+            
         }
 
         if (width && width > 0) {
@@ -78,6 +80,7 @@ export class BoxManager {
         if (height && height > 0) {
             createBoxConfig.height = width;
         }
+
 
         const box = this.teleBoxManager.create(createBoxConfig);
 

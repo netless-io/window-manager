@@ -6,9 +6,9 @@ import { AppEmitterEvent, AppManager } from "./index";
 import { ViewManager } from "./ViewManager";
 import { setScenePath, setViewFocusScenePath } from "./Common";
 
-export class AppContext<T = any> {
+export class AppContext<TAttrs extends Record<string, any>> {
 
-    public readonly emitter: Emittery<AppEmitterEvent<T>>;
+    public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
     private viewManager: ViewManager;
     private boxManager: BoxManager;
     private delegate = this.manager.delegate;
@@ -16,7 +16,7 @@ export class AppContext<T = any> {
     constructor(
         private manager: AppManager,
         private appId: string,
-        appEmitter: Emittery<AppEmitterEvent<T>>) {
+        appEmitter: Emittery<AppEmitterEvent<TAttrs>>) {
         this.emitter = appEmitter;
         this.viewManager = this.manager.viewManager;
         this.boxManager = this.manager.boxManager;
@@ -26,7 +26,7 @@ export class AppContext<T = any> {
         return this.manager.displayer;
     }
 
-    public getAttributes(): T | undefined {
+    public getAttributes(): TAttrs | undefined {
         return this.manager.attributes[this.appId];
     }
 
@@ -62,7 +62,7 @@ export class AppContext<T = any> {
         return this.manager.room;
     }
 
-    public setAttributes(attributes: T) {
+    public setAttributes(attributes: TAttrs) {
         this.manager.safeSetAttributes({ [this.appId]: attributes });
     }
 

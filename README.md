@@ -59,6 +59,7 @@ sdk.joinRoom({
     const manager = await WindowManager.mount(
         room, // 房间实例
         continaer, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
+        "/init", // 指定下面主白板的 path
         collector, // 可选, 用于多窗口最小化挂载的 dom
         { debug: true } // 可选, 调试用
     );
@@ -93,6 +94,12 @@ const appId = await manager.addApp({
         src: "xxxx" // 音视频 url
     }
 });
+```
+
+### 设置所有 `app` 的 `readonly`
+```javascript
+manager.setReadonly(true) // 所有窗口变成 readonly 状态
+manager.setReadonly(false) // 解锁设置的 readonly, 注意如果当前白板的 isWritable 为 false 以白板的状态为最高优先级
 ```
 
 ### 切换 `mainView` 为可写状态
