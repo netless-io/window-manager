@@ -105,6 +105,7 @@ export class AppProxy {
             if (focus) {
                 this.focusBox();
                 this.manager.viewSwitcher.switchAppToWriter(this.id);
+                this.manager.delegate.setMainViewFocusPath();
             }
             return {
                 appId: this.id, app: appImpl

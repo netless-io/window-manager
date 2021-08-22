@@ -96,7 +96,7 @@ export class AppListeners {
         if (proxy) {
             proxy.appEmitter.emit("writableChange", false);
             if (proxy.view?.mode === ViewVisionMode.Writable) {
-                // this.viewManager.switchWritableAppToFreedom();
+                this.manager.viewSwitcher.refreshViews();
             }
         }
     }
@@ -104,7 +104,8 @@ export class AppListeners {
     private appBoxStateHandler = (payload: any) => {
         this.boxManager.setBoxState(payload.state);
         if (payload.state === TELE_BOX_STATE.Minimized) {
-            // this.viewManager.switchMainViewToWriter();
+            this.manager.viewSwitcher.refreshViews();
+            this.viewManager.switchMainViewToWriter();
         }
     }
 

@@ -3,6 +3,7 @@ import { Events, MagixEventName, SET_SCENEPATH_DELAY } from "./constants";
 import { AppManager, emitter } from "./index";
 import { setScenePath, setViewFocusScenePath } from "./Common";
 import { AppProxy } from "./AppProxy";
+import { TELE_BOX_STATE } from "@netless/telebox-insider";
 
 export class ViewSwitcher {
     private viewManager = this.manager.viewManager;
@@ -48,6 +49,9 @@ export class ViewSwitcher {
         this.manager.appProxies.forEach(appProxy => {
             appProxy.setViewFocusScenePath();
         });
+        if (!this.manager.viewManager.mainView.focusScenePath) {
+            this.manager.delegate.setMainViewFocusPath();
+        }
     }
 
     public switchAppToWriter(id: string) {
@@ -57,6 +61,10 @@ export class ViewSwitcher {
         setTimeout(() => {
             const appProxy = this.manager.appProxies.get(id);
             if (appProxy) {
+                const boxState = this.manager.delegate.getBoxState();
+                if (boxState && boxState === TELE_BOX_STATE.Minimized) {
+                    return;
+                }
                 appProxy.removeCameraListener();
                 appProxy.setScenePath();
                 appProxy.switchToWritable();

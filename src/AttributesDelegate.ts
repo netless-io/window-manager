@@ -94,11 +94,28 @@ export class AttributesDelegate {
         return this.manager.attributes["_mainSceneIndex"];
     }
 
-    // TODO 处理 index
+    public getBoxState() {
+        return this.manager.attributes[Fields.BoxState];
+    }
+
+    public setMainViewScenePath(scenePath: string) {
+        this.manager.safeSetAttributes({ _mainScenePath: scenePath });
+    }
+
+    public setMainViewSceneIndex(index: number) {
+        this.manager.safeSetAttributes({ _mainSceneIndex: index });
+    }
+
+    // TODO 状态中保存一个 SceneName 优化性能
     public setMainViewFocusPath() {
         const scenePath = this.getMainViewScenePath();
-        if (scenePath) {
-            setViewFocusScenePath(this.manager.mainView, scenePath);
+        const sceneIndex = this.getMainViewSceneIndex();
+        if (scenePath && sceneIndex !== undefined) {
+            const scenes = this.manager.displayer.entireScenes()[scenePath];
+            if (scenes) {
+                const sceneName = scenes[sceneIndex].name;
+                setViewFocusScenePath(this.manager.mainView, `${scenePath}/${sceneName}`);
+            }
         }
     }
 }

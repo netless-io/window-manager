@@ -24,7 +24,8 @@ import {
     SceneDefinition,
     View,
     ViewVisionMode,
-    WhiteVersion
+    WhiteVersion,
+    reaction
 } from 'white-web-sdk';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
 import { CameraStore } from './CameraStore';
@@ -353,10 +354,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             const scenePath = this.appManager.delegate.getMainViewScenePath();
             const sceneIndex = this.appManager.delegate.getMainViewSceneIndex();
             const sceneName = this.getSceneName(scenePath, sceneIndex);
-            if (scenePath) {
-                setViewFocusScenePath(mainView, sceneName ? scenePath + `/${sceneName}` : scenePath);
+            if (scenePath && sceneIndex !== undefined) {
+                const fullScenePath = scenePath === "/init" ? scenePath : `${scenePath}/${sceneName}`;
+                setViewFocusScenePath(mainView, fullScenePath);
             } else {
-                this.setMainViewScenePath(this.displayer.state.sceneState.scenePath);
+                const sceneState = this.displayer.state.sceneState;
+                this.appManager.delegate.setMainViewScenePath(sceneState.scenePath);
+                this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
+                this.setMainViewSceneIndex(sceneState.index);
             }
         }
     }
@@ -457,10 +462,19 @@ export class AppManager {
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);
             emitter.onAny(this.eventListener);
-            this.attributesDisposer = autorun(() => {
-                const apps = this.attributes.apps;
-                this.attributesUpdateCallback(apps);
-            });
+            this.attributesDisposer = reaction(
+                () => this.attributes.apps,
+                apps => {
+                    this.attributesUpdateCallback(apps);
+                }
+            );
+            if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
+                const mainScenePath = this.delegate.getMainViewScenePath();
+                const sceneState = this.displayer.state.sceneState;
+                if (sceneState.contextPath !== mainScenePath) {
+                    this.room?.setScenePath(mainScenePath);
+                }
+            }
         });
     }
 
@@ -656,15 +670,11 @@ export class AppManager {
                     }
                 });
                 this.safeSetAttributes({ boxState: eventName });
-                // this.viewManager.switchWritableAppToFreedom();
+               
                 this.delegate.cleanFocus();
                 this.boxManager.blurFocusBox();
-                // this.viewManager.switchMainViewToWriter();
-                const mainViewScenePath = this.delegate.getMainViewScenePath();
-                if (mainViewScenePath) {
-                    setScenePath(this.room, mainViewScenePath);
-                }
-                this.safeDispatchMagixEvent(MagixEventName, { eventName: Events.MainViewFocus });
+                this.viewSwitcher.freedomAllViews();
+                this.viewManager.switchMainViewModeToWriter();
                 break;
             }
             case TELE_BOX_STATE.Maximized: {
