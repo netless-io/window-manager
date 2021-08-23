@@ -44,6 +44,7 @@ import {
     MagixEventName,
 } from "./constants";
 import { genAppId, setScenePath, setViewFocusScenePath, } from './Common';
+import { replaceRoomFunction } from './RoomHacker';
 
 export const BuildinApps = {
     DocsViewer: AppDocsViewer.kind as string,
@@ -167,6 +168,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         const { mainViewElement } = setupWrapper(continaer);
         manager.appManager = new AppManager(manager, collector);
         manager.bindMainView(mainViewElement);
+        replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
         return manager;

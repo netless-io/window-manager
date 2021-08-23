@@ -12,15 +12,17 @@
 
 `方法`
 - `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
-- `room.disableCameraTransform` 用 `manager.mainView.disableCameraTransform` 代替
 - `room.scalePptToFit()` 暂无代替,不再推荐调用 `scalePptToFit`
-- `room.moveCamera()` 用 `manager.mainView.moveCamera()` 代替
-- `room.moveCameraToContain()` 用 `manager.mainView.moveCameraToContain()` 代替
-- `room.convertToPointInWorld()` 用 `manager.mainView.convertToPointInWorld()` 代替
-- `room.setCameraBound()` 用 `manager.mainView.setCameraBound()` 代替
 - `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
 - `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
-- `
+
+
+> 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mianView` 生效
+- `room.disableCameraTransform`
+- `room.moveCamera`
+- `room.moveCameraToContain`
+- `room.convertToPointInWorld`
+- `room.setCameraBound`
 
 `camera`
 - `room.state.cameraState` 用 `manager.mainView.camera` 和 `manager.mainView.size` 代替
@@ -126,6 +128,13 @@ manager.getMainViewScenePath()
 ### 获取 `mainView` `sceneIndex`
 ```javascript
 manager.getMainViewSceneIndex()
+```
+
+### 监听 `mianView` 的 `mode`
+```javascript
+manager.onMainViewModeChange(mode => { // ViewVisionMode
+    console.log(mode)
+});
 ```
 
 ### 关闭 `App`
