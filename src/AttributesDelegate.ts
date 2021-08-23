@@ -56,7 +56,9 @@ export class AttributesDelegate {
     }
 
     public updateAppState(appId: string, stateName: AppAttributes, state: any) {
-        this.manager.safeUpdateAttributes([Fields.Apps, appId, Fields.State, stateName], state);
+        if (get(this.manager.attributes, [Fields.Apps, appId, Fields.State])) {
+            this.manager.safeUpdateAttributes([Fields.Apps, appId, Fields.State, stateName], state);
+        }
     }
 
     public cleanAppAttributes(id: string) {

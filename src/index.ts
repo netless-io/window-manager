@@ -32,7 +32,6 @@ import { CameraStore } from './CameraStore';
 import { log } from './log';
 import { NetlessApp } from './typings';
 import { setupWrapper, ViewManager } from './ViewManager';
-import { ViewSwitcher } from './ViewSwitcher';
 import './style.css';
 import '@netless/telebox-insider/dist/style.css';
 import {
@@ -364,7 +363,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
 
             if (this.appManager.delegate.focus === undefined) {
-                this.appManager.viewSwitcher.freedomAllViews();
+                this.appManager.viewManager.freedomAllViews();
                 this.appManager.viewManager.switchMainViewToWriter();
             }
         }
@@ -432,7 +431,6 @@ export class AppManager {
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
     public delegate = new AttributesDelegate(this);
-    public viewSwitcher = new ViewSwitcher(this);
 
     private appListeners: AppListeners;
     private attributesDisposer: any;
@@ -516,8 +514,8 @@ export class AppManager {
             const appId = genAppId(params.kind);
             this.appStatus.set(appId, AppStatus.StartCreate);
             this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
-            this.safeSetAttributes({ [appId]: params.attributes || {} });
-
+            const attrs = params.attributes ?? {};
+            this.safeUpdateAttributes([appId], attrs);
             const appProxy = await this.baseInsertApp(params, appId, true);
             return appProxy?.id;
         } catch (error) {
@@ -561,7 +559,7 @@ export class AppManager {
                     }
                 }
             });
-            this.viewSwitcher.refreshViews();
+            this.viewManager.refreshViews();
         }
     };
 
@@ -600,7 +598,7 @@ export class AppManager {
 
     public safeSetAttributes(attributes: any) {
         this.windowManger.safeSetAttributes(attributes);
-    }
+    } 
 
     public safeUpdateAttributes(keys: string[], value: any) {
         this.windowManger.safeUpdateAttributes(keys, value);
@@ -609,7 +607,7 @@ export class AppManager {
     public setMainViewScenePath(scenePath: string) {
         if (this.room) {
             this.safeSetAttributes({ _mainScenePath: scenePath });
-            this.viewSwitcher.freedomAllViews();
+            this.viewManager.freedomAllViews();
             this.viewManager.switchMainViewToWriter();
             this.delegate.setMainViewFocusPath();
         }
@@ -618,7 +616,7 @@ export class AppManager {
     public setMainViewSceneIndex(index: number) {
         if (this.room) {
             this.safeSetAttributes({ _mainSceneIndex: index });
-            this.viewSwitcher.freedomAllViews();
+            this.viewManager.freedomAllViews();
             this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);
             this.delegate.setMainViewScenePath(this.room.state.sceneState.scenePath);
@@ -651,7 +649,7 @@ export class AppManager {
             }
             case "focus": {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                this.viewSwitcher.switchAppToWriter(payload.appId);
+                this.viewManager.switchAppToWriter(payload.appId);
                 this.dispatchIntenalEvent(Events.AppFocus, payload);
                 break;
             }
@@ -681,7 +679,7 @@ export class AppManager {
                
                 this.delegate.cleanFocus();
                 this.boxManager.blurFocusBox();
-                this.viewSwitcher.freedomAllViews();
+                this.viewManager.freedomAllViews();
                 this.viewManager.switchMainViewToWriter();
                 break;
             }
@@ -709,6 +707,7 @@ export class AppManager {
                 this.safeDispatchMagixEvent(MagixEventName, {
                     eventName: Events.AppSnapshot, payload
                 });
+
                 this.delegate.updateAppState(
                     payload.appId,
                     AppAttributes.SnapshotRect,
@@ -725,7 +724,7 @@ export class AppManager {
                     appProxy.destroy(false, true, payload.error);
                 }
                 setTimeout(() => { // view release 完成不能立马切, 可能会报错
-                    this.viewSwitcher.refreshViews();
+                    this.viewManager.refreshViews();
                 }, 100);
                 break;
             }

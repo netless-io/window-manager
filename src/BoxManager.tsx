@@ -1,6 +1,6 @@
 import Emittery from 'emittery';
 import { AddAppOptions, emitter, AppInitState, WindowManager, AppManager } from './index';
-import { Events, MIN_HEIGHT, MIN_WIDTH } from './constants';
+import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from './constants';
 import { NetlessApp } from './typings';
 import {
     ReadonlyTeleBox,
@@ -82,18 +82,33 @@ export class BoxManager {
         }
 
         const box = this.teleBoxManager.create(createBoxConfig);
-        emitter.emit("snapshot", { appId: params.appId, rect: box.rectSnapshot });
-        if (box.state === TELE_BOX_STATE.Maximized) {
-            emitter.emit("resize", { appId: params.appId, x: box.x, y: box.y, width: box.width, height: box.height });
-        }
+
         emitter.emit(`${params.appId}${Events.WindowCreated}`);
         this.addBoxListeners(params.appId, box);
         this.appBoxMap.set(params.appId, box.id);
+
+        const appState = this.manager.delegate.getAppState(params.appId);
+        console.log(appState);
+        if (!appState[AppAttributes.SnapshotRect] || Object.keys(appState?.[AppAttributes.SnapshotRect]).length === 0) {
+            this.setBoxInitState(params.appId);
+        }
+
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
                 emitter.emit(state, undefined);
             }
         });
+    }
+
+    public setBoxInitState(appId: string) {
+        const boxId = this.appBoxMap.get(appId);
+        const box = this.teleBoxManager.queryOne({ id: boxId });
+        if (box) {
+            emitter.emit("snapshot", { appId: appId, rect: box.rectSnapshot });
+            if (box.state === TELE_BOX_STATE.Maximized) {
+                emitter.emit("resize", { appId: appId, x: box.x, y: box.y, width: box.width, height: box.height });
+            }
+        }
     }
 
     public setupBoxManager(collector?: HTMLElement) {

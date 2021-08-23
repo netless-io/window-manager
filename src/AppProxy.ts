@@ -104,7 +104,7 @@ export class AppProxy {
             this.boxManager.updateManagerRect();
             if (focus) {
                 this.focusBox();
-                this.manager.viewSwitcher.switchAppToWriter(this.id);
+                this.manager.viewManager.switchAppToWriter(this.id);
                 this.manager.delegate.setMainViewFocusPath();
             }
             return {
@@ -149,10 +149,15 @@ export class AppProxy {
                 this.boxManager.updateBoxState(boxInitState);
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
-                await app.setup(context);
-                if (boxInitState?.focus) {
-                    this.manager.viewSwitcher.switchAppToWriter(this.id);
-                }
+                setTimeout(async () => { // 延迟执行 setup, 防止初始化的属性没有更新成功
+                    await app.setup(context);
+                    if (boxInitState?.focus) {
+                        this.manager.viewManager.switchAppToWriter(this.id);
+                    }
+                    if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
+                        this.boxManager.setBoxInitState(appId);
+                    }
+                }, 50);
             });
             this.boxManager.createBox({
                 appId: appId, app, options, canOperate: this.manager.canOperate
@@ -245,7 +250,10 @@ export class AppProxy {
                     break;
                 }
                 case AppEvents.destroy: {
-                    this.destroy(true, data.error);
+                    this.destroy(true, data?.error);
+                    if (data?.error) {
+                        console.error(data?.error);
+                    }
                 }
                 default:
                     break;
@@ -255,8 +263,8 @@ export class AppProxy {
 
     private appAttributesUpdateListener = (appId: string) => {
         const disposer = autorun(() => {
-            const attrs = this.manager.attributes[appId];
-            if (!isEqual(this.lastAttrs, attrs)) {
+            const attrs = this.manager.windowManger.attributes[appId];
+            if (!isEqual(this.lastAttrs, attrs) && attrs !== undefined) {
                 this.appEmitter.emit("attributesUpdate", attrs);
                 this.lastAttrs = attrs;
             }

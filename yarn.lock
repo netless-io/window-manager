@@ -38,20 +38,20 @@
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"
 
-"@netless/app-media-player@0.1.0-alpha.1":
-  version "0.1.0-alpha.1"
-  resolved "https://registry.npmjs.org/@netless/app-media-player/-/app-media-player-0.1.0-alpha.1.tgz#22c963a9fc3b55c2423b89aed5d95f9612a809b9"
-  integrity sha512-tgTx3LEX7ssQXF1l7lVQqCGpWpab0jI8KC4R0YzPIdtBSIvEe5OZfjAaa2u4sw5iQHdK+bEe+PKdV2jTwOe5ow==
+"@netless/app-media-player@0.1.0-beta.1":
+  version "0.1.0-beta.1"
+  resolved "https://registry.npmjs.org/@netless/app-media-player/-/app-media-player-0.1.0-beta.1.tgz#e4bf152aa3e7141087ecd6a6cbc510a672920f4a"
+  integrity sha512-WYyvmyIb2KrVA+AbiCz94yJdBXCfwLlKjMiuquw7ojRX80sFrqb/Wp1wbTd+I2HNIY/LPORYQju1gCO3N9w1Iw==
 
 "@netless/canvas-polyfill@^0.0.4":
   version "0.0.4"
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@^0.1.9":
-  version "0.1.9"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.9.tgz#345997548748e359571394d390a463d930e9c5eb"
-  integrity sha512-tW6MbiCJf48k2MZhn8eoYOjecH2bLcYU1b1vZaoWyRqumNjY78SzsDy9JfGIo0dqL4vuqP552+RFeLTqXnGXLg==
+"@netless/telebox-insider@^0.1.10":
+  version "0.1.10"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.10.tgz#8b82baa55ccb20c6d93f127cbbe40e3eacbaed1a"
+  integrity sha512-x+Vbxu0/PCZL6N7y+V2FcqJ6H4c9MLg89T6y43yhzBnFOIwdSdOsBjazILXFmGRIdUt+YJRD0X2YuiIGffKQiw==
   dependencies:
     eventemitter3 "^4.0.7"
     stylefire "^7.0.3"

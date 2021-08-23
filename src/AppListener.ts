@@ -83,7 +83,7 @@ export class AppListeners {
 
     private appFocusHandler = (payload: any) => {
         this.boxManager.focusBox(payload);
-        this.manager.viewSwitcher.refreshViews();
+        this.manager.viewManager.refreshViews();
     }
 
     private appResizeHandler = (payload: any) => {
@@ -96,7 +96,7 @@ export class AppListeners {
         if (proxy) {
             proxy.appEmitter.emit("writableChange", false);
             if (proxy.view?.mode === ViewVisionMode.Writable) {
-                this.manager.viewSwitcher.refreshViews();
+                this.manager.viewManager.refreshViews();
             }
         }
     }
@@ -104,7 +104,7 @@ export class AppListeners {
     private appBoxStateHandler = (payload: any) => {
         this.boxManager.setBoxState(payload.state);
         if (payload.state === TELE_BOX_STATE.Minimized) {
-            this.manager.viewSwitcher.refreshViews();
+            this.manager.viewManager.refreshViews();
             this.viewManager.switchMainViewToWriter();
         }
     }
@@ -134,10 +134,10 @@ export class AppListeners {
 
     private mainViewFocusHandler = (payload: any) => {
         this.manager.boxManager.blurFocusBox();
-        this.manager.viewSwitcher.freedomAllViews();
+        this.manager.viewManager.freedomAllViews();
     }
 
     private switchViewsToFreedomHandler = () => {
-        this.manager.viewSwitcher.freedomAllViews();
+        this.manager.viewManager.freedomAllViews();
     }
 }

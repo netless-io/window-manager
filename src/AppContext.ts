@@ -27,7 +27,7 @@ export class AppContext<TAttrs extends Record<string, any>> {
     }
 
     public getAttributes(): TAttrs | undefined {
-        return this.manager.attributes[this.appId];
+        return this.manager.windowManger.attributes[this.appId];
     }
 
     public getScenes(): SceneDefinition[] | undefined {

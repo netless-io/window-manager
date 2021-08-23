@@ -5,6 +5,7 @@ import { log } from "./log";
 import { CameraStore } from "./CameraStore";
 import { Events, MagixEventName, SET_SCENEPATH_DELAY } from "./constants";
 import {  setScenePath, setViewFocusScenePath, setViewMode } from "./Common";
+import { TELE_BOX_STATE } from "@netless/telebox-insider";
 
 export class ViewManager {
     public mainView: View;
@@ -94,8 +95,9 @@ export class ViewManager {
     }
 
     public mainViewClickHandler() {
+        if (this.mainView.mode === ViewVisionMode.Writable) return;
         this.manager.delegate.cleanFocus();
-        this.manager.viewSwitcher.freedomAllViews();
+        this.freedomAllViews();
         this.manager.dispatchIntenalEvent(Events.SwitchViewsToFreedom, {});
         this.manager.dispatchIntenalEvent(Events.MainViewFocus, {});
         this.manager.boxManager.blurFocusBox();
@@ -110,12 +112,65 @@ export class ViewManager {
         setTimeout(() => {
             const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
             if (mainViewScenePath) {
-                this.manager.viewSwitcher.freedomAllViews();
+                this.freedomAllViews();
                 this.removeMainViewCameraListener();
                 setScenePath(this.manager.room, mainViewScenePath);
                 this.switchMainViewModeToWriter();
                 this.manager.cameraStore.recoverCamera("mainView", this.mainView);
                 this.addMainViewCameraListener();
+            }
+        }, SET_SCENEPATH_DELAY);
+    }
+
+    public refreshViews() {
+        const focus = this.manager.delegate.focus;
+        if (focus) {
+            const appProxy = this.manager.appProxies.get(focus);
+            if (appProxy) {
+                if (appProxy.view?.mode === ViewVisionMode.Writable) return;
+                appProxy.removeCameraListener();
+                appProxy.switchToWritable();
+                appProxy.recoverCamera();
+                appProxy.addCameraListener();
+            }
+        } else {
+            if (this.manager.mainView.mode === ViewVisionMode.Writable) return;
+            const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+            if (mainViewScenePath) {
+                setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
+                this.freedomAllViews();
+                this.manager.viewManager.switchMainViewToWriter();
+            }
+        }
+    }
+
+    public freedomAllViews() {
+        this.manager.displayer.views.forEach(view => {
+            view.mode = ViewVisionMode.Freedom;
+        });
+        this.manager.appProxies.forEach(appProxy => {
+            appProxy.setViewFocusScenePath();
+        });
+        if (!this.manager.viewManager.mainView.focusScenePath) {
+            this.manager.delegate.setMainViewFocusPath();
+        }
+    }
+
+    public switchAppToWriter(id: string) {
+        this.freedomAllViews();
+        // 为了同步端不闪烁, 需要给 room setScenePath 一个延迟
+        setTimeout(() => {
+            const appProxy = this.manager.appProxies.get(id);
+            if (appProxy) {
+                const boxState = this.manager.delegate.getBoxState();
+                if (boxState && boxState === TELE_BOX_STATE.Minimized) {
+                    return;
+                }
+                appProxy.removeCameraListener();
+                appProxy.setScenePath();
+                appProxy.switchToWritable();
+                appProxy.recoverCamera();
+                appProxy.addCameraListener();
             }
         }, SET_SCENEPATH_DELAY);
     }
