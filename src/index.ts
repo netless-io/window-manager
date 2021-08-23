@@ -362,7 +362,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.delegate.setMainViewScenePath(sceneState.scenePath);
                 this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
             }
-            if (this.appManager.delegate.apps.length === 0) {
+
+            if (this.appManager.delegate.focus === undefined) {
+                this.appManager.viewSwitcher.freedomAllViews();
                 this.appManager.viewManager.switchMainViewToWriter();
             }
         }

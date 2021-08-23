@@ -81,9 +81,11 @@ export class BoxManager {
             createBoxConfig.height = width;
         }
 
-
         const box = this.teleBoxManager.create(createBoxConfig);
-
+        emitter.emit("snapshot", { appId: params.appId, rect: box.rectSnapshot });
+        if (box.state === TELE_BOX_STATE.Maximized) {
+            emitter.emit("resize", { appId: params.appId, x: box.x, y: box.y, width: box.width, height: box.height });
+        }
         emitter.emit(`${params.appId}${Events.WindowCreated}`);
         this.addBoxListeners(params.appId, box);
         this.appBoxMap.set(params.appId, box.id);

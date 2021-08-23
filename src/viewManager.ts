@@ -110,6 +110,7 @@ export class ViewManager {
         setTimeout(() => {
             const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
             if (mainViewScenePath) {
+                this.manager.viewSwitcher.freedomAllViews();
                 this.removeMainViewCameraListener();
                 setScenePath(this.manager.room, mainViewScenePath);
                 this.switchMainViewModeToWriter();
