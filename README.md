@@ -17,7 +17,7 @@
 - `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
 
 
-> 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mianView` 生效
+> 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mianView` 生效
 - `room.disableCameraTransform`
 - `room.moveCamera`
 - `room.moveCameraToContain`
