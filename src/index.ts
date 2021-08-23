@@ -353,17 +353,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.appManager) {
             const mainView = this.appManager.viewManager.mainView;
             mainView.divElement = divElement;
-            const scenePath = this.appManager.delegate.getMainViewScenePath();
-            const sceneIndex = this.appManager.delegate.getMainViewSceneIndex();
-            const sceneName = this.getSceneName(scenePath, sceneIndex);
-            if (scenePath && sceneIndex !== undefined) {
-                const fullScenePath = scenePath === "/init" ? scenePath : `${scenePath}/${sceneName}`;
-                setViewFocusScenePath(mainView, fullScenePath);
-            } else {
+
+            if (!mainView.focusScenePath) {
+                this.appManager.delegate.setMainViewFocusPath();
+            }
+            if (!this.appManager.delegate.getMainViewScenePath()) {
                 const sceneState = this.displayer.state.sceneState;
                 this.appManager.delegate.setMainViewScenePath(sceneState.scenePath);
                 this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
-                this.setMainViewSceneIndex(sceneState.index);
+            }
+            if (this.appManager.delegate.apps.length === 0) {
+                this.appManager.viewManager.switchMainViewToWriter();
             }
         }
     }
@@ -472,8 +472,9 @@ export class AppManager {
             );
             if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
                 const mainScenePath = this.delegate.getMainViewScenePath();
+                if (!mainScenePath) return;
                 const sceneState = this.displayer.state.sceneState;
-                if (sceneState.contextPath !== mainScenePath) {
+                if (sceneState.scenePath !== mainScenePath) {
                     this.room?.setScenePath(mainScenePath);
                 }
             }
@@ -608,6 +609,7 @@ export class AppManager {
             this.safeSetAttributes({ _mainScenePath: scenePath });
             this.viewSwitcher.freedomAllViews();
             this.viewManager.switchMainViewToWriter();
+            this.delegate.setMainViewFocusPath();
         }
     }
 
@@ -617,6 +619,8 @@ export class AppManager {
             this.viewSwitcher.freedomAllViews();
             this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);
+            this.delegate.setMainViewScenePath(this.room.state.sceneState.scenePath);
+            this.delegate.setMainViewFocusPath();
         }
     }
 
@@ -676,7 +680,7 @@ export class AppManager {
                 this.delegate.cleanFocus();
                 this.boxManager.blurFocusBox();
                 this.viewSwitcher.freedomAllViews();
-                this.viewManager.switchMainViewModeToWriter();
+                this.viewManager.switchMainViewToWriter();
                 break;
             }
             case TELE_BOX_STATE.Maximized: {

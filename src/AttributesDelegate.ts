@@ -109,13 +109,8 @@ export class AttributesDelegate {
     // TODO 状态中保存一个 SceneName 优化性能
     public setMainViewFocusPath() {
         const scenePath = this.getMainViewScenePath();
-        const sceneIndex = this.getMainViewSceneIndex();
-        if (scenePath && sceneIndex !== undefined) {
-            const scenes = this.manager.displayer.entireScenes()[scenePath];
-            if (scenes) {
-                const sceneName = scenes[sceneIndex].name;
-                setViewFocusScenePath(this.manager.mainView, `${scenePath}/${sceneName}`);
-            }
+        if (scenePath) {
+            setViewFocusScenePath(this.manager.mainView, scenePath);
         }
     }
 }

@@ -37,6 +37,7 @@ export class ViewSwitcher {
             const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
             if (mainViewScenePath) {
                 setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
+                this.freedomAllViews();
                 this.manager.viewManager.switchMainViewToWriter();
             }
         }
