@@ -4,7 +4,6 @@ import { Room, View, SceneDefinition } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent, AppManager } from "./index";
 import { ViewManager } from "./ViewManager";
-import { setScenePath, setViewFocusScenePath } from "./Common";
 
 export class AppContext<TAttrs extends Record<string, any>> {
 

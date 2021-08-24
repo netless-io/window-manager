@@ -1,4 +1,4 @@
-import { get } from "lodash-es";
+import { debounce, get } from "lodash-es";
 import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewVisionMode } from "white-web-sdk";
 import { AppManager, emitter, userEmitter, WindowManager } from "./index";
 import { log } from "./log";
@@ -11,6 +11,7 @@ export class ViewManager {
     public mainView: View;
     private views: Map<string, View> = new Map();
     private mainViewIsAddListener = false;
+    private delegate = this.manager.delegate;
 
     constructor(
         private displayer: Displayer,
@@ -27,10 +28,19 @@ export class ViewManager {
     public createMainView(): View {
         const mainView = this.displayer.views.createView();
         this.cameraStore.setCamera("mainView", mainView.camera);
-        mainView.callbacks.on("onSizeUpdated", () => this.manager.boxManager.updateManagerRect());
+        mainView.callbacks.on("onSizeUpdated", (size: Size) => {
+            this.manager.boxManager.updateManagerRect();
+            if (this.delegate.broadcaster === this.displayer.observerId) {
+                this.setMianViewSize(size);
+            }
+        });
         this.switchMainViewModeToWriter();
         return mainView;
     }
+
+    public setMianViewSize = debounce(size => {
+        this.manager.delegate.setMainViewSize({ ...size });
+    }, 200);
 
     public createView(appId: string): View {
         const view = this.displayer.views.createView();
@@ -106,11 +116,18 @@ export class ViewManager {
 
     private mainViewCameraListener = (camera: Camera) => {
         this.cameraStore.setCamera("mainView", camera);
+        if (this.delegate.broadcaster === this.displayer.observerId) {
+            this.setMainViewCamera(camera);
+        }
     }
+
+    private setMainViewCamera = debounce(camera => {
+        this.delegate.setMainViewCamera({ ...camera });
+    }, 10);
 
     public switchMainViewToWriter() {
         setTimeout(() => {
-            const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+        const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
             if (mainViewScenePath) {
                 this.freedomAllViews();
                 this.removeMainViewCameraListener();

@@ -14,7 +14,7 @@ import {
     TeleBoxManagerCreateConfig
 } from '@netless/telebox-insider';
 import { View } from 'white-web-sdk';
-import { debounce } from 'lodash-es';
+import { debounce, get, isEmpty } from 'lodash-es';
 import { log } from './log';
 import { AppProxy } from './AppProxy';
 
@@ -88,9 +88,11 @@ export class BoxManager {
         this.appBoxMap.set(params.appId, box.id);
 
         const appState = this.manager.delegate.getAppState(params.appId);
-        console.log(appState);
-        if (!appState[AppAttributes.SnapshotRect] || Object.keys(appState?.[AppAttributes.SnapshotRect]).length === 0) {
-            this.setBoxInitState(params.appId);
+        if (appState) {
+            const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
+            if (isEmpty(snapshotRect)) {
+                this.setBoxInitState(params.appId);
+            }
         }
 
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
@@ -177,7 +179,9 @@ export class BoxManager {
             if (state.boxState) {
                 this.teleBoxManager.setState(state.boxState);
             }
-            (box as TeleBox).setSnapshot(state.snapshotRect);
+            if (state.snapshotRect) {
+                (box as TeleBox).setSnapshot(state.snapshotRect);
+            }
         }
     }
 

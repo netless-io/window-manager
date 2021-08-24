@@ -2,6 +2,7 @@ import { AddAppParams, AppManager, AppSyncAttributes } from "./index";
 import { get, pick } from "lodash-es";
 import { AppAttributes } from "./constants";
 import { setViewFocusScenePath } from "./Common";
+import { Camera, Size } from "white-web-sdk";
 
 
 export enum Fields {
@@ -9,18 +10,30 @@ export enum Fields {
     Focus = "focus",
     State = "state",
     BoxState = "boxState",
+    MainViewCamera = "mainViewCamera",
+    MainViewSize = "mainViewSize",
+    Broadcaster = "broadcaster"
 }
+
+type Apps = {
+    [key: string]: AppSyncAttributes
+}
+
 export class AttributesDelegate {
     constructor(
         private manager: AppManager
     ) {}
 
-    public apps() {
+    public apps(): Apps {
         return get(this.manager.attributes, [Fields.Apps]);
     }
 
     public get focus() {
         return get(this.manager.attributes, [Fields.Focus]);
+    }
+
+    public get broadcaster() {
+        return get(this.manager.attributes, [Fields.Broadcaster]);
     }
 
     public getAppAttributes(id: string): AppSyncAttributes {
@@ -88,6 +101,10 @@ export class AttributesDelegate {
         return this.getAppState(id)?.[AppAttributes.SceneIndex];
     }
 
+    public getAppScenePath(id: string) {
+        return this.getAppAttributes(id)?.options?.scenePath;
+    }
+
     public getMainViewScenePath() {
         return this.manager.attributes["_mainScenePath"];
     }
@@ -106,6 +123,26 @@ export class AttributesDelegate {
 
     public setMainViewSceneIndex(index: number) {
         this.manager.safeSetAttributes({ _mainSceneIndex: index });
+    }
+
+    public setMainViewCamera(camera: Camera) {
+        this.manager.safeSetAttributes({ [Fields.MainViewCamera]: camera });
+    }
+
+    public getMainViewCamera(): Camera {
+        return get(this.manager.attributes, [Fields.MainViewCamera]);
+    }
+
+    public getMainViewSize(): Size {
+        return get(this.manager.attributes, [Fields.MainViewSize]);
+    }
+
+    public setMainViewSize(size: Size) {
+        this.manager.safeSetAttributes({ [Fields.MainViewSize]: size });
+    }
+
+    public setBroadcaster(observerId: number) {
+        this.manager.safeSetAttributes({ [Fields.Broadcaster]: observerId });
     }
 
     // TODO 状态中保存一个 SceneName 优化性能

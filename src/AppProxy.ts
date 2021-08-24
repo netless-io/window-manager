@@ -151,11 +151,13 @@ export class AppProxy {
                 this.appAttributesUpdateListener(appId);
                 setTimeout(async () => { // 延迟执行 setup, 防止初始化的属性没有更新成功
                     await app.setup(context);
-                    if (boxInitState?.focus) {
-                        this.manager.viewManager.switchAppToWriter(this.id);
-                    }
-                    if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
-                        this.boxManager.setBoxInitState(appId);
+                    if (boxInitState) {
+                        if (boxInitState?.focus) {
+                            this.manager.viewManager.switchAppToWriter(this.id);
+                        }
+                        if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
+                            this.boxManager.setBoxInitState(appId);
+                        }
                     }
                 }, 50);
             });
@@ -163,6 +165,7 @@ export class AppProxy {
                 appId: appId, app, options, canOperate: this.manager.canOperate
             });
         } catch (error) {
+            console.error(error);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
         }
     }
@@ -174,9 +177,9 @@ export class AppProxy {
                 if (this.manager.mainView.mode === ViewVisionMode.Writable) {
                     this.manager.delegate.setMainViewFocusPath();
                     setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
+                    userEmitter.emit("mainViewModeChange", ViewVisionMode.Freedom);
                 }
                 setViewMode(this.view, ViewVisionMode.Writable);
-                userEmitter.emit("mainViewModeChange", ViewVisionMode.Freedom);
             } catch (error) {
                 log("switch view faild", error);
             }

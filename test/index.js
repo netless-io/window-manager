@@ -109,7 +109,7 @@ button2.addEventListener("click", () => {
                 },
             ]
         },
-    });
+    }).then(appId => console.log("appID", appId));
 });
 button3.addEventListener("click", () => {
     window.manager.addApp({

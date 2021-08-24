@@ -97,6 +97,17 @@ const appId = await manager.addApp({
 });
 ```
 
+### 获取当前所有已经打开的 app 的属性
+```typescript
+manager.apps
+```
+
+### 设置跟随模式
+只有广播端也就是老师需要设置跟随模式, 其他端的主白板都会跟随广播端的视角
+```javascript
+manager.setViewMode("broadcaster")
+```
+
 ### 设置所有 `app` 的 `readonly`
 ```javascript
 manager.setReadonly(true) // 所有窗口变成 readonly 状态
@@ -141,7 +152,6 @@ manager.onMainViewModeChange(mode => { // ViewVisionMode
 ```javascript
 manager.closeApp(appId)
 ```
-
 
 
 ## 手动销毁 `WindowManager`
