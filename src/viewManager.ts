@@ -118,13 +118,9 @@ export class ViewManager {
     private mainViewCameraListener = (camera: Camera) => {
         this.cameraStore.setCamera("mainView", camera);
         if (this.delegate.broadcaster === this.displayer.observerId) {
-            this.setMainViewCamera(camera);
+            this.delegate.setMainViewCamera({ ...camera });
         }
     }
-
-    private setMainViewCamera = debounce(camera => {
-        this.delegate.setMainViewCamera({ ...camera });
-    }, 10);
 
     public switchMainViewToWriter() {
         setTimeout(() => {

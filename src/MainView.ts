@@ -3,6 +3,7 @@ import { AppManager } from "./index";
 import { isEqual } from "lodash-es";
 
 export class MainViewProxy {
+    private scale?: number;
     constructor(
         private manager: AppManager
     ) {}
@@ -19,11 +20,12 @@ export class MainViewProxy {
             originY: -size.height / 2,
             animationMode: AnimationMode.Immediately
         });
+        this.scale = this.view.camera.scale;
     }
 
     public moveCamera(camera: Camera) {
         if (camera && !isEqual(camera, this.view.camera)) {
-            const scale = camera.scale * this.view.camera.scale;
+            const scale = camera.scale * (this.scale || 1);
             this.view.moveCamera({
                 centerX: camera.centerX,
                 centerY: camera.centerY,

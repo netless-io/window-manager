@@ -50,6 +50,36 @@ export class BoxManager {
     ) {
         this.mainView = mainView;
         this.teleBoxManager = this.setupBoxManager(collector);
+        this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
+            if (state) {
+                emitter.emit(state, undefined);
+            }
+        });
+        this.teleBoxManager.events.on("removed", boxes => {
+            boxes.forEach(box => {
+                emitter.emit("close", { appId: box.id });
+            })
+        });
+        this.teleBoxManager.events.on("move", debounce((box: ReadonlyTeleBox): void => {
+            emitter.emit("move", { appId: box.id, x: box.x, y: box.y });
+        }, 200));
+        this.teleBoxManager.events.on("resize", debounce((box: ReadonlyTeleBox): void => {
+            emitter.emit("resize", { appId: box.id, width: box.width, height: box.height });
+        }, 200));
+        this.teleBoxManager.events.on("focused", box => {
+            if (box) {
+                if (this.manager.canOperate) {
+                    emitter.emit("focus", { appId: box.id });
+                } else {
+                    this.updateBox(box.id, { focus: false });
+                }
+            } else {
+                this.blurFocusBox();
+            }
+        });
+        this.teleBoxManager.events.on("snapshot", box => {
+            emitter.emit("snapshot", { appId: box.id, rect: box.rectSnapshot });
+        });
     }
 
     public createBox(params: CreateBoxParams) {
@@ -66,26 +96,15 @@ export class BoxManager {
             minheight = minheight / rect.height;
         }
 
-        const createBoxConfig: {
-            title: string, width?: number, height?: number, minWidth?: number, minHeight?: number, readonly: boolean
-        } = {
-            title, minWidth: minwidth, minHeight: minheight, readonly: !params.canOperate
-            
-        }
-
-        if (width && width > 0) {
-            createBoxConfig.width = width;
-        }
-
-        if (height && height > 0) {
-            createBoxConfig.height = width;
+        const createBoxConfig: TeleBoxManagerCreateConfig = {
+            title, minWidth: minwidth, minHeight: minheight, width, height,
+            id: params.appId
         }
 
         const box = this.teleBoxManager.create(createBoxConfig);
 
         emitter.emit(`${params.appId}${Events.WindowCreated}`);
-        this.addBoxListeners(params.appId, box);
-        this.appBoxMap.set(params.appId, box.id);
+
 
         const appState = this.manager.delegate.getAppState(params.appId);
         if (appState) {
@@ -94,17 +113,10 @@ export class BoxManager {
                 this.setBoxInitState(params.appId);
             }
         }
-
-        this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
-            if (state) {
-                emitter.emit(state, undefined);
-            }
-        });
     }
 
     public setBoxInitState(appId: string) {
-        const boxId = this.appBoxMap.get(appId);
-        const box = this.teleBoxManager.queryOne({ id: boxId });
+        const box = this.teleBoxManager.queryOne({ id: appId });
         if (box) {
             emitter.emit("snapshot", { appId: appId, rect: box.rectSnapshot });
             if (box.state === TELE_BOX_STATE.Maximized) {
@@ -137,25 +149,15 @@ export class BoxManager {
     }
 
     public getBox(appId: string) {
-        const boxId = this.appBoxMap.get(appId);
-        if (boxId) {
-            return this.teleBoxManager.queryOne({ id: boxId });
-        }
+        return this.teleBoxManager.queryOne({ id: appId });
     }
 
     public closeBox(appId: string) {
-        const boxId = this.appBoxMap.get(appId);
-        if (boxId) {
-            this.appBoxMap.delete(appId);
-            return this.teleBoxManager.remove(boxId);
-        }
+        return this.teleBoxManager.remove(appId);
     }
 
     public updateBox(appId: string, config: TeleBoxManagerUpdateConfig) {
-        const boxId = this.appBoxMap.get(appId);
-        if (boxId) {
-            return this.teleBoxManager.update(boxId, config);
-        }
+        return this.teleBoxManager.update(appId, config);
     }
 
     public boxIsFocus(appId: string) {
@@ -198,62 +200,30 @@ export class BoxManager {
         }
     }
 
-    private addBoxListeners(appId: string, box: ReadonlyTeleBox) {
-        box.events.on(TELE_BOX_EVENT.Move, debounce(params => {
-            emitter.emit("move", { appId, ...params });
-        }, 200));
-        box.events.on(TELE_BOX_EVENT.Resize, debounce(params => {
-            emitter.emit("resize", { appId, ...params });
-        }, 200));
-        box.events.on(TELE_BOX_EVENT.Focus, () => {
-            if (this.manager.canOperate) {
-                emitter.emit("focus", { appId });
-            } else {
-                this.updateBox(appId, { focus: false });
-            }
-        });
-        box.events.on(TELE_BOX_EVENT.Blur, () => {
-            emitter.emit("blur", { appId });
-        });
-        box.events.on(TELE_BOX_EVENT.Snapshot, rect => {
-            emitter.emit("snapshot", { appId, rect });
-        });
-        box.events.on(TELE_BOX_EVENT.Close, () => emitter.emit("close", { appId }));
-    }
-
     public moveBox({ appId, x, y }: MoveBoxParams) {
-        const boxId = this.appBoxMap.get(appId);
-        if (boxId) {
-            this.teleBoxManager.update(boxId, { x, y }, true);
-        }
+        this.teleBoxManager.update(appId, { x, y }, true);
     }
 
     public focusBox({ appId }: AppId) {
-        const boxId = this.appBoxMap.get(appId);
-        if (boxId) {
-            this.teleBoxManager.update(boxId, { focus: true }, true);
-        }
+        this.teleBoxManager.update(appId, { focus: true }, true);
     }
 
     public resizeBox({ appId, width, height }: ResizeBoxParams) {
-        const boxId = this.appBoxMap.get(appId);
-        if (boxId) {
-            this.teleBoxManager.update(boxId, { width, height }, true);
-        }
+        this.teleBoxManager.update(appId, { width, height }, true);
     }
 
     public setBoxMinSize(params: SetBoxMinSizeParams) {
-        const boxId = this.appBoxMap.get(params.appId);
-        if (boxId) {
-            this.teleBoxManager.update(boxId, { minWidth: params.minWidth, minHeight: params.minHeight }, true);
-        }
+        this.teleBoxManager.update(
+            params.appId,
+            {
+                minWidth: params.minWidth,
+                minHeight: params.minHeight
+            },
+            true);
     }
 
     public setBoxTitle(params: SetBoxTitleParams) {
-        const boxId = this.appBoxMap.get(params.appId);
-        if (boxId) {
-            this.teleBoxManager.update(boxId, { title: params.title }, true);
-        }
+        this.teleBoxManager.update(params.appId, { title: params.title }, true);
     }
 
     public blurAllBox() {

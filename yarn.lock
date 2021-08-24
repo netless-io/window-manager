@@ -30,10 +30,10 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@netless/app-docs-viewer@^0.1.11":
-  version "0.1.11"
-  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.11.tgz#1dfb9c3058e06d4e5f43d60233ed3224ba50fa71"
-  integrity sha512-JNidI+zAheorRjRrYIZDPkUsjQSD0PrIlvS0ZcDGDg1taBCq4duZaDP91dFD0VpRc7JNZgqTDAUb9LbiPioPJA==
+"@netless/app-docs-viewer@^0.1.13":
+  version "0.1.13"
+  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.13.tgz#44a5205342efec695cc4166c858051dd6ac0ba91"
+  integrity sha512-vcdiJRHAEgEkkqPINyqiXr3pigA1nctJdUfYovzhyQzAF1pysM4gUwUZXS87jQxpqxdbIllkofHiSz/ojHvfDw==
   dependencies:
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"
@@ -48,10 +48,10 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@^0.1.10":
-  version "0.1.10"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.10.tgz#8b82baa55ccb20c6d93f127cbbe40e3eacbaed1a"
-  integrity sha512-x+Vbxu0/PCZL6N7y+V2FcqJ6H4c9MLg89T6y43yhzBnFOIwdSdOsBjazILXFmGRIdUt+YJRD0X2YuiIGffKQiw==
+"@netless/telebox-insider@^0.1.12":
+  version "0.1.12"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.12.tgz#22b11bedb197615a8d298e78b3553d72fc5fa904"
+  integrity sha512-E3Yp/G5+cNZAKURR6Fbvnu9McAxUfAyrtZ+ypRcz13aafEPpAcP5u0fv4Iz0ZaWXgcDQ4HFsGcvue9RpgrBtlA==
   dependencies:
     eventemitter3 "^4.0.7"
     stylefire "^7.0.3"

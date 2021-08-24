@@ -21,9 +21,9 @@
     "white-web-sdk": "^2.13.16"
   },
   "dependencies": {
-    "@netless/app-docs-viewer": "^0.1.11",
+    "@netless/app-docs-viewer": "^0.1.13",
     "@netless/app-media-player": "0.1.0-beta.3",
-    "@netless/telebox-insider": "^0.1.10",
+    "@netless/telebox-insider": "^0.1.12",
     "emittery": "^0.9.2",
     "lodash-es": "^4.17.21",
     "nanoid": "^3.1.25",
