@@ -1,6 +1,15 @@
-import { nanoid } from "nanoid";
-import { ViewVisionMode } from "white-web-sdk";
-import { emitter, Room, View, WindowManager } from "./index";
+import {
+    AppEmitterEvent,
+    emitter,
+    PublicEvent,
+    Room,
+    View,
+    WindowManager
+    } from './index';
+import { nanoid } from 'nanoid';
+import { ViewVisionMode } from 'white-web-sdk';
+import { debounce } from "lodash-es";
+import Emittery from 'emittery';
 
 export const genAppId = (kind: string) => {
     const impl = WindowManager.appClasses.get(kind);
@@ -37,3 +46,7 @@ export const emittError = (error: Error) => {
         console.log("[WindowManager]:", error);
     }
 }
+
+export const notifyMainViewModeChange = debounce((callbacks: Emittery<PublicEvent>, mode: ViewVisionMode) => {
+    callbacks.emit("mainViewModeChange", mode);
+}, 200);

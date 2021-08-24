@@ -125,10 +125,6 @@ export class AttributesDelegate {
         this.manager.safeSetAttributes({ _mainSceneIndex: index });
     }
 
-    public setMainViewCamera(camera: Camera) {
-        this.manager.safeSetAttributes({ [Fields.MainViewCamera]: camera });
-    }
-
     public getMainViewCamera(): Camera {
         return get(this.manager.attributes, [Fields.MainViewCamera]);
     }
@@ -137,11 +133,16 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.MainViewSize]);
     }
 
-    public setMainViewSize(size: Size) {
+    public setMainViewCamera(camera: Camera | undefined) {
+        this.manager.safeSetAttributes({ [Fields.MainViewCamera]: camera });
+    }
+
+
+    public setMainViewSize(size: Size | undefined) {
         this.manager.safeSetAttributes({ [Fields.MainViewSize]: size });
     }
 
-    public setBroadcaster(observerId: number) {
+    public setBroadcaster(observerId: number | undefined) {
         this.manager.safeSetAttributes({ [Fields.Broadcaster]: observerId });
     }
 

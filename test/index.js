@@ -51,7 +51,7 @@ document.body.appendChild(rightBar);
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,
-    plugins
+    plugins,
 });
 
 window.WindowManager = WindowManager;
@@ -60,7 +60,7 @@ sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
     roomToken: process.env.ROOM_TOKEN,
     invisiblePlugins: [WindowManager],
-    useMultiViews: true
+    useMultiViews: true,
 }).then(async room => {
     window.room = room;
     await mountManager(room);

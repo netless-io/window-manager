@@ -1,10 +1,10 @@
 import { debounce, get } from "lodash-es";
 import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewVisionMode } from "white-web-sdk";
-import { AppManager, emitter, userEmitter, WindowManager } from "./index";
+import { AppManager, emitter, callbacks, WindowManager } from "./index";
 import { log } from "./log";
 import { CameraStore } from "./CameraStore";
 import { Events, MagixEventName, SET_SCENEPATH_DELAY } from "./constants";
-import {  setScenePath, setViewFocusScenePath, setViewMode } from "./Common";
+import {  notifyMainViewModeChange, setScenePath, setViewFocusScenePath, setViewMode } from "./Common";
 import { TELE_BOX_STATE } from "@netless/telebox-insider";
 
 export class ViewManager {
@@ -72,6 +72,7 @@ export class ViewManager {
 
     public switchMainViewToFreedom() {
         this.manager.delegate.setMainViewFocusPath();
+        notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
         setViewMode(this.mainView, ViewVisionMode.Freedom);
     }
 
@@ -79,8 +80,8 @@ export class ViewManager {
         if (!this.manager.canOperate) return;
         if (this.mainView) {
             if (this.mainView.mode === ViewVisionMode.Writable) return;
+            notifyMainViewModeChange(callbacks, ViewVisionMode.Writable);
             setViewMode(this.mainView, ViewVisionMode.Writable);
-            userEmitter.emit("mainViewModeChange", ViewVisionMode.Writable);
         }
     }
 
@@ -162,12 +163,16 @@ export class ViewManager {
     }
 
     public freedomAllViews() {
-        this.manager.displayer.views.forEach(view => {
-            view.mode = ViewVisionMode.Freedom;
-        });
         this.manager.appProxies.forEach(appProxy => {
             appProxy.setViewFocusScenePath();
+            if (appProxy.view) {
+                appProxy.view.mode = ViewVisionMode.Freedom;
+            }
         });
+        if (this.mainView.mode === ViewVisionMode.Writable) {
+            notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
+            this.mainView.mode = ViewVisionMode.Freedom;
+        }
         if (!this.manager.viewManager.mainView.focusScenePath) {
             this.manager.delegate.setMainViewFocusPath();
         }

@@ -23,10 +23,11 @@ export class MainViewProxy {
 
     public moveCamera(camera: Camera) {
         if (camera && !isEqual(camera, this.view.camera)) {
+            const scale = camera.scale * this.view.camera.scale;
             this.view.moveCamera({
                 centerX: camera.centerX,
                 centerY: camera.centerY,
-                scale: camera.scale * this.view.camera.scale,
+                scale,
                 animationMode: AnimationMode.Immediately
             });
         }

@@ -38,10 +38,10 @@
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"
 
-"@netless/app-media-player@0.1.0-beta.1":
-  version "0.1.0-beta.1"
-  resolved "https://registry.npmjs.org/@netless/app-media-player/-/app-media-player-0.1.0-beta.1.tgz#e4bf152aa3e7141087ecd6a6cbc510a672920f4a"
-  integrity sha512-WYyvmyIb2KrVA+AbiCz94yJdBXCfwLlKjMiuquw7ojRX80sFrqb/Wp1wbTd+I2HNIY/LPORYQju1gCO3N9w1Iw==
+"@netless/app-media-player@0.1.0-beta.3":
+  version "0.1.0-beta.3"
+  resolved "https://registry.npmjs.org/@netless/app-media-player/-/app-media-player-0.1.0-beta.3.tgz#fcc7a7feee000d7f700fb42a9a69e190380417ef"
+  integrity sha512-A7Js2CJUpK2gMDoVRr/rh+w500oqF2SbNe/e+y912Y6sci9r5Ygn+VUtYAWCX931OjLk80PPtkt1Xyyjh+OTXw==
 
 "@netless/canvas-polyfill@^0.0.4":
   version "0.0.4"

@@ -117,9 +117,11 @@ export const emitter: Emittery<{
     [key: string]: any
 }> = new Emittery();
 
-export const userEmitter: Emittery<{
-    mainViewModeChange: ViewVisionMode;
-}> = new Emittery();
+export type PublicEvent = {
+    mainViewModeChange: ViewVisionMode
+}
+
+export const callbacks: Emittery<PublicEvent> = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
@@ -308,7 +310,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public onMainViewModeChange(listener: (mode: ViewVisionMode) => void) {
-        userEmitter.on("mainViewModeChange", listener);
+        callbacks.on("mainViewModeChange", listener);
     }
 
     public setReadonly(readonly: boolean) {
@@ -341,6 +343,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setViewMode(mode: ViewMode) {
         if (mode === ViewMode.Broadcaster) {
             this.appManager?.delegate.setBroadcaster(this.displayer.observerId);
+        }
+        if (mode === ViewMode.Freedom) {
+            this.appManager?.delegate.setMainViewCamera(undefined);
+            this.appManager?.delegate.setMainViewSize(undefined);
+            this.appManager?.delegate.setBroadcaster(undefined);
         }
     }
 
@@ -489,9 +496,10 @@ export class AppManager {
             emitter.onAny(this.eventListener);
             this.reactionDisposers.push(
                 reaction(
-                    () => this.attributes.apps,
-                    apps => {
-                        this.attributesUpdateCallback(apps);
+                    () => Object.keys(this.attributes.apps).length,
+                    appsCount => {
+                        console.log("apps update", appsCount);
+                        this.attributesUpdateCallback(this.attributes.apps);
                     }
                 )
             );
@@ -499,7 +507,7 @@ export class AppManager {
                 reaction(
                     () => this.attributes[Fields.MainViewCamera],
                     camera => {
-                        if (this.delegate.broadcaster !== this.displayer.observerId) {
+                        if (this.delegate.broadcaster !== this.displayer.observerId && camera) {
                             this.mainViewProxy.moveCamera(camera);
                         }
                     }
@@ -509,7 +517,7 @@ export class AppManager {
                 reaction(
                     () => this.attributes[Fields.MainViewSize],
                     size => {
-                        if (this.delegate.broadcaster !== this.displayer.observerId) {
+                        if (this.delegate.broadcaster !== this.displayer.observerId && size) {
                             this.mainViewProxy.moveCameraToContian(size);
                         }
                     }
@@ -813,7 +821,7 @@ export class AppManager {
             });
         }
         this.viewManager.destroy();
-        userEmitter.clearListeners();
+        callbacks.clearListeners();
     }
 }
 

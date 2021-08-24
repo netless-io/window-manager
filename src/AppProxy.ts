@@ -12,7 +12,7 @@ import {
     WindowManager,
     AppManager,
     BaseInsertParams,
-    userEmitter
+    callbacks
 } from './index';
 import { Events, AppAttributes, AppEvents } from './constants';
 import { log } from './log';
@@ -21,7 +21,7 @@ import { NetlessApp } from "./typings";
 // import { loadApp } from './loader'; TODO fix localforge import
 import { AppCreateError, AppNotRegisterError } from './error';
 import { isEqual } from "lodash-es";
-import { genAppId, setScenePath, setViewFocusScenePath, setViewMode } from './Common';
+import { genAppId, notifyMainViewModeChange, setScenePath, setViewFocusScenePath, setViewMode } from './Common';
 
 
 export class AppProxy {
@@ -176,8 +176,8 @@ export class AppProxy {
                 if (this.view.mode === ViewVisionMode.Writable) return;
                 if (this.manager.mainView.mode === ViewVisionMode.Writable) {
                     this.manager.delegate.setMainViewFocusPath();
+                    notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
                     setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
-                    userEmitter.emit("mainViewModeChange", ViewVisionMode.Freedom);
                 }
                 setViewMode(this.view, ViewVisionMode.Writable);
             } catch (error) {
@@ -322,8 +322,8 @@ export class AppProxy {
         this.manager.cameraStore.setCamera(this.id, camera);
     }
 
-    public destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
-        this.appEmitter.emit("destroy", { error });
+    public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
+        await this.appEmitter.emit("destroy", { error });
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}`, { error });
         if (needCloseBox) {
