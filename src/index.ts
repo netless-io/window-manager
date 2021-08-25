@@ -326,7 +326,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * @memberof WindowManager
      */
     public switchMainViewToWriter() {
-        this.appManager?.viewManager.mainViewClickHandler();
+        return this.appManager?.viewManager.mainViewClickHandler();
     }
 
     /**

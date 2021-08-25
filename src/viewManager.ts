@@ -105,14 +105,14 @@ export class ViewManager {
         this.mainViewClickHandler();
     }
 
-    public mainViewClickHandler() {
+    public async mainViewClickHandler() {
         if (this.mainView.mode === ViewVisionMode.Writable) return;
         this.manager.delegate.cleanFocus();
         this.freedomAllViews();
         this.manager.dispatchIntenalEvent(Events.SwitchViewsToFreedom, {});
         this.manager.dispatchIntenalEvent(Events.MainViewFocus, {});
         this.manager.boxManager.blurFocusBox();
-        this.manager.viewManager.switchMainViewToWriter();
+        await this.manager.viewManager.switchMainViewToWriter();
     }
 
     private mainViewCameraListener = (camera: Camera) => {
@@ -123,17 +123,24 @@ export class ViewManager {
     }
 
     public switchMainViewToWriter() {
-        setTimeout(() => {
-        const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
-            if (mainViewScenePath) {
-                this.freedomAllViews();
-                this.removeMainViewCameraListener();
-                setScenePath(this.manager.room, mainViewScenePath);
-                this.switchMainViewModeToWriter();
-                this.manager.cameraStore.recoverCamera("mainView", this.mainView);
-                this.addMainViewCameraListener();
-            }
-        }, SET_SCENEPATH_DELAY);
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                try {
+                    const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+                    if (mainViewScenePath) {
+                        this.freedomAllViews();
+                        this.removeMainViewCameraListener();
+                        setScenePath(this.manager.room, mainViewScenePath);
+                        this.switchMainViewModeToWriter();
+                        this.manager.cameraStore.recoverCamera("mainView", this.mainView);
+                        this.addMainViewCameraListener();
+                    }
+                    resolve(true);
+                } catch (error) {
+                    reject(error);
+                }
+            }, SET_SCENEPATH_DELAY);
+        });
     }
 
     public refreshViews() {
