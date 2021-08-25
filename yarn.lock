@@ -30,10 +30,10 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@netless/app-docs-viewer@^0.1.14":
-  version "0.1.14"
-  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.14.tgz#1fbe00aee0416d3adff93ae2afc70401e3ac8e08"
-  integrity sha512-Y7WWDuplbg9hj1U95375lOC5Wygn7wTZ8IigazQh+crlv9gxcpqeNRDxeYsn/X8q7VxJaYEGrqMkUkHi1IrKFQ==
+"@netless/app-docs-viewer@^0.1.15":
+  version "0.1.15"
+  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.15.tgz#8b857c2d2e07889a621b87fde339e8bb3526465e"
+  integrity sha512-GZuevbDpU4sIyhN8SNrXW247dJmp5OsI18tiHFEU12fXDixwamKqCA3TNiuWD6+C8GmEcs/NvGeAI/yDui9WrA==
   dependencies:
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"

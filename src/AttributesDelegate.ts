@@ -65,7 +65,6 @@ export class AttributesDelegate {
             [AppAttributes.SnapshotRect]: {},
             [AppAttributes.SceneIndex]: 0
         });
-        this.manager.safeSetAttributes({ [Fields.Focus]: id });
     }
 
     public updateAppState(appId: string, stateName: AppAttributes, state: any) {
@@ -143,6 +142,14 @@ export class AttributesDelegate {
 
     public setBroadcaster(observerId: number | undefined) {
         this.manager.safeSetAttributes({ [Fields.Broadcaster]: observerId });
+    }
+
+    public setAppFocus(appId: string, focus: boolean) {
+        if (focus) {
+            this.manager.safeSetAttributes({ [Fields.Focus]: appId });
+        } else {
+            this.manager.safeSetAttributes({ [Fields.Focus]: undefined });
+        }
     }
 
     // TODO 状态中保存一个 SceneName 优化性能

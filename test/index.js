@@ -69,7 +69,7 @@ const mountManager = async (room) => {
         room,
         continaer,
         undefined,
-        { debug: true });
+        { collectorStyles: { bottom: "100px", right: "30px" }, debug: true });
 
     window.manager = manager;
     window.manager.onAppDestroy(BuildinApps.DocsViewer, (error) => {

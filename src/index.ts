@@ -29,7 +29,7 @@ import {
     RoomPhase,
     ViewMode
 } from 'white-web-sdk';
-import { BoxManager, TELE_BOX_STATE } from './BoxManager';
+import { BoxManager, CreateCollectorConfig, TELE_BOX_STATE } from './BoxManager';
 import { CameraStore } from './CameraStore';
 import { log } from './log';
 import { NetlessApp } from './typings';
@@ -47,6 +47,7 @@ import {
 import { genAppId, setScenePath, setViewFocusScenePath, } from './Common';
 import { replaceRoomFunction } from './RoomHacker';
 import { MainViewProxy } from './MainView';
+import { TeleStyles } from '@netless/telebox-insider/dist/typings';
 
 export const BuildinApps = {
     DocsViewer: AppDocsViewer.kind as string,
@@ -143,21 +144,27 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     /**
-     * 添加一个 app 到白板
+     * 挂载 WindowManager
      *
      * @static
      * @param {Room} room
      * @param {HTMLElement} continaer
-     * @param {HTMLElement} [collector]
-     * @param {{ debug: boolean }} [options]
+     * @param {HTMLElement} [collectorContinaer]
+     * @param {{
+     *             debug?: boolean,
+     *             collectorStyles?: TeleStyles
+     *         }} [options]
      * @returns {Promise<WindowManager>}
      * @memberof WindowManager
      */
     public static async mount(
         room: Room,
         continaer: HTMLElement,
-        collector?: HTMLElement,
-        options?: { debug: boolean }
+        collectorContinaer?: HTMLElement,
+        options?: {
+            collectorStyles?: CSSStyleDeclaration,
+            debug?: boolean,
+        }
     ): Promise<WindowManager> {
         this.checkVersion();
         if (!continaer) {
@@ -172,7 +179,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         this.debug = Boolean(options?.debug);
         const { mainViewElement } = setupWrapper(continaer);
-        manager.appManager = new AppManager(manager, collector);
+        manager.appManager = new AppManager(manager, { collectorContinaer, collectorStyles: options?.collectorStyles });
         manager.bindMainView(mainViewElement);
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
@@ -469,7 +476,7 @@ export class AppManager {
     private appListeners: AppListeners;
     private reactionDisposers: any[] = [];
 
-    constructor(public windowManger: WindowManager, collector?: HTMLElement) {
+    constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
         this.viewManager = new ViewManager(
@@ -481,7 +488,7 @@ export class AppManager {
             this,
             this.viewManager.mainView,
             this.appProxies,
-            collector
+            options
         );
         this.appListeners = new AppListeners(
             this,
@@ -502,7 +509,6 @@ export class AppManager {
                 reaction(
                     () => Object.keys(this.attributes?.apps || {}).length,
                     appsCount => {
-                        console.log("apps update", appsCount);
                         this.attributesUpdateCallback(this.attributes.apps);
                     }
                 )
@@ -514,6 +520,8 @@ export class AppManager {
                         if (this.delegate.broadcaster !== this.displayer.observerId && camera) {
                             this.mainViewProxy.moveCamera(camera);
                         }
+                    }, {
+                        fireImmediately: true
                     }
                 )
             );
@@ -524,6 +532,8 @@ export class AppManager {
                         if (this.delegate.broadcaster !== this.displayer.observerId && size) {
                             this.mainViewProxy.moveCameraToContian(size);
                         }
+                    }, {
+                        fireImmediately: true
                     }
                 )
             );
@@ -571,9 +581,14 @@ export class AppManager {
             const appId = genAppId(params.kind);
             this.appStatus.set(appId, AppStatus.StartCreate);
             this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
+            const needFocus = this.boxManager.boxState !== TELE_BOX_STATE.Minimized;
+            if (needFocus) {
+                this.delegate.setAppFocus(appId, true);
+            }
             const attrs = params.attributes ?? {};
             this.safeUpdateAttributes([appId], attrs);
-            const appProxy = await this.baseInsertApp(params, appId, true);
+
+            const appProxy = await this.baseInsertApp(params, appId, needFocus);
             return appProxy?.id;
         } catch (error) {
             throw error;

@@ -1,27 +1,41 @@
 import Emittery from 'emittery';
-import { AnimationMode, autorun, SceneState, ViewVisionMode, SceneDefinition, Camera, View } from "white-web-sdk";
 import {
     AddAppOptions,
     AddAppParams,
-    emitter,
     AppEmitterEvent,
     AppInitState,
     AppListenerKeys,
-    AppSyncAttributes,
-    setAppOptions,
-    WindowManager,
     AppManager,
+    AppSyncAttributes,
     BaseInsertParams,
-    callbacks
-} from './index';
-import { Events, AppAttributes, AppEvents } from './constants';
-import { log } from './log';
+    callbacks,
+    emitter,
+    setAppOptions,
+    WindowManager
+    } from './index';
+import {
+    AnimationMode,
+    autorun,
+    Camera,
+    SceneDefinition,
+    SceneState,
+    View,
+    ViewVisionMode
+    } from 'white-web-sdk';
+import { AppAttributes, AppEvents, Events } from './constants';
 import { AppContext } from './AppContext';
-import { NetlessApp } from "./typings";
-// import { loadApp } from './loader'; TODO fix localforge import
 import { AppCreateError, AppNotRegisterError } from './error';
-import { isEqual } from "lodash-es";
-import { genAppId, notifyMainViewModeChange, setScenePath, setViewFocusScenePath, setViewMode } from './Common';
+import {
+    genAppId,
+    notifyMainViewModeChange,
+    setScenePath,
+    setViewFocusScenePath,
+    setViewMode
+    } from './Common';
+import { isEqual } from 'lodash-es';
+import { log } from './log';
+import { NetlessApp } from './typings';
+// import { loadApp } from './loader'; TODO fix localforge import
 
 
 export class AppProxy {
@@ -149,10 +163,11 @@ export class AppProxy {
                 this.boxManager.updateBoxState(boxInitState);
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
+                this.setViewFocusScenePath();
                 setTimeout(async () => { // 延迟执行 setup, 防止初始化的属性没有更新成功
                     await app.setup(context);
                     if (boxInitState) {
-                        if (boxInitState?.focus) {
+                        if (boxInitState.focus) {
                             this.manager.viewManager.switchAppToWriter(this.id);
                         }
                         if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {

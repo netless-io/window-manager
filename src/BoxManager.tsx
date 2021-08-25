@@ -17,6 +17,7 @@ import { View } from 'white-web-sdk';
 import { debounce, get, isEmpty } from 'lodash-es';
 import { log } from './log';
 import { AppProxy } from './AppProxy';
+import { ViewManager } from './ViewManager';
 
 export { TELE_BOX_STATE };
 
@@ -38,6 +39,12 @@ type ResizeBoxParams = AppId & { width: number, height: number };
 type SetBoxMinSizeParams = AppId & { minWidth: number, minHeight: number };
 
 type SetBoxTitleParams = AppId & { title: string };
+
+export type CreateCollectorConfig = {
+    collectorContinaer?: HTMLElement,
+    collectorStyles?: CSSStyleDeclaration
+}
+
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     public appBoxMap: Map<string, string> = new Map();
@@ -46,10 +53,10 @@ export class BoxManager {
         private manager: AppManager,
         private mainView: View,
         private appProxies: Map<string, AppProxy>,
-        collector?: HTMLElement
+        collectorConfig?: CreateCollectorConfig
     ) {
         this.mainView = mainView;
-        this.teleBoxManager = this.setupBoxManager(collector);
+        this.teleBoxManager = this.setupBoxManager(collectorConfig);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
                 callbacks.emit("boxStateChange", state);
@@ -83,6 +90,10 @@ export class BoxManager {
         });
     }
 
+    public get boxState() {
+        return this.teleBoxManager.state;
+    }
+
     public createBox(params: CreateBoxParams) {
         if (!this.teleBoxManager) return;
         let { width, height, minwidth = MIN_WIDTH, minheight = MIN_HEIGHT } = params.app.config ?? {};
@@ -101,11 +112,8 @@ export class BoxManager {
             title, minWidth: minwidth, minHeight: minheight, width, height,
             id: params.appId
         }
-
         const box = this.teleBoxManager.create(createBoxConfig);
-
         emitter.emit(`${params.appId}${Events.WindowCreated}`);
-
 
         const appState = this.manager.delegate.getAppState(params.appId);
         if (appState) {
@@ -126,7 +134,7 @@ export class BoxManager {
         }
     }
 
-    public setupBoxManager(collector?: HTMLElement) {
+    public setupBoxManager(collectorConfig?: CreateCollectorConfig) {
         const root = WindowManager.wrapper ? WindowManager.wrapper : document.body;
         const rect = root.getBoundingClientRect();
         const initManagerState: any = {
@@ -137,10 +145,11 @@ export class BoxManager {
             },
             fence: false,
         }
-        if (collector) {
-            const teleBoxCollector = new TeleBoxCollector().mount(collector);
-            initManagerState.collector = teleBoxCollector;
-        }
+        const continaer = collectorConfig?.collectorContinaer || WindowManager.wrapper;
+        const teleBoxCollector = new TeleBoxCollector({
+            styles: collectorConfig?.collectorStyles
+        }).mount(continaer!);
+        initManagerState.collector = teleBoxCollector;
         const manager = new TeleBoxManager(initManagerState);
         if (this.teleBoxManager) {
             this.teleBoxManager.destroy();
@@ -164,6 +173,11 @@ export class BoxManager {
     public boxIsFocus(appId: string) {
         const box = this.getBox(appId);
         return box?.focus;
+    }
+
+    public getFocusBox() {
+        const boxes = this.teleBoxManager.query({ focus: true });
+        return boxes[0];
     }
 
     public updateBoxState(state?: AppInitState) {
