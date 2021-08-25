@@ -105,7 +105,8 @@ manager.apps
 ### 设置跟随模式
 只有广播端也就是老师需要设置跟随模式, 其他端的主白板都会跟随广播端的视角
 ```javascript
-manager.setViewMode("broadcaster")
+manager.setViewMode("broadcaster"); // 开启跟随模式
+manager.setViewMode("freedom"); // 关闭跟随模式
 ```
 
 ### 设置所有 `app` 的 `readonly`

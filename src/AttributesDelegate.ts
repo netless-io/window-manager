@@ -134,12 +134,11 @@ export class AttributesDelegate {
     }
 
     public setMainViewCamera(camera: Camera | undefined) {
-        this.manager.safeSetAttributes({ [Fields.MainViewCamera]: camera });
+        this.manager.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
 
-
     public setMainViewSize(size: Size | undefined) {
-        this.manager.safeSetAttributes({ [Fields.MainViewSize]: size });
+        this.manager.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 
     public setBroadcaster(observerId: number | undefined) {

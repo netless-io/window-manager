@@ -343,6 +343,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setViewMode(mode: ViewMode) {
         if (mode === ViewMode.Broadcaster) {
             this.appManager?.delegate.setBroadcaster(this.displayer.observerId);
+            this.appManager?.delegate.setMainViewCamera(this.mainView.camera);
+            this.appManager?.delegate.setMainViewSize(this.mainView.size);
         }
         if (mode === ViewMode.Freedom) {
             this.appManager?.delegate.setMainViewCamera(undefined);
@@ -496,7 +498,7 @@ export class AppManager {
             emitter.onAny(this.eventListener);
             this.reactionDisposers.push(
                 reaction(
-                    () => Object.keys(this.attributes.apps).length,
+                    () => Object.keys(this.attributes?.apps || {}).length,
                     appsCount => {
                         console.log("apps update", appsCount);
                         this.attributesUpdateCallback(this.attributes.apps);
@@ -702,8 +704,11 @@ export class AppManager {
             }
             case "focus": {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                this.dispatchIntenalEvent(Events.SwitchViewsToFreedom, {});
-                this.viewManager.switchAppToWriter(payload.appId);
+                const appProxy = this.appProxies.get(payload.appId);
+                if (appProxy?.scenePath) {
+                    this.dispatchIntenalEvent(Events.SwitchViewsToFreedom, {});
+                    this.viewManager.switchAppToWriter(payload.appId);
+                }
                 this.dispatchIntenalEvent(Events.AppFocus, payload);
                 break;
             }
