@@ -2,13 +2,8 @@ import { WhiteWebSdk, createPlugins } from "white-web-sdk";
 import { WindowManager, BuildinApps } from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
-import "video.js/dist/video-js.css";
-import { videoJsPlugin } from "@netless/video-js-plugin";
 import { scenes } from "./test";
 
-const plugins = createPlugins({ "video.js": videoJsPlugin() });
-
-plugins.setPluginContext("video.js", { enable: true, verbose: true });
 
 const continaer = document.createElement("div");
 continaer.id = "root"
@@ -17,7 +12,10 @@ continaer.style.height = "45vw";
 continaer.style.marginTop = "2vh";
 continaer.style.marginLeft = "10vw";
 continaer.style.border = "1px solid";
-
+const collector = document.createElement("div");
+collector.style.position = "static";
+collector.style.marginTop = "50px";
+document.body.insertBefore(collector, document.body.firstChild)
 
 const rightBar = document.createElement("div");
 rightBar.style.width = "10vw";
@@ -51,7 +49,6 @@ document.body.appendChild(rightBar);
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,
-    plugins,
 });
 
 window.WindowManager = WindowManager;
