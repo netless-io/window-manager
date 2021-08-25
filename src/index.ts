@@ -118,7 +118,8 @@ export const emitter: Emittery<{
 }> = new Emittery();
 
 export type PublicEvent = {
-    mainViewModeChange: ViewVisionMode
+    mainViewModeChange: ViewVisionMode,
+    boxStateChange: `${TELE_BOX_STATE}`,
 }
 
 export const callbacks: Emittery<PublicEvent> = new Emittery();
@@ -135,6 +136,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private appManager?: AppManager;
     public readonly?: boolean;
+    public emitter: Emittery<PublicEvent> = callbacks;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -309,10 +311,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.delegate.getMainViewSceneIndex();
     }
 
-    public onMainViewModeChange(listener: (mode: ViewVisionMode) => void) {
-        callbacks.on("mainViewModeChange", listener);
-    }
-
     public setReadonly(readonly: boolean) {
         if (this.room?.isWritable) {
             this.readonly = readonly;
@@ -363,6 +361,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get apps() {
         return this.appManager?.delegate.apps();
+    }
+
+    public get boxState() {
+        return this.appManager?.boxManager.teleBoxManager.state;
     }
 
     public onDestroy() {

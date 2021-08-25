@@ -1,5 +1,5 @@
 import Emittery from 'emittery';
-import { AddAppOptions, emitter, AppInitState, WindowManager, AppManager } from './index';
+import { AddAppOptions, emitter, AppInitState, WindowManager, AppManager, callbacks } from './index';
 import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from './constants';
 import { NetlessApp } from './typings';
 import {
@@ -52,6 +52,7 @@ export class BoxManager {
         this.teleBoxManager = this.setupBoxManager(collector);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
+                callbacks.emit("boxStateChange", state);
                 emitter.emit(state, undefined);
             }
         });

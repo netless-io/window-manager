@@ -79,8 +79,12 @@ const mountManager = async (room) => {
         console.log("onAppDestroy", error)
     });
 
-    window.manager.onMainViewModeChange(mode => {
-        console.log("onMainViewModeChange", mode);
+    window.manager.emitter.on("mainViewModeChange", mode => {
+        console.log("mode", mode);
+    })
+
+    manager.emitter.on("boxStateChange", state => {
+        console.log("boxState", state);
     })
 }
 

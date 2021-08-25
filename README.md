@@ -67,6 +67,13 @@ sdk.joinRoom({
 });
 ```
 
+### manager 上的状态
+```javascript
+manager.mainView // 主白板
+manager.apps // 已经打开的所有 app 的属性
+manager.boxState // 当前的窗口状态:  maximized | minimized | normal
+```
+
 ## APP
 静态和动态 PPT 是作为 `App` 插入到白板, 并持久化到白板中
 
@@ -95,11 +102,6 @@ const appId = await manager.addApp({
         src: "xxxx" // 音视频 url
     }
 });
-```
-
-### 获取当前所有已经打开的 app 的属性
-```typescript
-manager.apps
 ```
 
 ### 设置跟随模式
@@ -144,9 +146,24 @@ manager.getMainViewSceneIndex()
 
 ### 监听 `mianView` 的 `mode`
 ```javascript
-manager.onMainViewModeChange(mode => { // ViewVisionMode
-    console.log(mode)
-});
+manager.emitter.on("mainViewModeChange", mode => {
+    // mode 类型为 ViewVisionMode
+})
+```
+
+### 监听窗口最大化最小化
+```javascript
+manager.emitter.on("boxStateChange", state => {
+    if (state === "maximized") {
+        // 最大化
+    }
+    if (state === "minimized") {
+        // 最小化
+    }
+    if (state === "normal") {
+        // 恢复正常
+    }
+})
 ```
 
 ### 关闭 `App`
