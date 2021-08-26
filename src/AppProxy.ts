@@ -90,6 +90,10 @@ export class AppProxy {
         return this.manager.viewManager.getView(this.id);
     }
 
+    public get isWritable() {
+        return this.manager.canOperate && !this.box?.readonly;
+    }
+
     public getSceneName() {
         if (this.sceneIndex !== undefined) {
             return this.scenes?.[this.sceneIndex]?.name;
@@ -234,14 +238,8 @@ export class AppProxy {
         this.appEmitter.emit("sceneStateChange", sceneState!);
     }
 
-    public emitAppIsWritableChange(isWritable: boolean) {
-        if (isWritable === false) {
-            this.appEmitter.emit("writableChange", isWritable);
-        } else {
-            if (this.box && this.box.focus) {
-                this.appEmitter.emit("writableChange", isWritable);
-            }
-        }
+    public emitAppIsWritableChange() {
+        this.appEmitter.emit("writableChange", this.isWritable);
     }
 
     private makeAppEventListener(appId: string) {

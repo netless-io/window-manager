@@ -132,7 +132,7 @@ export type MountParams = {
     container: HTMLElement,
     containerSizeRatio?: number,
     collectorContainer?: HTMLElement,
-    collectorStyles?: CSSStyleDeclaration,
+    collectorStyles?: Partial<CSSStyleDeclaration>,
     debug?: boolean,
 };
 
@@ -164,7 +164,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         collectorContainer?: HTMLElement,
         options?: {
             containerSizeRatio: number,
-            collectorStyles?: CSSStyleDeclaration,
+            collectorStyles?: Partial<CSSStyleDeclaration>,
             debug?: boolean,
         }
     ): Promise<WindowManager>;
@@ -177,12 +177,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         collectorContainer?: HTMLElement,
         options?: {
             containerSizeRatio?: number,
-            collectorStyles?: CSSStyleDeclaration,
+            collectorStyles?: Partial<CSSStyleDeclaration>,
             debug?: boolean,
         }) {
         let room: Room;
         let containerSizeRatio: number | undefined;
-        let collectorStyles: CSSStyleDeclaration | undefined;
+        let collectorStyles: Partial<CSSStyleDeclaration> | undefined;
         let debug: boolean | undefined;
         if ("room" in params) {
             room = params.room;
@@ -653,7 +653,7 @@ export class AppManager {
             this.boxManager.teleBoxManager.setReadonly(isReadonly);
         }
         this.appProxies.forEach((appProxy) => {
-            appProxy.emitAppIsWritableChange(!isReadonly);
+            appProxy.emitAppIsWritableChange();
         });
     };
 

@@ -41,7 +41,7 @@ type SetBoxTitleParams = AppId & { title: string };
 
 export type CreateCollectorConfig = {
     collectorContainer?: HTMLElement,
-    collectorStyles?: CSSStyleDeclaration
+    collectorStyles?: Partial<CSSStyleDeclaration>
 }
 
 export class BoxManager {
