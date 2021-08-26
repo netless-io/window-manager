@@ -52,7 +52,7 @@ manager.mainView.callbacks.on("onSizeUpdated", (size) => {
 
 ```javascript
 import { WhiteWebSdk } from "white-web-sdk";
-import { WindowManager, BuildinApps } from "@netless/window-manager";
+import { WindowManager, BuiltinApps } from "@netless/window-manager";
 import "@netless/window-manager/dist/style.css";
 
 const sdk = new WhiteWebSdk({
@@ -111,7 +111,7 @@ manager.boxState; // 当前的窗口状态:  maximized | minimized | normal
 
 ```javascript
 const appId = await manager.addApp({
-  kind: BuildinApps.DocsViewer,
+  kind: BuiltinApps.DocsViewer,
   options: {
     scenePath: "/docs-viewer",
     title: "docs1", // 可选
@@ -124,7 +124,7 @@ const appId = await manager.addApp({
 
 ```javascript
 const appId = await manager.addApp({
-  kind: BuildinApps.MediaPlayer,
+  kind: BuiltinApps.MediaPlayer,
   options: {
     title: "test.mp3", // 可选
   },
