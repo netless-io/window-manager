@@ -351,7 +351,7 @@ export class AppProxy {
         this.appProxies.delete(this.id);
         this.manager.cameraStore.deleteCamera(this.id);
         this.removeCameraListener();
-        this.manager.viewManager.destoryView(this.id);
+        this.manager.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
     }
 }

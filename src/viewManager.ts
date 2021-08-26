@@ -32,14 +32,14 @@ export class ViewManager {
         mainView.callbacks.on("onSizeUpdated", (size: Size) => {
             this.manager.boxManager.updateManagerRect();
             if (this.delegate.broadcaster === this.displayer.observerId) {
-                this.setMianViewSize(size);
+                this.setMainViewSize(size);
             }
         });
         this.switchMainViewModeToWriter();
         return mainView;
     }
 
-    public setMianViewSize = debounce(size => {
+    public setMainViewSize = debounce(size => {
         this.manager.delegate.setMainViewSize({ ...size });
     }, 200);
 
@@ -51,7 +51,7 @@ export class ViewManager {
         return view;
     }
 
-    public destoryView(appId: string) {
+    public destroyView(appId: string) {
         const view = this.views.get(appId);
         if (view) {
             view.release();
@@ -110,8 +110,8 @@ export class ViewManager {
         if (this.mainView.mode === ViewVisionMode.Writable) return;
         this.manager.delegate.cleanFocus();
         this.freedomAllViews();
-        this.manager.dispatchIntenalEvent(Events.SwitchViewsToFreedom, {});
-        this.manager.dispatchIntenalEvent(Events.MainViewFocus, {});
+        this.manager.dispatchInternalEvent(Events.SwitchViewsToFreedom, {});
+        this.manager.dispatchInternalEvent(Events.MainViewFocus, {});
         this.manager.boxManager.blurFocusBox();
         await this.manager.viewManager.switchMainViewToWriter();
     }

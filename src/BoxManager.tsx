@@ -246,9 +246,9 @@ export class BoxManager {
     }
 
     public blurFocusBox() {
-        const focusBoxs = this.teleBoxManager.query({ focus: true });
-        if (focusBoxs.length) {
-            const box = focusBoxs[0];
+        const focusBoxes = this.teleBoxManager.query({ focus: true });
+        if (focusBoxes.length) {
+            const box = focusBoxes[0];
             this.teleBoxManager.update(box.id, { focus: false });
         }
     }

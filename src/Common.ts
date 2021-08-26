@@ -39,7 +39,7 @@ export const setViewMode = (view: View, mode: ViewVisionMode) => {
     }
 }
 
-export const emittError = (error: Error) => {
+export const emitError = (error: Error) => {
     if (emitter.listenerCount("error") > 0) {
         emitter.emit("error", error);
     } else {

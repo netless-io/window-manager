@@ -19,7 +19,7 @@
 - `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
 - `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
 
-> 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mianView` 生效
+> 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mainView` 生效
 
 - `room.disableCameraTransform`
 - `room.moveCamera`
@@ -67,7 +67,7 @@ sdk.joinRoom({
 }).then(async room => {
     const manager = await WindowManager.mount(
         room, // 房间实例
-        container, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
+        container, // 挂载 dom 容器, 等同于 room.bindHtmlElement(container)
         collectorContainer, // 可选, 用于多窗口最小化挂载的 dom
         {
             collectorStyles: { bottom: "200px", right: "50px" } // 可选, 设置 collector 的样式
@@ -184,7 +184,7 @@ manager.getMainViewScenePath();
 manager.getMainViewSceneIndex();
 ```
 
-### 监听 `mianView` 的 `mode`
+### 监听 `mainView` 的 `mode`
 
 ```javascript
 manager.emitter.on("mainViewModeChange", (mode) => {

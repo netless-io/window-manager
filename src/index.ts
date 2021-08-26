@@ -734,7 +734,7 @@ export class AppManager {
     private eventListener = (eventName: string | number, payload: any) => {
         switch (eventName) {
             case "move": {
-                this.dispatchIntenalEvent(Events.AppMove, payload);
+                this.dispatchInternalEvent(Events.AppMove, payload);
                 this.delegate.updateAppState(payload.appId, AppAttributes.Position, {
                     x: payload.x,
                     y: payload.y,
@@ -745,19 +745,19 @@ export class AppManager {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
                 const appProxy = this.appProxies.get(payload.appId);
                 if (appProxy?.scenePath) {
-                    this.dispatchIntenalEvent(Events.SwitchViewsToFreedom, {});
+                    this.dispatchInternalEvent(Events.SwitchViewsToFreedom, {});
                     this.viewManager.switchAppToWriter(payload.appId);
                 }
-                this.dispatchIntenalEvent(Events.AppFocus, payload);
+                this.dispatchInternalEvent(Events.AppFocus, payload);
                 break;
             }
             case "blur": {
-                this.dispatchIntenalEvent(Events.AppBlur, payload);
+                this.dispatchInternalEvent(Events.AppBlur, payload);
                 break;
             }
             case "resize": {
                 if (payload.width && payload.height) {
-                    this.dispatchIntenalEvent(Events.AppResize, payload);
+                    this.dispatchInternalEvent(Events.AppResize, payload);
                     this.delegate.updateAppState(payload.appId, AppAttributes.Size, {
                         width: payload.width,
                         height: payload.height,
@@ -840,7 +840,7 @@ export class AppManager {
         }
     }
 
-    public dispatchIntenalEvent(event: Events, payload: any) {
+    public dispatchInternalEvent(event: Events, payload: any) {
         this.safeDispatchMagixEvent(MagixEventName, {
             eventName: event,
             payload: payload
