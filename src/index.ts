@@ -44,6 +44,7 @@ import {
     REQUIRE_VERSION,
     AppStatus,
     MagixEventName,
+    DEFAULT_CONTAINER_RATIO,
 } from "./constants";
 import { genAppId, makeValidScenePath, setScenePath, setViewFocusScenePath, } from './Common';
 import { replaceRoomFunction } from './RoomHacker';
@@ -126,11 +127,21 @@ export type PublicEvent = {
 
 export const callbacks: Emittery<PublicEvent> = new Emittery();
 
+export type MountParams = {
+    room: Room,
+    container: HTMLElement,
+    containerSizeRatio?: number,
+    collectorContainer?: HTMLElement,
+    collectorStyles?: CSSStyleDeclaration,
+    debug?: boolean,
+};
+
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static displayer: Displayer;
     public static wrapper: HTMLElement | null;
     public static debug = false;
+    public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
     public appListeners?: AppListeners;
@@ -146,43 +157,67 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 挂载 WindowManager
-     *
-     * @static
-     * @param {Room} room
-     * @param {HTMLElement} continaer
-     * @param {HTMLElement} [collectorContinaer]
-     * @param {{
-     *             debug?: boolean,
-     *             collectorStyles?: TeleStyles
-     *         }} [options]
-     * @returns {Promise<WindowManager>}
-     * @memberof WindowManager
      */
     public static async mount(
         room: Room,
-        continaer: HTMLElement,
-        collectorContinaer?: HTMLElement,
+        container: HTMLElement,
+        collectorContainer?: HTMLElement,
         options?: {
+            containerSizeRatio: number,
             collectorStyles?: CSSStyleDeclaration,
             debug?: boolean,
         }
-    ): Promise<WindowManager> {
+    ): Promise<WindowManager>;
+
+    public static async mount(params: MountParams): Promise<WindowManager>;
+
+    public static async mount(
+        params: MountParams | Room,
+        container?: HTMLElement,
+        collectorContainer?: HTMLElement,
+        options?: {
+            containerSizeRatio?: number,
+            collectorStyles?: CSSStyleDeclaration,
+            debug?: boolean,
+        }) {
+        let mountParams: any = {};
+        if ("room" in params) {
+            mountParams.room = params.room;
+            mountParams.container = params.container;
+            mountParams.collectorContainer = params.collectorContainer;
+            mountParams.collectorStyles = params.collectorStyles;
+            mountParams.containerSizeRatio = params.containerSizeRatio;
+            mountParams.debug = params.debug;
+        } else {
+            mountParams.room = params;
+            mountParams.container = container;
+            mountParams.collectorContainer = collectorContainer;
+            mountParams.collectorStyles = options?.collectorStyles;
+            mountParams.containerSizeRatio = options?.containerSizeRatio;
+            mountParams.debug = options?.debug;
+        }
         this.checkVersion();
-        if (!continaer) {
-            throw new Error("[WindowManager]: Continaer must provide");
+        if (!mountParams.container) {
+            throw new Error("[WindowManager]: Container must provide");
         }
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
-        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+        let manager = mountParams.room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
         if (!manager) {
-            manager = await room.createInvisiblePlugin(WindowManager, {}) as WindowManager;
+            manager = await mountParams.room.createInvisiblePlugin(WindowManager, {}) as WindowManager;
         }
-        this.debug = Boolean(options?.debug);
-        const { mainViewElement } = setupWrapper(continaer);
-        manager.appManager = new AppManager(manager, { collectorContinaer, collectorStyles: options?.collectorStyles });
+        this.debug = Boolean(mountParams.debug);
+        if (mountParams.containerSizeRatio) {
+            WindowManager.containerSizeRatio = mountParams.containerSizeRatio;
+        }
+        const { mainViewElement } = setupWrapper(mountParams.container);
+        manager.appManager = new AppManager(manager, {
+            collectorContainer: mountParams.collectorContainer,
+            collectorStyles: mountParams.collectorStyles
+        });
         manager.bindMainView(mainViewElement);
-        replaceRoomFunction(room, manager.appManager);
+        replaceRoomFunction(mountParams.room, manager.appManager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
         return manager;
@@ -190,9 +225,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 注册插件
-     *
-     * @param {NetlessApp} app
-     * @memberof WindowManager
      */
     public static register(app: NetlessApp) {
         this.appClasses.set(app.kind, app);
@@ -200,9 +232,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 创建 main View
-     *
-     * @returns {View}
-     * @memberof WindowManager
      */
     public createMainView(): View {
         if (this.appManager) {
@@ -214,9 +243,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 创建一个 app 至白板
-     *
-     * @param {AddAppParams} params
-     * @memberof WindowManager
      */
     public async addApp(params: AddAppParams) {
         if (this.appManager) {
@@ -264,9 +290,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 关闭 APP
-     *
-     * @param {string} appId
-     * @memberof AppManager
      */
     public async closeApp(appId: string) {
         return this.appManager?.closeApp(appId);
@@ -274,9 +297,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 设置 mainView 的 ScenePath, 并且切换白板为可写状态
-     *
-     * @param {string} scenePath
-     * @memberof WindowManager
      */
     public setMainViewScenePath(scenePath: string) {
         if (this.appManager) {
@@ -286,9 +306,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 设置 mainView 的 SceneIndex, 并且切换白板为可写状态
-     *
-     * @param {number} index
-     * @memberof WindowManager
      */
     public setMainViewSceneIndex(index: number) {
         if (this.appManager) {
@@ -306,17 +323,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.delegate.getMainViewScenePath();
     }
 
-
     /**
      * 返回 mainView 的 SceneIndex
-     * 
-     * @returns {number} sceneIndex
-     * @memberof WindowManager
      */
     public getMainViewSceneIndex(): number {
         return this.appManager?.delegate.getMainViewSceneIndex();
     }
 
+    /**
+     * 设置所有 app 的 readonly 模式
+     */
     public setReadonly(readonly: boolean) {
         if (this.room?.isWritable) {
             this.readonly = readonly;
@@ -326,8 +342,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 切换 mainView 为可写
-     *
-     * @memberof WindowManager
      */
     public switchMainViewToWriter() {
         return this.appManager?.viewManager.mainViewClickHandler();
@@ -335,15 +349,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * app destroy 回调
-     *
-     * @param {string} kind
-     * @param {(error: Error) => void} listener
-     * @memberof WindowManager
     */
     public onAppDestroy(kind: string, listener: (error: Error) => void) {
         emitter.once(`destroy-${kind}`).then(listener);
     }
 
+    /**
+     * 设置 ViewMode
+     */
     public setViewMode(mode: ViewMode) {
         if (mode === ViewMode.Broadcaster) {
             this.appManager?.delegate.setBroadcaster(this.displayer.observerId);
@@ -520,8 +533,8 @@ export class AppManager {
                             this.mainViewProxy.moveCamera(camera);
                         }
                     }, {
-                        fireImmediately: true
-                    }
+                    fireImmediately: true
+                }
                 )
             );
             this.reactionDisposers.push(
@@ -532,8 +545,8 @@ export class AppManager {
                             this.mainViewProxy.moveCameraToContian(size);
                         }
                     }, {
-                        fireImmediately: true
-                    }
+                    fireImmediately: true
+                }
                 )
             );
             if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
@@ -669,7 +682,7 @@ export class AppManager {
 
     public safeSetAttributes(attributes: any) {
         this.windowManger.safeSetAttributes(attributes);
-    } 
+    }
 
     public safeUpdateAttributes(keys: string[], value: any) {
         this.windowManger.safeUpdateAttributes(keys, value);
@@ -763,7 +776,7 @@ export class AppManager {
                     }
                 });
                 this.safeSetAttributes({ boxState: eventName });
-               
+
                 this.delegate.cleanFocus();
                 this.boxManager.blurFocusBox();
                 this.viewManager.freedomAllViews();

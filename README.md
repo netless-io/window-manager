@@ -67,14 +67,26 @@ sdk.joinRoom({
 }).then(async room => {
     const manager = await WindowManager.mount(
         room, // 房间实例
-        continaer, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
-        collectorContinaer, // 可选, 用于多窗口最小化挂载的 dom
+        container, // 挂载 dom 容器, 等同于 room.bindHtmlElement(continaer)
+        collectorContainer, // 可选, 用于多窗口最小化挂载的 dom
         {
             collectorStyles: { bottom: "200px", right: "50px" } // 可选, 设置 collector 的样式
             debug: true, // 可选, 调试用
         }
     );
 });
+```
+
+### mount
+```typescript
+WindowManager.mount({
+    room: room, // 房间实例
+    container: container, // 挂载 dom 容器, 等同于 room.bindHtmlElement
+    containerSizeRatio: 6 / 19, // 可选, 主白板显示的比例，默认为 16 : 9
+    collectorContainer: collectorContainer, // 可选, 用于多窗口最小化图标挂载的 dom
+    collectorStyles: { bottom: "100px", right: "50px" }, // 可选, 配置 collector 的样式
+    debug: true, // 可选, 输出日志信息
+})
 ```
 
 ### `collector`

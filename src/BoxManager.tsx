@@ -41,7 +41,7 @@ type SetBoxMinSizeParams = AppId & { minWidth: number, minHeight: number };
 type SetBoxTitleParams = AppId & { title: string };
 
 export type CreateCollectorConfig = {
-    collectorContinaer?: HTMLElement,
+    collectorContainer?: HTMLElement,
     collectorStyles?: CSSStyleDeclaration
 }
 
@@ -145,11 +145,11 @@ export class BoxManager {
             },
             fence: false,
         }
-        const continaer = collectorConfig?.collectorContinaer || WindowManager.wrapper;
+        const container = collectorConfig?.collectorContainer || WindowManager.wrapper;
         const styles = collectorConfig?.collectorStyles || DEFAULT_COLLECTOR_STYLE;
         const teleBoxCollector = new TeleBoxCollector({
             styles: styles
-        }).mount(continaer!);
+        }).mount(container!);
         initManagerState.collector = teleBoxCollector;
         const manager = new TeleBoxManager(initManagerState);
         if (this.teleBoxManager) {
