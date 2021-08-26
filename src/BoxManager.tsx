@@ -17,7 +17,6 @@ import { View } from 'white-web-sdk';
 import { debounce, get, isEmpty } from 'lodash-es';
 import { log } from './log';
 import { AppProxy } from './AppProxy';
-import { ViewManager } from './ViewManager';
 
 export { TELE_BOX_STATE };
 

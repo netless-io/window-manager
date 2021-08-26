@@ -317,9 +317,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 返回 mainView 的 ScenePath
-     * 
-     * @returns {string} scenePath
-     * @memberof WindowManager
      */
     public getMainViewScenePath(): string {
         return this.appManager?.delegate.getMainViewScenePath();
