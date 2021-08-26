@@ -260,5 +260,6 @@ export class BoxManager {
 
     public setBoxState(state: TELE_BOX_STATE) {
         this.teleBoxManager.setState(state, true);
+        callbacks.emit("boxStateChange", state);
     }
 }

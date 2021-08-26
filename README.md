@@ -137,7 +137,7 @@ const appId = await manager.addApp({
 ### 设置跟随模式
 
 只有广播端也就是老师需要设置跟随模式, 其他端的主白板都会跟随广播端的视角
-
+> 注意, `manager` 的 `setViewMode` 不能和 `room.setViewMode` 同时使用
 ```javascript
 manager.setViewMode("broadcaster"); // 开启跟随模式
 manager.setViewMode("freedom"); // 关闭跟随模式
