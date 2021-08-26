@@ -180,44 +180,46 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             collectorStyles?: CSSStyleDeclaration,
             debug?: boolean,
         }) {
-        let mountParams: any = {};
+        let room: Room;
+        let containerSizeRatio: number | undefined;
+        let collectorStyles: CSSStyleDeclaration | undefined;
+        let debug: boolean | undefined;
         if ("room" in params) {
-            mountParams.room = params.room;
-            mountParams.container = params.container;
-            mountParams.collectorContainer = params.collectorContainer;
-            mountParams.collectorStyles = params.collectorStyles;
-            mountParams.containerSizeRatio = params.containerSizeRatio;
-            mountParams.debug = params.debug;
+            room = params.room;
+            container = params.container;
+            collectorContainer = params.collectorContainer;
+            containerSizeRatio = params.containerSizeRatio;
+            collectorStyles = params.collectorStyles;
+            debug = params.debug;
         } else {
-            mountParams.room = params;
-            mountParams.container = container;
-            mountParams.collectorContainer = collectorContainer;
-            mountParams.collectorStyles = options?.collectorStyles;
-            mountParams.containerSizeRatio = options?.containerSizeRatio;
-            mountParams.debug = options?.debug;
+            room = params;
+            containerSizeRatio = options?.containerSizeRatio;
+            collectorStyles = options?.collectorStyles;
+            debug = options?.debug;
         }
+
         this.checkVersion();
-        if (!mountParams.container) {
+        if (!container) {
             throw new Error("[WindowManager]: Container must provide");
         }
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
-        let manager = mountParams.room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
         if (!manager) {
-            manager = await mountParams.room.createInvisiblePlugin(WindowManager, {}) as WindowManager;
+            manager = await room.createInvisiblePlugin(WindowManager, {}) as WindowManager;
         }
-        this.debug = Boolean(mountParams.debug);
-        if (mountParams.containerSizeRatio) {
-            WindowManager.containerSizeRatio = mountParams.containerSizeRatio;
+        this.debug = Boolean(debug);
+        if (containerSizeRatio) {
+            WindowManager.containerSizeRatio = containerSizeRatio;
         }
-        const { mainViewElement } = setupWrapper(mountParams.container);
+        const { mainViewElement } = setupWrapper(container);
         manager.appManager = new AppManager(manager, {
-            collectorContainer: mountParams.collectorContainer,
-            collectorStyles: mountParams.collectorStyles
+            collectorContainer: collectorContainer,
+            collectorStyles: collectorStyles
         });
         manager.bindMainView(mainViewElement);
-        replaceRoomFunction(mountParams.room, manager.appManager);
+        replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
         return manager;
