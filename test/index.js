@@ -5,13 +5,13 @@ import "../dist/style.css";
 import { scenes } from "./test";
 
 
-const continaer = document.createElement("div");
-continaer.id = "root"
-continaer.style.width = "80vw";
-continaer.style.height = "45vw";
-continaer.style.marginTop = "2vh";
-continaer.style.marginLeft = "10vw";
-continaer.style.border = "1px solid";
+const container = document.createElement("div");
+container.id = "root"
+container.style.width = "80vw";
+container.style.height = "45vw";
+container.style.marginTop = "2vh";
+container.style.marginLeft = "10vw";
+container.style.border = "1px solid";
 const collector = document.createElement("div");
 collector.style.position = "static";
 collector.style.marginTop = "50px";
@@ -44,7 +44,7 @@ rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(button4);
 
-document.body.appendChild(continaer);
+document.body.appendChild(container);
 document.body.appendChild(rightBar);
 
 const sdk = new WhiteWebSdk({
@@ -67,7 +67,7 @@ sdk.joinRoom({
 const mountManager = async (room) => {
     const manager = await WindowManager.mount(
         room,
-        continaer,
+        container,
         undefined,
         { collectorStyles: { bottom: "100px", right: "30px" }, debug: true });
 
@@ -270,7 +270,7 @@ button3.addEventListener("click", () => {
 
 button4.addEventListener("click", () => {
     window.manager.addApp({
-        kind: BuildinApps.MediaPlayer,
+        kind: BuiltinApps.MediaPlayer,
         attributes: {
             src: "https://flat-storage.oss-cn-hangzhou.aliyuncs.com/cloud-storage/5c26682a-c950-43b2-b7a5-74def6c43dfb.mp4"
         }
