@@ -1,5 +1,5 @@
 import { WhiteWebSdk, createPlugins } from "white-web-sdk";
-import { WindowManager, BuildinApps } from "../dist/index.es";
+import { WindowManager, BuiltinApps } from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
 import { scenes } from "./test";
@@ -87,7 +87,7 @@ const mountManager = async (room) => {
 
 button2.addEventListener("click", () => {
     window.manager.addApp({
-        kind: BuildinApps.DocsViewer,
+        kind: BuiltinApps.DocsViewer,
         options: {
             scenePath: "/test4",
             title: "ppt1",
@@ -114,7 +114,7 @@ button2.addEventListener("click", () => {
 });
 button3.addEventListener("click", () => {
     window.manager.addApp({
-        kind: BuildinApps.DocsViewer,
+        kind: BuiltinApps.DocsViewer,
         options: {
             scenePath: "/ppt3",
             title: "ppt3",
