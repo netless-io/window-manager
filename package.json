@@ -19,6 +19,7 @@
     "white-web-sdk": "^2.13.16"
   },
   "dependencies": {
+    "@juggle/resize-observer": "^3.3.1",
     "@netless/app-docs-viewer": "^0.1.15",
     "@netless/app-media-player": "0.1.0-beta.4",
     "@netless/telebox-insider": "^0.1.14",

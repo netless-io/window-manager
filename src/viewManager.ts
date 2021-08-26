@@ -218,22 +218,24 @@ export class ViewManager {
 }
 
 export const setupWrapper = (root: HTMLElement) => {
-    const wrapper = createWrapper();
-    const mainViewElement = initMaiViewElement();
-    wrapper.appendChild(mainViewElement);
-    root.appendChild(wrapper);
-    WindowManager.wrapper = wrapper;
-    return { wrapper, mainViewElement };
-}
-
-export const createWrapper = () => {
+    const playground = document.createElement('div')
+    playground.className = "netless-window-manager-playground";
+    
+    const sizer = document.createElement('div')
+    sizer.className = "netless-window-manager-sizer";
+    
     const wrapper = document.createElement("div");
-    wrapper.className = "netless-window-manager wrapper";
-    return wrapper;
+    wrapper.className = "netless-window-manager-wrapper";
+    
+    const mainViewElement = document.createElement("div");
+    mainViewElement.className = "netless-window-manager-main-view";
+    
+    playground.appendChild(sizer)
+    sizer.appendChild(wrapper)
+    wrapper.appendChild(mainViewElement);
+    root.appendChild(playground);
+    WindowManager.wrapper = wrapper;
+    
+    return { playground, wrapper, sizer, mainViewElement };
 }
 
-export const initMaiViewElement = () => {
-    const element = document.createElement("div");
-    element.className = "main-view";
-    return element;
-}

@@ -4,37 +4,38 @@ import "normalize.css"
 import "../dist/style.css";
 import { scenes } from "./test";
 
+document.body.style.margin = '0';
+document.body.style.padding = '0';
 
-const container = document.createElement("div");
-container.id = "root"
-container.style.width = "80vw";
-container.style.height = "45vw";
-container.style.marginTop = "2vh";
-container.style.marginLeft = "10vw";
-container.style.border = "1px solid";
-const collector = document.createElement("div");
-collector.style.position = "static";
-collector.style.marginTop = "50px";
-document.body.insertBefore(collector, document.body.firstChild)
+const container = document.createElement('div');
+container.style.display = 'flex';
+container.style.width = '100vw';
+container.style.height = '100vh';
+container.style.padding = '16px 16px';
+container.style.overflow = 'hidden';
+container.style.boxSizing = 'border-box';
+
+const whiteboardRoot = document.createElement("div");
+whiteboardRoot.id = "root"
+whiteboardRoot.style.flex = "1";
+whiteboardRoot.style.height = "calc(100vh - 32px)";
+whiteboardRoot.style.border = "1px solid";
 
 const rightBar = document.createElement("div");
-rightBar.style.width = "10vw";
-rightBar.style.height = "80vh";
+rightBar.style.flexShrink = "0";
+rightBar.style.padding = "16px";
+rightBar.style.marginRight = "16px";
+rightBar.style.textAlign = "center";
+rightBar.style.userSelect = "none";
 
 const button1 = document.createElement("button")
 button1.textContent = "课件1"
 const button2 = document.createElement("button")
 button2.textContent = "课件2"
-const button4 = document.createElement("button");
-button4.textContent = "插入视频"
-
-rightBar.style.position = "fixed";
-rightBar.style.right = 0;
-rightBar.style.top = "70px";
-rightBar.style.textAlign = "center";
-
 const button3 = document.createElement("button")
 button3.textContent = "课件3"
+const button4 = document.createElement("button");
+button4.textContent = "插入视频"
 
 rightBar.appendChild(button2);
 rightBar.appendChild(document.createElement("br"))
@@ -44,8 +45,10 @@ rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(document.createElement("br"))
 rightBar.appendChild(button4);
 
-document.body.appendChild(container);
-document.body.appendChild(rightBar);
+container.appendChild(whiteboardRoot);
+container.appendChild(rightBar);
+
+document.body.append(container)
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,
@@ -65,14 +68,16 @@ sdk.joinRoom({
 
 
 const mountManager = async (room) => {
-    const manager = await WindowManager.mount(
+    const manager = await WindowManager.mount({
         room,
-        container,
-        undefined,
-        { collectorStyles: { bottom: "100px", right: "30px" }, debug: true });
+        container: whiteboardRoot,
+        collectorStyles: { bottom: "100px", right: "30px" },
+        containerSizeRatio: 3/ 4,
+        debug: true
+    });
 
     window.manager = manager;
-    window.manager.onAppDestroy(BuildinApps.DocsViewer, (error) => {
+    window.manager.onAppDestroy(BuiltinApps.DocsViewer, (error) => {
         console.log("onAppDestroy", error)
     });
 

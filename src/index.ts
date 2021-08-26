@@ -212,11 +212,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
-        const { mainViewElement } = setupWrapper(container);
+        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
             collectorStyles: collectorStyles
         });
+        manager.observePlaygroundSize(playground, sizer, wrapper)
         manager.bindMainView(mainViewElement);
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
@@ -393,6 +394,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private _destroy() {
+        this.containerResizeObserver?.disconnect()
         this.appManager?.destroy();
         WindowManager.isCreated = false;
         log("Destroyed");
@@ -470,6 +472,39 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private static getVersionNumber(version: string) {
         return parseInt(version.split(".").join(""));
+    }
+    
+    private containerResizeObserver?: ResizeObserver
+    
+    private observePlaygroundSize(container: HTMLElement, sizer: HTMLElement, wrapper: HTMLDivElement) {
+        this.updateSizer(container.getBoundingClientRect(), sizer, wrapper)
+        
+        this.containerResizeObserver = new ResizeObserver((entries) => {
+            const containerRect = entries[0]?.contentRect;
+            if (containerRect) {
+                this.updateSizer(containerRect, sizer, wrapper)
+            }
+        });
+        
+        this.containerResizeObserver.observe(container);
+    }
+    
+    private updateSizer(
+        { width, height }: DOMRectReadOnly,
+        sizer: HTMLElement,
+        wrapper: HTMLDivElement
+    ) {
+        if (width && height) {
+            if (height / width > WindowManager.containerSizeRatio) {
+                height = width * WindowManager.containerSizeRatio;
+                sizer.classList.toggle('netless-window-manager-sizer-horizontal', true)
+            } else {
+                width = height / WindowManager.containerSizeRatio;
+                sizer.classList.toggle('netless-window-manager-sizer-horizontal', false)
+            }
+            wrapper.style.width = `${width}px`;
+            wrapper.style.height = `${height}px`;
+        }
     }
 }
 
