@@ -55,14 +55,6 @@ export class AppListeners {
                     this.appCloseHandler(data.payload);
                     break;
                 }
-                case Events.SetMainViewScenePath: {
-                    this.setScenePathHandler(data.payload);
-                    break;
-                }
-                case Events.SetMainViewSceneIndex: {
-                    this.setSceneIndexHandler(data.payload);
-                    break;
-                }
                 case Events.MainViewFocus: {
                     this.mainViewFocusHandler(data.payload);
                     break;
@@ -122,14 +114,6 @@ export class AppListeners {
         if (appProxy) {
             appProxy.destroy(true, true);
         }
-    }
-
-    private setScenePathHandler = (payload: any) => {
-        this.manager.windowManger.setMainViewScenePath(payload.scenePath);
-    }
-
-    private setSceneIndexHandler = (payload: any) => {
-        this.manager.windowManger.setMainViewSceneIndex(payload.index);
     }
 
     private mainViewFocusHandler = (payload: any) => {

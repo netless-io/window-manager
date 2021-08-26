@@ -3,12 +3,6 @@
     height: 100%;
 }
 
-.netless-window-manager .telebox-collector {
-    position: absolute;
-    right: 10px;
-    bottom: 15px;
-}
-
 .netless-window-manager.wrapper {
     width: 100%;
     height: 100%;

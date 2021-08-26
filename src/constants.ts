@@ -42,3 +42,5 @@ export const MIN_WIDTH = 340 / 720;
 export const MIN_HEIGHT = 340 / 720;
 
 export const SET_SCENEPATH_DELAY = 100; // 设置 sceenPath 的延迟事件
+
+export const DEFAULT_COLLECTOR_STYLE = { right: "10px", bottom: "15px", position: "absolute" };

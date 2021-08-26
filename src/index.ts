@@ -27,7 +27,8 @@ import {
     WhiteVersion,
     reaction,
     RoomPhase,
-    ViewMode
+    ViewMode,
+    ScenePathType
 } from 'white-web-sdk';
 import { BoxManager, CreateCollectorConfig, TELE_BOX_STATE } from './BoxManager';
 import { CameraStore } from './CameraStore';
@@ -44,7 +45,7 @@ import {
     AppStatus,
     MagixEventName,
 } from "./constants";
-import { genAppId, setScenePath, setViewFocusScenePath, } from './Common';
+import { genAppId, makeValidScenePath, setScenePath, setViewFocusScenePath, } from './Common';
 import { replaceRoomFunction } from './RoomHacker';
 import { MainViewProxy } from './MainView';
 import { TeleStyles } from '@netless/telebox-insider/dist/typings';
@@ -280,7 +281,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setMainViewScenePath(scenePath: string) {
         if (this.appManager) {
             this.appManager.setMainViewScenePath(scenePath);
-            this.appManager.dispatchIntenalEvent(Events.SetMainViewScenePath, { scenePath })
         }
     }
 
@@ -293,7 +293,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setMainViewSceneIndex(index: number) {
         if (this.appManager) {
             this.appManager.setMainViewSceneIndex(index);
-            this.appManager.dispatchIntenalEvent(Events.SetMainViewSceneIndex, { index });
         }
     }
 
@@ -678,11 +677,23 @@ export class AppManager {
 
     public setMainViewScenePath(scenePath: string) {
         if (this.room) {
-            this.safeSetAttributes({ _mainScenePath: scenePath });
-            this.viewManager.freedomAllViews();
-            this.viewManager.switchMainViewToWriter();
-            this.delegate.setMainViewFocusPath();
+            const scenePathType = this.displayer.scenePathType(scenePath);
+            if (scenePathType === ScenePathType.None) {
+                throw new Error(`${scenePath} not valid scene`);
+            } else if (scenePathType === ScenePathType.Page) {
+                this._setMainViewScenePath(scenePath);
+            } else if (scenePathType === ScenePathType.Dir) {
+                const validScenePath = makeValidScenePath(this.displayer, scenePath);
+                this._setMainViewScenePath(validScenePath);
+            }
         }
+    }
+
+    private _setMainViewScenePath(scenePath: string) {
+        this.safeSetAttributes({ _mainScenePath: scenePath });
+        this.viewManager.freedomAllViews();
+        this.viewManager.switchMainViewToWriter();
+        this.delegate.setMainViewFocusPath();
     }
 
     public setMainViewSceneIndex(index: number) {

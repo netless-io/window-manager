@@ -12,6 +12,7 @@ export class ViewManager {
     private views: Map<string, View> = new Map();
     private mainViewIsAddListener = false;
     private delegate = this.manager.delegate;
+    private timer?: number;
 
     constructor(
         private displayer: Displayer,
@@ -123,8 +124,11 @@ export class ViewManager {
     }
 
     public switchMainViewToWriter() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+        }
         return new Promise((resolve, reject) => {
-            setTimeout(() => {
+            this.timer = window.setTimeout(() => {
                 try {
                     const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
                     if (mainViewScenePath) {
@@ -145,6 +149,7 @@ export class ViewManager {
 
     public refreshViews() {
         const focus = this.manager.delegate.focus;
+        this.setMainViewFocusScenePath();
         if (focus) {
             const appProxy = this.manager.appProxies.get(focus);
             if (appProxy) {
@@ -156,12 +161,15 @@ export class ViewManager {
             }
         } else {
             if (this.manager.mainView.mode === ViewVisionMode.Writable) return;
-            const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
-            if (mainViewScenePath) {
-                setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
-                this.freedomAllViews();
-                this.manager.viewManager.switchMainViewToWriter();
-            }
+            this.freedomAllViews();
+            this.manager.viewManager.switchMainViewToWriter();
+        }
+    }
+
+    private setMainViewFocusScenePath() {
+        const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+        if (mainViewScenePath) {
+            setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
         }
     }
 

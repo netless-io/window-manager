@@ -15,8 +15,6 @@
   "author": "",
   "license": "ISC",
   "peerDependencies": {
-    "react": ">=16",
-    "react-dom": ">=16",
     "video.js": ">=7",
     "white-web-sdk": "^2.13.16"
   },
