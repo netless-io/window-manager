@@ -72,7 +72,7 @@ const mountManager = async (room) => {
         room,
         container: whiteboardRoot,
         collectorStyles: { bottom: "100px", right: "30px" },
-        containerSizeRatio: 3/ 4,
+        containerSizeRatio: 9 / 16,
         debug: true
     });
 
