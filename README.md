@@ -78,7 +78,7 @@ sdk.joinRoom({
 WindowManager.mount({
     room: room, // 房间实例
     container: container, // 挂载 dom 容器, 等同于 room.bindHtmlElement
-    containerSizeRatio: 6 / 19, // 可选, 多窗口区域的高宽比，默认为  9 : 16
+    containerSizeRatio: 9 / 16, // 可选, 多窗口区域的高宽比，默认为  9 : 16
     chessboard: true, // 多窗口区域以外的空间显示 PS 棋盘背景，默认 true
     collectorContainer: collectorContainer, // 可选, 用于多窗口最小化图标挂载的 dom
     collectorStyles: { bottom: "100px", right: "50px" }, // 可选, 配置 collector 的样式
