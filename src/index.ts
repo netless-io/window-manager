@@ -49,6 +49,9 @@ import {
 import { genAppId, makeValidScenePath, setScenePath, setViewFocusScenePath, } from './Common';
 import { replaceRoomFunction } from './RoomHacker';
 import { MainViewProxy } from './MainView';
+import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer'
+
+const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill
 
 export const BuiltinApps = {
     DocsViewer: AppDocsViewer.kind as string,
