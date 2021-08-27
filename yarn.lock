@@ -35,10 +35,10 @@
   resolved "https://registry.yarnpkg.com/@juggle/resize-observer/-/resize-observer-3.3.1.tgz#b50a781709c81e10701004214340f25475a171a0"
   integrity sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==
 
-"@netless/app-docs-viewer@^0.1.15":
-  version "0.1.15"
-  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.15.tgz#8b857c2d2e07889a621b87fde339e8bb3526465e"
-  integrity sha512-GZuevbDpU4sIyhN8SNrXW247dJmp5OsI18tiHFEU12fXDixwamKqCA3TNiuWD6+C8GmEcs/NvGeAI/yDui9WrA==
+"@netless/app-docs-viewer@^0.1.16":
+  version "0.1.16"
+  resolved "https://registry.yarnpkg.com/@netless/app-docs-viewer/-/app-docs-viewer-0.1.16.tgz#6431e4af4ba0c20a3471dfbb9eec11f6830e28cd"
+  integrity sha512-k5EnIbrHuYGHbVXPLP369CYu4/WfslduvsQgDgOQ0bYQWLet3JVgfrJ+Q+10jasOUyEshxWGVKe2X9YEkRRyyg==
   dependencies:
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"
@@ -53,10 +53,10 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@^0.1.14":
-  version "0.1.14"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.14.tgz#7a1bd3979d0d24341db1163e8dd5735615a6a340"
-  integrity sha512-B0AwEPsRVTyg2MzdSbG9tfw7BYi1/wPEpeO2QAM9MZIN53fSO9BOA7X42hMafsEpXZ9p8PDJ29AbuGullEEV0Q==
+"@netless/telebox-insider@^0.1.15":
+  version "0.1.15"
+  resolved "https://registry.yarnpkg.com/@netless/telebox-insider/-/telebox-insider-0.1.15.tgz#30adbd2aa271a1c8462218bc7170c24cef477163"
+  integrity sha512-1IYwXYNjnhXaqn/749qEkxIYXI5H/4eLtjPEIAjd826uMV4JXKeg8egNB/LLzeSqSvN+nH1aVj09uYbWOML4wg==
   dependencies:
     eventemitter3 "^4.0.7"
     stylefire "^7.0.3"
