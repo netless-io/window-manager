@@ -406,7 +406,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.appManager) {
             const mainView = this.appManager.viewManager.mainView;
             mainView.divElement = divElement;
-
+            mainView.mode = ViewVisionMode.Writable;
             if (!mainView.focusScenePath) {
                 this.appManager.delegate.setMainViewFocusPath();
             }
@@ -416,7 +416,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
             }
 
-            if (this.appManager.delegate.focus === undefined) {
+            if (this.appManager.delegate.focus === undefined && mainView.mode !== ViewVisionMode.Writable) {
                 this.appManager.viewManager.freedomAllViews();
                 this.appManager.viewManager.switchMainViewToWriter();
             }

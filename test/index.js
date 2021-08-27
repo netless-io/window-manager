@@ -2,6 +2,7 @@ import { WhiteWebSdk, createPlugins } from "white-web-sdk";
 import { WindowManager, BuiltinApps } from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
+import "video.js/dist/video-js.css";
 import { scenes } from "./test";
 
 document.body.style.margin = '0';

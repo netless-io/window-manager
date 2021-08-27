@@ -65,7 +65,7 @@ export class AppManager {
             this.reactionDisposers.push(
                 reaction(
                     () => Object.keys(this.attributes?.apps || {}).length,
-                    appsCount => {
+                    (_) => {
                         this.attributesUpdateCallback(this.attributes.apps);
                     }
                 )
@@ -139,6 +139,9 @@ export class AppManager {
             const appId = genAppId(params.kind);
             this.appStatus.set(appId, AppStatus.StartCreate);
             this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
+            if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
+                this.boxManager.teleBoxManager.setState(TELE_BOX_STATE.Normal);
+            }
             const needFocus = this.boxManager.boxState !== TELE_BOX_STATE.Minimized;
             if (needFocus) {
                 this.delegate.setAppFocus(appId, true);
@@ -338,6 +341,11 @@ export class AppManager {
                         state: eventName,
                     }
                 });
+                const topBox = this.boxManager.getTopBox();
+                if (topBox) {
+                    this.delegate.setAppFocus(topBox.id, true);
+                    this.viewManager.refreshViews();
+                }
                 this.safeSetAttributes({ boxState: eventName });
                 break;
             }

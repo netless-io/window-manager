@@ -15,7 +15,7 @@ import {
     TeleBoxManagerCreateConfig
 } from '@netless/telebox-insider';
 import { View } from 'white-web-sdk';
-import { debounce, get, isEmpty } from 'lodash-es';
+import { debounce, get, isEmpty, maxBy } from 'lodash-es';
 import { log } from './log';
 import { AppProxy } from './AppProxy';
 
@@ -179,6 +179,11 @@ export class BoxManager {
     public getFocusBox() {
         const boxes = this.teleBoxManager.query({ focus: true });
         return boxes[0];
+    }
+
+    public getTopBox() {
+        const boxes = this.teleBoxManager.query();
+        return maxBy(boxes, "zIndex")
     }
 
     public updateBoxState(state?: AppInitState) {
