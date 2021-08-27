@@ -66,13 +66,9 @@ sdk.joinRoom({
     useMultiViews: true, // 多窗口必须用开启 useMultiViews
 }).then(async room => {
     const manager = await WindowManager.mount(
-        room, // 房间实例
-        container, // 挂载 dom 容器, 等同于 room.bindHtmlElement(container)
-        collectorContainer, // 可选, 用于多窗口最小化挂载的 dom
-        {
-            collectorStyles: { bottom: "200px", right: "50px" } // 可选, 设置 collector 的样式
-            debug: true, // 可选, 调试用
-        }
+        room,
+        container,
+        // 完整配置见下方
     );
 });
 ```
@@ -82,7 +78,8 @@ sdk.joinRoom({
 WindowManager.mount({
     room: room, // 房间实例
     container: container, // 挂载 dom 容器, 等同于 room.bindHtmlElement
-    containerSizeRatio: 6 / 19, // 可选, 主白板显示的比例，默认为 16 : 9
+    containerSizeRatio: 6 / 19, // 可选, 多窗口区域的比例，默认为 16 : 9
+    chessboard: true, // 多窗口区域以外的空间显示 PS 棋盘背景，默认 true
     collectorContainer: collectorContainer, // 可选, 用于多窗口最小化图标挂载的 dom
     collectorStyles: { bottom: "100px", right: "50px" }, // 可选, 配置 collector 的样式
     debug: true, // 可选, 输出日志信息

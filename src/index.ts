@@ -130,6 +130,8 @@ export type MountParams = {
     room: Room,
     container: HTMLElement,
     containerSizeRatio?: number,
+    /** 显示 PS 透明背景，默认 true */
+    chessboard?: boolean,
     collectorContainer?: HTMLElement,
     collectorStyles?: Partial<CSSStyleDeclaration>,
     debug?: boolean,
@@ -162,6 +164,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         container: HTMLElement,
         collectorContainer?: HTMLElement,
         options?: {
+            chessboard: boolean
             containerSizeRatio: number,
             collectorStyles?: Partial<CSSStyleDeclaration>,
             debug?: boolean,
@@ -175,7 +178,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         container?: HTMLElement,
         collectorContainer?: HTMLElement,
         options?: {
-            containerSizeRatio?: number,
+            chessboard?: boolean
+            containerSizeRatio: number,
             collectorStyles?: Partial<CSSStyleDeclaration>,
             debug?: boolean,
         }) {
@@ -183,6 +187,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         let containerSizeRatio: number | undefined;
         let collectorStyles: Partial<CSSStyleDeclaration> | undefined;
         let debug: boolean | undefined;
+        let chessboard = true;
         if ("room" in params) {
             room = params.room;
             container = params.container;
@@ -190,11 +195,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             containerSizeRatio = params.containerSizeRatio;
             collectorStyles = params.collectorStyles;
             debug = params.debug;
+            if (params.chessboard != null) {
+                chessboard = params.chessboard;
+            }
         } else {
             room = params;
             containerSizeRatio = options?.containerSizeRatio;
             collectorStyles = options?.collectorStyles;
             debug = options?.debug;
+            if (options?.chessboard != null) {
+                chessboard = options.chessboard;
+            }
         }
 
         this.checkVersion();
@@ -213,6 +224,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
         const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
+        if (chessboard) {
+            sizer.classList.add('netless-window-manager-chess-sizer')
+        }
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
             collectorStyles: collectorStyles
