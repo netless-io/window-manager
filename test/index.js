@@ -71,7 +71,7 @@ const mountManager = async (room) => {
     const manager = await WindowManager.mount({
         room,
         container: whiteboardRoot,
-        collectorStyles: { bottom: "100px", right: "30px" },
+        // collectorStyles: { bottom: "100px", right: "30px" },
         containerSizeRatio: 9 / 16,
         chessboard: true,
         debug: true

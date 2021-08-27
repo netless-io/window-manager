@@ -1,4 +1,5 @@
-import { AddAppParams, AppManager, AppSyncAttributes } from "./index";
+import { AddAppParams, AppSyncAttributes } from "./index";
+import { AppManager } from "./AppManager";
 import { get, pick } from "lodash-es";
 import { AppAttributes } from "./constants";
 import { setViewFocusScenePath } from "./Common";

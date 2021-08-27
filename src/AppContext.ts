@@ -2,7 +2,8 @@ import { ReadonlyTeleBox } from "@netless/telebox-insider";
 import Emittery from "emittery";
 import { Room, View, SceneDefinition } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
-import { AppEmitterEvent, AppManager } from "./index";
+import { AppEmitterEvent } from "./index";
+import { AppManager } from "./AppManager";
 import { ViewManager } from "./ViewManager";
 
 export class AppContext<TAttrs extends Record<string, any>> {

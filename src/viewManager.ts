@@ -1,6 +1,7 @@
 import { debounce, get } from "lodash-es";
 import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewVisionMode } from "white-web-sdk";
-import { AppManager, emitter, callbacks, WindowManager } from "./index";
+import { emitter, callbacks, WindowManager } from "./index";
+import { AppManager } from "./AppManager";
 import { log } from "./log";
 import { CameraStore } from "./CameraStore";
 import { Events, MagixEventName, SET_SCENEPATH_DELAY } from "./constants";

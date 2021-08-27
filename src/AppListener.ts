@@ -3,7 +3,7 @@ import { TeleBox, TELE_BOX_STATE } from "@netless/telebox-insider";
 import { Events, MagixEventName } from "./constants";
 import { ViewManager } from "./ViewManager";
 import { AppProxy } from "./AppProxy";
-import { AppManager } from "./index";
+import { AppManager } from "./AppManager";
 
 export class AppListeners {
     private displayer = this.manager.displayer;

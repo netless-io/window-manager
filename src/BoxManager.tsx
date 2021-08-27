@@ -1,5 +1,6 @@
 import Emittery from 'emittery';
-import { AddAppOptions, emitter, AppInitState, WindowManager, AppManager, callbacks } from './index';
+import { AddAppOptions, emitter, AppInitState, WindowManager, callbacks } from './index';
+import { AppManager } from "./AppManager";
 import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from './constants';
 import { NetlessApp } from './typings';
 import {
@@ -145,7 +146,7 @@ export class BoxManager {
             fence: false,
         }
         const container = collectorConfig?.collectorContainer || WindowManager.wrapper;
-        const styles = collectorConfig?.collectorStyles || DEFAULT_COLLECTOR_STYLE;
+        const styles = { ...DEFAULT_COLLECTOR_STYLE, ...collectorConfig?.collectorStyles };
         const teleBoxCollector = new TeleBoxCollector({
             styles: styles
         }).mount(container!);

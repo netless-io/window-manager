@@ -5,7 +5,6 @@ import {
     AppEmitterEvent,
     AppInitState,
     AppListenerKeys,
-    AppManager,
     AppSyncAttributes,
     BaseInsertParams,
     callbacks,
@@ -13,6 +12,7 @@ import {
     setAppOptions,
     WindowManager
     } from './index';
+import { AppManager } from "./AppManager";
 import {
     AnimationMode,
     autorun,
