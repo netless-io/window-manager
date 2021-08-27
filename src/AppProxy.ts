@@ -171,7 +171,7 @@ export class AppProxy {
                 setTimeout(async () => { // 延迟执行 setup, 防止初始化的属性没有更新成功
                     await app.setup(context);
                     if (boxInitState) {
-                        if (boxInitState.focus) {
+                        if (boxInitState.focus && this.scenePath) {
                             this.manager.viewManager.switchAppToWriter(this.id);
                         }
                         if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
@@ -180,7 +180,7 @@ export class AppProxy {
                     }
                     const box = this.boxManager.getBox(appId);
                     if (box) {
-                        this.boxManager.resizeBox({
+                        this.boxManager.resizeBox({ // 兼容移动端创建时会出现 PPT 不适配的问题
                             appId,
                             width: box.width + 0.001,
                             height: box.height + 0.001
@@ -335,7 +335,6 @@ export class AppProxy {
 
     private createView(): View {
         const view = this.viewManager.createView(this.id);
-        this.viewManager.addMainViewListener();
         this.setViewFocusScenePath();
         return view;
     }

@@ -420,6 +420,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.viewManager.freedomAllViews();
                 this.appManager.viewManager.switchMainViewToWriter();
             }
+            this.appManager.viewManager.addMainViewListener();
         }
     }
 
