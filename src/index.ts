@@ -696,10 +696,12 @@ export class AppManager {
     };
 
     private displayerWritableListener = (isReadonly: boolean) => {
+        const isWritable = !isReadonly;
+        const isManualWritable = this.windowManger.readonly === undefined || this.windowManger.readonly === false;
         if (this.windowManger.readonly === undefined) {
             this.boxManager.teleBoxManager.setReadonly(isReadonly);
-        } else if (this.windowManger.readonly === false && isReadonly === true) {
-            this.boxManager.teleBoxManager.setReadonly(isReadonly);
+        } else {
+            this.boxManager.teleBoxManager.setReadonly(!(isWritable && isManualWritable));
         }
         this.appProxies.forEach((appProxy) => {
             appProxy.emitAppIsWritableChange();
