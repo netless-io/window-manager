@@ -129,6 +129,7 @@ export const callbacks: Emittery<PublicEvent> = new Emittery();
 export type MountParams = {
     room: Room,
     container: HTMLElement,
+    /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number,
     /** 显示 PS 透明背景，默认 true */
     chessboard?: boolean,
