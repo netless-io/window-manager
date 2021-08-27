@@ -73,6 +73,7 @@ const mountManager = async (room) => {
         container: whiteboardRoot,
         collectorStyles: { bottom: "100px", right: "30px" },
         containerSizeRatio: 9 / 16,
+        chessboard: true,
         debug: true
     });
 

@@ -78,13 +78,16 @@ sdk.joinRoom({
 WindowManager.mount({
     room: room, // 房间实例
     container: container, // 挂载 dom 容器, 等同于 room.bindHtmlElement
-    containerSizeRatio: 6 / 19, // 可选, 多窗口区域的比例，默认为 16 : 9
+    containerSizeRatio: 6 / 19, // 可选, 多窗口区域的高宽比，默认为  9 : 16
     chessboard: true, // 多窗口区域以外的空间显示 PS 棋盘背景，默认 true
     collectorContainer: collectorContainer, // 可选, 用于多窗口最小化图标挂载的 dom
     collectorStyles: { bottom: "100px", right: "50px" }, // 可选, 配置 collector 的样式
     debug: true, // 可选, 输出日志信息
 })
 ```
+> `containerSizeRatio` 为了保证窗口在不同分辨率下显示效果, 白板在相同的比例区域才能进行同步
+
+> `chessboard` 当挂载的区域不完全符合比例时, 白板会在挂载的 dom 中划分一个符合比例的区域出来, 此时多出来的部分会默认显示为棋盘透明背景
 
 ### `collector`
 
@@ -95,7 +98,7 @@ WindowManager.mount({
 ```javascript
 manager.mainView; // 主白板
 manager.apps; // 已经打开的所有 app 的属性
-manager.boxState; // 当前的窗口状态:  maximized | minimized | normal
+manager.boxState; // 当前的窗口状态: maximized | minimized | normal
 ```
 
 ## APP
