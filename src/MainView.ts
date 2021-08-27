@@ -4,6 +4,8 @@ import { isEqual } from "lodash-es";
 
 export class MainViewProxy {
     private scale?: number;
+    private size?: Size;
+
     constructor(
         private manager: AppManager
     ) {}
@@ -13,14 +15,17 @@ export class MainViewProxy {
     }
 
     public moveCameraToContian(size: Size) {
-        this.view.moveCameraToContain({
-            width: size.width,
-            height: size.height,
-            originX: -size.width / 2,
-            originY: -size.height / 2,
-            animationMode: AnimationMode.Immediately
-        });
-        this.scale = this.view.camera.scale;
+        if (!isEqual(size, this.size)) {
+            this.view.moveCameraToContain({
+                width: size.width,
+                height: size.height,
+                originX: -size.width / 2,
+                originY: -size.height / 2,
+                animationMode: AnimationMode.Immediately
+            });
+            this.size = size;
+            this.scale = this.view.camera.scale;
+        }
     }
 
     public moveCamera(camera: Camera) {

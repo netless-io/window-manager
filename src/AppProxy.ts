@@ -178,6 +178,15 @@ export class AppProxy {
                             this.boxManager.setBoxInitState(appId);
                         }
                     }
+                    const box = this.boxManager.getBox(appId);
+                    if (box) {
+                        this.boxManager.resizeBox({
+                            appId,
+                            width: box.width + 0.001,
+                            height: box.height + 0.001
+                        });
+                    }
+                  
                 }, 50);
             });
             this.boxManager.createBox({
