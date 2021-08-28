@@ -163,7 +163,7 @@ export class ViewManager {
         } else {
             if (this.manager.mainView.mode === ViewVisionMode.Writable) return;
             this.freedomAllViews();
-            this.manager.viewManager.switchMainViewToWriter();
+            this.switchMainViewToWriter();
         }
     }
 

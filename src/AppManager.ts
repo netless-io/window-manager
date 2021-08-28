@@ -343,8 +343,7 @@ export class AppManager {
                 });
                 const topBox = this.boxManager.getTopBox();
                 if (topBox) {
-                    this.delegate.setAppFocus(topBox.id, true);
-                    this.viewManager.refreshViews();
+                    emitter.emit("focus", { appId: topBox.id });
                 }
                 this.safeSetAttributes({ boxState: eventName });
                 break;
