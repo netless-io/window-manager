@@ -280,7 +280,7 @@ button4.addEventListener("click", () => {
     window.manager.addApp({
         kind: BuiltinApps.MediaPlayer,
         attributes: {
-            src: "https://beings.oss-cn-hangzhou.aliyuncs.com/test/72e39faa-3bd9-4dec-838e-b9456b835214/oceans%20(1).mp4"
+            src: "https://developer-assets.netless.link/Zelda.mp4"
         }
     })
 })

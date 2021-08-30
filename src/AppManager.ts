@@ -53,6 +53,7 @@ export class AppManager {
             this.appProxies
         );
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
+        this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on(
             "onEnableWriteNowChanged",
             this.displayerWritableListener
