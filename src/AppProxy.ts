@@ -11,8 +11,7 @@ import {
     emitter,
     setAppOptions,
     WindowManager
-    } from './index';
-import { AppManager } from "./AppManager";
+} from './index';
 import {
     AnimationMode,
     autorun,
@@ -21,20 +20,21 @@ import {
     SceneState,
     View,
     ViewVisionMode
-    } from 'white-web-sdk';
+} from 'white-web-sdk';
 import { AppAttributes, AppEvents, Events } from './constants';
 import { AppContext } from './AppContext';
 import { AppCreateError, AppNotRegisterError } from './error';
+import { AppManager } from './AppManager';
+import { isEqual } from 'lodash-es';
+import { log } from './log';
+import { NetlessApp } from './typings';
 import {
-    genAppId,
     notifyMainViewModeChange,
     setScenePath,
     setViewFocusScenePath,
     setViewMode
-    } from './Common';
-import { isEqual } from 'lodash-es';
-import { log } from './log';
-import { NetlessApp } from './typings';
+} from './Common';
+import { appRegister } from './Register';
 // import { loadApp } from './loader'; TODO fix localforge import
 
 
@@ -49,8 +49,8 @@ export class AppProxy {
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
-    private lastAttrs: any;
     private kind: string;
+    private instance: any;
 
     constructor(
         private params: BaseInsertParams,
@@ -169,7 +169,8 @@ export class AppProxy {
                 this.appAttributesUpdateListener(appId);
                 this.setViewFocusScenePath();
                 setTimeout(async () => { // 延迟执行 setup, 防止初始化的属性没有更新成功
-                    await app.setup(context);
+                    this.instance = await app.setup(context);
+                    appRegister.notifyApp(app.kind, "created", { appId, instance: this.instance });
                     if (boxInitState) {
                         if (boxInitState.focus && this.scenePath) {
                             this.manager.viewManager.switchAppToWriter(this.id);
@@ -186,7 +187,7 @@ export class AppProxy {
                             height: box.height + 0.001
                         });
                     }
-                  
+
                 }, 50);
             });
             this.boxManager.createBox({
@@ -209,7 +210,7 @@ export class AppProxy {
                 }
                 setViewMode(this.view, ViewVisionMode.Writable);
             } catch (error) {
-                log("switch view faild", error);
+                log("switch view failed", error);
             }
         }
     }
@@ -289,9 +290,8 @@ export class AppProxy {
     private appAttributesUpdateListener = (appId: string) => {
         const disposer = autorun(() => {
             const attrs = this.manager.windowManger.attributes[appId];
-            if (!isEqual(this.lastAttrs, attrs) && attrs !== undefined) {
+            if (attrs) {
                 this.appEmitter.emit("attributesUpdate", attrs);
-                this.lastAttrs = attrs;
             }
         });
         this.disposer = disposer;
@@ -344,6 +344,7 @@ export class AppProxy {
     }
 
     public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
+        await appRegister.notifyApp(this.kind, "destroy", { appId: this.id, instance: this.instance });
         await this.appEmitter.emit("destroy", { error });
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}`, { error });

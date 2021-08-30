@@ -1,13 +1,22 @@
-import { TeleBoxRect, ReadonlyTeleBox } from '@netless/telebox-insider';
-import { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room, Player } from 'white-web-sdk';
-import { AppContext } from './AppContext';
+import Emittery from "emittery";
+import {
+    AnimationMode,
+    Displayer,
+    Player,
+    Room,
+    SceneDefinition,
+    SceneState,
+    View
+} from "white-web-sdk";
+import { AppContext } from "./AppContext";
+import { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 
 export interface NetlessApp<T = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
         width?: number;
-         /** Box height relative to whiteboard. 0~1. Default 0.5. */
+        /** Box height relative to whiteboard. 0~1. Default 0.5. */
         height?: number;
 
         /** Minimum box width relative to whiteboard. 0~1. Default 340 / 720. */
@@ -18,7 +27,7 @@ export interface NetlessApp<T = any> {
         /** App only single instance. */
         singleton?: boolean;
     };
-    setup: (context: AppContext<T>) => void;
+    setup: (context: AppContext<T>) => any;
 };
 
 export type AppEmitterEvent<T = any> = {
@@ -36,6 +45,26 @@ export type AppEmitterEvent<T = any> = {
     setBoxMinSize: { minwidth: number, minheight: number },
     setBoxTitle: { title: string },
     containerRectUpdate: TeleBoxRect,
+}
+
+export type RegisterEventData = {
+    appId: string;
+    instance: any
+}
+
+export type RegisterEvents = {
+    created: RegisterEventData,
+    destroy: RegisterEventData,
+}
+
+export type RegisterContext = {
+    emitter: Emittery<RegisterEvents>,
+}
+
+export type RegisterParams = {
+    kind: string;
+    src: NetlessApp | string,
+    setup?: (context: RegisterContext) => void;
 }
 
 export type AppListenerKeys = keyof AppEmitterEvent;

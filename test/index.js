@@ -53,6 +53,7 @@ document.body.append(container)
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,
+    // useMobXState: true
 });
 
 window.WindowManager = WindowManager;
@@ -279,10 +280,9 @@ button4.addEventListener("click", () => {
     window.manager.addApp({
         kind: BuiltinApps.MediaPlayer,
         attributes: {
-            src: "https://flat-storage.oss-cn-hangzhou.aliyuncs.com/cloud-storage/5c26682a-c950-43b2-b7a5-74def6c43dfb.mp4"
+            src: "https://beings.oss-cn-hangzhou.aliyuncs.com/test/72e39faa-3bd9-4dec-838e-b9456b835214/oceans%20(1).mp4"
         }
     })
-
 })
 
 const destroy = () => {

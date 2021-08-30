@@ -1,12 +1,10 @@
-import AppDocsViewer from '@netless/app-docs-viewer';
-import AppMediaPlayer from '@netless/app-media-player';
 import Emittery from 'emittery';
 import {
     AppCreateError,
     AppManagerNotInitError,
     ParamsInvalidError,
     WhiteWebSDKInvalidError
-    } from './error';
+} from './error';
 import { AppListeners } from './AppListener';
 import { AppManager } from './AppManager';
 import {
@@ -21,9 +19,9 @@ import {
     ViewMode,
     ViewVisionMode,
     WhiteVersion
-    } from 'white-web-sdk';
+} from 'white-web-sdk';
 import { log } from './log';
-import { NetlessApp } from './typings';
+import { NetlessApp, RegisterParams } from './typings';
 import { replaceRoomFunction } from './RoomHacker';
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
 import { setupWrapper } from './ViewManager';
@@ -34,13 +32,11 @@ import {
     REQUIRE_VERSION,
     DEFAULT_CONTAINER_RATIO,
 } from "./constants";
+import { appRegister } from './Register';
+import AppDocsViewer from '@netless/app-docs-viewer';
+import AppMediaPlayer, { setOptions } from '@netless/app-media-player';
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
-
-export const BuiltinApps = {
-    DocsViewer: AppDocsViewer.kind as string,
-    MediaPlayer: AppMediaPlayer.kind as string,
-}
 
 export type WindowMangerAttributes = {
     modelValue?: string,
@@ -197,6 +193,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
 
         this.checkVersion();
+        this.ensureEnableUseMobxState(room);
         if (!container) {
             throw new Error("[WindowManager]: Container must provide");
         }
@@ -208,6 +205,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             manager = await room.createInvisiblePlugin(WindowManager, {}) as WindowManager;
         }
         this.debug = Boolean(debug);
+        if (this.debug) {
+            setOptions({ verbose: true });
+        }
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
@@ -230,8 +230,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 注册插件
      */
-    public static register(app: NetlessApp) {
-        this.appClasses.set(app.kind, app);
+    public static register(params: RegisterParams) {
+        appRegister.register(params);
     }
 
     /**
@@ -476,22 +476,31 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private static getVersionNumber(version: string) {
         return parseInt(version.split(".").join(""));
     }
-    
+
+    private static ensureEnableUseMobxState(room: Room) {
+        // @ts-ignore
+        if (room.useMobXState === false) {
+            console.warn("[Window Manager]: will enable useMobxState. To turn off this warning, set useMobxState: true when initializing WhiteWebSdk.");
+            // @ts-ignore
+            room.useMobXState = true;
+        }
+    }
+
     private containerResizeObserver?: ResizeObserver
-    
+
     private observePlaygroundSize(container: HTMLElement, sizer: HTMLElement, wrapper: HTMLDivElement) {
         this.updateSizer(container.getBoundingClientRect(), sizer, wrapper)
-        
+
         this.containerResizeObserver = new ResizeObserver((entries) => {
             const containerRect = entries[0]?.contentRect;
             if (containerRect) {
                 this.updateSizer(containerRect, sizer, wrapper)
             }
         });
-        
+
         this.containerResizeObserver.observe(container);
     }
-    
+
     private updateSizer(
         { width, height }: DOMRectReadOnly,
         sizer: HTMLElement,
@@ -511,7 +520,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 }
 
-WindowManager.register(AppDocsViewer);
-WindowManager.register(AppMediaPlayer);
+WindowManager.register({
+    kind: AppDocsViewer.kind,
+    src: AppDocsViewer
+});
+WindowManager.register({
+    kind: AppMediaPlayer.kind,
+    src: AppMediaPlayer
+});
+
+export const BuiltinApps = {
+    DocsViewer: AppDocsViewer.kind as string,
+    MediaPlayer: AppMediaPlayer.kind as string,
+}
 
 export * from "./typings";
+

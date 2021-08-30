@@ -86,7 +86,7 @@ export class BoxManager {
             }
         });
         this.teleBoxManager.events.on("snapshot", box => {
-            emitter.emit("snapshot", { appId: box.id, rect: box.rectSnapshot });
+            emitter.emit("snapshot", { appId: box.id, rect: { ...box.rectSnapshot } });
         });
     }
 
@@ -127,7 +127,7 @@ export class BoxManager {
     public setBoxInitState(appId: string) {
         const box = this.teleBoxManager.queryOne({ id: appId });
         if (box) {
-            emitter.emit("snapshot", { appId: appId, rect: box.rectSnapshot });
+            emitter.emit("snapshot", { appId: appId, rect: { ...box.rectSnapshot }});
             if (box.state === TELE_BOX_STATE.Maximized) {
                 emitter.emit("resize", { appId: appId, x: box.x, y: box.y, width: box.width, height: box.height });
             }

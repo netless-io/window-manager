@@ -61,7 +61,7 @@ export class AppManager {
 
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);
-            emitter.onAny(this.eventListener);
+            emitter.onAny(this.boxEventListener);
             this.reactionDisposers.push(
                 reaction(
                     () => Object.keys(this.attributes?.apps || {}).length,
@@ -88,6 +88,7 @@ export class AppManager {
                     size => {
                         if (this.delegate.broadcaster !== this.displayer.observerId && size) {
                             this.mainViewProxy.moveCameraToContian(size);
+                            this.mainViewProxy.moveCamera(this.delegate.getMainViewCamera());
                         }
                     }, {
                     fireImmediately: true
@@ -284,7 +285,7 @@ export class AppManager {
         }
     }
 
-    private eventListener = (eventName: string | number, payload: any) => {
+    private boxEventListener = (eventName: string | number, payload: any) => {
         switch (eventName) {
             case "move": {
                 this.dispatchInternalEvent(Events.AppMove, payload);
@@ -366,7 +367,7 @@ export class AppManager {
                 this.delegate.updateAppState(
                     payload.appId,
                     AppAttributes.SnapshotRect,
-                    payload.rect
+                    { ...payload.rect }
                 );
                 break;
             }
@@ -411,7 +412,7 @@ export class AppManager {
             this.displayerWritableListener
         );
         this.appListeners.removeListeners();
-        emitter.offAny(this.eventListener);
+        emitter.offAny(this.boxEventListener);
         if (this.reactionDisposers.length) {
             this.reactionDisposers.map(disposer => disposer());
             this.reactionDisposers = [];

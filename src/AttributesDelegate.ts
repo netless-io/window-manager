@@ -1,9 +1,9 @@
 import { AddAppParams, AppSyncAttributes } from "./index";
-import { AppManager } from "./AppManager";
 import { get, pick } from "lodash-es";
 import { AppAttributes } from "./constants";
 import { setViewFocusScenePath } from "./Common";
 import { Camera, Size } from "white-web-sdk";
+import { AppManager } from "./AppManager";
 
 
 export enum Fields {

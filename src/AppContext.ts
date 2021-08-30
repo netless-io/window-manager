@@ -1,6 +1,6 @@
 import { ReadonlyTeleBox } from "@netless/telebox-insider";
 import Emittery from "emittery";
-import { Room, View, SceneDefinition } from "white-web-sdk";
+import { Room, View, SceneDefinition, autorun, reaction } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { AppEmitterEvent } from "./index";
 import { AppManager } from "./AppManager";
@@ -9,6 +9,9 @@ import { ViewManager } from "./ViewManager";
 export class AppContext<TAttrs extends Record<string, any>> {
 
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
+    public readonly mobxUtils = {
+        autorun, reaction
+    };
     private viewManager: ViewManager;
     private boxManager: BoxManager;
     private delegate = this.manager.delegate;
