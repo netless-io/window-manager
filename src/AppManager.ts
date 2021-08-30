@@ -226,7 +226,7 @@ export class AppManager {
     }
 
     public get room() {
-        return this.canOperate ? (this.displayer as Room) : undefined;
+        return isRoom(this.displayer) ? this.displayer as Room : undefined;
     }
 
     public get mainView() {
