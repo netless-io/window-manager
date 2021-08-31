@@ -118,6 +118,7 @@ export type MountParams = {
     chessboard?: boolean,
     collectorContainer?: HTMLElement,
     collectorStyles?: Partial<CSSStyleDeclaration>,
+    overwriteStyles?: string;
     debug?: boolean,
 };
 
@@ -142,6 +143,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 挂载 WindowManager
+     * @deprecated
      */
     public static async mount(
         room: Room,
@@ -152,6 +154,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             containerSizeRatio: number,
             collectorStyles?: Partial<CSSStyleDeclaration>,
             debug?: boolean,
+            overwriteStyles?: string,
         }
     ): Promise<WindowManager>;
 
@@ -166,12 +169,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             containerSizeRatio: number,
             collectorStyles?: Partial<CSSStyleDeclaration>,
             debug?: boolean,
+            overwriteStyles?: string,
         }) {
         let room: Room;
         let containerSizeRatio: number | undefined;
         let collectorStyles: Partial<CSSStyleDeclaration> | undefined;
         let debug: boolean | undefined;
         let chessboard = true;
+        let overwriteStyles: string | undefined;
         if ("room" in params) {
             room = params.room;
             container = params.container;
@@ -182,6 +187,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (params.chessboard != null) {
                 chessboard = params.chessboard;
             }
+            overwriteStyles = params.overwriteStyles;
         } else {
             room = params;
             containerSizeRatio = options?.containerSizeRatio;
@@ -190,6 +196,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (options?.chessboard != null) {
                 chessboard = options.chessboard;
             }
+            overwriteStyles = options?.overwriteStyles;
         }
 
         this.checkVersion();
@@ -214,6 +221,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
         if (chessboard) {
             sizer.classList.add('netless-window-manager-chess-sizer')
+        }
+        if (overwriteStyles) {
+            const style = document.createElement("style");
+            style.textContent = overwriteStyles;
+            playground.appendChild(style);
         }
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
