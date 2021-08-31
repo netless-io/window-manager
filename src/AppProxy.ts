@@ -34,7 +34,7 @@ import {
     setViewFocusScenePath,
     setViewMode
 } from './Common';
-import { appRegister } from './Register';
+import { appRegister } from "./Register";
 // import { loadApp } from './loader'; TODO fix localforge import
 
 
@@ -133,7 +133,7 @@ export class AppProxy {
         }
     }
 
-    private get box() {
+    public get box() {
         return this.boxManager.getBox(this.id);
     }
 

@@ -152,9 +152,20 @@ export class AppManager {
             this.safeUpdateAttributes([appId], attrs);
 
             const appProxy = await this.baseInsertApp(params, appId, needFocus);
+            this.afterManualAddApp(appProxy);
             return appProxy?.id;
         } catch (error) {
             throw error;
+        }
+    }
+
+    private afterManualAddApp(appProxy: AppProxy | undefined) {
+        if (appProxy) {
+            emitter.emit("move", {
+                appId: appProxy.id,
+                x: appProxy.box?.x,
+                y: appProxy.box?.y
+            });
         }
     }
 
