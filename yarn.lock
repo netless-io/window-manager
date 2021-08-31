@@ -35,10 +35,10 @@
   resolved "https://registry.yarnpkg.com/@juggle/resize-observer/-/resize-observer-3.3.1.tgz#b50a781709c81e10701004214340f25475a171a0"
   integrity sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==
 
-"@netless/app-docs-viewer@^0.1.17":
-  version "0.1.17"
-  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.17.tgz#6627fb6af4da03c143e2b6526849fb5acbf0f30a"
-  integrity sha512-p1/gccT1T/JFIAPMhbrck6CZxrVwgYxCFVMoGzvmtIQI2qJY4jIagtlY1eZqLYeeUY4exynfGp//FmGmeVL/Ag==
+"@netless/app-docs-viewer@^0.1.18":
+  version "0.1.18"
+  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.18.tgz#b686d720e19795a8d3d65c6dd43537eb9fb3c1c4"
+  integrity sha512-rFLAMQSDRLWdsmGFMl75F4h5D1/U2N1TwKiODUZ8BDlrDlugqRGa8McX0bY0/toP1GTBAZ6oDGSDn8TirkxFpA==
   dependencies:
     debounce-fn "^5.0.0"
     vanilla-lazyload "^17.4.0"
