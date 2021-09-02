@@ -1,23 +1,40 @@
-import Emittery from 'emittery';
-import { AddAppOptions, emitter, AppInitState, WindowManager, callbacks } from './index';
-import { AppManager } from "./AppManager";
-import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from './constants';
-import { NetlessApp } from './typings';
+import {
+    AddAppOptions,
+    AppInitState,
+    callbacks,
+    emitter,
+    WindowManager
+} from './index';
+import {
+    AppAttributes,
+    DEFAULT_COLLECTOR_STYLE,
+    Events,
+    MIN_HEIGHT,
+    MIN_WIDTH
+} from './constants';
+import {
+    debounce,
+    get,
+    isEmpty,
+    maxBy
+} from 'lodash-es';
+import { log } from './log';
 import {
     ReadonlyTeleBox,
+    TELE_BOX_EVENT,
+    TELE_BOX_MANAGER_EVENT,
+    TELE_BOX_STATE,
     TeleBox,
     TeleBoxCollector,
-    TELE_BOX_EVENT,
     TeleBoxManager,
-    TELE_BOX_STATE,
-    TELE_BOX_MANAGER_EVENT,
-    TeleBoxManagerUpdateConfig,
-    TeleBoxManagerCreateConfig
+    TeleBoxManagerCreateConfig,
+    TeleBoxManagerUpdateConfig
 } from '@netless/telebox-insider';
-import { View } from 'white-web-sdk';
-import { debounce, get, isEmpty, maxBy } from 'lodash-es';
-import { log } from './log';
-import { AppProxy } from './AppProxy';
+import type Emittery from 'emittery';
+import type { AppManager } from "./AppManager";
+import type { NetlessApp } from './typings';
+import type { View } from 'white-web-sdk';
+import type { AppProxy } from './AppProxy';
 
 export { TELE_BOX_STATE };
 
@@ -127,7 +144,7 @@ export class BoxManager {
     public setBoxInitState(appId: string) {
         const box = this.teleBoxManager.queryOne({ id: appId });
         if (box) {
-            emitter.emit("snapshot", { appId: appId, rect: { ...box.rectSnapshot }});
+            emitter.emit("snapshot", { appId: appId, rect: { ...box.rectSnapshot } });
             if (box.state === TELE_BOX_STATE.Maximized) {
                 emitter.emit("resize", { appId: appId, x: box.x, y: box.y, width: box.width, height: box.height });
             }

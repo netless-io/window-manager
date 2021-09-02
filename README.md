@@ -82,6 +82,8 @@ WindowManager.mount({
     chessboard: true, // 多窗口区域以外的空间显示 PS 棋盘背景，默认 true
     collectorContainer: collectorContainer, // 可选, 用于多窗口最小化图标挂载的 dom
     collectorStyles: { bottom: "100px", right: "50px" }, // 可选, 配置 collector 的样式
+    overwriteStyles: `.title { color: black }`, // 可选, 用于覆盖窗口的样式
+    cursor: true, // 可选, 开启光标
     debug: true, // 可选, 输出日志信息
 })
 ```

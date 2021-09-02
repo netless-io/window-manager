@@ -7,6 +7,7 @@ export enum Events {
     AppBoxStateChange = "AppBoxStateChange",
     AppSnapshot = "AppSnapshot",
     AppClose = "AppClose",
+    CursorLeave = "CursorLeave",
     GetAttributes = "GetAttributes",
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
     InitReplay = "InitReplay",

@@ -1,7 +1,7 @@
 /* eslint-disable import/no-anonymous-default-export */
 import path from "path";
 import { defineConfig } from "vite";
-import analyze from 'rollup-plugin-analyzer'
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies ,peerDependencies } from "./package.json"
 
 
@@ -9,6 +9,14 @@ export default defineConfig(({ command, mode }) => {
     const isProd = mode === "production";
 
     return {
+        plugins: [
+            svelte({
+                emitCss: false,
+                experimental: {
+                    useVitePreprocess: true,
+                }
+            })
+        ],
         build: {
             lib: {
                 entry: path.resolve(__dirname, "src/index.ts"),

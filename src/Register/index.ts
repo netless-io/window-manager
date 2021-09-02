@@ -1,6 +1,6 @@
 import Emittery from "emittery";
 import { WindowManager } from "../index";
-import { NetlessApp, RegisterEvents, RegisterParams } from "../typings";
+import type { NetlessApp, RegisterEvents, RegisterParams } from "../typings";
 
 export type NotifyAppPayload = {
     appId: string,

@@ -1,4 +1,4 @@
-import Emittery from "emittery";
+import type Emittery from "emittery";
 import {
     AnimationMode,
     Displayer,
@@ -8,8 +8,8 @@ import {
     SceneState,
     View
 } from "white-web-sdk";
-import { AppContext } from "./AppContext";
-import { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
+import type { AppContext } from "./AppContext";
+import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 
 export interface NetlessApp<T = any> {
     kind: string;

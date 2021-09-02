@@ -1,9 +1,9 @@
-import { AddAppParams, AppSyncAttributes } from "./index";
-import { get, pick } from "lodash-es";
-import { AppAttributes } from "./constants";
-import { setViewFocusScenePath } from "./Common";
-import { Camera, Size } from "white-web-sdk";
-import { AppManager } from "./AppManager";
+import { AppAttributes } from './constants';
+import { get, pick } from 'lodash-es';
+import { setViewFocusScenePath } from './Common';
+import type { AddAppParams, AppSyncAttributes } from "./index";
+import type { Camera, Size } from "white-web-sdk";
+import type { AppManager } from "./AppManager";
 
 
 export enum Fields {
@@ -13,11 +13,17 @@ export enum Fields {
     BoxState = "boxState",
     MainViewCamera = "mainViewCamera",
     MainViewSize = "mainViewSize",
-    Broadcaster = "broadcaster"
+    Broadcaster = "broadcaster",
+    Cursors = "cursors",
 }
 
 type Apps = {
     [key: string]: AppSyncAttributes
+}
+
+type Position = {
+    x: number,
+    y: number,
 }
 
 export class AttributesDelegate {
@@ -151,6 +157,14 @@ export class AttributesDelegate {
         } else {
             this.manager.safeSetAttributes({ [Fields.Focus]: undefined });
         }
+    }
+
+    public updateCursor(observerId: string, position: Position) {
+        this.manager.safeUpdateAttributes([Fields.Cursors, observerId], position);
+    }
+
+    public cleanCursor(observerId: string) {
+        this.manager.safeUpdateAttributes([Fields.Cursors, observerId], undefined);
     }
 
     // TODO 状态中保存一个 SceneName 优化性能

@@ -1,5 +1,5 @@
-import { Camera, Room } from "white-web-sdk";
-import { AppManager } from "./AppManager";
+import type { Camera, Room } from "white-web-sdk";
+import type { AppManager } from "./AppManager";
 
 // 修改多窗口状态下一些失效的方法实现到 manager 的 mainview 上, 降低迁移成本
 export const replaceRoomFunction = (room: Room, manager: AppManager) => {

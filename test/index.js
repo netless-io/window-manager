@@ -63,6 +63,11 @@ sdk.joinRoom({
     roomToken: process.env.ROOM_TOKEN,
     invisiblePlugins: [WindowManager],
     useMultiViews: true,
+    userPayload: {
+        userId: "111",
+        cursorName: "su",
+        avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
+    }
 }).then(async room => {
     window.room = room;
     await mountManager(room);
@@ -77,6 +82,7 @@ const mountManager = async (room) => {
         containerSizeRatio: 9 / 16,
         chessboard: true,
         debug: true,
+        cursor: true,
         overwriteStyles: `.telebox-title {
             color: #e9e9e9;
           }

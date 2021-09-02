@@ -1,9 +1,10 @@
 import { Event, ViewVisionMode } from "white-web-sdk";
 import { TeleBox, TELE_BOX_STATE } from "@netless/telebox-insider";
 import { Events, MagixEventName } from "./constants";
-import { ViewManager } from "./ViewManager";
-import { AppProxy } from "./AppProxy";
-import { AppManager } from "./AppManager";
+import type { ViewManager } from "./ViewManager";
+import type { AppProxy } from "./AppProxy";
+import type { AppManager } from "./AppManager";
+import type { WindowManager } from "./index";
 
 export class AppListeners {
     private displayer = this.manager.displayer;
@@ -11,6 +12,7 @@ export class AppListeners {
 
     constructor(
         private manager: AppManager,
+        private windowManager: WindowManager,
         private viewManager: ViewManager,
         private appProxies: Map<string, AppProxy>) {
     }
@@ -56,11 +58,15 @@ export class AppListeners {
                     break;
                 }
                 case Events.MainViewFocus: {
-                    this.mainViewFocusHandler(data.payload);
+                    this.mainViewFocusHandler();
                     break;
                 }
                 case Events.SwitchViewsToFreedom: {
                     this.switchViewsToFreedomHandler();
+                    break;
+                }
+                case Events.CursorLeave: {
+                    this.cursorLeaveHandler(data.payload);
                     break;
                 }
                 default:
@@ -116,12 +122,16 @@ export class AppListeners {
         }
     }
 
-    private mainViewFocusHandler = (payload: any) => {
+    private mainViewFocusHandler = () => {
         this.manager.boxManager.blurFocusBox();
         this.manager.viewManager.freedomAllViews();
     }
 
     private switchViewsToFreedomHandler = () => {
         this.manager.viewManager.freedomAllViews();
+    }
+
+    private cursorLeaveHandler = (payload: { memberId: string }) => {
+        this.windowManager.cursorManager?.hideComponent(payload.memberId);
     }
 }

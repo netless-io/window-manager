@@ -1,6 +1,6 @@
 
 export class AppCreateError extends Error {
-    message = "[WindowManager]: app duplicate exists and cannot be created again";
+    override message = "[WindowManager]: app duplicate exists and cannot be created again";
 }
 
 export class AppNotRegisterError extends Error {
@@ -10,7 +10,7 @@ export class AppNotRegisterError extends Error {
 }
 
 export class AppManagerNotInitError extends Error {
-    message = "[WindowManager]: AppManager must be initialized";
+    override message = "[WindowManager]: AppManager must be initialized";
 }
 
 export class WhiteWebSDKInvalidError extends Error {
@@ -20,5 +20,5 @@ export class WhiteWebSDKInvalidError extends Error {
 }
 
 export class ParamsInvalidError extends Error {
-    message = "[WindowManager]: kind must be a valid string";
+    override message = "[WindowManager]: kind must be a valid string";
 }

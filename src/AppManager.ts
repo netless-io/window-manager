@@ -49,6 +49,7 @@ export class AppManager {
         );
         this.appListeners = new AppListeners(
             this,
+            this.windowManger,
             this.viewManager,
             this.appProxies
         );
@@ -206,6 +207,10 @@ export class AppManager {
                 }
             });
             this.viewManager.refreshViews();
+        }
+        if (state.roomMembers) {
+            this.windowManger.cursorManager?.setRoomMembers(state.roomMembers);
+            this.windowManger.cursorManager?.cleanMemberAttributes(state.roomMembers);
         }
     };
 

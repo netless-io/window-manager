@@ -1,3 +1,4 @@
+export {};
 // import localForage from "localforage";
 
 // const DatabaseName = "__WindowManagerPlguinCache";

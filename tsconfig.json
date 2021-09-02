@@ -1,4 +1,5 @@
 {
+    "extends": "@tsconfig/svelte/tsconfig.json",
     "compilerOptions": {
       "rootDir": "./src",
       "outDir": "dist",
@@ -20,9 +21,14 @@
       "experimentalDecorators": true,
       "moduleResolution": "node",
       "allowJs": true,
+      "types": ["svelte"],
+      "noUnusedParameters": true,
+      "noImplicitOverride": true,
+      "isolatedModules": true,
     },
     "include": [
       "./src",
+      "./src/shim.d.ts",
       "../node_modules/@types/**/index.d.ts",
     ]
   }

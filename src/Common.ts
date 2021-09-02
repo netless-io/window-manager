@@ -7,9 +7,9 @@ import {
     WindowManager
     } from './index';
 import { nanoid } from 'nanoid';
-import { Displayer, ViewVisionMode } from 'white-web-sdk';
+import type { Displayer, ViewVisionMode } from 'white-web-sdk';
 import { debounce } from "lodash-es";
-import Emittery from 'emittery';
+import type Emittery from 'emittery';
 
 export const genAppId = (kind: string) => {
     const impl = WindowManager.appClasses.get(kind);

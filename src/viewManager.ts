@@ -1,13 +1,12 @@
-import { debounce, get } from "lodash-es";
+import { debounce } from "lodash-es";
 import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewVisionMode } from "white-web-sdk";
 import { emitter, callbacks, WindowManager } from "./index";
-import { AppManager } from "./AppManager";
+import type { AppManager } from "./AppManager";
 import { log } from "./log";
-import { CameraStore } from "./CameraStore";
+import type { CameraStore } from "./CameraStore";
 import { Events, MagixEventName, SET_SCENEPATH_DELAY } from "./constants";
 import {  notifyMainViewModeChange, setScenePath, setViewFocusScenePath, setViewMode } from "./Common";
 import { TELE_BOX_STATE } from "@netless/telebox-insider";
-
 export class ViewManager {
     public mainView: View;
     private views: Map<string, View> = new Map();
@@ -213,7 +212,7 @@ export class ViewManager {
         this.removeMainViewListener();
         if (WindowManager.wrapper) {
             WindowManager.wrapper.parentNode?.removeChild(WindowManager.wrapper);
-            WindowManager.wrapper = null;
+            WindowManager.wrapper = undefined;
         }
     }
 }

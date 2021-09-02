@@ -24,17 +24,17 @@ import {
 import { AppAttributes, AppEvents, Events } from './constants';
 import { AppContext } from './AppContext';
 import { AppCreateError, AppNotRegisterError } from './error';
-import { AppManager } from './AppManager';
+import { appRegister } from './Register';
 import { isEqual } from 'lodash-es';
 import { log } from './log';
-import { NetlessApp } from './typings';
 import {
     notifyMainViewModeChange,
     setScenePath,
     setViewFocusScenePath,
     setViewMode
 } from './Common';
-import { appRegister } from "./Register";
+import type { AppManager } from './AppManager';
+import type { NetlessApp } from './typings';
 // import { loadApp } from './loader'; TODO fix localforge import
 
 

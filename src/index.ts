@@ -5,7 +5,7 @@ import {
     ParamsInvalidError,
     WhiteWebSDKInvalidError
 } from './error';
-import { AppListeners } from './AppListener';
+import type { AppListeners } from './AppListener';
 import { AppManager } from './AppManager';
 import {
     Displayer,
@@ -21,20 +21,22 @@ import {
     WhiteVersion
 } from 'white-web-sdk';
 import { log } from './log';
-import { NetlessApp, RegisterParams } from './typings';
+import type { NetlessApp, RegisterParams } from './typings';
 import { replaceRoomFunction } from './RoomHacker';
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
 import { setupWrapper } from './ViewManager';
-import { TELE_BOX_STATE } from './BoxManager';
+import type { TELE_BOX_STATE } from './BoxManager';
 import './style.css';
 import '@netless/telebox-insider/dist/style.css';
 import {
     REQUIRE_VERSION,
     DEFAULT_CONTAINER_RATIO,
 } from "./constants";
-import { appRegister } from './Register';
+import { appRegister } from "./Register";
 import AppDocsViewer from '@netless/app-docs-viewer';
 import AppMediaPlayer, { setOptions } from '@netless/app-media-player';
+import { CursorManager } from './Cursor';
+import { Fields } from './AttributesDelegate';
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
@@ -119,13 +121,14 @@ export type MountParams = {
     collectorContainer?: HTMLElement,
     collectorStyles?: Partial<CSSStyleDeclaration>,
     overwriteStyles?: string;
+    cursor?: boolean,
     debug?: boolean,
 };
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind: string = "WindowManager";
     public static displayer: Displayer;
-    public static wrapper: HTMLElement | null;
+    public static wrapper?: HTMLElement;
     public static debug = false;
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
@@ -133,9 +136,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public appListeners?: AppListeners;
     public static appClasses: Map<string, NetlessApp> = new Map();
 
-    private appManager?: AppManager;
     public readonly?: boolean;
     public emitter: Emittery<PublicEvent> = callbacks;
+    private appManager?: AppManager;
+    public cursorManager?: CursorManager;
+
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -177,6 +182,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         let debug: boolean | undefined;
         let chessboard = true;
         let overwriteStyles: string | undefined;
+        let cursor: boolean | undefined;
         if ("room" in params) {
             room = params.room;
             container = params.container;
@@ -188,6 +194,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 chessboard = params.chessboard;
             }
             overwriteStyles = params.overwriteStyles;
+            cursor = params.cursor;
         } else {
             room = params;
             containerSizeRatio = options?.containerSizeRatio;
@@ -227,11 +234,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             style.textContent = overwriteStyles;
             playground.appendChild(style);
         }
+        manager.ensureAttributes();
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
             collectorStyles: collectorStyles
         });
-        manager.observePlaygroundSize(playground, sizer, wrapper)
+        manager.observePlaygroundSize(playground, sizer, wrapper);
+        if (cursor) {
+            manager.cursorManager = new CursorManager(manager, manager.appManager);
+        }
         manager.bindMainView(mainViewElement);
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
@@ -271,37 +282,41 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     throw new AppCreateError();
                 }
             }
-            let isDynamicPPT = false;
-            if (params.options) {
-                const { scenePath, scenes } = params.options;
-                if (scenePath) {
-                    for (const appId in this.apps) {
-                        const appScenePath = this.appManager.delegate.getAppScenePath(appId);
-                        if (appScenePath && appScenePath === scenePath) {
-                            console.warn(`ScenePath ${scenePath} Already opened`);
-                            return;
-                        }
-                    }
-                }
-                if (scenePath && scenes && scenes.length > 0) {
-                    if (this.isDynamicPPT(scenes)) {
-                        isDynamicPPT = true;
-                        if (!this.displayer.entireScenes()[scenePath]) {
-                            this.room?.putScenes(scenePath, scenes);
-                        }
-                    } else {
-                        if (!this.displayer.entireScenes()[scenePath]) {
-                            this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
-                        }
-                    }
-                }
-            }
-
-            const appId = await this.appManager.addApp(params, isDynamicPPT);
+            const isDynamicPPT = this.setupScenePath(params, this.appManager);
+            const appId = await this.appManager.addApp(params, Boolean(isDynamicPPT));
             return appId
         } else {
             throw new AppManagerNotInitError();
         }
+    }
+
+    private setupScenePath(params: AddAppParams, appManager: AppManager)  {
+        let isDynamicPPT = false;
+        if (params.options) {
+            const { scenePath, scenes } = params.options;
+            if (scenePath) {
+                for (const appId in this.apps) {
+                    const appScenePath = appManager.delegate.getAppScenePath(appId);
+                    if (appScenePath && appScenePath === scenePath) {
+                        console.warn(`ScenePath ${scenePath} Already opened`);
+                        return;
+                    }
+                }
+            }
+            if (scenePath && scenes && scenes.length > 0) {
+                if (this.isDynamicPPT(scenes)) {
+                    isDynamicPPT = true;
+                    if (!this.displayer.entireScenes()[scenePath]) {
+                        this.room?.putScenes(scenePath, scenes);
+                    }
+                } else {
+                    if (!this.displayer.entireScenes()[scenePath]) {
+                        this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
+                    }
+                }
+            }
+        }
+        return isDynamicPPT;
     }
 
     /**
@@ -399,17 +414,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.boxManager.teleBoxManager.state;
     }
 
-    public onDestroy() {
+    public override onDestroy() {
         this._destroy();
     }
 
-    public destroy() {
+    public override destroy() {
         this._destroy();
     }
 
     private _destroy() {
         this.containerResizeObserver?.disconnect()
         this.appManager?.destroy();
+        this.cursorManager?.destroy();
         WindowManager.isCreated = false;
         log("Destroyed");
     }
@@ -498,6 +514,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
+    private ensureAttributes() {
+        if (!this.attributes[Fields.Apps]) {
+            this.safeSetAttributes({ [Fields.Apps]: {} });
+        }
+        if (!this.attributes[Fields.Cursors]) {
+            this.safeSetAttributes({ [Fields.Cursors]: {} });
+        }
+    }
+
     private containerResizeObserver?: ResizeObserver
 
     private observePlaygroundSize(container: HTMLElement, sizer: HTMLElement, wrapper: HTMLDivElement) {
@@ -506,7 +531,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.containerResizeObserver = new ResizeObserver((entries) => {
             const containerRect = entries[0]?.contentRect;
             if (containerRect) {
-                this.updateSizer(containerRect, sizer, wrapper)
+                this.updateSizer(containerRect, sizer, wrapper);
+                this.cursorManager?.updateContainerRect();
             }
         });
 

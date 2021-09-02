@@ -1,5 +1,5 @@
 import { AnimationMode, Camera, Size } from "white-web-sdk";
-import { AppManager } from "./AppManager";
+import type { AppManager } from "./AppManager";
 import { isEqual } from "lodash-es";
 
 export class MainViewProxy {
