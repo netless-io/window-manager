@@ -51,7 +51,7 @@ type AppId = { appId: string };
 
 type MoveBoxParams = AppId & { x: number, y: number };
 
-type ResizeBoxParams = AppId & { width: number, height: number };
+type ResizeBoxParams = AppId & { width: number, height: number, skipUpdate: boolean };
 
 type SetBoxMinSizeParams = AppId & { minWidth: number, minHeight: number };
 
@@ -246,8 +246,8 @@ export class BoxManager {
         this.teleBoxManager.update(appId, { focus: true }, true);
     }
 
-    public resizeBox({ appId, width, height }: ResizeBoxParams) {
-        this.teleBoxManager.update(appId, { width, height }, true);
+    public resizeBox({ appId, width, height, skipUpdate }: ResizeBoxParams) {
+        this.teleBoxManager.update(appId, { width, height }, skipUpdate);
     }
 
     public setBoxMinSize(params: SetBoxMinSizeParams) {

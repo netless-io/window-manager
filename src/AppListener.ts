@@ -81,7 +81,7 @@ export class AppListeners {
     }
 
     private appResizeHandler = (payload: any) => {
-        this.boxManager.resizeBox(payload);
+        this.boxManager.resizeBox(Object.assign(payload, { skipUpdate: true }));
         this.manager.room?.refreshViewSize();
     }
 

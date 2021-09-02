@@ -187,7 +187,8 @@ export class AppProxy {
                         this.boxManager.resizeBox({ // 兼容移动端创建时会出现 PPT 不适配的问题
                             appId,
                             width: box.width + 0.001,
-                            height: box.height + 0.001
+                            height: box.height + 0.001,
+                            skipUpdate: true
                         });
                     }
 
@@ -257,12 +258,14 @@ export class AppProxy {
 
     private makeAppEventListener(appId: string) {
         return (eventName: AppListenerKeys, data: any) => {
+            if (!this.manager.canOperate) return;
             switch (eventName) {
                 case "setBoxSize": {
                     this.boxManager.resizeBox({
                         appId,
                         width: data.width,
                         height: data.height,
+                        skipUpdate: false
                     });
                     break;
                 }

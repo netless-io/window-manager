@@ -132,7 +132,7 @@ export class Cursor {
             appliance: this.memberApplianceName,
             avatar: this.memberAvatar,
             src: this.getIcon(),
-            visible: this.cursorVisible,
+            visible: false,
             backgroundColor: this.memberColor,
             cursorName: this.memberCursorName,
             theme: this.memberTheme,
