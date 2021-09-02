@@ -8,7 +8,6 @@ import type { AppManager } from "../AppManager";
 
 export class CursorManager {
     public containerRect?: DOMRect;
-    private observerId = String(this.manager.displayer.observerId);
     private disposer: any;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
@@ -46,6 +45,10 @@ export class CursorManager {
                 fireImmediately: true
             }
         )
+    }
+
+    private get observerId() {
+        return String(this.manager.displayer.observerId);
     }
 
     public get cursors() {
