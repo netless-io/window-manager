@@ -109,7 +109,6 @@ export class CursorManager {
             }
         }
         needDeleteIds.forEach(memberId => {
-            console.log("cleanCursor", memberId);
             const instance = this.cursorInstances.get(memberId);
             if (instance) {
                 instance.destroy();
