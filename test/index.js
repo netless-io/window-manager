@@ -53,7 +53,7 @@ document.body.append(container)
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,
-    // useMobXState: true
+    useMobXState: true
 });
 
 window.WindowManager = WindowManager;

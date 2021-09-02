@@ -65,10 +65,6 @@ export class AppListeners {
                     this.switchViewsToFreedomHandler();
                     break;
                 }
-                case Events.CursorLeave: {
-                    this.cursorLeaveHandler(data.payload);
-                    break;
-                }
                 default:
                     break;
             }
@@ -129,9 +125,5 @@ export class AppListeners {
 
     private switchViewsToFreedomHandler = () => {
         this.manager.viewManager.freedomAllViews();
-    }
-
-    private cursorLeaveHandler = (payload: { memberId: string }) => {
-        this.windowManager.cursorManager?.hideComponent(payload.memberId);
     }
 }

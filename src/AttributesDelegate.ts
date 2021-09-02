@@ -15,6 +15,8 @@ export enum Fields {
     MainViewSize = "mainViewSize",
     Broadcaster = "broadcaster",
     Cursors = "cursors",
+    Position = "position",
+    CursorState = "cursorState",
 }
 
 type Apps = {
@@ -160,11 +162,26 @@ export class AttributesDelegate {
     }
 
     public updateCursor(observerId: string, position: Position) {
-        this.manager.safeUpdateAttributes([Fields.Cursors, observerId], position);
+        if (!this.manager.attributes[Fields.Cursors][observerId]) {
+            this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
+        }
+        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.Position], position);
+    }
+
+    public updateCursorState(observerId: string, cursorState: string | undefined) {
+        if (!this.manager.attributes[Fields.Cursors][observerId]) {
+            this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
+        }
+        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.CursorState], cursorState);
+    }
+
+    public getCursorState(observerId: string) {
+        return get(this.manager.attributes, [Fields.Cursors, observerId, Fields.CursorState]);
     }
 
     public cleanCursor(observerId: string) {
-        this.manager.safeUpdateAttributes([Fields.Cursors, observerId], undefined);
+        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.Position], undefined);
+        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.CursorState], undefined);
     }
 
     // TODO 状态中保存一个 SceneName 优化性能

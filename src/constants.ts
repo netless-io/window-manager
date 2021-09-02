@@ -7,7 +7,6 @@ export enum Events {
     AppBoxStateChange = "AppBoxStateChange",
     AppSnapshot = "AppSnapshot",
     AppClose = "AppClose",
-    CursorLeave = "CursorLeave",
     GetAttributes = "GetAttributes",
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
     InitReplay = "InitReplay",
@@ -35,6 +34,11 @@ export enum AppEvents {
 
 export enum AppStatus {
     StartCreate = "StartCreate",
+}
+
+export enum CursorState {
+    Leave = "leave",
+    Normal = "normal"
 }
 
 export const REQUIRE_VERSION = "2.13.16";

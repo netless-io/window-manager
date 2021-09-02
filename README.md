@@ -47,7 +47,6 @@ manager.mainView.callbacks.on("onSizeUpdated", (size) => {
 });
 ```
 
-
 ### 接入
 
 ```javascript
@@ -83,7 +82,7 @@ WindowManager.mount({
     collectorContainer: collectorContainer, // 可选, 用于多窗口最小化图标挂载的 dom
     collectorStyles: { bottom: "100px", right: "50px" }, // 可选, 配置 collector 的样式
     overwriteStyles: `.title { color: black }`, // 可选, 用于覆盖窗口的样式
-    cursor: true, // 可选, 开启光标
+    cursor: true, // 可选, 开启光标同步
     debug: true, // 可选, 输出日志信息
 })
 ```
@@ -101,6 +100,22 @@ WindowManager.mount({
 manager.mainView; // 主白板
 manager.apps; // 已经打开的所有 app 的属性
 manager.boxState; // 当前的窗口状态: maximized | minimized | normal
+```
+
+### 光标同步
+> 原本的 `SDK` 中的  `cursorAdapter` 在多窗口中不可用, 如需要光标同步功能需要在 `manager` 中开启 `cursor` 选项
+```typescript
+sdk.joinRoom({
+    userPayload: {
+        userId: "用户 id",
+        cursorName: "光标名称",
+        avatar: "用户头像链接",
+    }
+})
+
+WindowManager.mount({
+    cursor: true
+})
 ```
 
 ## APP

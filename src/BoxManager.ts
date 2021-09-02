@@ -87,7 +87,7 @@ export class BoxManager {
         });
         this.teleBoxManager.events.on("move", debounce((box: ReadonlyTeleBox): void => {
             emitter.emit("move", { appId: box.id, x: box.x, y: box.y });
-        }, 200));
+        }, 50));
         this.teleBoxManager.events.on("resize", debounce((box: ReadonlyTeleBox): void => {
             emitter.emit("resize", { appId: box.id, width: box.width, height: box.height });
         }, 200));

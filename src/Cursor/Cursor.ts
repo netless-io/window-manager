@@ -1,14 +1,16 @@
-import { ApplianceNames, autorun, RoomMember } from "white-web-sdk";
+import App from './Cursor.svelte';
+import { ApplianceMap } from './icons';
+import { ApplianceNames, autorun, RoomMember, reaction } from 'white-web-sdk';
+import { omit } from 'lodash-es';
 import type { CursorManager } from "./index";
 import type { WindowManager } from "../index";
-import { ApplianceMap } from "./icons";
-import App from "./Cursor.svelte";
 import type { SvelteComponent } from "svelte";
-import { omit } from "lodash-es";
+import { Fields } from '../AttributesDelegate';
+import { CursorState } from '../constants';
 
 export class Cursor {
     private member?: RoomMember;
-    private disposer: any;
+    private disposers: Array<any> = [];
     private timer?: number;
     private component?: SvelteComponent;
 
@@ -21,19 +23,33 @@ export class Cursor {
     ) {
         this.setMember();
         this.createCursor();
-        this.disposer = autorun(() => {
-            const cursor = this.cursors[this.memberId];
-            if (!cursor) return;
-            const x = cursor.x;
-            const y = cursor.y;
-            const rect = this.cursorManager.containerRect;
-            if (this.component && rect) {
-                this.autoHidden();
-                const translateX = x * rect.width - (180 / 2) + 26 + 2; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
-                const translateY = y * rect.height - 74 + 1; // y 减去 cursor 的高
-                this.component.$set({ visible: true, x: translateX, y: translateY });
+        this.disposers.push(reaction(
+            () => this.cursors[this.memberId][Fields.Position],
+            cursor => {
+                if (!cursor) return;
+                const x = cursor.x;
+                const y = cursor.y;
+                const rect = this.cursorManager.containerRect;
+                if (this.component && rect) {
+                    this.autoHidden();
+                    const translateX = x * rect.width - (180 / 2) + 26 + 2; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
+                    const translateY = y * rect.height - 74 + 1; // y 减去 cursor 的高
+                    this.component.$set({ visible: true, x: translateX, y: translateY });
+                }
+            }, {
+                fireImmediately: true
             }
-        });
+        ));
+        this.disposers.push(reaction(
+            () => this.cursorState,
+            state => {
+                if (state === CursorState.Leave) {
+                    this.hide();
+                }
+            }, {
+                fireImmediately: true
+            }
+        ));
         this.autoHidden();
     }
 
@@ -78,13 +94,21 @@ export class Cursor {
         }
     }
 
+    public get cursorState() {
+        return this.cursors[this.memberId][Fields.CursorState]
+    }
+
+    private get cursorVisible() {
+        return this.cursorState !== CursorState.Leave;
+    }
+
     private autoHidden() {
         if (this.timer) {
             clearTimeout(this.timer);
         }
         this.timer = window.setTimeout(() => {
             this.hide();
-        }, 1000 * 10); // 10 秒种自动隐藏
+        }, 1000 * 10); // 10 秒钟自动隐藏
     }
 
     private async createCursor() {
@@ -103,7 +127,7 @@ export class Cursor {
             appliance: this.memberApplianceName,
             avatar: this.memberAvatar,
             src: this.getIcon(),
-            visible: true,
+            visible: this.cursorVisible,
             backgroundColor: this.memberColor,
             cursorName: this.memberCursorName,
             theme: this.memberTheme,
@@ -129,11 +153,11 @@ export class Cursor {
     }
 
     public destroy() {
-        this.disposer && this.disposer();
+        this.disposers.forEach(disposer => disposer());
         if (this.component) {
             this.component.$destroy();
         }
-        this.cursorManager.components.delete(this.memberId);
+        this.cursorManager.cursorInstances.delete(this.memberId);
     }
 
     public hide() {

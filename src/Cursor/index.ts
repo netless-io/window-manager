@@ -1,6 +1,6 @@
 import { Cursor } from './Cursor';
 import { debounce } from 'lodash-es';
-import { Events } from '../constants';
+import { CursorState, Events } from '../constants';
 import { Fields } from '../AttributesDelegate';
 import { reaction, RoomMember } from 'white-web-sdk';
 import { WindowManager } from '../index';
@@ -8,15 +8,16 @@ import type { AppManager } from "../AppManager";
 
 export class CursorManager {
     public containerRect?: DOMRect;
-    private observerId = this.manager.displayer.observerId;
+    private observerId = String(this.manager.displayer.observerId);
     private disposer: any;
-    public components: Map<string, Cursor> = new Map();
+    public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
 
     constructor(
         private manager: WindowManager,
         private appManager: AppManager,
     ) {
+        this.roomMembers = this.manager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
             wrapper.addEventListener("mousemove", this.mouseMoveListener);
@@ -24,7 +25,6 @@ export class CursorManager {
             this.containerRect = wrapper.getBoundingClientRect();
             this.initDisposer(wrapper);
         }
-        this.roomMembers = this.manager.room?.state.roomMembers;
     }
 
     private initDisposer(wrapper: HTMLElement) {
@@ -32,13 +32,14 @@ export class CursorManager {
             () => Object.keys(this.cursors || {}).length,
             () => {
                 const memberIds = this.roomMembers?.map(member => member.memberId);
-                for (const memberId in this.cursors) {
-                    if (memberIds &&
-                        memberIds.includes(Number(memberId)) &&
-                        !this.components.has(memberId) &&
-                        memberId !== String(this.observerId)) {
-                        const component = new Cursor(this.manager, this.cursors, memberId, this, wrapper);
-                        this.components.set(memberId, component);
+                if (memberIds?.length) {
+                    for (const memberId in this.cursors) {
+                        if (memberIds.includes(Number(memberId)) &&
+                            !this.cursorInstances.has(memberId) &&
+                            memberId !== this.observerId) {
+                            const component = new Cursor(this.manager, this.cursors, memberId, this, wrapper);
+                            this.cursorInstances.set(memberId, component);
+                        }
                     }
                 }
             }, {
@@ -55,15 +56,18 @@ export class CursorManager {
         if (this.containerRect) {
             const x = (event.clientX - this.containerRect.x) / this.containerRect.width;
             const y = (event.clientY - this.containerRect.y) / this.containerRect.height;
-            this.appManager.delegate.updateCursor(String(this.observerId), {
+            if (this.appManager.delegate.getCursorState(this.observerId)) {
+                this.appManager.delegate.updateCursorState(this.observerId, CursorState.Normal);
+            }
+            this.appManager.delegate.updateCursor(this.observerId, {
                 x, y
             });
         }
-    }, 5)
+    }, 8)
 
     private mouseLeaveListener = () => {
-        this.hideComponent(String(this.observerId));
-        this.appManager.dispatchInternalEvent(Events.CursorLeave, { memberId: String(this.observerId) });
+        this.hideCursor(this.observerId);
+        this.appManager.delegate.updateCursorState(this.observerId, CursorState.Leave);
     }
 
     public updateContainerRect() {
@@ -72,23 +76,23 @@ export class CursorManager {
 
     public setRoomMembers(members: readonly RoomMember[]) {
         this.roomMembers = members;
-        this.components.forEach(component => {
-            component.setMember();
+        this.cursorInstances.forEach(cursor => {
+            cursor.setMember();
         });
     }
 
-    public cleanMemberComponent(memberId: string) {
+    public cleanMemberCursor(memberId: string) {
         this.appManager.delegate.cleanCursor(memberId);
-        const component = this.components.get(memberId);
-        if (component) {
-            component.destroy();
+        const cursor = this.cursorInstances.get(memberId);
+        if (cursor) {
+            cursor.destroy();
         }
     }
 
-    public hideComponent(memberId: string) {
-        const component = this.components.get(memberId);
-        if (component) {
-            component.hide();
+    public hideCursor(memberId: string) {
+        const cursor = this.cursorInstances.get(memberId);
+        if (cursor) {
+            cursor.hide();
         }
     }
 
@@ -113,9 +117,9 @@ export class CursorManager {
             wrapper.removeEventListener("mouseleave", this.mouseLeaveListener);
         }
         this.disposer && this.disposer();
-        if (this.components.size) {
-            this.components.forEach(component => component.destroy());
-            this.components.clear();
+        if (this.cursorInstances.size) {
+            this.cursorInstances.forEach(cursor => cursor.destroy());
+            this.cursorInstances.clear();
         }
     }
 }
