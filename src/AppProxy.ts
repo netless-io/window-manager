@@ -51,11 +51,13 @@ export class AppProxy {
     private viewManager = this.manager.viewManager;
     private kind: string;
     private instance: any;
+    private isAddApp: boolean;
 
     constructor(
         private params: BaseInsertParams,
         private manager: AppManager,
-        appId: string
+        appId: string,
+        isAddApp: boolean,
     ) {
         this.kind = params.kind;
         this.id = appId;
@@ -76,6 +78,7 @@ export class AppProxy {
             this.createView();
             this.addCameraListener();
         }
+        this.isAddApp = isAddApp;
     }
 
     public get sceneIndex() {
@@ -160,7 +163,7 @@ export class AppProxy {
 
     private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, appId, this.appEmitter);
+        const context = new AppContext(this.manager, appId, this.appEmitter, this.isAddApp);
         try {
             emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getAppInitState(appId);

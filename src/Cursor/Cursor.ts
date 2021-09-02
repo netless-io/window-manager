@@ -1,7 +1,7 @@
 import App from './Cursor.svelte';
 import { ApplianceMap } from './icons';
 import { ApplianceNames, autorun, RoomMember, reaction } from 'white-web-sdk';
-import { omit } from 'lodash-es';
+import { get, omit } from 'lodash-es';
 import type { CursorManager } from "./index";
 import type { WindowManager } from "../index";
 import type { SvelteComponent } from "svelte";
@@ -10,7 +10,7 @@ import { CursorState } from '../constants';
 
 export class Cursor {
     private member?: RoomMember;
-    private disposers: Array<any> = [];
+    private disposer: any
     private timer?: number;
     private component?: SvelteComponent;
 
@@ -23,10 +23,21 @@ export class Cursor {
     ) {
         this.setMember();
         this.createCursor();
-        this.disposers.push(reaction(
-            () => this.cursors[this.memberId][Fields.Position],
-            cursor => {
-                if (!cursor) return;
+        if (this.cursorPosition) {
+            this.startReaction();
+        } else {
+            setTimeout(() => {
+                this.startReaction();
+            }, 200);
+        }
+        this.autoHidden();
+    }
+
+    private startReaction() {
+        this.disposer = autorun(() => {
+            const cursor = this.cursorPosition;
+            const state = this.cursorState;
+            if (cursor) {
                 const x = cursor.x;
                 const y = cursor.y;
                 const rect = this.cursorManager.containerRect;
@@ -36,21 +47,11 @@ export class Cursor {
                     const translateY = y * rect.height - 74 + 1; // y 减去 cursor 的高
                     this.component.$set({ visible: true, x: translateX, y: translateY });
                 }
-            }, {
-                fireImmediately: true
             }
-        ));
-        this.disposers.push(reaction(
-            () => this.cursorState,
-            state => {
-                if (state === CursorState.Leave) {
-                    this.hide();
-                }
-            }, {
-                fireImmediately: true
+            if (state && state === CursorState.Leave) {
+                this.hide();
             }
-        ));
-        this.autoHidden();
+        })
     }
 
     public get memberApplianceName() {
@@ -95,7 +96,11 @@ export class Cursor {
     }
 
     public get cursorState() {
-        return this.cursors[this.memberId][Fields.CursorState]
+        return get(this.cursors, [this.memberId, Fields.CursorState]);
+    }
+
+    public get cursorPosition() {
+        return get(this.cursors, [this.memberId, Fields.Position]);
     }
 
     private get cursorVisible() {
@@ -153,7 +158,7 @@ export class Cursor {
     }
 
     public destroy() {
-        this.disposers.forEach(disposer => disposer());
+        this.disposer && this.disposer();
         if (this.component) {
             this.component.$destroy();
         }

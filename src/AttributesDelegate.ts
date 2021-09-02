@@ -162,14 +162,14 @@ export class AttributesDelegate {
     }
 
     public updateCursor(observerId: string, position: Position) {
-        if (!this.manager.attributes[Fields.Cursors][observerId]) {
+        if (!get(this.manager.attributes, [Fields.Cursors, observerId])) {
             this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
         }
         this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.Position], position);
     }
 
     public updateCursorState(observerId: string, cursorState: string | undefined) {
-        if (!this.manager.attributes[Fields.Cursors][observerId]) {
+        if (!get(this.manager.attributes, [Fields.Cursors, observerId])) {
             this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
         }
         this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.CursorState], cursorState);
@@ -180,8 +180,7 @@ export class AttributesDelegate {
     }
 
     public cleanCursor(observerId: string) {
-        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.Position], undefined);
-        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.CursorState], undefined);
+        this.manager.safeUpdateAttributes([Fields.Cursors, observerId], undefined);
     }
 
     // TODO 状态中保存一个 SceneName 优化性能

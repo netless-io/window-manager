@@ -21,14 +21,17 @@ export class AppContext<TAttrs extends Record<string, any>> {
     private viewManager: ViewManager;
     private boxManager: BoxManager;
     private delegate = this.manager.delegate;
+    public readonly isAddApp: boolean;
 
     constructor(
         private manager: AppManager,
         private appId: string,
-        appEmitter: Emittery<AppEmitterEvent<TAttrs>>) {
+        appEmitter: Emittery<AppEmitterEvent<TAttrs>>,
+        isAddApp: boolean) {
         this.emitter = appEmitter;
         this.viewManager = this.manager.viewManager;
         this.boxManager = this.manager.boxManager;
+        this.isAddApp = isAddApp;
     }
 
     public getDisplayer() {

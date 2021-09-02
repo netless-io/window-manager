@@ -143,6 +143,7 @@
     will-change: transform;
     transition: transform 0.05s;
     transform-origin: 0 0;
+    user-select: none;
 }
 
 .cursor-pencil-offset {

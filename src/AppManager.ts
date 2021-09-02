@@ -129,7 +129,7 @@ export class AppManager {
                         src: appImpl,
                         options: app.options,
                         isDynamicPPT: app.isDynamicPPT
-                    }, id);
+                    }, id, false);
                     this.focusByAttributes(apps);
                 }
             }
@@ -152,7 +152,7 @@ export class AppManager {
             const attrs = params.attributes ?? {};
             this.safeUpdateAttributes([appId], attrs);
 
-            const appProxy = await this.baseInsertApp(params, appId, needFocus);
+            const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
             this.afterManualAddApp(appProxy);
             return appProxy?.id;
         } catch (error) {
@@ -177,13 +177,13 @@ export class AppManager {
         }
     }
 
-    private async baseInsertApp(params: BaseInsertParams, appId: string, focus?: boolean) {
+    private async baseInsertApp(params: BaseInsertParams, appId: string, isAddApp: boolean, focus?: boolean) {
         this.appStatus.set(appId, AppStatus.StartCreate);
         if (this.appProxies.has(appId)) {
             console.warn("[WindowManager]: app duplicate exists and cannot be created again");
             return;
         }
-        const appProxy = new AppProxy(params, this, appId);
+        const appProxy = new AppProxy(params, this, appId, isAddApp);
         if (appProxy) {
             await appProxy.baseInsertApp(focus);
             this.appStatus.delete(appId);
