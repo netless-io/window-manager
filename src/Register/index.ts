@@ -12,7 +12,7 @@ class AppRegister {
     public registered: Map<string, RegisterParams> = new Map();
     public appClasses: Map<string, NetlessApp> = new Map();
 
-    public async register(params: RegisterParams) {
+    public async register(params: RegisterParams): Promise<void> {
         this.registered.set(params.kind, params);
         if (typeof params.src === "string") {
             const url = params.src;

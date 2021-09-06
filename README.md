@@ -110,6 +110,7 @@ manager.boxState; // 当前的窗口状态: maximized | minimized | normal
 
 ```typescript
 sdk.joinRoom({
+    // cursorAdapter: cursorAdapter, 原本开启 sdk 中的 cursorAdapter 需要关闭
     userPayload: {
         userId: "用户 id",
         cursorName: "光标名称",
@@ -118,7 +119,7 @@ sdk.joinRoom({
 });
 
 WindowManager.mount({
-    cursor: true,
+    cursor: true, // 开启光标同步
 });
 ```
 

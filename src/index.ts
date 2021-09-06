@@ -254,8 +254,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 注册插件
      */
-    public static register(params: RegisterParams): void {
-        appRegister.register(params);
+    public static register(params: RegisterParams): Promise<void> {
+        return appRegister.register(params);
     }
 
     /**
