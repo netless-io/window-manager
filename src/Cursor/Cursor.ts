@@ -73,7 +73,7 @@ export class Cursor {
     }
 
     public get memberCursorName() {
-        return this.payload?.cursorName;
+        return this.payload?.cursorName || this.memberId;
     }
 
     private get memberTheme() {
