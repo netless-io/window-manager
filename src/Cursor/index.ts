@@ -18,7 +18,9 @@ export class CursorManager {
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
             wrapper.addEventListener("mousemove", this.mouseMoveListener);
+            wrapper.addEventListener("touchmove", this.touchMoveListener);
             wrapper.addEventListener("mouseleave", this.mouseLeaveListener);
+            wrapper.addEventListener("touchend", this.mouseLeaveListener);
             this.containerRect = wrapper.getBoundingClientRect();
             this.startReaction(wrapper);
         }
@@ -63,9 +65,20 @@ export class CursorManager {
     }
 
     private mouseMoveListener = debounce((event: MouseEvent) => {
+        this.updateCursor(event.clientX, event.clientY);
+    }, 8);
+
+    private touchMoveListener = debounce((event: TouchEvent) => {
+        if (event.touches.length === 1) {
+            const touchEvent = event.touches[0];
+            this.updateCursor(touchEvent.clientX, touchEvent.clientY);
+        }
+    }, 8);
+
+    private updateCursor(clientX: number, clientY: number) {
         if (this.containerRect) {
-            const x = (event.clientX - this.containerRect.x) / this.containerRect.width;
-            const y = (event.clientY - this.containerRect.y) / this.containerRect.height;
+            const x = (clientX - this.containerRect.x) / this.containerRect.width;
+            const y = (clientY - this.containerRect.y) / this.containerRect.height;
             if (this.appManager.delegate.getCursorState(this.observerId)) {
                 this.appManager.delegate.updateCursorState(this.observerId, CursorState.Normal);
             }
@@ -74,7 +87,7 @@ export class CursorManager {
                 y,
             });
         }
-    }, 8);
+    }
 
     private mouseLeaveListener = () => {
         this.hideCursor(this.observerId);
@@ -129,7 +142,9 @@ export class CursorManager {
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
             wrapper.removeEventListener("mousemove", this.mouseMoveListener);
+            wrapper.removeEventListener("touchmove", this.touchMoveListener);
             wrapper.removeEventListener("mouseleave", this.mouseLeaveListener);
+            wrapper.removeEventListener("touchend", this.mouseLeaveListener);
         }
         this.disposer && this.disposer();
         if (this.cursorInstances.size) {
