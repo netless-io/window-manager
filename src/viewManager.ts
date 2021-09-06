@@ -1,12 +1,17 @@
+import { callbacks, WindowManager } from "./index";
 import { debounce } from "lodash-es";
-import { AnimationMode, Camera, Displayer, Room, RoomConsumer, Size, View, ViewVisionMode } from "white-web-sdk";
-import { emitter, callbacks, WindowManager } from "./index";
-import type { AppManager } from "./AppManager";
-import { log } from "./log";
-import type { CameraStore } from "./CameraStore";
-import { Events, MagixEventName, SET_SCENEPATH_DELAY } from "./constants";
-import {  notifyMainViewModeChange, setScenePath, setViewFocusScenePath, setViewMode } from "./Common";
+import { Events, SET_SCENEPATH_DELAY } from "./constants";
+import {
+    notifyMainViewModeChange,
+    setScenePath,
+    setViewFocusScenePath,
+    setViewMode,
+} from "./Common";
 import { TELE_BOX_STATE } from "@netless/telebox-insider";
+import { ViewVisionMode } from "white-web-sdk";
+import type { Camera, Displayer, Size, View } from "white-web-sdk";
+import type { AppManager } from "./AppManager";
+import type { CameraStore } from "./CameraStore";
 export class ViewManager {
     public mainView: View;
     private views: Map<string, View> = new Map();
@@ -17,12 +22,13 @@ export class ViewManager {
     constructor(
         private displayer: Displayer,
         private manager: AppManager,
-        private cameraStore: CameraStore) {
+        private cameraStore: CameraStore
+    ) {
         this.mainView = this.createMainView();
         this.addMainViewCameraListener();
     }
 
-    public get currentScenePath() {
+    public get currentScenePath(): string {
         return this.displayer.state.sceneState.scenePath;
     }
 
@@ -51,7 +57,7 @@ export class ViewManager {
         return view;
     }
 
-    public destroyView(appId: string) {
+    public destroyView(appId: string): void {
         const view = this.views.get(appId);
         if (view) {
             view.release();
@@ -59,7 +65,7 @@ export class ViewManager {
         }
     }
 
-    public getView(appId: string) {
+    public getView(appId: string): View | undefined {
         return this.views.get(appId);
     }
 
@@ -71,13 +77,13 @@ export class ViewManager {
         this.mainView.callbacks.off("onCameraUpdated", this.mainViewCameraListener);
     }
 
-    public switchMainViewToFreedom() {
+    public switchMainViewToFreedom(): void {
         this.manager.delegate.setMainViewFocusPath();
         notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
         setViewMode(this.mainView, ViewVisionMode.Freedom);
     }
 
-    public switchMainViewModeToWriter() {
+    public switchMainViewModeToWriter(): void {
         if (!this.manager.canOperate) return;
         if (this.mainView) {
             if (this.mainView.mode === ViewVisionMode.Writable) return;
@@ -86,7 +92,7 @@ export class ViewManager {
         }
     }
 
-    public addMainViewListener() {
+    public addMainViewListener(): void {
         if (this.mainViewIsAddListener) return;
         if (this.mainView.divElement) {
             this.mainView.divElement.addEventListener("click", this.mainViewClickListener);
@@ -95,7 +101,7 @@ export class ViewManager {
         }
     }
 
-    public removeMainViewListener() {
+    public removeMainViewListener(): void {
         if (this.mainView.divElement) {
             this.mainView.divElement.removeEventListener("click", this.mainViewClickListener);
             this.mainView.divElement.removeEventListener("touchend", this.mainViewClickListener);
@@ -104,9 +110,9 @@ export class ViewManager {
 
     private mainViewClickListener = () => {
         this.mainViewClickHandler();
-    }
+    };
 
-    public async mainViewClickHandler() {
+    public async mainViewClickHandler(): Promise<void> {
         if (this.mainView.mode === ViewVisionMode.Writable) return;
         this.manager.delegate.cleanFocus();
         this.freedomAllViews();
@@ -121,9 +127,9 @@ export class ViewManager {
         if (this.delegate.broadcaster === this.displayer.observerId) {
             this.delegate.setMainViewCamera({ ...camera });
         }
-    }
+    };
 
-    public switchMainViewToWriter() {
+    public switchMainViewToWriter(): Promise<boolean> {
         if (this.timer) {
             clearTimeout(this.timer);
         }
@@ -147,7 +153,7 @@ export class ViewManager {
         });
     }
 
-    public refreshViews() {
+    public refreshViews(): void {
         const focus = this.manager.delegate.focus;
         this.setMainViewFocusScenePath();
         if (focus) {
@@ -173,7 +179,7 @@ export class ViewManager {
         }
     }
 
-    public freedomAllViews() {
+    public freedomAllViews(): void {
         this.manager.appProxies.forEach(appProxy => {
             appProxy.setViewFocusScenePath();
             if (appProxy.view) {
@@ -189,7 +195,7 @@ export class ViewManager {
         }
     }
 
-    public switchAppToWriter(id: string) {
+    public switchAppToWriter(id: string): void {
         this.freedomAllViews();
         // 为了同步端不闪烁, 需要给 room setScenePath 一个延迟
         setTimeout(() => {
@@ -208,7 +214,7 @@ export class ViewManager {
         }, SET_SCENEPATH_DELAY);
     }
 
-    public destroy() {
+    public destroy(): void {
         this.removeMainViewListener();
         if (WindowManager.wrapper) {
             WindowManager.wrapper.parentNode?.removeChild(WindowManager.wrapper);
@@ -217,25 +223,31 @@ export class ViewManager {
     }
 }
 
-export const setupWrapper = (root: HTMLElement) => {
-    const playground = document.createElement('div')
+export const setupWrapper = (
+    root: HTMLElement
+): {
+    playground: HTMLDivElement;
+    wrapper: HTMLDivElement;
+    sizer: HTMLDivElement;
+    mainViewElement: HTMLDivElement;
+} => {
+    const playground = document.createElement("div");
     playground.className = "netless-window-manager-playground";
-    
-    const sizer = document.createElement('div')
+
+    const sizer = document.createElement("div");
     sizer.className = "netless-window-manager-sizer";
-    
+
     const wrapper = document.createElement("div");
     wrapper.className = "netless-window-manager-wrapper";
-    
+
     const mainViewElement = document.createElement("div");
     mainViewElement.className = "netless-window-manager-main-view";
-    
-    playground.appendChild(sizer)
-    sizer.appendChild(wrapper)
+
+    playground.appendChild(sizer);
+    sizer.appendChild(wrapper);
     wrapper.appendChild(mainViewElement);
     root.appendChild(playground);
     WindowManager.wrapper = wrapper;
-    
-    return { playground, wrapper, sizer, mainViewElement };
-}
 
+    return { playground, wrapper, sizer, mainViewElement };
+};

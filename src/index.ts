@@ -1,60 +1,62 @@
-import Emittery from 'emittery';
+import AppDocsViewer from "@netless/app-docs-viewer";
+import AppMediaPlayer, { setOptions } from "@netless/app-media-player";
+import Emittery from "emittery";
 import {
     AppCreateError,
     AppManagerNotInitError,
     ParamsInvalidError,
-    WhiteWebSDKInvalidError
-} from './error';
-import type { AppListeners } from './AppListener';
-import { AppManager } from './AppManager';
+    WhiteWebSDKInvalidError,
+} from "./error";
+import { AppManager } from "./AppManager";
+import { appRegister } from "./Register";
+import { CursorManager } from "./Cursor";
+import type { Apps } from "./AttributesDelegate";
+import { Fields } from "./AttributesDelegate";
+import { getVersionNumber } from "./Common";
 import {
-    Displayer,
     InvisiblePlugin,
-    InvisiblePluginContext,
     isRoom,
-    Room,
     RoomPhase,
-    SceneDefinition,
-    View,
     ViewMode,
     ViewVisionMode,
-    WhiteVersion
-} from 'white-web-sdk';
-import { log } from './log';
-import type { NetlessApp, RegisterParams } from './typings';
-import { replaceRoomFunction } from './RoomHacker';
-import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
-import { setupWrapper } from './ViewManager';
-import type { TELE_BOX_STATE } from './BoxManager';
-import './style.css';
-import '@netless/telebox-insider/dist/style.css';
-import {
-    REQUIRE_VERSION,
-    DEFAULT_CONTAINER_RATIO,
-} from "./constants";
-import { appRegister } from "./Register";
-import AppDocsViewer from '@netless/app-docs-viewer';
-import AppMediaPlayer, { setOptions } from '@netless/app-media-player';
-import { CursorManager } from './Cursor';
-import { Fields } from './AttributesDelegate';
+    WhiteVersion,
+} from "white-web-sdk";
+import { log } from "./log";
+import { replaceRoomFunction } from "./RoomHacker";
+import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
+import { setupWrapper } from "./ViewManager";
+import "./style.css";
+import "@netless/telebox-insider/dist/style.css";
+import type {
+    Displayer,
+    SceneDefinition,
+    View,
+    Room,
+    InvisiblePluginContext,
+    Camera,
+} from "white-web-sdk";
+import type { AppListeners } from "./AppListener";
+import type { NetlessApp, RegisterParams } from "./typings";
+import type { TELE_BOX_STATE } from "./BoxManager";
+import { REQUIRE_VERSION, DEFAULT_CONTAINER_RATIO } from "./constants";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
 export type WindowMangerAttributes = {
-    modelValue?: string,
-    boxState: TELE_BOX_STATE,
-    [key: string]: any,
-}
+    modelValue?: string;
+    boxState: TELE_BOX_STATE;
+    [key: string]: any;
+};
 
 export type apps = {
-    [key: string]: NetlessApp
-}
+    [key: string]: NetlessApp;
+};
 
 export type AddAppOptions = {
     scenePath?: string;
     title?: string;
-    scenes?: SceneDefinition[],
-}
+    scenes?: SceneDefinition[];
+};
 
 export type setAppOptions = AddAppOptions & { appOptions?: any };
 
@@ -66,7 +68,7 @@ export type AddAppParams = {
     options?: AddAppOptions;
     // 初始化 attributes
     attributes?: any;
-}
+};
 
 export type BaseInsertParams = {
     kind: string;
@@ -77,56 +79,56 @@ export type BaseInsertParams = {
     // 初始化 attributes
     attributes?: any;
     isDynamicPPT?: boolean;
-}
+};
 
 export type AppSyncAttributes = {
-    kind: string,
-    src?: string,
-    options: any,
-    state?: any,
-    isDynamicPPT?: boolean,
-}
+    kind: string;
+    src?: string;
+    options: any;
+    state?: any;
+    isDynamicPPT?: boolean;
+};
 
 export type AppInitState = {
-    id: string,
-    x?: number,
-    y?: number,
-    width?: number,
-    height?: number,
-    focus?: boolean,
-    snapshotRect?: any,
-    boxState?: TELE_BOX_STATE,
-    sceneIndex?: number,
-}
+    id: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    focus?: boolean;
+    snapshotRect?: any;
+    boxState?: TELE_BOX_STATE;
+    sceneIndex?: number;
+};
 
 export const emitter: Emittery<{
     onCreated: undefined;
-    [key: string]: any
+    [key: string]: any;
 }> = new Emittery();
 
 export type PublicEvent = {
-    mainViewModeChange: ViewVisionMode,
-    boxStateChange: `${TELE_BOX_STATE}`,
-}
+    mainViewModeChange: ViewVisionMode;
+    boxStateChange: `${TELE_BOX_STATE}`;
+};
+
+export type MountParams = {
+    room: Room;
+    container: HTMLElement;
+    /** 白板高宽比例, 默认为 9 / 16 */
+    containerSizeRatio?: number;
+    /** 显示 PS 透明背景，默认 true */
+    chessboard?: boolean;
+    collectorContainer?: HTMLElement;
+    collectorStyles?: Partial<CSSStyleDeclaration>;
+    overwriteStyles?: string;
+    cursor?: boolean;
+    debug?: boolean;
+};
 
 export const callbacks: Emittery<PublicEvent> = new Emittery();
 
-export type MountParams = {
-    room: Room,
-    container: HTMLElement,
-    /** 白板高宽比例, 默认为 9 / 16 */
-    containerSizeRatio?: number,
-    /** 显示 PS 透明背景，默认 true */
-    chessboard?: boolean,
-    collectorContainer?: HTMLElement,
-    collectorStyles?: Partial<CSSStyleDeclaration>,
-    overwriteStyles?: string;
-    cursor?: boolean,
-    debug?: boolean,
-};
-
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
-    public static kind: string = "WindowManager";
+    public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
     public static debug = false;
@@ -134,13 +136,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private static isCreated = false;
 
     public appListeners?: AppListeners;
-    public static appClasses: Map<string, NetlessApp> = new Map();
 
     public readonly?: boolean;
     public emitter: Emittery<PublicEvent> = callbacks;
     private appManager?: AppManager;
     public cursorManager?: CursorManager;
-
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -155,11 +155,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         container: HTMLElement,
         collectorContainer?: HTMLElement,
         options?: {
-            chessboard: boolean
-            containerSizeRatio: number,
-            collectorStyles?: Partial<CSSStyleDeclaration>,
-            debug?: boolean,
-            overwriteStyles?: string,
+            chessboard: boolean;
+            containerSizeRatio: number;
+            collectorStyles?: Partial<CSSStyleDeclaration>;
+            debug?: boolean;
+            overwriteStyles?: string;
         }
     ): Promise<WindowManager>;
 
@@ -170,12 +170,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         container?: HTMLElement,
         collectorContainer?: HTMLElement,
         options?: {
-            chessboard?: boolean
-            containerSizeRatio: number,
-            collectorStyles?: Partial<CSSStyleDeclaration>,
-            debug?: boolean,
-            overwriteStyles?: string,
-        }) {
+            chessboard?: boolean;
+            containerSizeRatio: number;
+            collectorStyles?: Partial<CSSStyleDeclaration>;
+            debug?: boolean;
+            overwriteStyles?: string;
+        }
+    ): Promise<WindowManager> {
         let room: Room;
         let containerSizeRatio: number | undefined;
         let collectorStyles: Partial<CSSStyleDeclaration> | undefined;
@@ -216,7 +217,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
         if (!manager) {
-            manager = await room.createInvisiblePlugin(WindowManager, {}) as WindowManager;
+            manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
         }
         this.debug = Boolean(debug);
         if (this.debug) {
@@ -227,7 +228,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
         if (chessboard) {
-            sizer.classList.add('netless-window-manager-chess-sizer')
+            sizer.classList.add("netless-window-manager-chess-sizer");
         }
         if (overwriteStyles) {
             const style = document.createElement("style");
@@ -237,7 +238,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         manager.ensureAttributes();
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
-            collectorStyles: collectorStyles
+            collectorStyles: collectorStyles,
         });
         manager.observePlaygroundSize(playground, sizer, wrapper);
         if (cursor) {
@@ -253,7 +254,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 注册插件
      */
-    public static register(params: RegisterParams) {
+    public static register(params: RegisterParams): void {
         appRegister.register(params);
     }
 
@@ -262,7 +263,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      */
     public createMainView(): View {
         if (this.appManager) {
-            return this.appManager.viewManager.mainView!;
+            return this.appManager.viewManager.mainView;
         } else {
             throw new AppManagerNotInitError();
         }
@@ -271,12 +272,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 创建一个 app 至白板
      */
-    public async addApp(params: AddAppParams) {
+    public async addApp(params: AddAppParams): Promise<string | undefined> {
         if (this.appManager) {
             if (!params.kind || typeof params.kind !== "string") {
                 throw new ParamsInvalidError();
             }
-            const appImpl = WindowManager.appClasses.get(params.kind);
+            const appImpl = appRegister.appClasses.get(params.kind);
             if (appImpl && appImpl.config?.singleton) {
                 if (this.appManager.appProxies.has(params.kind)) {
                     throw new AppCreateError();
@@ -284,13 +285,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             const isDynamicPPT = this.setupScenePath(params, this.appManager);
             const appId = await this.appManager.addApp(params, Boolean(isDynamicPPT));
-            return appId
+            return appId;
         } else {
             throw new AppManagerNotInitError();
         }
     }
 
-    private setupScenePath(params: AddAppParams, appManager: AppManager)  {
+    private setupScenePath(params: AddAppParams, appManager: AppManager) {
         let isDynamicPPT = false;
         if (params.options) {
             const { scenePath, scenes } = params.options;
@@ -322,14 +323,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 关闭 APP
      */
-    public async closeApp(appId: string) {
+    public async closeApp(appId: string): Promise<void> {
         return this.appManager?.closeApp(appId);
     }
 
     /**
      * 设置 mainView 的 ScenePath, 并且切换白板为可写状态
      */
-    public setMainViewScenePath(scenePath: string) {
+    public setMainViewScenePath(scenePath: string): void {
         if (this.appManager) {
             this.appManager.setMainViewScenePath(scenePath);
         }
@@ -338,7 +339,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 设置 mainView 的 SceneIndex, 并且切换白板为可写状态
      */
-    public setMainViewSceneIndex(index: number) {
+    public setMainViewSceneIndex(index: number): void {
         if (this.appManager) {
             this.appManager.setMainViewSceneIndex(index);
         }
@@ -361,7 +362,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 设置所有 app 的 readonly 模式
      */
-    public setReadonly(readonly: boolean) {
+    public setReadonly(readonly: boolean): void {
         if (this.room?.isWritable) {
             this.readonly = readonly;
             this.appManager?.boxManager.teleBoxManager.setReadonly(readonly);
@@ -371,21 +372,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 切换 mainView 为可写
      */
-    public switchMainViewToWriter() {
+    public switchMainViewToWriter(): Promise<void> | undefined {
         return this.appManager?.viewManager.mainViewClickHandler();
     }
 
     /**
      * app destroy 回调
-    */
-    public onAppDestroy(kind: string, listener: (error: Error) => void) {
+     */
+    public onAppDestroy(kind: string, listener: (error: Error) => void): void {
         emitter.once(`destroy-${kind}`).then(listener);
     }
 
     /**
      * 设置 ViewMode
      */
-    public setViewMode(mode: ViewMode) {
+    public setViewMode(mode: ViewMode): void {
         if (mode === ViewMode.Broadcaster) {
             this.appManager?.delegate.setBroadcaster(this.displayer.observerId);
             this.appManager?.delegate.setMainViewCamera(this.mainView.camera);
@@ -398,32 +399,44 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    public get mainView() {
-        return this.appManager!.viewManager.mainView;
+    public get mainView(): View {
+        if (this.appManager) {
+            return this.appManager.viewManager.mainView;
+        } else {
+            throw new AppManagerNotInitError();
+        }
     }
 
-    public get camera() {
-        return this.appManager!.viewManager.mainView.camera;
+    public get camera(): Camera {
+        if (this.appManager) {
+            return this.appManager.viewManager.mainView.camera;
+        } else {
+            throw new AppManagerNotInitError();
+        }
     }
 
-    public get apps() {
+    public get apps(): Apps | undefined {
         return this.appManager?.delegate.apps();
     }
 
-    public get boxState() {
-        return this.appManager?.boxManager.teleBoxManager.state;
+    public get boxState(): string {
+        if (this.appManager) {
+            return this.appManager.boxManager.teleBoxManager.state;
+        } else {
+            throw new AppManagerNotInitError();
+        }
     }
 
-    public override onDestroy() {
+    public override onDestroy(): void {
         this._destroy();
     }
 
-    public override destroy() {
+    public override destroy(): void {
         this._destroy();
     }
 
     private _destroy() {
-        this.containerResizeObserver?.disconnect()
+        this.containerResizeObserver?.disconnect();
         this.appManager?.destroy();
         this.cursorManager?.destroy();
         WindowManager.isCreated = false;
@@ -444,7 +457,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
             }
 
-            if (this.appManager.delegate.focus === undefined && mainView.mode !== ViewVisionMode.Writable) {
+            if (
+                this.appManager.delegate.focus === undefined &&
+                mainView.mode !== ViewVisionMode.Writable
+            ) {
                 this.appManager.viewManager.freedomAllViews();
                 this.appManager.viewManager.switchMainViewToWriter();
             }
@@ -452,25 +468,28 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    public get canOperate() {
+    public get canOperate(): boolean {
         if (isRoom(this.displayer)) {
-            return (this.displayer as Room).isWritable && (this.displayer as Room).phase === RoomPhase.Connected;
+            return (
+                (this.displayer as Room).isWritable &&
+                (this.displayer as Room).phase === RoomPhase.Connected
+            );
         } else {
             return false;
         }
     }
 
-    public get room() {
+    public get room(): Room | undefined {
         return this.canOperate ? (this.displayer as Room) : undefined;
     }
 
-    public safeSetAttributes(attributes: any) {
+    public safeSetAttributes(attributes: any): void {
         if (this.canOperate) {
             this.setAttributes(attributes);
         }
     }
 
-    public safeUpdateAttributes(keys: string[], value: any) {
+    public safeUpdateAttributes(keys: string[], value: any): void {
         if (this.canOperate) {
             this.updateAttributes(keys, value);
         }
@@ -485,7 +504,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private getSceneName(scenePath: string, index?: number) {
         const scenes = this.displayer.entireScenes()[scenePath];
         if (scenes && index !== undefined) {
-            return scenes[index]?.name
+            return scenes[index]?.name;
         }
     }
 
@@ -495,20 +514,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private static checkVersion() {
-        const version = this.getVersionNumber(WhiteVersion);
-        if (version < this.getVersionNumber(REQUIRE_VERSION)) {
+        const version = getVersionNumber(WhiteVersion);
+        if (version < getVersionNumber(REQUIRE_VERSION)) {
             throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);
         }
     }
 
-    private static getVersionNumber(version: string) {
-        return parseInt(version.split(".").join(""));
-    }
-
     private static ensureEnableUseMobxState(room: Room) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         if (room.useMobXState === false) {
-            console.warn("[Window Manager]: will enable useMobxState. To turn off this warning, set useMobxState: true when initializing WhiteWebSdk.");
+            console.warn(
+                "[WindowManager]: will enable useMobxState. To turn off this warning, set useMobxState: true when initializing WhiteWebSdk."
+            );
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             room.useMobXState = true;
         }
@@ -523,12 +542,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private containerResizeObserver?: ResizeObserver
+    private containerResizeObserver?: ResizeObserver;
 
-    private observePlaygroundSize(container: HTMLElement, sizer: HTMLElement, wrapper: HTMLDivElement) {
-        this.updateSizer(container.getBoundingClientRect(), sizer, wrapper)
+    private observePlaygroundSize(
+        container: HTMLElement,
+        sizer: HTMLElement,
+        wrapper: HTMLDivElement
+    ) {
+        this.updateSizer(container.getBoundingClientRect(), sizer, wrapper);
 
-        this.containerResizeObserver = new ResizeObserver((entries) => {
+        this.containerResizeObserver = new ResizeObserver(entries => {
             const containerRect = entries[0]?.contentRect;
             if (containerRect) {
                 this.updateSizer(containerRect, sizer, wrapper);
@@ -547,10 +570,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (width && height) {
             if (height / width > WindowManager.containerSizeRatio) {
                 height = width * WindowManager.containerSizeRatio;
-                sizer.classList.toggle('netless-window-manager-sizer-horizontal', true)
+                sizer.classList.toggle("netless-window-manager-sizer-horizontal", true);
             } else {
                 width = height / WindowManager.containerSizeRatio;
-                sizer.classList.toggle('netless-window-manager-sizer-horizontal', false)
+                sizer.classList.toggle("netless-window-manager-sizer-horizontal", false);
             }
             wrapper.style.width = `${width}px`;
             wrapper.style.height = `${height}px`;
@@ -560,17 +583,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
 WindowManager.register({
     kind: AppDocsViewer.kind,
-    src: AppDocsViewer
+    src: AppDocsViewer,
 });
 WindowManager.register({
     kind: AppMediaPlayer.kind,
-    src: AppMediaPlayer
+    src: AppMediaPlayer,
 });
 
 export const BuiltinApps = {
     DocsViewer: AppDocsViewer.kind as string,
     MediaPlayer: AppMediaPlayer.kind as string,
-}
+};
 
-export * from "./typings";
-
+export type { NetlessApp, AppContext, AppEmitterEvent, AppListenerKeys } from "./typings";

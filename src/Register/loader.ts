@@ -1,58 +1,68 @@
-export {};
-// import { getItem, setItem } from "./storage";
-// import { NetlessApp } from "./typings";
+import { getItem, setItem } from "./storage";
+import type { NetlessApp } from "../typings";
 
-// const TIMEOUT = 10000; // 10 秒超时
+const Prefix = "NetlessApp";
 
-// export const getScript = async (url: string, key: string) => {
-//     const item = await getItem(key);
-//     if (item) {
-//         return item;
-//     } else {
-//         const result = await fetchWithTimeout(url, { timeout: TIMEOUT });
-//         const text = await result.text();
-//         await setItem(key, text);
-//         return text;
-//     }
-// }
+const TIMEOUT = 10000; // 10 秒超时
 
-// export const executeScript = (text: string, name: string): NetlessApp => {
-//     let result = Function(text)();
-//     if (typeof result === "undefined") {
-//         // @ts-ignore
-//         result = window[name];  
-//     }
-//     return result;
-// }
+export const getScript = async (url: string, key: string): Promise<string> => {
+    const item = await getItem(key);
+    if (item) {
+        return item;
+    } else {
+        const result = await fetchWithTimeout(url, { timeout: TIMEOUT });
+        const text = await result.text();
+        await setItem(key, text);
+        return text;
+    }
+};
 
-// export const loadApp = async (name: string, url: string) => {
-//     const text = await getScript(url, name);
-//     try {
-//         return executeScript(text, name);
-//     } catch (error) {
-//         if (error.message.includes("Can only have one anonymous define call per script file")) {
-//             // @ts-ignore
-//             const define = window.define;
-//             if("function" == typeof define && define.amd) {
-//                 delete define.amd;
-//             }
-//             return executeScript(text, name);
-//         }
-//     }
-// }
+export const executeScript = (text: string, appName: string): NetlessApp => {
+    let result = Function(text + `;return ${appName}`)();
+    if (typeof result === "undefined") {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        result = window[appName];
+    }
+    return result;
+};
 
+export const loadApp = async (
+    url: string,
+    key: string,
+    name?: string
+): Promise<NetlessApp | undefined> => {
+    const appName = name || Prefix + key;
+    const text = await getScript(url, key);
+    try {
+        return executeScript(text, appName);
+    } catch (error) {
+        if (error.message.includes("Can only have one anonymous define call per script file")) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const define = window.define;
+            if ("function" == typeof define && define.amd) {
+                delete define.amd;
+            }
+            return executeScript(text, appName);
+        }
+    }
+};
 
-// async function fetchWithTimeout(resource: string, options: RequestInit & { timeout: number }) {
-//     const { timeout = 10000 } = options;
+async function fetchWithTimeout(resource: string, options: RequestInit & { timeout: number }) {
+    const { timeout = 10000 } = options;
 
-//     const controller = new AbortController();
-//     const id = setTimeout(() => controller.abort(), timeout);
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
 
-//     const response = await fetch(resource, {
-//       ...options,
-//       signal: controller.signal
-//     });
-//     clearTimeout(id);
+    const response = await fetch(resource, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+            "content-type": "text/plain",
+        },
+    });
+    clearTimeout(id);
 
-//     return response;
-//   }
+    return response;
+}

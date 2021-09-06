@@ -1,21 +1,21 @@
-export {};
-// import localForage from "localforage";
+import Dexie from "dexie";
 
-// const DatabaseName = "__WindowManagerPlguinCache";
+const DatabaseName = "__WindowManagerAppCache";
 
+const db = new Dexie(DatabaseName);
 
-// localForage.config({
-//     name: DatabaseName 
-// });
+db.version(1).stores({
+    apps: "kind, sourceCode",
+});
 
-// export const setItem = (key: string, val: string) => {
-//     return localForage.setItem(key, val);
-// }
+export const getItem = async (key: string): Promise<string> => {
+    return (await db.table("apps").get(key))?.sourceCode;
+};
 
-// export const getItem = (key: string) => {
-//     return localForage.getItem<string>(key);
-// }
+export const setItem = (key: string, val: any) => {
+    return db.table("apps").add({ kind: key, sourceCode: val });
+};
 
-// export const removeItem = (key: string) => {
-//     return localForage.removeItem(key);
-// }
+export const removeItem = (key: string) => {
+    return db.table("apps").delete(key);
+};

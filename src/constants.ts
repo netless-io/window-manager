@@ -1,4 +1,3 @@
-
 export enum Events {
     AppMove = "AppMove",
     AppFocus = "AppFocus",
@@ -38,7 +37,7 @@ export enum AppStatus {
 
 export enum CursorState {
     Leave = "leave",
-    Normal = "normal"
+    Normal = "normal",
 }
 
 export const REQUIRE_VERSION = "2.13.16";

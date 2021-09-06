@@ -1,4 +1,3 @@
-
 export class AppCreateError extends Error {
     override message = "[WindowManager]: app duplicate exists and cannot be created again";
 }
@@ -15,7 +14,7 @@ export class AppManagerNotInitError extends Error {
 
 export class WhiteWebSDKInvalidError extends Error {
     constructor(version: string) {
-        super(`[WindowManager]: white-web-sdk version must large than ${version}`)
+        super(`[WindowManager]: white-web-sdk version must large than ${version}`);
     }
 }
 

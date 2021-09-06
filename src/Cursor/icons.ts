@@ -6,11 +6,11 @@ import shape from "../image/shape-cursor.svg";
 import text from "../image/text-cursor.svg";
 
 export const ApplianceMap: {
-    [key: string]: string
+    [key: string]: string;
 } = {
     [ApplianceNames.pencil]: pencil,
     [ApplianceNames.selector]: selector,
     [ApplianceNames.eraser]: eraser,
     [ApplianceNames.shape]: shape,
-    [ApplianceNames.text]: text
-}
+    [ApplianceNames.text]: text,
+};

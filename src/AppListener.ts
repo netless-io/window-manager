@@ -1,6 +1,8 @@
-import { Event, ViewVisionMode } from "white-web-sdk";
-import { TeleBox, TELE_BOX_STATE } from "@netless/telebox-insider";
 import { Events, MagixEventName } from "./constants";
+import { TELE_BOX_STATE } from "@netless/telebox-insider";
+import { ViewVisionMode } from "white-web-sdk";
+import type { Event } from "white-web-sdk";
+import type { TeleBox } from "@netless/telebox-insider";
 import type { ViewManager } from "./ViewManager";
 import type { AppProxy } from "./AppProxy";
 import type { AppManager } from "./AppManager";
@@ -14,8 +16,8 @@ export class AppListeners {
         private manager: AppManager,
         private windowManager: WindowManager,
         private viewManager: ViewManager,
-        private appProxies: Map<string, AppProxy>) {
-    }
+        private appProxies: Map<string, AppProxy>
+    ) {}
 
     public addListeners() {
         this.displayer.addMagixEventListener(MagixEventName, this.mainMagixEventListener);
@@ -30,7 +32,7 @@ export class AppListeners {
             const data = event.payload;
             switch (data.eventName) {
                 case Events.AppMove: {
-                    this.appMoveHandler(data.payload)
+                    this.appMoveHandler(data.payload);
                     break;
                 }
                 case Events.AppFocus: {
@@ -69,21 +71,21 @@ export class AppListeners {
                     break;
             }
         }
-    }
+    };
 
     private appMoveHandler = (payload: any) => {
         this.boxManager.moveBox(payload);
-    }
+    };
 
     private appFocusHandler = (payload: any) => {
         this.boxManager.focusBox(payload);
         this.manager.viewManager.refreshViews();
-    }
+    };
 
     private appResizeHandler = (payload: any) => {
         this.boxManager.resizeBox(Object.assign(payload, { skipUpdate: true }));
         this.manager.room?.refreshViewSize();
-    }
+    };
 
     private appBlurHandler = (payload: any) => {
         const proxy = this.appProxies.get(payload.appId);
@@ -93,7 +95,7 @@ export class AppListeners {
                 this.manager.viewManager.refreshViews();
             }
         }
-    }
+    };
 
     private appBoxStateHandler = (payload: any) => {
         this.boxManager.setBoxState(payload.state);
@@ -101,14 +103,14 @@ export class AppListeners {
             this.manager.viewManager.refreshViews();
             this.viewManager.switchMainViewToWriter();
         }
-    }
+    };
 
     private appSnapshotHandler = (payload: any) => {
         const box = this.boxManager.getBox(payload.appId) as TeleBox;
         if (box) {
             box.setSnapshot(payload.rect);
         }
-    }
+    };
 
     private appCloseHandler = (payload: any) => {
         this.boxManager.closeBox(payload.appId);
@@ -116,14 +118,14 @@ export class AppListeners {
         if (appProxy) {
             appProxy.destroy(true, true);
         }
-    }
+    };
 
     private mainViewFocusHandler = () => {
         this.manager.boxManager.blurFocusBox();
         this.manager.viewManager.freedomAllViews();
-    }
+    };
 
     private switchViewsToFreedomHandler = () => {
         this.manager.viewManager.freedomAllViews();
-    }
+    };
 }

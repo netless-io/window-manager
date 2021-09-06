@@ -1,16 +1,17 @@
-import App from './Cursor.svelte';
-import { ApplianceMap } from './icons';
-import { ApplianceNames, autorun, RoomMember, reaction } from 'white-web-sdk';
-import { get, omit } from 'lodash-es';
+import App from "./Cursor.svelte";
+import { ApplianceMap } from "./icons";
+import { ApplianceNames, autorun } from "white-web-sdk";
+import type { RoomMember } from "white-web-sdk";
+import { get, omit, delay } from "lodash-es";
 import type { CursorManager } from "./index";
 import type { WindowManager } from "../index";
 import type { SvelteComponent } from "svelte";
-import { Fields } from '../AttributesDelegate';
-import { CursorState } from '../constants';
+import { Fields } from "../AttributesDelegate";
+import { CursorState } from "../constants";
 
 export class Cursor {
     private member?: RoomMember;
-    private disposer: any
+    private disposer: any;
     private timer?: number;
     private component?: SvelteComponent;
 
@@ -19,14 +20,14 @@ export class Cursor {
         private cursors: any,
         private memberId: string,
         private cursorManager: CursorManager,
-        private wrapper?: HTMLElement,
+        private wrapper?: HTMLElement
     ) {
         this.setMember();
         this.createCursor();
         if (this.cursorPosition) {
             this.startReaction();
         } else {
-            setTimeout(() => {
+            delay(() => {
                 this.startReaction();
             }, 200);
         }
@@ -43,7 +44,7 @@ export class Cursor {
                 const rect = this.cursorManager.containerRect;
                 if (this.component && rect) {
                     this.autoHidden();
-                    const translateX = x * rect.width - (180 / 2) + 26 + 2; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
+                    const translateX = x * rect.width - 180 / 2 + 26 + 2; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
                     const translateY = y * rect.height - 74 + 1; // y 减去 cursor 的高
                     this.component.$set({ visible: true, x: translateX, y: translateY });
                 }
@@ -51,7 +52,7 @@ export class Cursor {
             if (state && state === CursorState.Leave) {
                 this.hide();
             }
-        })
+        });
     }
 
     public get memberApplianceName() {
@@ -120,7 +121,7 @@ export class Cursor {
         if (this.member && this.wrapper) {
             this.component = new App({
                 target: this.wrapper,
-                props: this.initProps()
+                props: this.initProps(),
             });
         }
     }
@@ -139,7 +140,7 @@ export class Cursor {
             color: this.memberCursorTextColor,
             cursorTagBackgroundColor: this.memberCursorTagBackgroundColor,
             opacity: this.memberOpacity,
-        }
+        };
     }
 
     private getIcon() {
@@ -153,7 +154,9 @@ export class Cursor {
     }
 
     public setMember() {
-        this.member = this.cursorManager.roomMembers?.find(member => member.memberId === Number(this.memberId));
+        this.member = this.cursorManager.roomMembers?.find(
+            member => member.memberId === Number(this.memberId)
+        );
         this.component?.$set(omit(this.initProps(), ["x", "y", "visible"]));
     }
 

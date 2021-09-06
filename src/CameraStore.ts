@@ -1,4 +1,5 @@
-import { AnimationMode, Camera, View } from 'white-web-sdk';
+import type { Camera, View } from "white-web-sdk";
+import { AnimationMode } from "white-web-sdk";
 
 export class CameraStore {
     private cameras: Map<string, Camera> = new Map();
@@ -20,7 +21,7 @@ export class CameraStore {
         if (camera && view) {
             view.moveCamera({
                 ...camera,
-                animationMode: AnimationMode.Immediately
+                animationMode: AnimationMode.Immediately,
             });
         }
     }

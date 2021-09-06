@@ -1,9 +1,8 @@
-
 ### View
 
 白板的 `View` 是一个本地的对象, 并不会跟随整个房间走.
 
-为了跟 `room.setScenePath` 配合使用需要对 `View` 进行特殊处理才能使得切换时不闪烁
+为了跟 `room.setScenePath` 配合使用  需要对 `View` 进行特殊处理才能使得切换时不闪烁
 
 `View` 切换流程
 

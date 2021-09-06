@@ -1,9 +1,9 @@
-import { WhiteWebSdk, createPlugins } from "white-web-sdk";
+/* eslint-disable no-undef */
+import { WhiteWebSdk } from "white-web-sdk";
 import { WindowManager, BuiltinApps } from "../dist/index.es";
 import "normalize.css"
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
-import { scenes } from "./test";
 
 document.body.style.margin = '0';
 document.body.style.padding = '0';
@@ -50,6 +50,8 @@ container.appendChild(whiteboardRoot);
 container.appendChild(rightBar);
 
 document.body.append(container)
+
+WindowManager.register({ kind: "HelloWorld", src: "https://netless-h5-demo.oss-cn-hangzhou.aliyuncs.com/tmp/main.iife.js" })
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,

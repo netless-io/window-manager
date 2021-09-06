@@ -1,10 +1,9 @@
-import { AppAttributes } from './constants';
-import { get, pick } from 'lodash-es';
-import { setViewFocusScenePath } from './Common';
+import { AppAttributes } from "./constants";
+import { get, pick } from "lodash-es";
+import { setViewFocusScenePath } from "./Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
 import type { Camera, Size } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
-
 
 export enum Fields {
     Apps = "apps",
@@ -19,19 +18,17 @@ export enum Fields {
     CursorState = "cursorState",
 }
 
-type Apps = {
-    [key: string]: AppSyncAttributes
-}
+export type Apps = {
+    [key: string]: AppSyncAttributes;
+};
 
 type Position = {
-    x: number,
-    y: number,
-}
+    x: number;
+    y: number;
+};
 
 export class AttributesDelegate {
-    constructor(
-        private manager: AppManager
-    ) {}
+    constructor(private manager: AppManager) {}
 
     public apps(): Apps {
         return get(this.manager.attributes, [Fields.Apps]);
@@ -63,16 +60,16 @@ export class AttributesDelegate {
             attrNames.push("scenes");
         }
         const options = pick(params.options, attrNames);
-        let attrs: AppSyncAttributes = { kind: params.kind, options, isDynamicPPT };
+        const attrs: AppSyncAttributes = { kind: params.kind, options, isDynamicPPT };
         if (typeof params.src === "string") {
             attrs.src = params.src;
         }
         this.manager.safeUpdateAttributes([Fields.Apps, id], attrs);
-        this.manager.safeUpdateAttributes([Fields.Apps, id, Fields.State],{
+        this.manager.safeUpdateAttributes([Fields.Apps, id, Fields.State], {
             [AppAttributes.Size]: {},
             [AppAttributes.Position]: {},
             [AppAttributes.SnapshotRect]: {},
-            [AppAttributes.SceneIndex]: 0
+            [AppAttributes.SceneIndex]: 0,
         });
     }
 
@@ -172,7 +169,10 @@ export class AttributesDelegate {
         if (!get(this.manager.attributes, [Fields.Cursors, observerId])) {
             this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
         }
-        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.CursorState], cursorState);
+        this.manager.safeUpdateAttributes(
+            [Fields.Cursors, observerId, Fields.CursorState],
+            cursorState
+        );
     }
 
     public getCursorState(observerId: string) {

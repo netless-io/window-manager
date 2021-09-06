@@ -1,42 +1,28 @@
-import Emittery from 'emittery';
-import {
-    AddAppOptions,
-    AddAppParams,
-    AppEmitterEvent,
-    AppInitState,
-    AppListenerKeys,
-    AppSyncAttributes,
-    BaseInsertParams,
-    callbacks,
-    emitter,
-    setAppOptions,
-    WindowManager
-} from './index';
-import {
-    AnimationMode,
-    autorun,
-    Camera,
-    SceneDefinition,
-    SceneState,
-    View,
-    ViewVisionMode
-} from 'white-web-sdk';
-import { AppAttributes, AppEvents, Events } from './constants';
-import { AppContext } from './AppContext';
-import { AppCreateError, AppNotRegisterError } from './error';
-import { appRegister } from './Register';
-import { isEqual } from 'lodash-es';
-import { log } from './log';
+import Emittery from "emittery";
+import { AppAttributes, AppEvents, Events } from "./constants";
+import { AppContext } from "./AppContext";
+import { AppNotRegisterError } from "./error";
+import { appRegister } from "./Register";
+import { autorun, ViewVisionMode } from "white-web-sdk";
+import { log } from "./log";
 import {
     notifyMainViewModeChange,
     setScenePath,
     setViewFocusScenePath,
-    setViewMode
-} from './Common';
-import type { AppManager } from './AppManager';
-import type { NetlessApp } from './typings';
-// import { loadApp } from './loader'; TODO fix localforge import
-
+    setViewMode,
+} from "./Common";
+import { callbacks, emitter } from "./index";
+import type {
+    AppEmitterEvent,
+    AppInitState,
+    BaseInsertParams,
+    setAppOptions,
+    AppListenerKeys,
+} from "./index";
+import type { Camera, SceneDefinition, SceneState, View } from "white-web-sdk";
+import type { AppManager } from "./AppManager";
+import type { NetlessApp } from "./typings";
+import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 
 export class AppProxy {
     public id: string;
@@ -57,7 +43,7 @@ export class AppProxy {
         private params: BaseInsertParams,
         private manager: AppManager,
         appId: string,
-        isAddApp: boolean,
+        isAddApp: boolean
     ) {
         this.kind = params.kind;
         this.id = appId;
@@ -67,53 +53,54 @@ export class AppProxy {
         const options = this.params.options;
         if (options) {
             this.scenePath = options.scenePath;
-            const attr = this.manager.delegate.getAppAttributes(this.id)
+            const attr = this.manager.delegate.getAppAttributes(this.id);
             if (attr?.isDynamicPPT && this.scenePath) {
                 this.scenes = this.manager.displayer.entireScenes()[this.scenePath];
             } else {
                 this.scenes = options.scenes;
             }
         }
-        if (this.params.options?.scenePath) { // 只有传入了 scenePath 的 App 才会创建 View
+        if (this.params.options?.scenePath) {
+            // 只有传入了 scenePath 的 App 才会创建 View
             this.createView();
             this.addCameraListener();
         }
         this.isAddApp = isAddApp;
     }
 
-    public get sceneIndex() {
+    public get sceneIndex(): number {
         return this.manager.delegate.getAppSceneIndex(this.id);
     }
 
-    public setSceneIndex(index: number) {
+    public setSceneIndex(index: number): void {
         return this.manager.delegate.updateAppState(this.id, AppAttributes.SceneIndex, index);
     }
 
-    public get view() {
+    public get view(): View | undefined {
         return this.manager.viewManager.getView(this.id);
     }
 
-    public get isWritable() {
+    public get isWritable(): boolean {
         return this.manager.canOperate && !this.box?.readonly;
     }
 
-    public getSceneName() {
+    public getSceneName(): string | undefined {
         if (this.sceneIndex !== undefined) {
             return this.scenes?.[this.sceneIndex]?.name;
         }
     }
 
-    public getFullScenePath() {
+    public getFullScenePath(): string | undefined {
         if (this.scenePath && this.getSceneName()) {
             return `${this.scenePath}/${this.getSceneName()}`;
         }
     }
 
-    public appImpl(kind: string) {
-        return WindowManager.appClasses.get(kind);
+    public appImpl(kind: string): NetlessApp | undefined {
+        return appRegister.appClasses.get(kind);
     }
 
-    public async baseInsertApp(focus?: boolean) {
+    public async baseInsertApp(focus?: boolean): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (params.kind) {
             const appImpl = await this.getAppImpl();
@@ -129,14 +116,15 @@ export class AppProxy {
                 this.manager.delegate.setMainViewFocusPath();
             }
             return {
-                appId: this.id, app: appImpl
-            }
+                appId: this.id,
+                app: appImpl,
+            };
         } else {
             throw new Error("[WindowManager]: kind require");
         }
     }
 
-    public get box() {
+    public get box(): ReadonlyTeleBox | undefined {
         return this.boxManager.getBox(this.id);
     }
 
@@ -148,7 +136,7 @@ export class AppProxy {
         const params = this.params;
         let appImpl;
         if (params.src === undefined) {
-            appImpl = WindowManager.appClasses.get(params.kind);
+            appImpl = appRegister.appClasses.get(params.kind);
             if (!appImpl) {
                 throw new AppNotRegisterError(params.kind);
             }
@@ -171,7 +159,8 @@ export class AppProxy {
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
                 this.setViewFocusScenePath();
-                setTimeout(async () => { // 延迟执行 setup, 防止初始化的属性没有更新成功
+                setTimeout(async () => {
+                    // 延迟执行 setup, 防止初始化的属性没有更新成功
                     this.instance = await app.setup(context);
                     appRegister.notifyApp(app.kind, "created", { appId, instance: this.instance });
                     if (boxInitState) {
@@ -184,18 +173,21 @@ export class AppProxy {
                     }
                     const box = this.boxManager.getBox(appId);
                     if (box) {
-                        this.boxManager.resizeBox({ // 兼容移动端创建时会出现 PPT 不适配的问题
+                        this.boxManager.resizeBox({
+                            // 兼容移动端创建时会出现 PPT 不适配的问题
                             appId,
                             width: box.width + 0.001,
                             height: box.height + 0.001,
-                            skipUpdate: true
+                            skipUpdate: true,
                         });
                     }
-
                 }, 50);
             });
             this.boxManager.createBox({
-                appId: appId, app, options, canOperate: this.manager.canOperate
+                appId: appId,
+                app,
+                options,
+                canOperate: this.manager.canOperate,
             });
         } catch (error) {
             console.error(error);
@@ -242,14 +234,14 @@ export class AppProxy {
             payload = { ...payload, snapshotRect };
         }
         if (sceneIndex) {
-            payload = { ...payload, sceneIndex }
+            payload = { ...payload, sceneIndex };
         }
         emitter.emit(Events.InitReplay, payload);
         return payload;
-    }
+    };
 
     public emitAppSceneStateChange(sceneState: SceneState) {
-        this.appEmitter.emit("sceneStateChange", sceneState!);
+        this.appEmitter.emit("sceneStateChange", sceneState);
     }
 
     public emitAppIsWritableChange() {
@@ -265,7 +257,7 @@ export class AppProxy {
                         appId,
                         width: data.width,
                         height: data.height,
-                        skipUpdate: false
+                        skipUpdate: false,
                     });
                     break;
                 }
@@ -273,7 +265,7 @@ export class AppProxy {
                     this.boxManager.setBoxMinSize({
                         appId,
                         minWidth: data.minwidth,
-                        minHeight: data.minheight
+                        minHeight: data.minheight,
                     });
                     break;
                 }
@@ -286,11 +278,13 @@ export class AppProxy {
                     if (data?.error) {
                         console.error(data?.error);
                     }
-                }
-                default:
                     break;
+                }
+                default: {
+                    break;
+                }
             }
-        }
+        };
     }
 
     private appAttributesUpdateListener = (appId: string) => {
@@ -301,20 +295,20 @@ export class AppProxy {
             }
         });
         this.disposer = disposer;
-    }
+    };
 
-    public recoverCamera() {
+    public recoverCamera(): void {
         this.manager.cameraStore.recoverCamera(this.id, this.view);
     }
 
-    public setScenePath() {
+    public setScenePath(): void {
         const fullScenePath = this.getFullScenePath();
         if (this.manager.room && fullScenePath && this.view) {
             setScenePath(this.manager.room, fullScenePath);
         }
     }
 
-    public switchToFreedom() {
+    public switchToFreedom(): void {
         if (this.view && this.view.mode === ViewVisionMode.Writable) {
             const scenePath = this.getFullScenePath();
             if (scenePath) {
@@ -347,10 +341,13 @@ export class AppProxy {
 
     private cameraListener = (camera: Camera) => {
         this.manager.cameraStore.setCamera(this.id, camera);
-    }
+    };
 
     public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
-        await appRegister.notifyApp(this.kind, "destroy", { appId: this.id, instance: this.instance });
+        await appRegister.notifyApp(this.kind, "destroy", {
+            appId: this.id,
+            instance: this.instance,
+        });
         await this.appEmitter.emit("destroy", { error });
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}`, { error });

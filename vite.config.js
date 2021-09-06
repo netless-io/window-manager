@@ -1,11 +1,10 @@
-/* eslint-disable import/no-anonymous-default-export */
 import path from "path";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies ,peerDependencies } from "./package.json"
 
 
-export default defineConfig(({ command, mode }) => {
+export default defineConfig(({ mode }) => {
     const isProd = mode === "production";
 
     return {
@@ -14,11 +13,12 @@ export default defineConfig(({ command, mode }) => {
                 emitCss: false,
                 experimental: {
                     useVitePreprocess: true,
-                }
+                },
             })
         ],
         build: {
             lib: {
+                // eslint-disable-next-line no-undef
                 entry: path.resolve(__dirname, "src/index.ts"),
                 formats: ["es","umd"], // TODO cjs 版本待修复
                 name: "WindowManager",
@@ -32,7 +32,7 @@ export default defineConfig(({ command, mode }) => {
                     ...peerDependencies,
                 }),
             },
-            minify: false,
+            minify: isProd,
         },
     };
 });

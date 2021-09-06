@@ -1,24 +1,19 @@
-import { AppListeners } from './AppListener';
-import { AppProxy } from './AppProxy';
-import { AttributesDelegate, Fields } from './AttributesDelegate';
-import {
-    Displayer,
-    DisplayerState, isRoom,
-    Room, reaction, ScenePathType
-} from 'white-web-sdk';
-import { BoxManager, CreateCollectorConfig, TELE_BOX_STATE } from './BoxManager';
-import { CameraStore } from './CameraStore';
-import { log } from './log';
-import { ViewManager } from './ViewManager';
-import {
-    Events,
-    AppAttributes, AppStatus,
-    MagixEventName
-} from "./constants";
-import { genAppId, makeValidScenePath } from './Common';
-import { MainViewProxy } from './MainView';
-import { WindowManager, emitter, AddAppParams, BaseInsertParams, callbacks } from './index';
-
+import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
+import { AppListeners } from "./AppListener";
+import { AppProxy } from "./AppProxy";
+import { appRegister } from "./Register";
+import { AttributesDelegate, Fields } from "./AttributesDelegate";
+import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
+import { callbacks, emitter } from "./index";
+import { CameraStore } from "./CameraStore";
+import { genAppId, makeValidScenePath } from "./Common";
+import { isRoom, reaction, ScenePathType } from "white-web-sdk";
+import { log } from "./log";
+import { MainViewProxy } from "./MainView";
+import { ViewManager } from "./ViewManager";
+import type { Displayer, DisplayerState, Room } from "white-web-sdk";
+import type { CreateCollectorConfig } from "./BoxManager";
+import type { AddAppParams, BaseInsertParams, WindowManager } from "./index";
 
 export class AppManager {
     public displayer: Displayer;
@@ -36,17 +31,8 @@ export class AppManager {
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
-        this.viewManager = new ViewManager(
-            this.displayer as Room,
-            this,
-            this.cameraStore
-        );
-        this.boxManager = new BoxManager(
-            this,
-            this.viewManager.mainView,
-            this.appProxies,
-            options
-        );
+        this.viewManager = new ViewManager(this.displayer as Room, this, this.cameraStore);
+        this.boxManager = new BoxManager(this, this.viewManager.mainView, this.appProxies, options);
         this.appListeners = new AppListeners(
             this,
             this.windowManger,
@@ -55,10 +41,7 @@ export class AppManager {
         );
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.displayerWritableListener(!this.room?.isWritable);
-        this.displayer.callbacks.on(
-            "onEnableWriteNowChanged",
-            this.displayerWritableListener
-        );
+        this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.addListeners();
 
         emitter.once("onCreated").then(async () => {
@@ -67,7 +50,7 @@ export class AppManager {
             this.reactionDisposers.push(
                 reaction(
                     () => Object.keys(this.attributes?.apps || {}).length,
-                    (_) => {
+                    () => {
                         this.attributesUpdateCallback(this.attributes.apps);
                     }
                 )
@@ -79,9 +62,10 @@ export class AppManager {
                         if (this.delegate.broadcaster !== this.displayer.observerId && camera) {
                             this.mainViewProxy.moveCamera(camera);
                         }
-                    }, {
-                    fireImmediately: true
-                }
+                    },
+                    {
+                        fireImmediately: true,
+                    }
                 )
             );
             this.reactionDisposers.push(
@@ -92,15 +76,15 @@ export class AppManager {
                             this.mainViewProxy.moveCameraToContian(size);
                             this.mainViewProxy.moveCamera(this.delegate.getMainViewCamera());
                         }
-                    }, {
-                    fireImmediately: true
-                }
+                    },
+                    {
+                        fireImmediately: true,
+                    }
                 )
             );
             if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
                 const mainScenePath = this.delegate.getMainViewScenePath();
-                if (!mainScenePath)
-                    return;
+                if (!mainScenePath) return;
                 const sceneState = this.displayer.state.sceneState;
                 if (sceneState.scenePath !== mainScenePath) {
                     this.room?.setScenePath(mainScenePath);
@@ -122,14 +106,18 @@ export class AppManager {
                     const app = apps[id];
                     let appImpl = app.src;
                     if (!appImpl) {
-                        appImpl = WindowManager.appClasses.get(app.kind);
+                        appImpl = appRegister.appClasses.get(app.kind);
                     }
-                    await this.baseInsertApp({
-                        kind: app.kind,
-                        src: appImpl,
-                        options: app.options,
-                        isDynamicPPT: app.isDynamicPPT
-                    }, id, false);
+                    await this.baseInsertApp(
+                        {
+                            kind: app.kind,
+                            src: appImpl,
+                            options: app.options,
+                            isDynamicPPT: app.isDynamicPPT,
+                        },
+                        id,
+                        false
+                    );
                     this.focusByAttributes(apps);
                 }
             }
@@ -138,34 +126,34 @@ export class AppManager {
 
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
         log("addApp", params);
-        try {
-            const appId = genAppId(params.kind);
-            this.appStatus.set(appId, AppStatus.StartCreate);
-            this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
-            if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
-                this.boxManager.teleBoxManager.setState(TELE_BOX_STATE.Normal);
-            }
-            const needFocus = this.boxManager.boxState !== TELE_BOX_STATE.Minimized;
-            if (needFocus) {
-                this.delegate.setAppFocus(appId, true);
-            }
-            const attrs = params.attributes ?? {};
-            this.safeUpdateAttributes([appId], attrs);
-
-            const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
-            this.afterManualAddApp(appProxy);
-            return appProxy?.id;
-        } catch (error) {
-            throw error;
-        }
+        const { appId, needFocus } = this.beforeAddApp(params, isDynamicPPT);
+        const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
+        this.afterAddApp(appProxy);
+        return appProxy?.id;
     }
 
-    private afterManualAddApp(appProxy: AppProxy | undefined) {
+    private beforeAddApp(params: AddAppParams, isDynamicPPT: boolean) {
+        const appId = genAppId(params.kind);
+        this.appStatus.set(appId, AppStatus.StartCreate);
+        this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
+        if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
+            this.boxManager.teleBoxManager.setState(TELE_BOX_STATE.Normal);
+        }
+        const needFocus = this.boxManager.boxState !== TELE_BOX_STATE.Minimized;
+        if (needFocus) {
+            this.delegate.setAppFocus(appId, true);
+        }
+        const attrs = params.attributes ?? {};
+        this.safeUpdateAttributes([appId], attrs);
+        return { appId, needFocus };
+    }
+
+    private afterAddApp(appProxy: AppProxy | undefined) {
         if (appProxy) {
             emitter.emit("move", {
                 appId: appProxy.id,
                 x: appProxy.box?.x,
-                y: appProxy.box?.y
+                y: appProxy.box?.y,
             });
         }
     }
@@ -177,7 +165,12 @@ export class AppManager {
         }
     }
 
-    private async baseInsertApp(params: BaseInsertParams, appId: string, isAddApp: boolean, focus?: boolean) {
+    private async baseInsertApp(
+        params: BaseInsertParams,
+        appId: string,
+        isAddApp: boolean,
+        focus?: boolean
+    ) {
         this.appStatus.set(appId, AppStatus.StartCreate);
         if (this.appProxies.has(appId)) {
             console.warn("[WindowManager]: app duplicate exists and cannot be created again");
@@ -190,7 +183,7 @@ export class AppManager {
             return appProxy;
         } else {
             this.appStatus.delete(appId);
-            throw new Error("");
+            throw new Error("[WindowManger]: initialize AppProxy failed");
         }
     }
 
@@ -198,7 +191,7 @@ export class AppManager {
         const sceneState = state.sceneState;
         if (sceneState) {
             const scenePath = sceneState.scenePath;
-            this.appProxies.forEach((appProxy) => {
+            this.appProxies.forEach(appProxy => {
                 if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
                     appProxy.emitAppSceneStateChange(sceneState);
                     if (sceneState.index !== appProxy.sceneIndex) {
@@ -216,21 +209,20 @@ export class AppManager {
 
     private displayerWritableListener = (isReadonly: boolean) => {
         const isWritable = !isReadonly;
-        const isManualWritable = this.windowManger.readonly === undefined || this.windowManger.readonly === false;
+        const isManualWritable =
+            this.windowManger.readonly === undefined || this.windowManger.readonly === false;
         if (this.windowManger.readonly === undefined) {
             this.boxManager.teleBoxManager.setReadonly(isReadonly);
         } else {
             this.boxManager.teleBoxManager.setReadonly(!(isWritable && isManualWritable));
         }
-        this.appProxies.forEach((appProxy) => {
+        this.appProxies.forEach(appProxy => {
             appProxy.emitAppIsWritableChange();
         });
     };
 
     private get eventName() {
-        return isRoom(this.displayer)
-            ? "onRoomStateChanged"
-            : "onPlayerStateChanged";
+        return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
     }
 
     public get attributes() {
@@ -242,7 +234,7 @@ export class AppManager {
     }
 
     public get room() {
-        return isRoom(this.displayer) ? this.displayer as Room : undefined;
+        return isRoom(this.displayer) ? (this.displayer as Room) : undefined;
     }
 
     public get mainView() {
@@ -339,10 +331,11 @@ export class AppManager {
             }
             case TELE_BOX_STATE.Minimized: {
                 this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppBoxStateChange, payload: {
+                    eventName: Events.AppBoxStateChange,
+                    payload: {
                         ...payload,
                         state: eventName,
-                    }
+                    },
                 });
                 this.safeSetAttributes({ boxState: eventName });
 
@@ -354,10 +347,11 @@ export class AppManager {
             }
             case TELE_BOX_STATE.Maximized: {
                 this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppBoxStateChange, payload: {
+                    eventName: Events.AppBoxStateChange,
+                    payload: {
                         ...payload,
                         state: eventName,
-                    }
+                    },
                 });
                 const topBox = this.boxManager.getTopBox();
                 if (topBox) {
@@ -368,29 +362,30 @@ export class AppManager {
             }
             case TELE_BOX_STATE.Normal: {
                 this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppBoxStateChange, payload: {
+                    eventName: Events.AppBoxStateChange,
+                    payload: {
                         ...payload,
                         state: eventName,
-                    }
+                    },
                 });
                 this.safeSetAttributes({ boxState: eventName });
                 break;
             }
             case "snapshot": {
                 this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppSnapshot, payload
+                    eventName: Events.AppSnapshot,
+                    payload,
                 });
 
-                this.delegate.updateAppState(
-                    payload.appId,
-                    AppAttributes.SnapshotRect,
-                    { ...payload.rect }
-                );
+                this.delegate.updateAppState(payload.appId, AppAttributes.SnapshotRect, {
+                    ...payload.rect,
+                });
                 break;
             }
             case "close": {
                 this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppClose, payload
+                    eventName: Events.AppClose,
+                    payload,
                 });
                 const appProxy = this.appProxies.get(payload.appId);
                 if (appProxy) {
@@ -407,7 +402,7 @@ export class AppManager {
     };
 
     public focusByAttributes(apps: any) {
-        if (apps && Object.keys(apps).length === this.boxManager!.appBoxMap.size) {
+        if (apps && Object.keys(apps).length === this.boxManager.appBoxMap.size) {
             const focusAppId = this.delegate.focus;
             if (focusAppId) {
                 this.boxManager.focusBox({ appId: focusAppId });
@@ -418,16 +413,13 @@ export class AppManager {
     public dispatchInternalEvent(event: Events, payload: any) {
         this.safeDispatchMagixEvent(MagixEventName, {
             eventName: event,
-            payload: payload
+            payload: payload,
         });
     }
 
     public destroy() {
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
-        this.displayer.callbacks.off(
-            "onEnableWriteNowChanged",
-            this.displayerWritableListener
-        );
+        this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();
         emitter.offAny(this.boxEventListener);
         if (this.reactionDisposers.length) {

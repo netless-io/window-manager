@@ -1,10 +1,5 @@
-import {
-    autorun,
-    reaction,
-    Room,
-    SceneDefinition,
-    View
-} from 'white-web-sdk';
+import { autorun, reaction } from "white-web-sdk";
+import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { BoxManager } from "./BoxManager";
@@ -13,10 +8,10 @@ import type { AppManager } from "./AppManager";
 import type { ViewManager } from "./ViewManager";
 
 export class AppContext<TAttrs extends Record<string, any>> {
-
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
     public readonly mobxUtils = {
-        autorun, reaction
+        autorun,
+        reaction,
     };
     private viewManager: ViewManager;
     private boxManager: BoxManager;
@@ -27,7 +22,8 @@ export class AppContext<TAttrs extends Record<string, any>> {
         private manager: AppManager,
         private appId: string,
         appEmitter: Emittery<AppEmitterEvent<TAttrs>>,
-        isAddApp: boolean) {
+        isAddApp: boolean
+    ) {
         this.emitter = appEmitter;
         this.viewManager = this.manager.viewManager;
         this.boxManager = this.manager.boxManager;
@@ -55,7 +51,7 @@ export class AppContext<TAttrs extends Record<string, any>> {
     }
 
     public getView(): View | undefined {
-        return this.viewManager.getView(this.appId);;
+        return this.viewManager.getView(this.appId);
     }
 
     public getInitScenePath() {
@@ -66,8 +62,8 @@ export class AppContext<TAttrs extends Record<string, any>> {
         return this.manager.canOperate && Boolean(this.boxManager.boxIsFocus(this.appId));
     }
 
-    public getBox(): ReadonlyTeleBox {
-        return this.boxManager.getBox(this.appId)!;
+    public getBox(): ReadonlyTeleBox | undefined {
+        return this.boxManager.getBox(this.appId);
     }
 
     public getRoom(): Room | undefined {
@@ -88,7 +84,8 @@ export class AppContext<TAttrs extends Record<string, any>> {
         const view = this.getView();
         if (view) {
             view.divElement = dom;
-            setTimeout(() => { // 渲染需要时间，延迟 refresh
+            setTimeout(() => {
+                // 渲染需要时间，延迟 refresh
                 this.getRoom()?.refreshViewSize();
             }, 1000);
         }

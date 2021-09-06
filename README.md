@@ -14,36 +14,36 @@
 
 `方法`
 
-- `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
-- `room.scalePptToFit()` 暂无代替,不再推荐调用 `scalePptToFit`
-- `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
-- `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
+-   `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
+-   `room.scalePptToFit()` 暂无代替,不再推荐调用 `scalePptToFit`
+-   `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
+-   `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
 
 > 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mainView` 生效
 
-- `room.disableCameraTransform`
-- `room.moveCamera`
-- `room.moveCameraToContain`
-- `room.convertToPointInWorld`
-- `room.setCameraBound`
+-   `room.disableCameraTransform`
+-   `room.moveCamera`
+-   `room.moveCameraToContain`
+-   `room.convertToPointInWorld`
+-   `room.setCameraBound`
 
 `camera`
 
-- `room.state.cameraState` 用 `manager.mainView.camera` 和 `manager.mainView.size` 代替
+-   `room.state.cameraState` 用 `manager.mainView.camera` 和 `manager.mainView.size` 代替
 
 想要监听主白板 `camera` 的变化, 请使用如下方式代替
 
 ```javascript
-manager.mainView.callbacks.on("onCameraUpdated", (camera) => {
-  console.log(camera);
+manager.mainView.callbacks.on("onCameraUpdated", camera => {
+    console.log(camera);
 });
 ```
 
 监听主白板 `size` 变化
 
 ```javascript
-manager.mainView.callbacks.on("onSizeUpdated", (size) => {
-  console.log(size);
+manager.mainView.callbacks.on("onSizeUpdated", size => {
+    console.log(size);
 });
 ```
 
@@ -55,7 +55,7 @@ import { WindowManager, BuiltinApps } from "@netless/window-manager";
 import "@netless/window-manager/dist/style.css";
 
 const sdk = new WhiteWebSdk({
-    appIdentifier: "appIdentifier"
+    appIdentifier: "appIdentifier",
 });
 
 sdk.joinRoom({
@@ -66,13 +66,14 @@ sdk.joinRoom({
 }).then(async room => {
     const manager = await WindowManager.mount(
         room,
-        container,
+        container
         // 完整配置见下方
     );
 });
 ```
 
 ### mount
+
 ```typescript
 WindowManager.mount({
     room: room, // 房间实例
@@ -84,8 +85,9 @@ WindowManager.mount({
     overwriteStyles: `.title { color: black }`, // 可选, 用于覆盖窗口的样式
     cursor: true, // 可选, 开启光标同步
     debug: true, // 可选, 输出日志信息
-})
+});
 ```
+
 > `containerSizeRatio` 为了保证窗口在不同分辨率下显示效果, 白板在相同的比例区域才能进行同步
 
 > `chessboard` 当挂载的区域不完全符合比例时, 白板会在挂载的 dom 中划分一个符合比例的区域出来, 此时多出来的部分会默认显示为棋盘透明背景
@@ -103,19 +105,21 @@ manager.boxState; // 当前的窗口状态: maximized | minimized | normal
 ```
 
 ### 光标同步
-> 原本的 `SDK` 中的  `cursorAdapter` 在多窗口中不可用, 如需要光标同步功能需要在 `manager` 中开启 `cursor` 选项
+
+> 原本的 `SDK` 中的 `cursorAdapter` 在多窗口中不可用, 如需要光标同步功能需要在 `manager` 中开启 `cursor` 选项
+
 ```typescript
 sdk.joinRoom({
     userPayload: {
         userId: "用户 id",
         cursorName: "光标名称",
         avatar: "用户头像链接",
-    }
-})
+    },
+});
 
 WindowManager.mount({
-    cursor: true
-})
+    cursor: true,
+});
 ```
 
 ## APP
@@ -128,12 +132,12 @@ WindowManager.mount({
 
 ```javascript
 const appId = await manager.addApp({
-  kind: BuiltinApps.DocsViewer,
-  options: {
-    scenePath: "/docs-viewer",
-    title: "docs1", // 可选
-    scenes: [], // SceneDefinition[] 静态/动态 Scene 数据
-  },
+    kind: BuiltinApps.DocsViewer,
+    options: {
+        scenePath: "/docs-viewer",
+        title: "docs1", // 可选
+        scenes: [], // SceneDefinition[] 静态/动态 Scene 数据
+    },
 });
 ```
 
@@ -141,20 +145,22 @@ const appId = await manager.addApp({
 
 ```javascript
 const appId = await manager.addApp({
-  kind: BuiltinApps.MediaPlayer,
-  options: {
-    title: "test.mp3", // 可选
-  },
-  attributes: {
-    src: "xxxx", // 音视频 url
-  },
+    kind: BuiltinApps.MediaPlayer,
+    options: {
+        title: "test.mp3", // 可选
+    },
+    attributes: {
+        src: "xxxx", // 音视频 url
+    },
 });
 ```
 
 ### 设置跟随模式
 
 只有广播端也就是老师需要设置跟随模式, 其他端的主白板都会跟随广播端的视角
+
 > 注意, `manager` 的 `setViewMode` 不能和 `room.setViewMode` 同时使用
+
 ```javascript
 manager.setViewMode("broadcaster"); // 开启跟随模式
 manager.setViewMode("freedom"); // 关闭跟随模式
@@ -204,24 +210,24 @@ manager.getMainViewSceneIndex();
 ### 监听 `mainView` 的 `mode`
 
 ```javascript
-manager.emitter.on("mainViewModeChange", (mode) => {
-  // mode 类型为 ViewVisionMode
+manager.emitter.on("mainViewModeChange", mode => {
+    // mode 类型为 ViewVisionMode
 });
 ```
 
 ### 监听窗口最大化最小化
 
 ```javascript
-manager.emitter.on("boxStateChange", (state) => {
-  if (state === "maximized") {
-    // 最大化
-  }
-  if (state === "minimized") {
-    // 最小化
-  }
-  if (state === "normal") {
-    // 恢复正常
-  }
+manager.emitter.on("boxStateChange", state => {
+    if (state === "maximized") {
+        // 最大化
+    }
+    if (state === "minimized") {
+        // 最小化
+    }
+    if (state === "normal") {
+        // 恢复正常
+    }
 });
 ```
 

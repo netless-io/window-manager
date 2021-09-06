@@ -1,30 +1,39 @@
 import Emittery from "emittery";
-import { WindowManager } from "../index";
 import type { NetlessApp, RegisterEvents, RegisterParams } from "../typings";
+import { loadApp } from "./loader";
 
 export type NotifyAppPayload = {
-    appId: string,
-    instance: NetlessApp
-}
+    appId: string;
+    instance: NetlessApp;
+};
 
 class AppRegister {
     public kindEmitters: Map<string, Emittery<RegisterEvents>> = new Map();
+    public registered: Map<string, RegisterParams> = new Map();
+    public appClasses: Map<string, NetlessApp> = new Map();
 
-    constructor() {}
-    
-    public register(params: RegisterParams) {
+    public async register(params: RegisterParams) {
+        this.registered.set(params.kind, params);
         if (typeof params.src === "string") {
-            // TODO 远程加载 APP
+            const url = params.src;
+            const appClass = await loadApp(url, params.kind);
+            if (appClass) {
+                this.appClasses.set(params.kind, appClass);
+            } else {
+                throw new Error(`[WindowManager]: load remote script failed, ${url}`);
+            }
         } else {
-            WindowManager.appClasses.set(params.kind, params.src);
+            this.appClasses.set(params.kind, params.src);
         }
         if (params.setup) {
             const emitter = this.createKindEmitter(params.kind);
-            params.setup({ emitter });
+            if (emitter) {
+                params.setup({ emitter });
+            }
         }
     }
 
-    public async notifyApp(kind: string, event: keyof RegisterEvents,  payload: NotifyAppPayload) {
+    public async notifyApp(kind: string, event: keyof RegisterEvents, payload: NotifyAppPayload) {
         const emitter = this.kindEmitters.get(kind);
         await emitter?.emit(event, payload);
     }
@@ -34,7 +43,7 @@ class AppRegister {
             const emitter = new Emittery<RegisterEvents>();
             this.kindEmitters.set(kind, emitter);
         }
-        return this.kindEmitters.get(kind)!;
+        return this.kindEmitters.get(kind);
     }
 }
 

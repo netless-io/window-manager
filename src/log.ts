@@ -1,7 +1,7 @@
 import { WindowManager } from "./index";
 
-export const log = (...args: any[]) => {
+export const log = (...args: any[]): void => {
     if (WindowManager.debug) {
-        console.log(`[Window Manager]:`, ...args);
+        console.log(`[WindowManager]:`, ...args);
     }
-}
+};

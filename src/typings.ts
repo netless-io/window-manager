@@ -1,12 +1,12 @@
 import type Emittery from "emittery";
-import {
+import type {
     AnimationMode,
     Displayer,
     Player,
     Room,
     SceneDefinition,
     SceneState,
-    View
+    View,
 } from "white-web-sdk";
 import type { AppContext } from "./AppContext";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
@@ -28,44 +28,46 @@ export interface NetlessApp<T = any> {
         singleton?: boolean;
     };
     setup: (context: AppContext<T>) => any;
-};
+}
 
 export type AppEmitterEvent<T = any> = {
     /**
      *  before plugin destroyed
      */
-    destroy: { error?: Error },
-    attributesUpdate: T | undefined,
+    destroy: { error?: Error };
+    attributesUpdate: T | undefined;
     /**
      * room isWritable change or box blur
      */
-    writableChange: boolean,
-    sceneStateChange: SceneState,
-    setBoxSize: { width: number, height: number },
-    setBoxMinSize: { minwidth: number, minheight: number },
-    setBoxTitle: { title: string },
-    containerRectUpdate: TeleBoxRect,
-}
+    writableChange: boolean;
+    sceneStateChange: SceneState;
+    setBoxSize: { width: number; height: number };
+    setBoxMinSize: { minwidth: number; minheight: number };
+    setBoxTitle: { title: string };
+    containerRectUpdate: TeleBoxRect;
+};
 
 export type RegisterEventData = {
     appId: string;
-    instance: any
-}
+    instance: any;
+};
 
 export type RegisterEvents = {
-    created: RegisterEventData,
-    destroy: RegisterEventData,
-}
+    created: RegisterEventData;
+    destroy: RegisterEventData;
+};
 
 export type RegisterContext = {
-    emitter: Emittery<RegisterEvents>,
-}
+    emitter: Emittery<RegisterEvents>;
+};
 
 export type RegisterParams = {
     kind: string;
-    src: NetlessApp | string,
+    src: NetlessApp | string;
     setup?: (context: RegisterContext) => void;
-}
+    /** dynamic load app package name */
+    name?: string;
+};
 
 export type AppListenerKeys = keyof AppEmitterEvent;
 
