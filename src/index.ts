@@ -284,6 +284,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 }
             }
             const isDynamicPPT = this.setupScenePath(params, this.appManager);
+            if (isDynamicPPT === undefined) {
+                return;
+            }
             const appId = await this.appManager.addApp(params, Boolean(isDynamicPPT));
             return appId;
         } else {
