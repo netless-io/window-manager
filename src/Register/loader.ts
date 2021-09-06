@@ -36,7 +36,7 @@ export const loadApp = async (
     const text = await getScript(url, key);
     try {
         return executeScript(text, appName);
-    } catch (error) {
+    } catch (error: any) {
         if (error.message.includes("Can only have one anonymous define call per script file")) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
