@@ -9,6 +9,10 @@ import type { SvelteComponent } from "svelte";
 import { Fields } from "../AttributesDelegate";
 import { CursorState } from "../constants";
 
+export type Payload = {
+    [key: string]: any
+}
+
 export class Cursor {
     private member?: RoomMember;
     private disposer: any;
@@ -64,12 +68,16 @@ export class Cursor {
         return `rgb(${rgb})`;
     }
 
+    private get payload(): Payload | undefined {
+        return this.member?.payload;
+    }
+
     public get memberCursorName() {
-        return this.member?.payload.cursorName;
+        return this.payload?.cursorName;
     }
 
     private get memberTheme() {
-        if (this.member?.payload.theme) {
+        if (this.payload?.theme) {
             return "cursor-inner-mellow";
         } else {
             return "cursor-inner";
@@ -77,15 +85,15 @@ export class Cursor {
     }
 
     private get memberCursorTextColor() {
-        return this.member?.payload.cursorTextColor || "#FFFFFF";
+        return this.payload?.cursorTextColor || "#FFFFFF";
     }
 
     private get memberCursorTagBackgroundColor() {
-        return this.member?.payload.cursorTagBackgroundColor || this.memberColor;
+        return this.payload?.cursorTagBackgroundColor || this.memberColor;
     }
 
     private get memberAvatar() {
-        return this.member?.payload.avatar;
+        return this.payload?.avatar;
     }
 
     private get memberOpacity() {
