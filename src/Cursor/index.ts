@@ -66,14 +66,14 @@ export class CursorManager {
 
     private mouseMoveListener = debounce((event: MouseEvent) => {
         this.updateCursor(event.clientX, event.clientY);
-    }, 8);
+    }, 5);
 
     private touchMoveListener = debounce((event: TouchEvent) => {
         if (event.touches.length === 1) {
             const touchEvent = event.touches[0];
             this.updateCursor(touchEvent.clientX, touchEvent.clientY);
         }
-    }, 8);
+    }, 5);
 
     private updateCursor(clientX: number, clientY: number) {
         if (this.containerRect) {
