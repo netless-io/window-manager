@@ -205,6 +205,9 @@ export class AppManager {
             this.windowManger.cursorManager?.setRoomMembers(state.roomMembers);
             this.windowManger.cursorManager?.cleanMemberAttributes(state.roomMembers);
         }
+        this.appProxies.forEach(appProxy => {
+            appProxy.appEmitter.emit("roomStateChange", state);
+        })
     };
 
     private displayerWritableListener = (isReadonly: boolean) => {

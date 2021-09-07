@@ -189,7 +189,7 @@ export class AppProxy {
                 options,
                 canOperate: this.manager.canOperate,
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
         }

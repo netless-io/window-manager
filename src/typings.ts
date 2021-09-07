@@ -2,6 +2,7 @@ import type Emittery from "emittery";
 import type {
     AnimationMode,
     Displayer,
+    DisplayerState,
     Player,
     Room,
     SceneDefinition,
@@ -45,6 +46,7 @@ export type AppEmitterEvent<T = any> = {
     setBoxMinSize: { minwidth: number; minheight: number };
     setBoxTitle: { title: string };
     containerRectUpdate: TeleBoxRect;
+    roomStateChange: Partial<DisplayerState>;
 };
 
 export type RegisterEventData = {

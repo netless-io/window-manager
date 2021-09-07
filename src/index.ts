@@ -294,7 +294,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private setupScenePath(params: AddAppParams, appManager: AppManager) {
+    private setupScenePath(params: AddAppParams, appManager: AppManager): boolean | undefined {
         let isDynamicPPT = false;
         if (params.options) {
             const { scenePath, scenes } = params.options;
