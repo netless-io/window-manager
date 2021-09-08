@@ -198,7 +198,7 @@ export class BoxManager {
         return box?.focus;
     }
 
-    public getFocusBox(): ReadonlyTeleBox {
+    public getFocusBox(): ReadonlyTeleBox | undefined {
         const boxes = this.teleBoxManager.query({ focus: true });
         return boxes[0];
     }

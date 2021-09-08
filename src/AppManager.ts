@@ -207,7 +207,7 @@ export class AppManager {
         }
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);
-        })
+        });
     };
 
     private displayerWritableListener = (isReadonly: boolean) => {

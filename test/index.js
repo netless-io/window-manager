@@ -68,7 +68,7 @@ sdk.joinRoom({
     userPayload: {
         userId: "111",
         cursorName: "su",
-        // avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
+        avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
     }
 }).then(async room => {
     window.room = room;
@@ -82,7 +82,7 @@ const mountManager = async (room) => {
         container: whiteboardRoot,
         // collectorStyles: { bottom: "100px", right: "30px" },
         containerSizeRatio: 9 / 16,
-        chessboard: true,
+        chessboard: false,
         debug: true,
         cursor: true,
         overwriteStyles: `.telebox-title {

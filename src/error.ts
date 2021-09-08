@@ -21,3 +21,7 @@ export class WhiteWebSDKInvalidError extends Error {
 export class ParamsInvalidError extends Error {
     override message = "[WindowManager]: kind must be a valid string";
 }
+
+export class BoxNotCreatedError extends Error {
+    override message = "[WindowManager]: box need created";
+}

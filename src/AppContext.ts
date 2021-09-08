@@ -6,6 +6,7 @@ import type { BoxManager } from "./BoxManager";
 import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
 import type { ViewManager } from "./ViewManager";
+import { BoxNotCreatedError } from "./error";
 
 export class AppContext<TAttrs extends Record<string, any>> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
@@ -62,8 +63,13 @@ export class AppContext<TAttrs extends Record<string, any>> {
         return this.manager.canOperate && Boolean(this.boxManager.boxIsFocus(this.appId));
     }
 
-    public getBox(): ReadonlyTeleBox | undefined {
-        return this.boxManager.getBox(this.appId);
+    public getBox(): ReadonlyTeleBox {
+        const box = this.boxManager.getBox(this.appId);
+        if (box) {
+            return box;
+        } else {
+            throw new BoxNotCreatedError();
+        }
     }
 
     public getRoom(): Room | undefined {

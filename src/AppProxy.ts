@@ -1,7 +1,7 @@
 import Emittery from "emittery";
 import { AppAttributes, AppEvents, Events } from "./constants";
 import { AppContext } from "./AppContext";
-import { AppNotRegisterError } from "./error";
+import { AppNotRegisterError, BoxNotCreatedError } from "./error";
 import { appRegister } from "./Register";
 import { autorun, ViewVisionMode } from "white-web-sdk";
 import { log } from "./log";

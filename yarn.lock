@@ -333,6 +333,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/retry@^0.12.0":
+  version "0.12.1"
+  resolved "https://registry.npmjs.org/@types/retry/-/retry-0.12.1.tgz#d8f1c0d0dc23afad6dc16a9e993a0865774b4065"
+  integrity sha512-xoDlM2S4ortawSWORYqsdU+2rxdh4LRW9ytc3zmT37RIKQh6IHyKwwtKhKis9ah8ol07DCkZxPt8BBvPjC6v4g==
+
 "@typescript-eslint/eslint-plugin@^4.30.0":
   version "4.30.0"
   resolved "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-4.30.0.tgz#4a0c1ae96b953f4e67435e20248d812bfa55e4fb"
@@ -2160,6 +2165,14 @@ p-queue@^6.6.2:
     eventemitter3 "^4.0.4"
     p-timeout "^3.2.0"
 
+p-retry@^4.6.1:
+  version "4.6.1"
+  resolved "https://registry.npmjs.org/p-retry/-/p-retry-4.6.1.tgz#8fcddd5cdf7a67a0911a9cf2ef0e5df7f602316c"
+  integrity sha512-e2xXGNhZOZ0lfgR9kL34iGlU8N/KO0xZnQxVEwdeOvpqNDQfdnxIYizvWtK8RglUa3bGqI8g0R/BdfzLMxRkiA==
+  dependencies:
+    "@types/retry" "^0.12.0"
+    retry "^0.13.1"
+
 p-timeout@^3.2.0:
   version "3.2.0"
   resolved "https://registry.npmjs.org/p-timeout/-/p-timeout-3.2.0.tgz#c7e17abc971d2a7962ef83626b35d635acf23dfe"
@@ -2722,6 +2735,11 @@ resolve@^1.17.0, resolve@^1.19.0, resolve@^1.20.0:
     is-core-module "^2.2.0"
     path-parse "^1.0.6"
 
+retry@^0.13.1:
+  version "0.13.1"
+  resolved "https://registry.npmjs.org/retry/-/retry-0.13.1.tgz#185b1587acf67919d63b357349e03537b2484658"
+  integrity sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg==
+
 reusify@^1.0.4:
   version "1.0.4"
   resolved "https://registry.npmjs.org/reusify/-/reusify-1.0.4.tgz#90da382b1e126efc02146e90845a88db12925d76"
@@ -3272,10 +3290,10 @@ which@^2.0.1:
   dependencies:
     isexe "^2.0.0"
 
-white-web-sdk@^2.13.19:
-  version "2.13.19"
-  resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.13.19.tgz#2d0a45518f5e54c9283ffe770570b02db8785965"
-  integrity sha512-hIV59tvIPUOeGVlqDIp7bb7HilPYJfvMH6Op3Od6yauOR3ss18E1ftaDN+qPn3Ys7A+FkvP1BwKNkYezHiQ5mw==
+white-web-sdk@^2.13.20:
+  version "2.13.20"
+  resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.13.20.tgz#da1b5175c0c8ca37c323a90d0b6e93c365e94217"
+  integrity sha512-zpN66Jtvc/mY1pFcJDMBRsqH3BU5hFxNn/g0+xyPlN5OBIaIDMxzg2rPPcIbjNp/aZ0Zc1+XTk1iU8O3mlQGmg==
   dependencies:
     "@netless/canvas-polyfill" "^0.0.4"
     "@netless/xml-js" "1.6.15"

@@ -2,12 +2,13 @@ import App from "./Cursor.svelte";
 import { ApplianceMap } from "./icons";
 import { ApplianceNames, autorun } from "white-web-sdk";
 import type { RoomMember } from "white-web-sdk";
-import { get, omit, delay } from "lodash-es";
+import { get, omit } from "lodash-es";
 import type { CursorManager } from "./index";
 import type { WindowManager } from "../index";
 import type { SvelteComponent } from "svelte";
 import { Fields } from "../AttributesDelegate";
 import { CursorState } from "../constants";
+import pRetry from "p-retry";
 
 export type Payload = {
     [key: string]: any
@@ -28,13 +29,13 @@ export class Cursor {
     ) {
         this.setMember();
         this.createCursor();
-        if (this.cursorPosition) {
+        pRetry(() => {
+            this.disposer && this.disposer();
+            if (!this.cursorPosition) {
+                throw new Error();
+            }
             this.startReaction();
-        } else {
-            delay(() => {
-                this.startReaction();
-            }, 200);
-        }
+        }, { retries: 3 });
         this.autoHidden();
     }
 
@@ -45,11 +46,13 @@ export class Cursor {
             if (cursor) {
                 const x = cursor.x;
                 const y = cursor.y;
-                const rect = this.cursorManager.containerRect;
-                if (this.component && rect) {
+                const rect = this.cursorManager.wrapperRect;
+                const containerRect = this.cursorManager.containerRect;
+                if (this.component && rect && containerRect) {
                     this.autoHidden();
-                    const translateX = x * rect.width - 180 / 2 + 26 + 2; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
-                    const translateY = y * rect.height - 74 + 1; // y 减去 cursor 的高
+                    const heightDiff = (containerRect.height - rect.height) / 2;
+                    const translateX = x * rect.width; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
+                    const translateY = y * rect.height - rect.y + heightDiff - 3; // y 减去 cursor 的高
                     this.component.$set({ visible: true, x: translateX, y: translateY });
                 }
             }
@@ -112,8 +115,8 @@ export class Cursor {
         return get(this.cursors, [this.memberId, Fields.Position]);
     }
 
-    private get cursorVisible() {
-        return this.cursorState !== CursorState.Leave;
+    public getFocusBox() {
+        return this.cursorManager.getFocusBox();
     }
 
     private autoHidden() {

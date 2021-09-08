@@ -6,9 +6,11 @@ import { reaction } from "white-web-sdk";
 import type { RoomMember } from "white-web-sdk";
 import { WindowManager } from "../index";
 import type { AppManager } from "../AppManager";
+import { TELE_BOX_STATE } from "@netless/telebox-insider";
 
 export class CursorManager {
     public containerRect?: DOMRect;
+    public wrapperRect?: DOMRect;
     private disposer: any;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
@@ -21,7 +23,8 @@ export class CursorManager {
             wrapper.addEventListener("touchmove", this.touchMoveListener);
             wrapper.addEventListener("mouseleave", this.mouseLeaveListener);
             wrapper.addEventListener("touchend", this.mouseLeaveListener);
-            this.containerRect = wrapper.getBoundingClientRect();
+            this.initCursorAttributes();
+            this.wrapperRect = wrapper.getBoundingClientRect();
             this.startReaction(wrapper);
         }
     }
@@ -64,6 +67,10 @@ export class CursorManager {
         return this.manager.attributes[Fields.Cursors];
     }
 
+    public get boxState() {
+        return this.appManager.delegate.getBoxState();
+    }
+
     private mouseMoveListener = debounce((event: MouseEvent) => {
         this.updateCursor(event.clientX, event.clientY);
     }, 5);
@@ -75,10 +82,37 @@ export class CursorManager {
         }
     }, 5);
 
+    private initCursorAttributes() {
+        this.appManager.delegate.updateCursor(this.observerId, {
+            x: 0,
+            y: 0,
+        });
+        this.appManager.delegate.updateCursorState(this.observerId, CursorState.Leave);
+    }
+
+    public getBoxTitleHeight() {
+        if (this.boxState === TELE_BOX_STATE.Maximized) {
+            const box = this.appManager.boxManager.getTopBox();
+            if (box) {
+                return box.$titleBar?.clientHeight;
+            }
+        }
+    }
+
+    public getFocusBox() {
+        return this.appManager.boxManager.getFocusBox();
+    }
+
     private updateCursor(clientX: number, clientY: number) {
-        if (this.containerRect) {
-            const x = (clientX - this.containerRect.x) / this.containerRect.width;
-            const y = (clientY - this.containerRect.y) / this.containerRect.height;
+        if (this.wrapperRect) {
+            const titleHeight = this.getBoxTitleHeight();
+            const wrapperWidth = this.wrapperRect.width;
+            let wrapperHeight = this.wrapperRect.height;
+            if (titleHeight) {
+                wrapperHeight = wrapperHeight - titleHeight;
+            }
+            const x = (clientX - this.wrapperRect.x) / wrapperWidth;
+            const y = (clientY - this.wrapperRect.y) / wrapperHeight;
             if (this.appManager.delegate.getCursorState(this.observerId)) {
                 this.appManager.delegate.updateCursorState(this.observerId, CursorState.Normal);
             }
@@ -95,7 +129,8 @@ export class CursorManager {
     };
 
     public updateContainerRect() {
-        this.containerRect = WindowManager.wrapper?.getBoundingClientRect();
+        this.containerRect = WindowManager.container?.getBoundingClientRect();
+        this.wrapperRect = WindowManager.wrapper?.getBoundingClientRect();
     }
 
     public setRoomMembers(members: readonly RoomMember[]) {

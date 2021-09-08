@@ -34,7 +34,7 @@
 </script>
 
 <div
-    class="cursor-mid cursor-{appliance}-offset"
+    class="cursor-mid"
     style="transform: translateX({x}px) translateY({y}px);display: {display}"
 >
     <div class="cursor-name">

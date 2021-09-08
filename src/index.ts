@@ -131,6 +131,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
+    public static container?: HTMLElement;
     public static debug = false;
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
@@ -226,6 +227,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
+        WindowManager.container = container;
         const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
         if (chessboard) {
             sizer.classList.add("netless-window-manager-chess-sizer");
@@ -442,6 +444,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.containerResizeObserver?.disconnect();
         this.appManager?.destroy();
         this.cursorManager?.destroy();
+        WindowManager.container = undefined;
+        WindowManager.wrapper = undefined;
         WindowManager.isCreated = false;
         log("Destroyed");
     }
