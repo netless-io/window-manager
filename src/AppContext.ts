@@ -21,7 +21,7 @@ export class AppContext<TAttrs extends Record<string, any>> {
 
     constructor(
         private manager: AppManager,
-        private appId: string,
+        public appId: string,
         appEmitter: Emittery<AppEmitterEvent<TAttrs>>,
         isAddApp: boolean
     ) {
