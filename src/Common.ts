@@ -6,8 +6,8 @@ import { debounce } from "lodash-es";
 import type Emittery from "emittery";
 import { appRegister } from "./Register";
 
-export const genAppId = (kind: string) => {
-    const impl = appRegister.appClasses.get(kind);
+export const genAppId = async (kind: string) => {
+    const impl = await appRegister.appClasses.get(kind);
     if (impl && impl.config?.singleton) {
         return kind;
     }

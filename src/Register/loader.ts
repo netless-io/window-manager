@@ -5,14 +5,14 @@ const Prefix = "NetlessApp";
 
 const TIMEOUT = 10000; // 10 秒超时
 
-export const getScript = async (url: string, key: string): Promise<string> => {
-    const item = await getItem(key);
+export const getScript = async (url: string): Promise<string> => {
+    const item = await getItem(url);
     if (item) {
         return item;
     } else {
         const result = await fetchWithTimeout(url, { timeout: TIMEOUT });
         const text = await result.text();
-        await setItem(key, text);
+        await setItem(url, text);
         return text;
     }
 };
@@ -33,7 +33,7 @@ export const loadApp = async (
     name?: string
 ): Promise<NetlessApp | undefined> => {
     const appName = name || Prefix + key;
-    const text = await getScript(url, key);
+    const text = await getScript(url);
     try {
         return executeScript(text, appName);
     } catch (error: any) {

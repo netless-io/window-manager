@@ -65,7 +65,7 @@ export type RegisterContext = {
 
 export type RegisterParams = {
     kind: string;
-    src: NetlessApp | string;
+    src: NetlessApp | string | (() => Promise<NetlessApp>);
     setup?: (context: RegisterContext) => void;
     /** dynamic load app package name */
     name?: string;

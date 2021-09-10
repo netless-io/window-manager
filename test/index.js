@@ -51,7 +51,12 @@ container.appendChild(rightBar);
 
 document.body.append(container)
 
-WindowManager.register({ kind: "HelloWorld", src: "https://netless-h5-demo.oss-cn-hangzhou.aliyuncs.com/tmp/main.iife.js" })
+WindowManager.register({
+    kind: "HelloWorld", src: () => Promise.resolve({
+        kind: "HelloWorld",
+        setup: () => { console.log("helloworld") }
+    })
+});
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,

@@ -96,7 +96,7 @@ export class AppProxy {
         }
     }
 
-    public appImpl(kind: string): NetlessApp | undefined {
+    public appImpl(kind: string): Promise<NetlessApp> | undefined {
         return appRegister.appClasses.get(kind);
     }
 
@@ -132,21 +132,16 @@ export class AppProxy {
         this.boxManager.focusBox({ appId: this.id });
     }
 
-    private async getAppImpl() {
+    private async getAppImpl(): Promise<NetlessApp | undefined> {
         const params = this.params;
-        let appImpl;
+        let appImpl: NetlessApp | undefined;
         if (params.src === undefined) {
-            appImpl = appRegister.appClasses.get(params.kind);
+            appImpl = await appRegister.appClasses.get(params.kind);
             if (!appImpl) {
                 throw new AppNotRegisterError(params.kind);
             }
-        } else if (typeof params.src === "string") {
-            // appImpl = await loadApp(params.kind, params.src);
-            throw new Error(`[WindowManager]: load remote script Not currently supported`);
-        } else if (typeof params.src === "object") {
-            appImpl = params.src;
+            return appImpl;
         }
-        return appImpl;
     }
 
     private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions) {

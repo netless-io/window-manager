@@ -10,7 +10,7 @@ export type NotifyAppPayload = {
 class AppRegister {
     public kindEmitters: Map<string, Emittery<RegisterEvents>> = new Map();
     public registered: Map<string, RegisterParams> = new Map();
-    public appClasses: Map<string, NetlessApp> = new Map();
+    public appClasses: Map<string, Promise<NetlessApp>> = new Map();
 
     public async register(params: RegisterParams): Promise<void> {
         this.registered.set(params.kind, params);
@@ -18,12 +18,14 @@ class AppRegister {
             const url = params.src;
             const appClass = await loadApp(url, params.kind);
             if (appClass) {
-                this.appClasses.set(params.kind, appClass);
+                this.appClasses.set(params.kind, Promise.resolve(appClass));
             } else {
                 throw new Error(`[WindowManager]: load remote script failed, ${url}`);
             }
+        } else if (typeof params.src === "function") {
+            this.appClasses.set(params.kind, params.src());
         } else {
-            this.appClasses.set(params.kind, params.src);
+            this.appClasses.set(params.kind, Promise.resolve(params.src));
         }
         if (params.setup) {
             const emitter = this.createKindEmitter(params.kind);

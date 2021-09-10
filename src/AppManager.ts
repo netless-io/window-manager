@@ -14,6 +14,7 @@ import { ViewManager } from "./ViewManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type { AddAppParams, BaseInsertParams, WindowManager } from "./index";
+import type { NetlessApp } from "./typings";
 
 export class AppManager {
     public displayer: Displayer;
@@ -104,14 +105,9 @@ export class AppManager {
             for (const id in apps) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
-                    let appImpl = app.src;
-                    if (!appImpl) {
-                        appImpl = appRegister.appClasses.get(app.kind);
-                    }
                     await this.baseInsertApp(
                         {
                             kind: app.kind,
-                            src: appImpl,
                             options: app.options,
                             isDynamicPPT: app.isDynamicPPT,
                         },
@@ -126,14 +122,14 @@ export class AppManager {
 
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
         log("addApp", params);
-        const { appId, needFocus } = this.beforeAddApp(params, isDynamicPPT);
+        const { appId, needFocus } = await this.beforeAddApp(params, isDynamicPPT);
         const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
         this.afterAddApp(appProxy);
         return appProxy?.id;
     }
 
-    private beforeAddApp(params: AddAppParams, isDynamicPPT: boolean) {
-        const appId = genAppId(params.kind);
+    private async beforeAddApp(params: AddAppParams, isDynamicPPT: boolean) {
+        const appId = await genAppId(params.kind);
         this.appStatus.set(appId, AppStatus.StartCreate);
         this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
         if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
