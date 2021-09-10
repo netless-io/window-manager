@@ -33,8 +33,6 @@ class AppRegister {
         } else {
             downloadApp = async () => srcOrAppOrFunction
         }
-        
-        (window as any).appClasses = this.appClasses
 
         this.appClasses.set(params.kind, async () => {
             let app = this.appClassesCache.get(params.kind)
