@@ -52,10 +52,15 @@ container.appendChild(rightBar);
 document.body.append(container)
 
 WindowManager.register({
-    kind: "HelloWorld", src: () => Promise.resolve({
-        kind: "HelloWorld",
-        setup: () => { console.log("helloworld") }
-    })
+    kind: "HelloWorld", src: async () => {
+        console.log('start loading HelloWorld...')
+        await new Promise(resolve => setTimeout(resolve, 5000))
+        console.log('HelloWorld Loaded')
+        return {
+            kind: "HelloWorld",
+            setup: () => { console.log("helloworld") }
+        }
+    }
 });
 
 const sdk = new WhiteWebSdk({

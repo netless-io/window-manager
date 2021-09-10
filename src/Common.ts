@@ -7,7 +7,7 @@ import type Emittery from "emittery";
 import { appRegister } from "./Register";
 
 export const genAppId = async (kind: string) => {
-    const impl = await appRegister.appClasses.get(kind);
+    const impl = await appRegister.appClasses.get(kind)?.();
     if (impl && impl.config?.singleton) {
         return kind;
     }

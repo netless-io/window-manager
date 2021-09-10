@@ -96,14 +96,10 @@ export class AppProxy {
         }
     }
 
-    public appImpl(kind: string): Promise<NetlessApp> | undefined {
-        return appRegister.appClasses.get(kind);
-    }
-
     public async baseInsertApp(focus?: boolean): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (params.kind) {
-            const appImpl = await this.getAppImpl();
+            const appImpl = await appRegister.appClasses.get(params.kind)?.();
             if (appImpl) {
                 await this.setupApp(this.id, appImpl, params.options);
             } else {
@@ -130,18 +126,6 @@ export class AppProxy {
 
     private focusBox() {
         this.boxManager.focusBox({ appId: this.id });
-    }
-
-    private async getAppImpl(): Promise<NetlessApp | undefined> {
-        const params = this.params;
-        let appImpl: NetlessApp | undefined;
-        if (params.src === undefined) {
-            appImpl = await appRegister.appClasses.get(params.kind);
-            if (!appImpl) {
-                throw new AppNotRegisterError(params.kind);
-            }
-            return appImpl;
-        }
     }
 
     private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions) {

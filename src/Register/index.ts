@@ -10,23 +10,41 @@ export type NotifyAppPayload = {
 class AppRegister {
     public kindEmitters: Map<string, Emittery<RegisterEvents>> = new Map();
     public registered: Map<string, RegisterParams> = new Map();
-    public appClasses: Map<string, Promise<NetlessApp>> = new Map();
+    public appClassesCache: Map<string, Promise<NetlessApp>> = new Map();
+    public appClasses: Map<string, () => Promise<NetlessApp>> = new Map();
 
     public async register(params: RegisterParams): Promise<void> {
         this.registered.set(params.kind, params);
-        if (typeof params.src === "string") {
-            const url = params.src;
-            const appClass = await loadApp(url, params.kind);
-            if (appClass) {
-                this.appClasses.set(params.kind, Promise.resolve(appClass));
-            } else {
-                throw new Error(`[WindowManager]: load remote script failed, ${url}`);
+        
+        const srcOrAppOrFunction = params.src
+        let downloadApp: () => Promise<NetlessApp>
+        
+        if (typeof srcOrAppOrFunction === "string") {
+            downloadApp = async () => {
+                const appClass = await loadApp(srcOrAppOrFunction, params.kind);
+                if (appClass) {
+                    return appClass
+                } else {
+                    throw new Error(`[WindowManager]: load remote script failed, ${srcOrAppOrFunction}`);
+                }
             }
-        } else if (typeof params.src === "function") {
-            this.appClasses.set(params.kind, params.src());
+        } else if (typeof srcOrAppOrFunction === "function") {
+            downloadApp = srcOrAppOrFunction
         } else {
-            this.appClasses.set(params.kind, Promise.resolve(params.src));
+            downloadApp = async () => srcOrAppOrFunction
         }
+        
+        (window as any).appClasses = this.appClasses
+
+        this.appClasses.set(params.kind, async () => {
+            let app = this.appClassesCache.get(params.kind)
+            if (!app) {
+                app = downloadApp()
+                this.appClassesCache.set(params.kind, app)
+            }
+            return app
+        });
+        
         if (params.setup) {
             const emitter = this.createKindEmitter(params.kind);
             if (emitter) {
