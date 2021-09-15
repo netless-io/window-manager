@@ -60,5 +60,6 @@ export const makeValidScenePath = (displayer: Displayer, scenePath: string) => {
 };
 
 export const getVersionNumber = (version: string) => {
-    return parseInt(version.split(".").join(""));
+    const versionString = version.split(".").map(s => s.padStart(2, "0")).join("");
+    return parseInt(versionString);
 };
