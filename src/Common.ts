@@ -2,7 +2,7 @@ import { emitter } from "./index";
 import type { PublicEvent } from "./index";
 import { nanoid } from "nanoid";
 import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
-import { debounce } from "lodash-es";
+import { debounce } from "lodash";
 import type Emittery from "emittery";
 import { appRegister } from "./Register";
 

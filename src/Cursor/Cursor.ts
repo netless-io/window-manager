@@ -2,7 +2,7 @@ import App from "./Cursor.svelte";
 import { ApplianceMap } from "./icons";
 import { ApplianceNames, autorun } from "white-web-sdk";
 import type { RoomMember } from "white-web-sdk";
-import { get, omit } from "lodash-es";
+import { get, omit } from "lodash";
 import type { CursorManager } from "./index";
 import type { WindowManager } from "../index";
 import type { SvelteComponent } from "svelte";

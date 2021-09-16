@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { isEmpty } from "lodash-es";
+    import { isEmpty } from "lodash";
 
     export let cursorName: string;
     export let tagName: string;

@@ -1,5 +1,5 @@
 import { Cursor } from "./Cursor";
-import { debounce } from "lodash-es";
+import { debounce } from "lodash";
 import { CursorState } from "../constants";
 import { Fields } from "../AttributesDelegate";
 import { reaction } from "white-web-sdk";

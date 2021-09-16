@@ -1,7 +1,7 @@
 import { callbacks, emitter, WindowManager } from "./index";
 import type { AddAppOptions, AppInitState } from "./index";
 import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
-import { debounce, get, isEmpty, maxBy } from "lodash-es";
+import { debounce, get, isEmpty, maxBy } from "lodash";
 import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,

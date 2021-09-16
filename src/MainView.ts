@@ -1,5 +1,5 @@
 import { AnimationMode } from "white-web-sdk";
-import { isEqual } from "lodash-es";
+import { isEqual } from "lodash";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
