@@ -1,6 +1,7 @@
 import AppDocsViewer from "@netless/app-docs-viewer";
 import AppMediaPlayer, { setOptions } from "@netless/app-media-player";
 import Emittery from "emittery";
+import { isNull, isObject } from "lodash";
 import {
     AppCreateError,
     AppManagerNotInitError,
@@ -12,7 +13,7 @@ import { appRegister } from "./Register";
 import { CursorManager } from "./Cursor";
 import type { Apps } from "./AttributesDelegate";
 import { Fields } from "./AttributesDelegate";
-import { getVersionNumber } from "./Common";
+import { getVersionNumber, wait } from "./Common";
 import {
     InvisiblePlugin,
     isRoom,
@@ -237,7 +238,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             style.textContent = overwriteStyles;
             playground.appendChild(style);
         }
-        manager.ensureAttributes();
+        await manager.ensureAttributes();
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
             collectorStyles: collectorStyles,
@@ -540,12 +541,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private ensureAttributes() {
-        if (!this.attributes[Fields.Apps]) {
-            this.safeSetAttributes({ [Fields.Apps]: {} });
+    private async ensureAttributes() {
+        if (isNull(this.attributes)) {
+            await wait(50);
         }
-        if (!this.attributes[Fields.Cursors]) {
-            this.safeSetAttributes({ [Fields.Cursors]: {} });
+        if (isObject(this.attributes)) {
+            if (!this.attributes[Fields.Apps]) {
+                this.safeSetAttributes({ [Fields.Apps]: {} });
+            }
+            if (!this.attributes[Fields.Cursors]) {
+                this.safeSetAttributes({ [Fields.Cursors]: {} });
+            }
         }
     }
 

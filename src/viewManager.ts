@@ -1,5 +1,5 @@
 import { callbacks, WindowManager } from "./index";
-import { debounce } from "lodash-es";
+import { debounce } from "lodash";
 import { Events, SET_SCENEPATH_DELAY } from "./constants";
 import {
     notifyMainViewModeChange,

@@ -63,3 +63,5 @@ export const getVersionNumber = (version: string) => {
     const versionString = version.split(".").map(s => s.padStart(2, "0")).join("");
     return parseInt(versionString);
 };
+
+export const wait = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
