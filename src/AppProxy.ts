@@ -100,8 +100,9 @@ export class AppProxy {
         const params = this.params;
         if (params.kind) {
             const appImpl = await appRegister.appClasses.get(params.kind)?.();
+            const appParams = appRegister.registered.get(params.kind);
             if (appImpl) {
-                await this.setupApp(this.id, appImpl, params.options);
+                await this.setupApp(this.id, appImpl, params.options, appParams?.appOptions);
             } else {
                 throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
             }
@@ -128,9 +129,9 @@ export class AppProxy {
         this.boxManager.focusBox({ appId: this.id });
     }
 
-    private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions) {
+    private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions, appOptions?: any) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, appId, this.appEmitter, this.isAddApp);
+        const context = new AppContext(this.manager, appId, this.appEmitter, this.isAddApp, appOptions);
         try {
             emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getAppInitState(appId);

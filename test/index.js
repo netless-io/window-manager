@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 import { WhiteWebSdk } from "white-web-sdk";
-import { WindowManager, BuiltinApps } from "../dist/index.es";
+import { WindowManager, BuiltinApps } from "../";
 import "normalize.css"
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
@@ -29,22 +29,14 @@ rightBar.style.marginRight = "16px";
 rightBar.style.textAlign = "center";
 rightBar.style.userSelect = "none";
 
-const button1 = document.createElement("button")
-button1.textContent = "课件1"
-const button2 = document.createElement("button")
-button2.textContent = "课件2"
-const button3 = document.createElement("button")
-button3.textContent = "课件3"
-const button4 = document.createElement("button");
-button4.textContent = "插入视频"
-
-rightBar.appendChild(button2);
-rightBar.appendChild(document.createElement("br"))
-rightBar.appendChild(document.createElement("br"))
-rightBar.appendChild(button3);
-rightBar.appendChild(document.createElement("br"))
-rightBar.appendChild(document.createElement("br"))
-rightBar.appendChild(button4);
+function createAppButton(title, onClick) {
+    const btn = document.createElement("button");
+    btn.textContent = title;
+    btn.style.display = "block";
+    btn.style.margin = "1em 0";
+    rightBar.appendChild(btn);
+    btn.addEventListener("click", onClick);
+}
 
 container.appendChild(whiteboardRoot);
 container.appendChild(rightBar);
@@ -52,14 +44,25 @@ container.appendChild(rightBar);
 document.body.append(container)
 
 WindowManager.register({
-    kind: "HelloWorld", src: async () => {
+    kind: "HelloWorld",
+    src: async () => {
         console.log('start loading HelloWorld...')
         await new Promise(resolve => setTimeout(resolve, 5000))
         console.log('HelloWorld Loaded')
         return {
             kind: "HelloWorld",
-            setup: () => { console.log("helloworld") }
+            setup: (context) => {
+                console.log("helloworld");
+                console.log('helloworld options', context.getAppOptions());
+                return "Hello World Result";
+            }
         }
+    },
+    appOptions: () => 'AppOptions',
+    setup: ({ emitter }) => {
+        emitter.on('created', result => {
+            console.log('HelloWordResult', result);
+        })
     }
 });
 
@@ -142,7 +145,13 @@ const mountManager = async (room) => {
     })
 }
 
-button2.addEventListener("click", () => {
+createAppButton("Hello World", () => {
+    window.manager.addApp({
+        kind: "HelloWorld",
+    });
+});
+
+createAppButton("课件2", () => {
     window.manager.addApp({
         kind: BuiltinApps.DocsViewer,
         options: {
@@ -169,7 +178,8 @@ button2.addEventListener("click", () => {
         },
     }).then(appId => console.log("appID", appId));
 });
-button3.addEventListener("click", () => {
+
+createAppButton("课件3", () => {
     window.manager.addApp({
         kind: BuiltinApps.DocsViewer,
         options: {
@@ -325,7 +335,7 @@ button3.addEventListener("click", () => {
     })
 });
 
-button4.addEventListener("click", () => {
+createAppButton("插入视频", () => {
     window.manager.addApp({
         kind: BuiltinApps.MediaPlayer,
         attributes: {

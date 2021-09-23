@@ -8,7 +8,7 @@ import type { AppManager } from "./AppManager";
 import type { ViewManager } from "./ViewManager";
 import { BoxNotCreatedError } from "./error";
 
-export class AppContext<TAttrs extends Record<string, any>> {
+export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
     public readonly mobxUtils = {
         autorun,
@@ -23,7 +23,8 @@ export class AppContext<TAttrs extends Record<string, any>> {
         private manager: AppManager,
         public appId: string,
         appEmitter: Emittery<AppEmitterEvent<TAttrs>>,
-        isAddApp: boolean
+        isAddApp: boolean,
+        private appOptions?: AppOptions | (() => AppOptions)
     ) {
         this.emitter = appEmitter;
         this.viewManager = this.manager.viewManager;
@@ -95,5 +96,9 @@ export class AppContext<TAttrs extends Record<string, any>> {
                 this.getRoom()?.refreshViewSize();
             }, 1000);
         }
+    }
+    
+    public getAppOptions(): AppOptions | undefined {
+        return typeof this.appOptions === 'function' ? (this.appOptions as () => AppOptions)() : this.appOptions
     }
 }

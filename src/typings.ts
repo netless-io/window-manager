@@ -12,7 +12,7 @@ import type {
 import type { AppContext } from "./AppContext";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 
-export interface NetlessApp<T = any> {
+export interface NetlessApp<Attributes = any, SetupResult = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
@@ -28,7 +28,7 @@ export interface NetlessApp<T = any> {
         /** App only single instance. */
         singleton?: boolean;
     };
-    setup: (context: AppContext<T>) => any;
+    setup: (context: AppContext<Attributes>) => SetupResult;
 }
 
 export type AppEmitterEvent<T = any> = {
@@ -49,24 +49,25 @@ export type AppEmitterEvent<T = any> = {
     roomStateChange: Partial<DisplayerState>;
 };
 
-export type RegisterEventData = {
+export type RegisterEventData<SetupResult = any> = {
     appId: string;
-    instance: any;
+    instance: SetupResult;
 };
 
-export type RegisterEvents = {
-    created: RegisterEventData;
+export type RegisterEvents<SetupResult = any> = {
+    created: RegisterEventData<SetupResult>;
     destroy: RegisterEventData;
 };
 
-export type RegisterContext = {
-    emitter: Emittery<RegisterEvents>;
+export type RegisterContext<SetupResult = any> = {
+    emitter: Emittery<RegisterEvents<SetupResult>>;
 };
 
-export type RegisterParams = {
+export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any> = {
     kind: string;
-    src: NetlessApp | string | (() => Promise<NetlessApp>);
-    setup?: (context: RegisterContext) => void;
+    src: NetlessApp<Attributes, SetupResult> | string | (() => Promise<NetlessApp<Attributes, SetupResult>>);
+    appOptions?: AppOptions | (() => AppOptions);
+    setup?: (context: RegisterContext<SetupResult>) => void;
     /** dynamic load app package name */
     name?: string;
 };
