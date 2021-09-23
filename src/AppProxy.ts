@@ -36,6 +36,7 @@ export class AppProxy {
     private viewManager = this.manager.viewManager;
     private kind: string;
     private isAddApp: boolean;
+    private status: "normal" | "destroyed" = "normal";
 
     constructor(
         private params: BaseInsertParams,
@@ -252,6 +253,7 @@ export class AppProxy {
                     break;
                 }
                 case AppEvents.destroy: {
+                    if (this.status === "destroyed") return;
                     this.destroy(true, data?.error);
                     if (data?.error) {
                         console.error(data?.error);
@@ -322,6 +324,7 @@ export class AppProxy {
     };
 
     public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
+        this.status = "destroyed";
         await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
         await this.appEmitter.emit("destroy", { error });
         this.appEmitter.clearListeners();
