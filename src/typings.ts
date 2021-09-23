@@ -49,25 +49,20 @@ export type AppEmitterEvent<T = any> = {
     roomStateChange: Partial<DisplayerState>;
 };
 
-export type RegisterEventData<SetupResult = any> = {
+export type RegisterEventData = {
     appId: string;
-    instance: SetupResult;
 };
 
 export type RegisterEvents<SetupResult = any> = {
-    created: RegisterEventData<SetupResult>;
+    created: RegisterEventData & { result: SetupResult; };
     destroy: RegisterEventData;
-};
-
-export type RegisterContext<SetupResult = any> = {
-    emitter: Emittery<RegisterEvents<SetupResult>>;
 };
 
 export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any> = {
     kind: string;
     src: NetlessApp<Attributes, SetupResult> | string | (() => Promise<NetlessApp<Attributes, SetupResult>>);
     appOptions?: AppOptions | (() => AppOptions);
-    setup?: (context: RegisterContext<SetupResult>) => void;
+    addHooks?: (emitter: Emittery<RegisterEvents<SetupResult>>) => void;
     /** dynamic load app package name */
     name?: string;
 };

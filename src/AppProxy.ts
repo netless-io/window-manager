@@ -1,7 +1,6 @@
 import Emittery from "emittery";
 import { AppAttributes, AppEvents, Events } from "./constants";
 import { AppContext } from "./AppContext";
-import { AppNotRegisterError, BoxNotCreatedError } from "./error";
 import { appRegister } from "./Register";
 import { autorun, ViewVisionMode } from "white-web-sdk";
 import { log } from "./log";
@@ -36,7 +35,6 @@ export class AppProxy {
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
     private kind: string;
-    private instance: any;
     private isAddApp: boolean;
 
     constructor(
@@ -141,8 +139,8 @@ export class AppProxy {
                 this.setViewFocusScenePath();
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
-                    this.instance = await app.setup(context);
-                    appRegister.notifyApp(app.kind, "created", { appId, instance: this.instance });
+                    const result = await app.setup(context);
+                    appRegister.notifyApp(app.kind, "created", { appId, result });
                     if (boxInitState) {
                         if (boxInitState.focus && this.scenePath) {
                             this.manager.viewManager.switchAppToWriter(this.id);
@@ -324,10 +322,7 @@ export class AppProxy {
     };
 
     public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
-        await appRegister.notifyApp(this.kind, "destroy", {
-            appId: this.id,
-            instance: this.instance,
-        });
+        await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
         await this.appEmitter.emit("destroy", { error });
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}`, { error });

@@ -43,23 +43,25 @@ container.appendChild(rightBar);
 
 document.body.append(container)
 
+const HelloWorldApp = async () => {
+    console.log('start loading HelloWorld...')
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    console.log('HelloWorld Loaded')
+    return {
+        kind: "HelloWorld",
+        setup: (context) => {
+            console.log("helloworld");
+            console.log('helloworld options', context.getAppOptions());
+            return "Hello World Result";
+        }
+    }
+};
+
 WindowManager.register({
     kind: "HelloWorld",
-    src: async () => {
-        console.log('start loading HelloWorld...')
-        await new Promise(resolve => setTimeout(resolve, 5000))
-        console.log('HelloWorld Loaded')
-        return {
-            kind: "HelloWorld",
-            setup: (context) => {
-                console.log("helloworld");
-                console.log('helloworld options', context.getAppOptions());
-                return "Hello World Result";
-            }
-        }
-    },
+    src: HelloWorldApp,
     appOptions: () => 'AppOptions',
-    setup: ({ emitter }) => {
+    addHooks: (emitter) => {
         emitter.on('created', result => {
             console.log('HelloWordResult', result);
         })

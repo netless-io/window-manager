@@ -2,11 +2,6 @@ import Emittery from "emittery";
 import type { NetlessApp, RegisterEvents, RegisterParams } from "../typings";
 import { loadApp } from "./loader";
 
-export type NotifyAppPayload = {
-    appId: string;
-    instance: NetlessApp;
-};
-
 class AppRegister {
     public kindEmitters: Map<string, Emittery<RegisterEvents>> = new Map();
     public registered: Map<string, RegisterParams> = new Map();
@@ -43,15 +38,15 @@ class AppRegister {
             return app
         });
         
-        if (params.setup) {
+        if (params.addHooks) {
             const emitter = this.createKindEmitter(params.kind);
             if (emitter) {
-                params.setup({ emitter });
+                params.addHooks(emitter);
             }
         }
     }
 
-    public async notifyApp(kind: string, event: keyof RegisterEvents, payload: NotifyAppPayload) {
+    public async notifyApp<T extends keyof RegisterEvents>(kind: string, event: T, payload: RegisterEvents[T]) {
         const emitter = this.kindEmitters.get(kind);
         await emitter?.emit(event, payload);
     }
