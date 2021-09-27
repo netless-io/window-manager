@@ -493,6 +493,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.canOperate ? (this.displayer as Room) : undefined;
     }
 
+    public get broadcaster(): number | undefined {
+        return this.appManager?.delegate.broadcaster;
+    }
+
     public safeSetAttributes(attributes: any): void {
         if (this.canOperate) {
             this.setAttributes(attributes);

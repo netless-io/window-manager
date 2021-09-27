@@ -35,7 +35,7 @@ export class AppProxy {
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
     private kind: string;
-    private isAddApp: boolean;
+    public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
 
     constructor(
@@ -83,6 +83,10 @@ export class AppProxy {
         return this.manager.canOperate && !this.box?.readonly;
     }
 
+    public get attributes() {
+        return this.manager.attributes[this.id];
+    }
+
     public getSceneName(): string | undefined {
         if (this.sceneIndex !== undefined) {
             return this.scenes?.[this.sceneIndex]?.name;
@@ -93,6 +97,10 @@ export class AppProxy {
         if (this.scenePath && this.getSceneName()) {
             return `${this.scenePath}/${this.getSceneName()}`;
         }
+    }
+
+    public setScenes(scenes: SceneDefinition[]): void {
+        this.scenes = scenes;
     }
 
     public async baseInsertApp(focus?: boolean): Promise<{ appId: string; app: NetlessApp }> {
@@ -130,7 +138,7 @@ export class AppProxy {
 
     private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions, appOptions?: any) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, appId, this.appEmitter, this.isAddApp, appOptions);
+        const context = new AppContext(this.manager, appId, this, this.setScenes, appOptions);
         try {
             emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getAppInitState(appId);

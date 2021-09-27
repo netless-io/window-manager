@@ -2,7 +2,7 @@ import { Cursor } from "./Cursor";
 import { debounce } from "lodash";
 import { CursorState } from "../constants";
 import { Fields } from "../AttributesDelegate";
-import { reaction } from "white-web-sdk";
+import { reaction, listenUpdated, UpdateEventKind } from "white-web-sdk";
 import type { RoomMember } from "white-web-sdk";
 import { WindowManager } from "../index";
 import type { AppManager } from "../AppManager";
@@ -30,33 +30,46 @@ export class CursorManager {
     }
 
     private startReaction(wrapper: HTMLElement) {
-        this.disposer = reaction(
-            () => Object.keys(this.cursors || {}).length,
-            () => {
-                const memberIds = this.roomMembers?.map(member => member.memberId);
-                if (memberIds?.length) {
-                    for (const memberId in this.cursors) {
-                        if (
-                            memberIds.includes(Number(memberId)) &&
-                            !this.cursorInstances.has(memberId) &&
-                            memberId !== this.observerId
-                        ) {
-                            const component = new Cursor(
-                                this.manager,
-                                this.cursors,
-                                memberId,
-                                this,
-                                wrapper
-                            );
-                            this.cursorInstances.set(memberId, component);
-                        }
-                    }
+        if (listenUpdated) {
+            listenUpdated(this.cursors, (updateEvents) => {
+                const kinds = updateEvents.map(e => e.kind);
+                if (kinds.includes(UpdateEventKind.Inserted)) {
+                    this.handleRoomMembersChange(wrapper);
                 }
-            },
-            {
-                fireImmediately: true,
+            });
+        } else {
+            this.disposer = reaction(
+                () => Object.keys(this.cursors || {}).length,
+                () => {
+                    this.handleRoomMembersChange(wrapper);
+                },
+                {
+                    fireImmediately: true,
+                }
+            );
+        }
+    }
+
+    private handleRoomMembersChange(wrapper: HTMLElement) {
+        const memberIds = this.roomMembers?.map(member => member.memberId);
+        if (memberIds?.length) {
+            for (const memberId in this.cursors) {
+                if (
+                    memberIds.includes(Number(memberId)) &&
+                    !this.cursorInstances.has(memberId) &&
+                    memberId !== this.observerId
+                ) {
+                    const component = new Cursor(
+                        this.manager,
+                        this.cursors,
+                        memberId,
+                        this,
+                        wrapper
+                    );
+                    this.cursorInstances.set(memberId, component);
+                }
             }
-        );
+        }
     }
 
     private get observerId() {
@@ -104,7 +117,7 @@ export class CursorManager {
     }
 
     private updateCursor(clientX: number, clientY: number) {
-        if (this.wrapperRect) {
+        if (this.wrapperRect && this.manager.canOperate) {
             const titleHeight = this.getBoxTitleHeight();
             const wrapperWidth = this.wrapperRect.width;
             let wrapperHeight = this.wrapperRect.height;

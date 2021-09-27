@@ -1,20 +1,18 @@
 import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
-import { appRegister } from "./Register";
 import { AttributesDelegate, Fields } from "./AttributesDelegate";
 import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
 import { callbacks, emitter } from "./index";
 import { CameraStore } from "./CameraStore";
 import { genAppId, makeValidScenePath } from "./Common";
-import { isRoom, reaction, ScenePathType } from "white-web-sdk";
+import { isRoom, reaction, ScenePathType, listenUpdated, UpdateEventKind } from "white-web-sdk";
 import { log } from "./log";
 import { MainViewProxy } from "./MainView";
 import { ViewManager } from "./ViewManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type { AddAppParams, BaseInsertParams, WindowManager } from "./index";
-import type { NetlessApp } from "./typings";
 
 export class AppManager {
     public displayer: Displayer;
@@ -48,14 +46,23 @@ export class AppManager {
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);
             emitter.onAny(this.boxEventListener);
-            this.reactionDisposers.push(
-                reaction(
-                    () => Object.keys(this.attributes?.apps || {}).length,
-                    () => {
+            if (listenUpdated) {
+                listenUpdated(this.attributes.apps, (properties) => {
+                    const kinds = properties.map(p => p.kind);
+                    if (kinds.includes(UpdateEventKind.Inserted)) {
                         this.attributesUpdateCallback(this.attributes.apps);
                     }
-                )
-            );
+                });
+            } else { // 兼容 2.14 以下版本没有 listenUpdated
+                this.reactionDisposers.push(
+                    reaction(
+                        () => Object.keys(this.attributes?.apps || {}).length,
+                        () => {
+                            this.attributesUpdateCallback(this.attributes.apps);
+                        }
+                    )
+                );
+            }
             this.reactionDisposers.push(
                 reaction(
                     () => this.attributes[Fields.MainViewCamera],

@@ -1,12 +1,12 @@
-import { autorun, reaction } from "white-web-sdk";
+import { autorun, reaction, listenUpdated, unlistenUpdated, listenDisposed, unlistenDisposed } from "white-web-sdk";
 import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { BoxManager } from "./BoxManager";
 import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
-import type { ViewManager } from "./ViewManager";
 import { BoxNotCreatedError } from "./error";
+import type { AppProxy } from "./AppProxy";
 
 export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
@@ -14,7 +14,12 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
         autorun,
         reaction,
     };
-    private viewManager: ViewManager;
+    public readonly objectUtils = {
+        listenUpdated,
+        unlistenUpdated,
+        listenDisposed,
+        unlistenDisposed
+    };
     private boxManager: BoxManager;
     private delegate = this.manager.delegate;
     public readonly isAddApp: boolean;
@@ -22,14 +27,13 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     constructor(
         private manager: AppManager,
         public appId: string,
-        appEmitter: Emittery<AppEmitterEvent<TAttrs>>,
-        isAddApp: boolean,
-        private appOptions?: AppOptions | (() => AppOptions)
+        private appProxy: AppProxy,
+        public setScenes: (scenes: SceneDefinition[]) => void,
+        private appOptions?: AppOptions | (() => AppOptions),
     ) {
-        this.emitter = appEmitter;
-        this.viewManager = this.manager.viewManager;
+        this.emitter = appProxy.appEmitter;
         this.boxManager = this.manager.boxManager;
-        this.isAddApp = isAddApp;
+        this.isAddApp = appProxy.isAddApp;
     }
 
     public getDisplayer() {
@@ -37,7 +41,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getAttributes(): TAttrs | undefined {
-        return this.manager.windowManger.attributes[this.appId];
+        return this.appProxy.attributes;
     }
 
     public getScenes(): SceneDefinition[] | undefined {
@@ -53,7 +57,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getView(): View | undefined {
-        return this.viewManager.getView(this.appId);
+        return this.appProxy.view;
     }
 
     public getInitScenePath() {
@@ -97,7 +101,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
             }, 1000);
         }
     }
-    
+
     public getAppOptions(): AppOptions | undefined {
         return typeof this.appOptions === 'function' ? (this.appOptions as () => AppOptions)() : this.appOptions
     }
