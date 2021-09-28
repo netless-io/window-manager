@@ -68,7 +68,6 @@ export class AppManager {
                     () => this.attributes[Fields.MainViewCamera],
                     camera => {
                         if (this.delegate.broadcaster !== this.displayer.observerId && camera) {
-                            console.log("camera", camera);
                             this.mainViewProxy.moveCamera(camera);
                         }
                     },

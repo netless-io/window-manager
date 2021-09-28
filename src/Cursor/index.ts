@@ -1,12 +1,12 @@
-import { Cursor } from "./Cursor";
-import { debounce } from "lodash";
-import { CursorState } from "../constants";
-import { Fields } from "../AttributesDelegate";
-import { reaction, listenUpdated, UpdateEventKind } from "white-web-sdk";
+import { Cursor } from './Cursor';
+import { CursorState } from '../constants';
+import { debounce } from 'lodash';
+import { Fields } from '../AttributesDelegate';
+import { listenUpdated, reaction, UpdateEventKind } from 'white-web-sdk';
+import { TELE_BOX_STATE } from '@netless/telebox-insider';
+import { WindowManager } from '../index';
 import type { RoomMember } from "white-web-sdk";
-import { WindowManager } from "../index";
 import type { AppManager } from "../AppManager";
-import { TELE_BOX_STATE } from "@netless/telebox-insider";
 
 export class CursorManager {
     public containerRect?: DOMRect;
@@ -37,6 +37,7 @@ export class CursorManager {
                     this.handleRoomMembersChange(wrapper);
                 }
             });
+            this.handleRoomMembersChange(wrapper);
         } else {
             this.disposer = reaction(
                 () => Object.keys(this.cursors || {}).length,
@@ -118,14 +119,8 @@ export class CursorManager {
 
     private updateCursor(clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
-            const titleHeight = this.getBoxTitleHeight();
-            const wrapperWidth = this.wrapperRect.width;
-            let wrapperHeight = this.wrapperRect.height;
-            if (titleHeight) {
-                wrapperHeight = wrapperHeight - titleHeight;
-            }
-            const x = (clientX - this.wrapperRect.x) / wrapperWidth;
-            const y = (clientY - this.wrapperRect.y) / wrapperHeight;
+            const x = (clientX - this.wrapperRect.x) / this.wrapperRect.width;
+            const y = (clientY - this.wrapperRect.y) / this.wrapperRect.height;
             if (this.appManager.delegate.getCursorState(this.observerId)) {
                 this.appManager.delegate.updateCursorState(this.observerId, CursorState.Normal);
             }
@@ -151,6 +146,9 @@ export class CursorManager {
         this.cursorInstances.forEach(cursor => {
             cursor.setMember();
         });
+        if (WindowManager.wrapper) {
+            this.handleRoomMembersChange(WindowManager.wrapper);
+        }
     }
 
     public cleanMemberCursor(memberId: string) {

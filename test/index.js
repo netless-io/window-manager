@@ -74,7 +74,10 @@ const sdk = new WhiteWebSdk({
 });
 
 window.WindowManager = WindowManager;
-
+const search = window.location.search;
+const url = new URLSearchParams(search);
+const isWritable = url.get("isWritable");
+console.log("isWritable", isWritable)
 sdk.joinRoom({
     uuid: process.env.ROOM_UUID,
     roomToken: process.env.ROOM_TOKEN,
@@ -84,7 +87,8 @@ sdk.joinRoom({
         userId: "111",
         cursorName: "su",
         avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
-    }
+    },
+    isWritable: !(isWritable === "false"),
 }).then(async room => {
     window.room = room;
     await mountManager(room);

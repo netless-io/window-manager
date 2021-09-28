@@ -113,6 +113,7 @@ export class ViewManager {
     };
 
     public async mainViewClickHandler(): Promise<void> {
+        if (!this.manager.canOperate) return;
         if (this.mainView.mode === ViewVisionMode.Writable) return;
         this.manager.delegate.cleanFocus();
         this.freedomAllViews();
