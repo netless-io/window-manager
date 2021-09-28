@@ -1,5 +1,5 @@
 import { AnimationMode } from "white-web-sdk";
-import { isEqual } from "lodash";
+import { isEmpty, isEqual } from "lodash";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
@@ -14,7 +14,7 @@ export class MainViewProxy {
     }
 
     public moveCameraToContian(size: Size): void {
-        if (!isEqual(size, this.size)) {
+        if (!isEmpty(size) && !isEqual(size, this.size)) {
             this.view.moveCameraToContain({
                 width: size.width,
                 height: size.height,
@@ -28,12 +28,14 @@ export class MainViewProxy {
     }
 
     public moveCamera(camera: Camera): void {
-        if (camera && !isEqual(camera, this.view.camera)) {
-            const scale = camera.scale * (this.scale || 1);
+        if (!isEmpty(camera)) {
+            if (isEqual(camera, this.view.camera)) return;
+            const { centerX, centerY, scale } = camera;
+            const needScale = scale * (this.scale || 1);
             this.view.moveCamera({
-                centerX: camera.centerX,
-                centerY: camera.centerY,
-                scale,
+                centerX: centerX,
+                centerY: centerY,
+                scale: needScale,
                 animationMode: AnimationMode.Immediately,
             });
         }
