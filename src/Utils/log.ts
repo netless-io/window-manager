@@ -1,4 +1,4 @@
-import { WindowManager } from "./index";
+import { WindowManager } from "../index";
 
 export const log = (...args: any[]): void => {
     if (WindowManager.debug) {

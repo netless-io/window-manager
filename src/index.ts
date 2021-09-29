@@ -7,13 +7,13 @@ import {
     AppManagerNotInitError,
     ParamsInvalidError,
     WhiteWebSDKInvalidError,
-} from "./error";
+} from "./Utils/error";
 import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
 import { CursorManager } from "./Cursor";
 import type { Apps } from "./AttributesDelegate";
 import { Fields } from "./AttributesDelegate";
-import { getVersionNumber, wait } from "./Common";
+import { getVersionNumber, wait } from "./Utils/Common";
 import {
     InvisiblePlugin,
     isRoom,
@@ -22,8 +22,8 @@ import {
     ViewVisionMode,
     WhiteVersion,
 } from "white-web-sdk";
-import { log } from "./log";
-import { replaceRoomFunction } from "./RoomHacker";
+import { log } from "./Utils/log";
+import { replaceRoomFunction } from "./Utils/RoomHacker";
 import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
 import { setupWrapper } from "./ViewManager";
 import "./style.css";

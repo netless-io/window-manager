@@ -1,18 +1,19 @@
 import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
-import { AttributesDelegate, Fields } from "./AttributesDelegate";
+import { AttributesDelegate } from "./AttributesDelegate";
 import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
 import { callbacks, emitter } from "./index";
-import { CameraStore } from "./CameraStore";
-import { genAppId, makeValidScenePath } from "./Common";
-import { isRoom, reaction, ScenePathType, listenUpdated, UpdateEventKind } from "white-web-sdk";
-import { log } from "./log";
+import { CameraStore } from "./Utils/CameraStore";
+import { genAppId, makeValidScenePath } from "./Utils/Common";
+import { isRoom, ScenePathType } from "white-web-sdk";
+import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
 import { ViewManager } from "./ViewManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type { AddAppParams, BaseInsertParams, WindowManager } from "./index";
+import { onObjectInserted } from "./Utils/Reactive";
 
 export class AppManager {
     public displayer: Displayer;
@@ -22,7 +23,7 @@ export class AppManager {
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
     public delegate = new AttributesDelegate(this);
-    public mainViewProxy = new MainViewProxy(this);
+    public mainViewProxy: MainViewProxy;
 
     private appListeners: AppListeners;
     private reactionDisposers: any[] = [];
@@ -42,54 +43,15 @@ export class AppManager {
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.addListeners();
+        this.mainViewProxy = new MainViewProxy(this);
 
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);
             emitter.onAny(this.boxEventListener);
-            if (listenUpdated) {
-                listenUpdated(this.attributes.apps, (properties) => {
-                    const kinds = properties.map(p => p.kind);
-                    if (kinds.includes(UpdateEventKind.Inserted)) {
-                        this.attributesUpdateCallback(this.attributes.apps);
-                    }
-                });
-            } else { // 兼容 2.14 以下版本没有 listenUpdated
-                this.reactionDisposers.push(
-                    reaction(
-                        () => Object.keys(this.attributes?.apps || {}).length,
-                        () => {
-                            this.attributesUpdateCallback(this.attributes.apps);
-                        }
-                    )
-                );
-            }
-            this.reactionDisposers.push(
-                reaction(
-                    () => this.attributes[Fields.MainViewCamera],
-                    camera => {
-                        if (this.delegate.broadcaster !== this.displayer.observerId && camera) {
-                            this.mainViewProxy.moveCamera(camera);
-                        }
-                    },
-                    {
-                        fireImmediately: true,
-                    }
-                )
-            );
-            this.reactionDisposers.push(
-                reaction(
-                    () => this.attributes[Fields.MainViewSize],
-                    size => {
-                        if (this.delegate.broadcaster !== this.displayer.observerId && size) {
-                            this.mainViewProxy.moveCameraToContian(size);
-                            this.mainViewProxy.moveCamera(this.delegate.getMainViewCamera());
-                        }
-                    },
-                    {
-                        fireImmediately: true,
-                    }
-                )
-            );
+            const disposer = onObjectInserted(this.attributes.apps, () => {
+                this.attributesUpdateCallback(this.attributes.apps);
+            });
+            this.reactionDisposers.push(disposer);
             if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
                 const mainScenePath = this.delegate.getMainViewScenePath();
                 if (!mainScenePath) return;
@@ -438,6 +400,7 @@ export class AppManager {
             });
         }
         this.viewManager.destroy();
+        this.mainViewProxy.destroy();
         callbacks.clearListeners();
     }
 }

@@ -3,13 +3,13 @@ import { AppAttributes, AppEvents, Events } from "./constants";
 import { AppContext } from "./AppContext";
 import { appRegister } from "./Register";
 import { autorun, ViewVisionMode } from "white-web-sdk";
-import { log } from "./log";
+import { log } from "./Utils/log";
 import {
     notifyMainViewModeChange,
     setScenePath,
     setViewFocusScenePath,
     setViewMode,
-} from "./Common";
+} from "./Utils/Common";
 import { callbacks, emitter } from "./index";
 import type {
     AppEmitterEvent,

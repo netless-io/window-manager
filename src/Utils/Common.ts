@@ -1,10 +1,10 @@
-import { emitter } from "./index";
-import type { PublicEvent } from "./index";
+import { emitter } from "../index";
+import type { PublicEvent } from "../index";
 import { nanoid } from "nanoid";
 import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
 import { debounce } from "lodash";
 import type Emittery from "emittery";
-import { appRegister } from "./Register";
+import { appRegister } from "../Register";
 
 export const genAppId = async (kind: string) => {
     const impl = await appRegister.appClasses.get(kind)?.();

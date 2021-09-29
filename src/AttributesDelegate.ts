@@ -1,6 +1,6 @@
 import { AppAttributes } from "./constants";
 import { get, pick } from "lodash";
-import { setViewFocusScenePath } from "./Common";
+import { setViewFocusScenePath } from "./Utils/Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
 import type { Camera, Size } from "white-web-sdk";
 import type { AppManager } from "./AppManager";

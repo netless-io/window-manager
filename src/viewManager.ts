@@ -6,12 +6,12 @@ import {
     setScenePath,
     setViewFocusScenePath,
     setViewMode,
-} from "./Common";
+} from "./Utils/Common";
 import { TELE_BOX_STATE } from "@netless/telebox-insider";
 import { ViewVisionMode } from "white-web-sdk";
 import type { Camera, Displayer, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
-import type { CameraStore } from "./CameraStore";
+import type { CameraStore } from "./Utils/CameraStore";
 export class ViewManager {
     public mainView: View;
     private views: Map<string, View> = new Map();

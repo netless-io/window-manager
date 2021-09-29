@@ -2,11 +2,11 @@ import { Cursor } from './Cursor';
 import { CursorState } from '../constants';
 import { debounce } from 'lodash';
 import { Fields } from '../AttributesDelegate';
-import { listenUpdated, reaction, UpdateEventKind } from 'white-web-sdk';
 import { TELE_BOX_STATE } from '@netless/telebox-insider';
 import { WindowManager } from '../index';
 import type { RoomMember } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
+import { onObjectInserted } from '../Utils/Reactive';
 
 export class CursorManager {
     public containerRect?: DOMRect;
@@ -30,25 +30,9 @@ export class CursorManager {
     }
 
     private startReaction(wrapper: HTMLElement) {
-        if (listenUpdated) {
-            listenUpdated(this.cursors, (updateEvents) => {
-                const kinds = updateEvents.map(e => e.kind);
-                if (kinds.includes(UpdateEventKind.Inserted)) {
-                    this.handleRoomMembersChange(wrapper);
-                }
-            });
+        this.disposer = onObjectInserted(this.cursors, () => {
             this.handleRoomMembersChange(wrapper);
-        } else {
-            this.disposer = reaction(
-                () => Object.keys(this.cursors || {}).length,
-                () => {
-                    this.handleRoomMembersChange(wrapper);
-                },
-                {
-                    fireImmediately: true,
-                }
-            );
-        }
+        });
     }
 
     private handleRoomMembersChange(wrapper: HTMLElement) {

@@ -5,7 +5,7 @@ import type Emittery from "emittery";
 import type { BoxManager } from "./BoxManager";
 import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
-import { BoxNotCreatedError } from "./error";
+import { BoxNotCreatedError } from "./Utils/error";
 import type { AppProxy } from "./AppProxy";
 
 export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
@@ -65,7 +65,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getIsWritable(): boolean {
-        return this.manager.canOperate && Boolean(this.boxManager.boxIsFocus(this.appId));
+        return this.manager.canOperate;
     }
 
     public getBox(): ReadonlyTeleBox {

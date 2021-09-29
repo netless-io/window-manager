@@ -1,16 +1,50 @@
-import { AnimationMode } from "white-web-sdk";
-import { isEmpty, isEqual } from "lodash";
+import { AnimationMode, reaction } from 'white-web-sdk';
+import { Fields } from './AttributesDelegate';
+import { isEmpty, isEqual } from 'lodash';
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
 export class MainViewProxy {
     private scale?: number;
     private size?: Size;
+    private disposers: any[] = [];
+    
+    constructor(private manager: AppManager) {
+        const delegate = this.manager.delegate;
+        const displayer = this.manager.displayer;
 
-    constructor(private manager: AppManager) {}
+        this.disposers.push(
+            reaction(
+                () => this.manager.attributes[Fields.MainViewCamera],
+                camera => {
+                    if (delegate.broadcaster !== displayer.observerId && camera) {
+                        this.moveCamera(camera);
+                    }
+                },
+                {
+                    fireImmediately: true,
+                }
+            )
+        );
+        this.disposers.push(
+            reaction(
+                () => this.manager.attributes[Fields.MainViewSize],
+                size => {
+                    if (delegate.broadcaster !== displayer.observerId && size) {
+                        this.moveCameraToContian(size);
+                        this.moveCamera(delegate.getMainViewCamera());
+                    }
+                },
+                {
+                    fireImmediately: true,
+                }
+            )
+        );
+
+    }
 
     public get view(): View {
-        return this.manager.viewManager.mainView;
+        return this.manager.viewManager.mainView;   
     }
 
     public moveCameraToContian(size: Size): void {
@@ -39,5 +73,9 @@ export class MainViewProxy {
                 animationMode: AnimationMode.Immediately,
             });
         }
+    }
+
+    public destroy() {
+        this.disposers.forEach(disposer => disposer());
     }
 }
