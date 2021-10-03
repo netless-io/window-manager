@@ -221,6 +221,7 @@ export class ViewManager {
             WindowManager.wrapper.parentNode?.removeChild(WindowManager.wrapper);
             WindowManager.wrapper = undefined;
         }
+        this.mainView.release();
     }
 }
 

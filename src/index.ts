@@ -132,6 +132,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
+    public static playground?: HTMLElement;
     public static container?: HTMLElement;
     public static debug = false;
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
@@ -210,7 +211,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
 
         this.checkVersion();
-        this.ensureEnableUseMobxState(room);
+        // this.ensureEnableUseMobxState(room);
         if (!container) {
             throw new Error("[WindowManager]: Container must provide");
         }
@@ -230,6 +231,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         WindowManager.container = container;
         const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
+        WindowManager.playground = playground;
         if (chessboard) {
             sizer.classList.add("netless-window-manager-chess-sizer");
         }
@@ -450,6 +452,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         WindowManager.container = undefined;
         WindowManager.wrapper = undefined;
         WindowManager.isCreated = false;
+        if (WindowManager.playground) {
+            WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
+        }
         log("Destroyed");
     }
 

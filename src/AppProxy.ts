@@ -268,6 +268,11 @@ export class AppProxy {
                     }
                     break;
                 }
+                case "focus": {
+                    this.boxManager.focusBox({ appId: this.id });
+                    emitter.emit("focus", { appId: this.id });
+                    break;
+                }
                 default: {
                     break;
                 }
