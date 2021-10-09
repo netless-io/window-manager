@@ -1,164 +1,20 @@
-/* eslint-disable no-undef */
+import React from "react";
+import ReactDom from "react-dom";
 import { WhiteWebSdk } from "white-web-sdk";
-import { WindowManager, BuiltinApps } from "../";
-import "normalize.css"
+import { BuiltinApps, WindowManager } from "../";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
-document.body.style.margin = '0';
-document.body.style.padding = '0';
+let anyWindow = window as any;
 
-const container = document.createElement('div');
-container.style.display = 'flex';
-container.style.width = '100vw';
-container.style.height = '100vh';
-container.style.padding = '16px 16px';
-container.style.overflow = 'hidden';
-container.style.boxSizing = 'border-box';
-
-const whiteboardRoot = document.createElement("div");
-whiteboardRoot.id = "root"
-whiteboardRoot.style.flex = "1";
-whiteboardRoot.style.height = "calc(100vh - 32px)";
-whiteboardRoot.style.border = "1px solid";
-
-const rightBar = document.createElement("div");
-rightBar.style.flexShrink = "0";
-rightBar.style.padding = "16px";
-rightBar.style.marginRight = "16px";
-rightBar.style.textAlign = "center";
-rightBar.style.userSelect = "none";
-
-function createAppButton(title, onClick) {
-    const btn = document.createElement("button");
-    btn.textContent = title;
-    btn.style.display = "block";
-    btn.style.margin = "1em 0";
-    rightBar.appendChild(btn);
-    btn.addEventListener("click", onClick);
-}
-
-container.appendChild(whiteboardRoot);
-container.appendChild(rightBar);
-
-document.body.append(container)
-
-const HelloWorldApp = async () => {
-    console.log('start loading HelloWorld...')
-    await new Promise(resolve => setTimeout(resolve, 5000))
-    console.log('HelloWorld Loaded')
-    return {
-        kind: "HelloWorld",
-        setup: (context) => {
-            console.log("helloworld");
-            console.log('helloworld options', context.getAppOptions());
-            return "Hello World Result";
-        }
-    }
-};
-
-WindowManager.register({
-    kind: "HelloWorld",
-    src: HelloWorldApp,
-    appOptions: () => 'AppOptions',
-    addHooks: (emitter) => {
-        emitter.on('created', result => {
-            console.log('HelloWordResult', result);
-        })
-    }
-});
-
-const sdk = new WhiteWebSdk({
-    appIdentifier: process.env.APPID,
-    useMobXState: true
-});
-
-window.WindowManager = WindowManager;
-const search = window.location.search;
-const url = new URLSearchParams(search);
-const isWritable = url.get("isWritable");
-console.log("isWritable", isWritable)
-sdk.joinRoom({
-    uuid: process.env.ROOM_UUID,
-    roomToken: process.env.ROOM_TOKEN,
-    invisiblePlugins: [WindowManager],
-    useMultiViews: true,
-    userPayload: {
-        userId: "111",
-        cursorName: "su",
-        avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
-    },
-    isWritable: !(isWritable === "false"),
-}).then(async room => {
-    window.room = room;
-    await mountManager(room);
-})
-
-
-const mountManager = async (room) => {
-    const manager = await WindowManager.mount({
-        room,
-        container: whiteboardRoot,
-        // collectorStyles: { bottom: "100px", right: "30px" },
-        containerSizeRatio: 9 / 16,
-        chessboard: false,
-        debug: true,
-        cursor: true,
-        overwriteStyles: `.telebox-title {
-            color: #e9e9e9;
-          }
-          .telebox-titlebar {
-            color: #e9e9e9;
-            background: #43434d;
-            border-bottom: none;
-          }
-          .telebox-box-main {
-            background: #212126;
-            border-color: #43434d;
-          }
-          .netless-app-docs-viewer-page-number-input {
-            color: #a6a6a8;
-          }
-          .netless-app-docs-viewer-page-number-input:active,
-          .netless-app-docs-viewer-page-number-input:focus,
-          .netless-app-docs-viewer-page-number-input:hover {
-            color: #222;
-          }
-          .netless-app-docs-viewer-footer {
-            color: #a6a6a8;
-            background: #2d2d33;
-            border-top: none;
-          }
-          .netless-app-docs-viewer-footer-btn:hover {
-            background: #212126;
-          }
-          .netless-app-docs-viewer-preview {
-            background: rgba(50, 50, 50, 0.9);
-          }`
-    });
-
-    window.manager = manager;
-    window.manager.onAppDestroy(BuiltinApps.DocsViewer, (error) => {
-        console.log("onAppDestroy", error)
-    });
-
-    window.manager.emitter.on("mainViewModeChange", mode => {
-        console.log("mode", mode);
-    })
-
-    manager.emitter.on("boxStateChange", state => {
-        console.log("boxState", state);
-    })
-}
-
-createAppButton("Hello World", () => {
-    window.manager.addApp({
+const createHelloWorld = () => {
+    anyWindow.manager.addApp({
         kind: "HelloWorld",
     });
-});
+}
 
-createAppButton("课件2", () => {
-    window.manager.addApp({
+const createDocs1 = () => {
+    anyWindow.manager.addApp({
         kind: BuiltinApps.DocsViewer,
         options: {
             scenePath: "/test4",
@@ -183,10 +39,9 @@ createAppButton("课件2", () => {
             ]
         },
     }).then(appId => console.log("appID", appId));
-});
-
-createAppButton("课件3", () => {
-    window.manager.addApp({
+}
+const createDocs2 = () => {
+    anyWindow.manager.addApp({
         kind: BuiltinApps.DocsViewer,
         options: {
             scenePath: "/ppt3",
@@ -339,21 +194,162 @@ createAppButton("课件3", () => {
             ]
         }
     })
-});
-
-createAppButton("插入视频", () => {
-    window.manager.addApp({
+}
+const createVideo = () => {
+    anyWindow.manager.addApp({
         kind: BuiltinApps.MediaPlayer,
         attributes: {
             src: "https://developer-assets.netless.link/Zelda.mp4"
         }
     })
-})
-
-const destroy = () => {
-    window.manager.destroy();
-    window.manager = undefined;
 }
 
-window.mountManager = mountManager;
-window.destroy = destroy;
+const onRef = (ref) => {
+    sdk.joinRoom({
+        uuid: process.env.ROOM_UUID,
+        roomToken: process.env.ROOM_TOKEN,
+        invisiblePlugins: [WindowManager],
+        useMultiViews: true,
+        userPayload: {
+            userId: "111",
+            cursorName: "su",
+            avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
+        },
+        isWritable: !(isWritable === "false"),
+    }).then(async room => {
+        (window as any).room = room;
+        await mountManager(room, ref);
+    })
+}
+
+const HelloWorldApp = async () => {
+    console.log('start loading HelloWorld...')
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    console.log('HelloWorld Loaded')
+    return {
+        kind: "HelloWorld",
+        setup: (context) => {
+            console.log("helloworld");
+            console.log('helloworld options', context.getAppOptions());
+            return "Hello World Result";
+        }
+    }
+};
+
+WindowManager.register({
+    kind: "HelloWorld",
+    src: HelloWorldApp,
+    appOptions: () => 'AppOptions',
+    addHooks: (emitter) => {
+        emitter.on('created', result => {
+            console.log('HelloWordResult', result);
+        })
+    }
+});
+
+const sdk = new WhiteWebSdk({
+    appIdentifier: process.env.APPID,
+    useMobXState: true
+});
+
+(window as any).WindowManager = WindowManager;
+const search = window.location.search;
+const url = new URLSearchParams(search);
+const isWritable = url.get("isWritable");
+
+const mountManager = async (room, root) => {
+    const manager = await WindowManager.mount({
+        room,
+        container: root,
+        // collectorStyles: { bottom: "100px", right: "30px" },
+        containerSizeRatio: 9 / 16,
+        chessboard: false,
+        debug: true,
+        cursor: true,
+        overwriteStyles: `.telebox-title {
+            color: #e9e9e9;
+          }
+          .telebox-titlebar {
+            color: #e9e9e9;
+            background: #43434d;
+            border-bottom: none;
+          }
+          .telebox-box-main {
+            background: #212126;
+            border-color: #43434d;
+          }
+          .netless-app-docs-viewer-page-number-input {
+            color: #a6a6a8;
+          }
+          .netless-app-docs-viewer-page-number-input:active,
+          .netless-app-docs-viewer-page-number-input:focus,
+          .netless-app-docs-viewer-page-number-input:hover {
+            color: #222;
+          }
+          .netless-app-docs-viewer-footer {
+            color: #a6a6a8;
+            background: #2d2d33;
+            border-top: none;
+          }
+          .netless-app-docs-viewer-footer-btn:hover {
+            background: #212126;
+          }
+          .netless-app-docs-viewer-preview {
+            background: rgba(50, 50, 50, 0.9);
+          }`
+    });
+
+    (window as any).manager = manager;
+    (window as any).manager.onAppDestroy(BuiltinApps.DocsViewer, (error) => {
+        console.log("onAppDestroy", error)
+    });
+
+    (window as any).manager.emitter.on("mainViewModeChange", mode => {
+        console.log("mode", mode);
+    })
+
+    manager.emitter.on("boxStateChange", state => {
+        console.log("boxState", state);
+    })
+}
+const destroy = () => {
+    anyWindow.manager.destroy();
+    anyWindow.manager = undefined;
+}
+
+anyWindow.mountManager = mountManager;
+anyWindow.destroy = destroy;
+
+const App = () => {
+    return (
+        <div style={{
+            display: "flex",
+            width: "100vw",
+            height: "100vh",
+            padding: "16px 16px",
+            overflow: "hidden",
+            boxSizing: "border-box"
+        }}>
+            <div ref={onRef} style={{
+                flex: 1,
+                height: "calc(100vh - 32px)",
+                border: "1px solid"
+            }}>
+            </div>
+            <div style={{
+                flexShrink: 0,
+                padding: "16px",
+                marginRight: "16px",
+                textAlign: "center",
+                userSelect: "none"
+            }}>
+                <button style={{ display: "block", margin: "1em 0"  }} onClick={createHelloWorld}>Hello World</button>
+                <button style={{ display: "block", margin: "1em 0"  }} onClick={createDocs1}>课件1</button>
+                <button style={{ display: "block", margin: "1em 0"  }} onClick={createDocs2}>课件2</button>
+                <button style={{ display: "block", margin: "1em 0"  }} onClick={createVideo}>视频</button>
+            </div>
+        </div>
+    )
+}
+
+ReactDom.render(<App />, document.getElementById("root"))

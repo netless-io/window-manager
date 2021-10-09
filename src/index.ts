@@ -211,7 +211,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
 
         this.checkVersion();
-        // this.ensureEnableUseMobxState(room);
+        if (room.phase !== RoomPhase.Connected) {
+            throw new Error("[WindowManager]: Room only Connected can be mount");
+        }
         if (!container) {
             throw new Error("[WindowManager]: Container must provide");
         }
@@ -536,19 +538,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         const version = getVersionNumber(WhiteVersion);
         if (version < getVersionNumber(REQUIRE_VERSION)) {
             throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);
-        }
-    }
-
-    private static ensureEnableUseMobxState(room: Room) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        if (room.useMobXState === false) {
-            console.warn(
-                "[WindowManager]: will enable useMobxState. To turn off this warning, set useMobxState: true when initializing WhiteWebSdk."
-            );
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            room.useMobXState = true;
         }
     }
 

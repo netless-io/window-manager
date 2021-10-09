@@ -8,7 +8,7 @@
 
 ### 注意事项
 
-多窗口模式必须开启白板的 `useMultiViews` 选项
+多窗口模式必须开启白板的 `useMultiViews` 和 `useMobXState` 选项
 
 会造成原本以下 `room` 上的一些方法和 `state` 失效
 
@@ -56,6 +56,7 @@ import "@netless/window-manager/dist/style.css";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: "appIdentifier",
+    useMobXState: true
 });
 
 sdk.joinRoom({

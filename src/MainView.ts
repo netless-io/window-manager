@@ -15,7 +15,7 @@ export class MainViewProxy {
 
         this.disposers.push(
             reaction(
-                () => this.manager.attributes[Fields.MainViewCamera],
+                () => this.manager.attributes?.[Fields.MainViewCamera],
                 camera => {
                     if (delegate.broadcaster !== displayer.observerId && camera) {
                         this.moveCamera(camera);
@@ -28,7 +28,7 @@ export class MainViewProxy {
         );
         this.disposers.push(
             reaction(
-                () => this.manager.attributes[Fields.MainViewSize],
+                () => this.manager.attributes?.[Fields.MainViewSize],
                 size => {
                     if (delegate.broadcaster !== displayer.observerId && size) {
                         this.moveCameraToContian(size);

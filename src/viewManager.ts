@@ -60,8 +60,14 @@ export class ViewManager {
     public destroyView(appId: string): void {
         const view = this.views.get(appId);
         if (view) {
-            view.release();
+            this.releaseView(view);
             this.views.delete(appId);
+        }
+    }
+
+    private releaseView(view: View) {
+        if (!(view as any).didRelease) {
+            view.release();
         }
     }
 
@@ -221,7 +227,7 @@ export class ViewManager {
             WindowManager.wrapper.parentNode?.removeChild(WindowManager.wrapper);
             WindowManager.wrapper = undefined;
         }
-        this.mainView.release();
+        this.releaseView(this.mainView);
     }
 }
 
