@@ -216,6 +216,7 @@ const onRef = (ref) => {
             avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
         },
         isWritable: !(isWritable === "false"),
+        cursorAdapter: undefined,
     }).then(async room => {
         (window as any).room = room;
         await mountManager(room, ref);
@@ -266,37 +267,6 @@ const mountManager = async (room, root) => {
         chessboard: false,
         debug: true,
         cursor: true,
-        overwriteStyles: `.telebox-title {
-            color: #e9e9e9;
-          }
-          .telebox-titlebar {
-            color: #e9e9e9;
-            background: #43434d;
-            border-bottom: none;
-          }
-          .telebox-box-main {
-            background: #212126;
-            border-color: #43434d;
-          }
-          .netless-app-docs-viewer-page-number-input {
-            color: #a6a6a8;
-          }
-          .netless-app-docs-viewer-page-number-input:active,
-          .netless-app-docs-viewer-page-number-input:focus,
-          .netless-app-docs-viewer-page-number-input:hover {
-            color: #222;
-          }
-          .netless-app-docs-viewer-footer {
-            color: #a6a6a8;
-            background: #2d2d33;
-            border-top: none;
-          }
-          .netless-app-docs-viewer-footer-btn:hover {
-            background: #212126;
-          }
-          .netless-app-docs-viewer-preview {
-            background: rgba(50, 50, 50, 0.9);
-          }`
     });
 
     (window as any).manager = manager;

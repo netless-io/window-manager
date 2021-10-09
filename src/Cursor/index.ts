@@ -62,7 +62,7 @@ export class CursorManager {
     }
 
     public get cursors() {
-        return this.manager.attributes[Fields.Cursors];
+        return this.manager.attributes?.[Fields.Cursors];
     }
 
     public get boxState() {

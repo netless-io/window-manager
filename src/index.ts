@@ -224,6 +224,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (!manager) {
             manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
         }
+        log("[WindowManager]: Already insert room", manager);
         this.debug = Boolean(debug);
         if (this.debug) {
             setOptions({ verbose: true });
