@@ -52,24 +52,6 @@
     height: 100%;
 }
 
-.cursor-box-tool {
-    position: absolute;
-    z-index: 3;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    margin-top: -24px;
-    margin-left: 16px;
-    border: 1px solid white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.cursor-box-tool img {
-    width: 12px;
-}
-
 .cursor-box {
     color: white;
     padding: 4px;
@@ -130,7 +112,7 @@
     border-radius: 4px;
 }
 
-.cursor-mid {
+.netless-window-manager-cursor-mid {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -173,7 +155,7 @@
     margin-top: 12px;
 }
 
-.cursor-name {
+.netless-window-manager-cursor-name {
     width: 100%;
     height: 48px;
     display: flex;

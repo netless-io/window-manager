@@ -34,10 +34,10 @@
 </script>
 
 <div
-    class="cursor-mid"
+    class="netless-window-manager-cursor-mid"
     style="transform: translateX({x}px) translateY({y}px);display: {display}"
 >
-    <div class="cursor-name">
+    <div class="netless-window-manager-cursor-name">
         <div
             class={theme}
             style="background-color: {backgroundColor};color: {color};opacity: {opacity}"
