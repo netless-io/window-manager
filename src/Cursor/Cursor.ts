@@ -155,7 +155,8 @@ export class Cursor {
 
     private getIcon() {
         if (this.member) {
-            return ApplianceMap[this.memberApplianceName || ApplianceNames.shape];
+            const applianceSrc = ApplianceMap[this.memberApplianceName || ApplianceNames.shape];
+            return applianceSrc || ApplianceMap[ApplianceNames.shape];
         }
     }
 

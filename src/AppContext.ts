@@ -1,13 +1,20 @@
-import { autorun, reaction, listenUpdated, unlistenUpdated, listenDisposed, unlistenDisposed } from "white-web-sdk";
+import {
+    autorun,
+    listenDisposed,
+    listenUpdated,
+    reaction,
+    unlistenDisposed,
+    unlistenUpdated
+    } from 'white-web-sdk';
+import { BoxNotCreatedError } from './Utils/error';
+import { wait } from './Utils/Common';
 import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { BoxManager } from "./BoxManager";
 import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
-import { BoxNotCreatedError } from "./Utils/error";
 import type { AppProxy } from "./AppProxy";
-import { wait } from "./Utils/Common";
 
 export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;

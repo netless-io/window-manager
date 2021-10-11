@@ -40,6 +40,7 @@ import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TELE_BOX_STATE } from "./BoxManager";
 import { REQUIRE_VERSION, DEFAULT_CONTAINER_RATIO } from "./constants";
+import { initDb } from "./Register/storage";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
@@ -254,6 +255,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
+        try {
+            await initDb();
+        } catch (error) {
+            console.warn("[WindowManager]: indexedDB open failed");
+            console.log(error);
+        }
         return manager;
     }
 
