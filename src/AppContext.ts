@@ -7,6 +7,7 @@ import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
 import { BoxNotCreatedError } from "./Utils/error";
 import type { AppProxy } from "./AppProxy";
+import { wait } from "./Utils/Common";
 
 export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
@@ -88,6 +89,17 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public updateAttributes(keys: string[], value: any) {
         if (this.manager.attributes[this.appId]) {
             this.manager.safeUpdateAttributes([this.appId, ...keys], value);
+        }
+    }
+
+    public async setScenePath(scenePath: string): Promise<void> {
+        if (!this.appProxy.box) return;
+        if (this.appProxy.box.focus) {
+            this.getRoom()?.setScenePath(scenePath);
+        } else {
+            this.emitter.emit("focus", true);
+            await wait(50);
+            this.getRoom()?.setScenePath(scenePath);
         }
     }
 
