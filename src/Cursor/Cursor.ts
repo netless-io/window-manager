@@ -80,9 +80,9 @@ export class Cursor {
 
     private get memberTheme() {
         if (this.payload?.theme) {
-            return "cursor-inner-mellow";
+            return "netless-window-manager-cursor-inner-mellow";
         } else {
-            return "cursor-inner";
+            return "netless-window-manager-cursor-inner";
         }
     }
 

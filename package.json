@@ -28,7 +28,7 @@
     "emittery": "^0.9.2",
     "lodash": "^4.17.21",
     "p-retry": "^4.6.1",
-    "uuid": "^8.3.2",
+    "uuid": "^7.0.3",
     "video.js": ">=7"
   },
   "devDependencies": {

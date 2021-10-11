@@ -44,7 +44,7 @@
         >
             {#if hasAvatar}
                 <img
-                    class="cursor-selector-avatar"
+                    class="netless-window-manager-cursor-selector-avatar"
                     style={computedAvatarStyle()}
                     src={avatar}
                     alt="avatar"
@@ -52,13 +52,13 @@
             {/if}
             {cursorName}
             {#if hasTagName}
-                <span class="cursor-tag-name" style="background-color: {cursorTagBackgroundColor}">
+                <span class="netless-window-manager-cursor-tag-name" style="background-color: {cursorTagBackgroundColor}">
                     {tagName}
                 </span>
             {/if}
         </div>
     </div>
     <div class="cursor-image-wrapper">
-        <img class="cursor-{appliance}-image" {src} alt={appliance} />
+        <img class="netless-window-manager-cursor-{appliance}-image" {src} alt={appliance} />
     </div>
 </div>
