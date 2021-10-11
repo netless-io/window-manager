@@ -28,8 +28,8 @@
     "dexie": "^3.0.3",
     "emittery": "^0.9.2",
     "lodash": "^4.17.21",
-    "nanoid": "^3.1.25",
     "p-retry": "^4.6.1",
+    "uuid": "^8.3.2",
     "video.js": ">=7"
   },
   "devDependencies": {
@@ -40,6 +40,7 @@
     "@tsconfig/svelte": "^2.0.1",
     "@types/debug": "^4.1.7",
     "@types/lodash-es": "^4.17.4",
+    "@types/uuid": "^8.3.1",
     "@typescript-eslint/eslint-plugin": "^4.30.0",
     "@typescript-eslint/parser": "^4.30.0",
     "dotenv": "^10.0.0",

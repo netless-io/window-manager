@@ -1,12 +1,12 @@
 import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
-import { AttributesDelegate } from "./AttributesDelegate";
+import { AttributesDelegate, Fields } from "./AttributesDelegate";
 import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
 import { callbacks, emitter } from "./index";
 import { CameraStore } from "./Utils/CameraStore";
 import { genAppId, makeValidScenePath } from "./Utils/Common";
-import { isRoom, ScenePathType } from "white-web-sdk";
+import { isRoom, reaction, ScenePathType } from "white-web-sdk";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
 import { ViewManager } from "./ViewManager";
@@ -52,6 +52,14 @@ export class AppManager {
                 this.attributesUpdateCallback(this.attributes.apps);
             });
             this.reactionDisposers.push(disposer);
+            this.reactionDisposers.push(
+                reaction(
+                    () => this.attributes[Fields.Broadcaster],
+                    id => {
+                        callbacks.emit("broadcastChange", id);
+                    }
+                )
+            )
             if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
                 const mainScenePath = this.delegate.getMainViewScenePath();
                 if (!mainScenePath) return;

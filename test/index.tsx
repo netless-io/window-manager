@@ -281,6 +281,9 @@ const mountManager = async (room, root) => {
     manager.emitter.on("boxStateChange", state => {
         console.log("boxState", state);
     })
+    manager.emitter.on("broadcastChange", id => {
+        console.log("broadcastChange", id);
+    })
 }
 const destroy = () => {
     anyWindow.manager.destroy();

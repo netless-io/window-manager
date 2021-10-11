@@ -110,6 +110,7 @@ export const emitter: Emittery<{
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
     boxStateChange: `${TELE_BOX_STATE}`;
+    broadcastChange: number;
 };
 
 export type MountParams = {
@@ -220,15 +221,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
-        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
-        if (!manager) {
-            manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
-        }
-        log("[WindowManager]: Already insert room", manager);
+        const manager = await this.initManager(room);
         this.debug = Boolean(debug);
         if (this.debug) {
             setOptions({ verbose: true });
         }
+        log("[WindowManager]: Already insert room", manager);
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
@@ -256,6 +254,26 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
+        return manager;
+    }
+
+    private static async initManager(room: Room): Promise<WindowManager> {
+        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+        if (!manager) {
+            if (isRoom(room)) {
+                if (room.isWritable === false) {
+                    try {
+                        await room.setWritable(true);
+                    } catch (error) {
+                        throw new Error("[WindowManger]: room must be switched to be writable");
+                    }
+                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    await room.setWritable(false);
+                } else {
+                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                }
+            }
+        }
         return manager;
     }
 

@@ -1,6 +1,6 @@
 import { emitter } from "../index";
 import type { PublicEvent } from "../index";
-import { nanoid } from "nanoid";
+import { v4 } from "uuid";
 import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
 import { debounce } from "lodash";
 import type Emittery from "emittery";
@@ -11,7 +11,7 @@ export const genAppId = async (kind: string) => {
     if (impl && impl.config?.singleton) {
         return kind;
     }
-    return `${kind}-${nanoid(8)}`;
+    return `${kind}-${v4().replace("-", "").slice(0, 8)}`;
 };
 
 export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
