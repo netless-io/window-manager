@@ -50,7 +50,7 @@
                     alt="avatar"
                 />
             {/if}
-            {cursorName}
+            <span style="overflow: hidden;white-space: nowrap;text-overflow: ellipsis;max-width: 80px">{cursorName}</span>
             {#if hasTagName}
                 <span class="netless-window-manager-cursor-tag-name" style="background-color: {cursorTagBackgroundColor}">
                     {tagName}
