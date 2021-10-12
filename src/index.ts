@@ -90,6 +90,7 @@ export type AppSyncAttributes = {
     options: any;
     state?: any;
     isDynamicPPT?: boolean;
+    fullPath?: string;
 };
 
 export type AppInitState = {
@@ -362,6 +363,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                         this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                     }
                 }
+            }
+            if (scenePath && scenes === undefined) {
+                this.room?.putScenes(scenePath, [{}])
             }
         }
         return isDynamicPPT;

@@ -16,6 +16,7 @@ export enum Fields {
     Cursors = "cursors",
     Position = "position",
     CursorState = "cursorState",
+    FullPath = "fullPath"
 }
 
 export type Apps = {

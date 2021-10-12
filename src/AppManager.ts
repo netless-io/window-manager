@@ -167,9 +167,7 @@ export class AppManager {
             this.appProxies.forEach(appProxy => {
                 if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
                     appProxy.emitAppSceneStateChange(sceneState);
-                    if (sceneState.index !== appProxy.sceneIndex) {
-                        appProxy.setSceneIndex(sceneState.index);
-                    }
+                    appProxy.setFullPath(scenePath);
                 }
             });
             this.viewManager.refreshViews();

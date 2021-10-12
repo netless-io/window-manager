@@ -1,16 +1,17 @@
-import Emittery from "emittery";
-import { AppAttributes, AppEvents, Events } from "./constants";
-import { AppContext } from "./AppContext";
-import { appRegister } from "./Register";
-import { autorun, ViewVisionMode } from "white-web-sdk";
-import { log } from "./Utils/log";
+import Emittery from 'emittery';
+import { AppAttributes, AppEvents, Events } from './constants';
+import { AppContext } from './AppContext';
+import { appRegister } from './Register';
+import { autorun, ViewVisionMode } from 'white-web-sdk';
+import { callbacks, emitter } from './index';
+import { Fields } from './AttributesDelegate';
+import { log } from './Utils/log';
 import {
     notifyMainViewModeChange,
     setScenePath,
     setViewFocusScenePath,
     setViewMode,
 } from "./Utils/Common";
-import { callbacks, emitter } from "./index";
 import type {
     AppEmitterEvent,
     AppInitState,
@@ -18,7 +19,7 @@ import type {
     setAppOptions,
     AppListenerKeys,
 } from "./index";
-import type { Camera, SceneDefinition, SceneState, View } from "white-web-sdk";
+import type { Camera, SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
@@ -59,20 +60,13 @@ export class AppProxy {
                 this.scenes = options.scenes;
             }
         }
+
         if (this.params.options?.scenePath) {
             // 只有传入了 scenePath 的 App 才会创建 View
             this.createView();
             this.addCameraListener();
         }
         this.isAddApp = isAddApp;
-    }
-
-    public get sceneIndex(): number {
-        return this.manager.delegate.getAppSceneIndex(this.id);
-    }
-
-    public setSceneIndex(index: number): void {
-        return this.manager.delegate.updateAppState(this.id, AppAttributes.SceneIndex, index);
     }
 
     public get view(): View | undefined {
@@ -87,20 +81,14 @@ export class AppProxy {
         return this.manager.attributes[this.id];
     }
 
-    public getSceneName(): string | undefined {
-        if (this.sceneIndex !== undefined) {
-            return this.scenes?.[this.sceneIndex]?.name;
-        }
-    }
-
     public getFullScenePath(): string | undefined {
-        if (this.scenePath && this.getSceneName()) {
-            return `${this.scenePath}/${this.getSceneName()}`;
+        if (this.scenePath) {
+            return this.manager.delegate.getAppAttributes(this.id)[Fields.FullPath] || this.scenePath;
         }
     }
 
-    public setScenes(scenes: SceneDefinition[]): void {
-        this.scenes = scenes;
+    public setFullPath(path: string) {
+        this.manager.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
     }
 
     public async baseInsertApp(focus?: boolean): Promise<{ appId: string; app: NetlessApp }> {
@@ -138,7 +126,7 @@ export class AppProxy {
 
     private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions, appOptions?: any) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, appId, this, this.setScenes, appOptions);
+        const context = new AppContext(this.manager, appId, this, appOptions);
         try {
             emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
                 const boxInitState = this.getAppInitState(appId);

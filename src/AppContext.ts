@@ -36,7 +36,6 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
         private manager: AppManager,
         public appId: string,
         private appProxy: AppProxy,
-        public setScenes: (scenes: SceneDefinition[]) => void,
         private appOptions?: AppOptions | (() => AppOptions),
     ) {
         this.emitter = appProxy.appEmitter;
