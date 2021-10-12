@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDom from "react-dom";
-import { WhiteWebSdk } from "white-web-sdk";
+import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
@@ -204,6 +204,31 @@ const createVideo = () => {
     })
 }
 
+const replay = () => {
+    sdk.replayRoom({
+        room: process.env.ROOM_UUID,
+        roomToken: process.env.ROOM_TOKEN,
+        invisiblePlugins: [WindowManager],
+        useMultiViews: true,
+        // beginTimestamp: Date.now() - 10 * 1000 * 60
+    }).then(async player => {
+        await anyWindow.manager.destroy();
+        anyWindow.room.disconnect();
+        setTimeout(async () => {
+            anyWindow.player = player;
+            // player.bindHtmlElement(document.getElementById("container") as any)
+            player.play()
+        }, 500)
+        player.callbacks.on("onPhaseChanged", phase => {
+            if (phase === PlayerPhase.Playing) {
+                setTimeout(() => {
+                    mountManager(player, document.getElementById("container"))
+                }, 1000)
+            }
+        })
+    })
+}
+
 const onRef = (ref) => {
     sdk.joinRoom({
         uuid: process.env.ROOM_UUID,
@@ -303,7 +328,7 @@ const App = () => {
             overflow: "hidden",
             boxSizing: "border-box"
         }}>
-            <div ref={onRef} style={{
+            <div ref={onRef} id="container" style={{
                 flex: 1,
                 height: "calc(100vh - 32px)",
                 border: "1px solid"
@@ -320,6 +345,7 @@ const App = () => {
                 <button style={{ display: "block", margin: "1em 0"  }} onClick={createDocs1}>课件1</button>
                 <button style={{ display: "block", margin: "1em 0"  }} onClick={createDocs2}>课件2</button>
                 <button style={{ display: "block", margin: "1em 0"  }} onClick={createVideo}>视频</button>
+                <button style={{ display: "block", margin: "1em 0"  }} onClick={replay}>回放</button>
             </div>
         </div>
     )

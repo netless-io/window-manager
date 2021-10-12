@@ -214,8 +214,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
 
         this.checkVersion();
-        if (room.phase !== RoomPhase.Connected) {
-            throw new Error("[WindowManager]: Room only Connected can be mount");
+        if (isRoom(room)) {
+            if (room.phase !== RoomPhase.Connected) {
+                throw new Error("[WindowManager]: Room only Connected can be mount");
+            }
         }
         if (!container) {
             throw new Error("[WindowManager]: Container must provide");

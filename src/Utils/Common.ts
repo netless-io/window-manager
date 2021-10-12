@@ -66,6 +66,8 @@ export const isValidScenePath = (scenePath: string) => {
 export const ensureValidScenePath = (scenePath: string) => {
     if (scenePath.endsWith("/")) {
         return scenePath.slice(0, -1);
+    } else {
+        return scenePath;
     }
 }
 
