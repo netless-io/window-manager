@@ -3280,7 +3280,7 @@ which@^2.0.1:
   dependencies:
     isexe "^2.0.0"
 
-white-web-sdk@^2.14.3:
+white-web-sdk@2.14.3:
   version "2.14.3"
   resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.14.3.tgz#7bd465beed1ab2db4d6c888d9a4cca22f89bfc9a"
   integrity sha512-+7sk7Tc4aGY9OFhAW+TJZpZHb6xehDutAJ1UETEgoHWebIFKGwiVXqS+Zni87XcTYM4i2wZKgfcsAm+HvUdThw==

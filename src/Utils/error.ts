@@ -25,3 +25,7 @@ export class ParamsInvalidError extends Error {
 export class BoxNotCreatedError extends Error {
     override message = "[WindowManager]: box need created";
 }
+
+export class InvalidScenePath extends Error {
+    override message = `[WindowManager]: ScenePath should start with "/"`;
+}

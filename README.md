@@ -130,6 +130,8 @@ WindowManager.mount({
 
 `App` 或会在页面刷新时自动创建出来, 不需要重复插入
 
+如果 `App` 需要 `scenePath` 时，那么一个 `scenePath` 只能同时打开一个，要求为 `App` 实例唯一
+
 ### 添加静态/动态 PPT 到白板上
 
 ```javascript
@@ -236,6 +238,14 @@ manager.emitter.on("boxStateChange", state => {
         // 恢复正常
     }
 });
+```
+
+### 监听 `broadcaster` 变化
+```javascript
+manager.emitter.on("broadcastChange", id => {
+    // broadcast id 进行了改变
+})
+
 ```
 
 ### 关闭 `App`

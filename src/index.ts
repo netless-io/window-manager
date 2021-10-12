@@ -5,6 +5,7 @@ import { isNull, isObject } from "lodash";
 import {
     AppCreateError,
     AppManagerNotInitError,
+    InvalidScenePath,
     ParamsInvalidError,
     WhiteWebSDKInvalidError,
 } from "./Utils/error";
@@ -13,7 +14,7 @@ import { appRegister } from "./Register";
 import { CursorManager } from "./Cursor";
 import type { Apps } from "./AttributesDelegate";
 import { Fields } from "./AttributesDelegate";
-import { getVersionNumber, wait } from "./Utils/Common";
+import { ensureValidScenePath, getVersionNumber, isValidScenePath, wait } from "./Utils/Common";
 import {
     InvisiblePlugin,
     isRoom,
@@ -227,7 +228,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.debug) {
             setOptions({ verbose: true });
         }
-        log("[WindowManager]: Already insert room", manager);
+        log("Already insert room", manager);
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
@@ -322,6 +323,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (isDynamicPPT === undefined) {
                 return;
             }
+            if (params?.options?.scenePath) {
+                params.options.scenePath = ensureValidScenePath(params.options.scenePath);
+            }
             const appId = await this.appManager.addApp(params, Boolean(isDynamicPPT));
             return appId;
         } else {
@@ -334,10 +338,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (params.options) {
             const { scenePath, scenes } = params.options;
             if (scenePath) {
+                if (!isValidScenePath(scenePath)) {
+                    throw new InvalidScenePath();
+                }
                 for (const appId in this.apps) {
                     const appScenePath = appManager.delegate.getAppScenePath(appId);
                     if (appScenePath && appScenePath === scenePath) {
-                        console.warn(`ScenePath ${scenePath} Already opened`);
+                        console.warn(`[WindowManager]: ScenePath ${scenePath} Already opened`);
                         return;
                     }
                 }

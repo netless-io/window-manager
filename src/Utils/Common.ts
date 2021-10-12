@@ -59,6 +59,16 @@ export const makeValidScenePath = (displayer: Displayer, scenePath: string) => {
     }
 };
 
+export const isValidScenePath = (scenePath: string) => {
+    return scenePath.startsWith("/");
+}
+
+export const ensureValidScenePath = (scenePath: string) => {
+    if (scenePath.endsWith("/")) {
+        return scenePath.slice(0, -1);
+    }
+}
+
 export const getVersionNumber = (version: string) => {
     const versionString = version.split(".").map(s => s.padStart(2, "0")).join("");
     return parseInt(versionString);
