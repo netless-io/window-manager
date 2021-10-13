@@ -4,13 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "poi --serve"
+    "dev": "poi index.html --serve --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "normalize.css": "^8.0.1"
+    "@netless/video-js-plugin": "^0.3.7",
+    "normalize.css": "^8.0.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "video.js": "^7.14.3"
   },
   "devDependencies": {
     "poi": "^12.10.3"

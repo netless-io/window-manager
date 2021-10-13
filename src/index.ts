@@ -1,248 +1,649 @@
-import { InvisiblePlugin, InvisiblePluginContext, Room, Event, View, ViewVisionMode, CameraState } from "white-web-sdk";
+import AppDocsViewer from "@netless/app-docs-viewer";
+import AppMediaPlayer, { setOptions } from "@netless/app-media-player";
 import Emittery from "emittery";
-import { loadPlugin } from "./loader";
-import { WindowManagerWrapper } from "./wrapper";
-
-// import "winbox/dist/css/winbox.min.css";
-// import "winbox/dist/css/themes/modern.min.css";
-import "./box/css/winbox.css";
-import "./box/css/themes/modern.less";
+import { isNull, isObject } from "lodash";
+import {
+    AppCreateError,
+    AppManagerNotInitError,
+    InvalidScenePath,
+    ParamsInvalidError,
+    WhiteWebSDKInvalidError,
+} from "./Utils/error";
+import { AppManager } from "./AppManager";
+import { appRegister } from "./Register";
+import { CursorManager } from "./Cursor";
+import type { Apps } from "./AttributesDelegate";
+import { Fields } from "./AttributesDelegate";
+import { ensureValidScenePath, getVersionNumber, isValidScenePath, wait } from "./Utils/Common";
+import {
+    InvisiblePlugin,
+    isRoom,
+    RoomPhase,
+    ViewMode,
+    ViewVisionMode,
+    WhiteVersion,
+} from "white-web-sdk";
+import { log } from "./Utils/log";
+import { replaceRoomFunction } from "./Utils/RoomHacker";
+import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
+import { setupWrapper } from "./ViewManager";
 import "./style.css";
-import { WinBox } from "./box/src/winbox";
+import "@netless/telebox-insider/dist/style.css";
+import type {
+    Displayer,
+    SceneDefinition,
+    View,
+    Room,
+    InvisiblePluginContext,
+    Camera,
+} from "white-web-sdk";
+import type { AppListeners } from "./AppListener";
+import type { NetlessApp, RegisterParams } from "./typings";
+import type { TELE_BOX_STATE } from "./BoxManager";
+import { REQUIRE_VERSION, DEFAULT_CONTAINER_RATIO } from "./constants";
+import { initDb } from "./Register/storage";
+
+const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
 export type WindowMangerAttributes = {
-    modelValue?: string,
-    [key: string]: any,
-}
+    modelValue?: string;
+    boxState: TELE_BOX_STATE;
+    [key: string]: any;
+};
 
-export type Plugin = { name: string, url: string };
+export type apps = {
+    [key: string]: NetlessApp;
+};
 
-export type Plugins = {
-    [key: string]: Plugin
-}
+export type AddAppOptions = {
+    scenePath?: string;
+    title?: string;
+    scenes?: SceneDefinition[];
+};
 
-export const emitter: Emittery = new Emittery();
+export type setAppOptions = AddAppOptions & { appOptions?: any };
 
-export enum EventNames {
-    PluginMove = "PluginMove",
-    PluginFocus = "PluginFocus",
-    PluginResize = "PluginResize",
-    GetAttributes = "GetAttributes",
-    UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
-    InitReplay = "InitReplay",
-    WindowCreated = "WindowCreated",
-}
+export type AddAppParams = {
+    kind: string;
+    // app 地址(本地 app 不需要传)
+    src?: string;
+    // 窗口配置
+    options?: AddAppOptions;
+    // 初始化 attributes
+    attributes?: any;
+};
 
-export enum PluginAttributes {
-    Size = "size",
-    Position = "position",
-}
+export type BaseInsertParams = {
+    kind: string;
+    // app 地址(本地 app 不需要传)
+    src?: string;
+    // 窗口配置
+    options?: AddAppOptions;
+    // 初始化 attributes
+    attributes?: any;
+    isDynamicPPT?: boolean;
+};
+
+export type AppSyncAttributes = {
+    kind: string;
+    src?: string;
+    options: any;
+    state?: any;
+    isDynamicPPT?: boolean;
+    fullPath?: string;
+};
+
+export type AppInitState = {
+    id: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    focus?: boolean;
+    snapshotRect?: any;
+    boxState?: TELE_BOX_STATE;
+    sceneIndex?: number;
+};
+
+export const emitter: Emittery<{
+    onCreated: undefined;
+    [key: string]: any;
+}> = new Emittery();
+
+export type PublicEvent = {
+    mainViewModeChange: ViewVisionMode;
+    boxStateChange: `${TELE_BOX_STATE}`;
+    broadcastChange: number;
+};
+
+export type MountParams = {
+    room: Room;
+    container: HTMLElement;
+    /** 白板高宽比例, 默认为 9 / 16 */
+    containerSizeRatio?: number;
+    /** 显示 PS 透明背景，默认 true */
+    chessboard?: boolean;
+    collectorContainer?: HTMLElement;
+    collectorStyles?: Partial<CSSStyleDeclaration>;
+    overwriteStyles?: string;
+    cursor?: boolean;
+    debug?: boolean;
+};
+
+export const callbacks: Emittery<PublicEvent> = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
-    public static kind: string = "WindowManager";
-    public static instance: WindowManager;
-    public static boardElement: HTMLDivElement | null = null;
-    private instancePlugins: Map<string, Plugin> = new Map();
-    public viewMap: Map<string, View> = new Map();
+    public static kind = "WindowManager";
+    public static displayer: Displayer;
+    public static wrapper?: HTMLElement;
+    public static playground?: HTMLElement;
+    public static container?: HTMLElement;
+    public static debug = false;
+    public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
+    private static isCreated = false;
+
+    public appListeners?: AppListeners;
+
+    public readonly?: boolean;
+    public emitter: Emittery<PublicEvent> = callbacks;
+    private appManager?: AppManager;
+    public cursorManager?: CursorManager;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
-        emitter.onAny(this.eventListener);
-        this.displayer.addMagixEventListener(EventNames.PluginMove, this.pluginMoveListener);
-        this.displayer.addMagixEventListener(EventNames.PluginFocus, this.pluginFocusListener);
-        this.displayer.addMagixEventListener(EventNames.PluginResize, this.pluginResizeListener);
-        WindowManager.instance = this;
     }
 
-    public static onCreate(instance: WindowManager) {
-        const plugins = instance.attributes.plugins as Plugins;
-        if (plugins) {
-            for (const [_, plugin] of Object.entries(plugins)) {
-                instance.addPlugin(plugin.name, plugin.url, false);
+    /**
+     * 挂载 WindowManager
+     * @deprecated
+     */
+    public static async mount(
+        room: Room,
+        container: HTMLElement,
+        collectorContainer?: HTMLElement,
+        options?: {
+            chessboard: boolean;
+            containerSizeRatio: number;
+            collectorStyles?: Partial<CSSStyleDeclaration>;
+            debug?: boolean;
+            overwriteStyles?: string;
+        }
+    ): Promise<WindowManager>;
+
+    public static async mount(params: MountParams): Promise<WindowManager>;
+
+    public static async mount(
+        params: MountParams | Room,
+        container?: HTMLElement,
+        collectorContainer?: HTMLElement,
+        options?: {
+            chessboard?: boolean;
+            containerSizeRatio: number;
+            collectorStyles?: Partial<CSSStyleDeclaration>;
+            debug?: boolean;
+            overwriteStyles?: string;
+        }
+    ): Promise<WindowManager> {
+        let room: Room;
+        let containerSizeRatio: number | undefined;
+        let collectorStyles: Partial<CSSStyleDeclaration> | undefined;
+        let debug: boolean | undefined;
+        let chessboard = true;
+        let overwriteStyles: string | undefined;
+        let cursor: boolean | undefined;
+        if ("room" in params) {
+            room = params.room;
+            container = params.container;
+            collectorContainer = params.collectorContainer;
+            containerSizeRatio = params.containerSizeRatio;
+            collectorStyles = params.collectorStyles;
+            debug = params.debug;
+            if (params.chessboard != null) {
+                chessboard = params.chessboard;
             }
-        }
-    }
-
-    public onAttributesUpdate(attributes: any) {
-        const plugins = attributes.plugins as Plugins;
-        if (plugins) {
-            for (const [name, plugin] of Object.entries(plugins)) {
-                if (!this.instancePlugins.has(name)) {
-                    this.addPlugin(name, plugin.url);
-                }
-            }
-        }
-    }
-
-    public updatePluginAttributes(name: string, keys: string[], value: any) {
-        this.updateAttributes([name, ...keys], value);
-    }
-
-    private pluginMoveListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            emitter.emit(EventNames.PluginMove, event.payload);
-        }
-    };
-
-    private pluginFocusListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            emitter.emit(EventNames.PluginFocus, event.payload);
-        }
-    };
-
-    private pluginResizeListener = (event: Event) => {
-        if (event.authorId !== this.displayer.observerId) {
-            emitter.emit(EventNames.PluginResize, event.payload);
-        }
-    };
-
-    private onPluginBoxInit = (name: string) => {
-        const pluginAttributes = this.attributes[name];
-        const position = pluginAttributes?.[PluginAttributes.Position];
-        const focus = this.attributes.focus;
-        const size = pluginAttributes?.[PluginAttributes.Size];
-        let payload = {};
-        if (position) {
-            payload = { name: name, x: position.x, y: position.y };
-        }
-        if (focus) {
-            payload = { ...payload, focus: true };
-        }
-        if (size) {
-            payload = { ...payload, width: size.width, height: size.height };
-        }
-        emitter.emit(EventNames.InitReplay, payload);
-    }
-
-    private eventListener = (eventName: string, payload: any) => {
-        switch (eventName) {
-            case "move": {
-                const room = this.displayer as Room;
-                room.dispatchMagixEvent(EventNames.PluginMove, payload);
-                this.updateAttributes([payload.name, PluginAttributes.Position], { x: payload.x, y: payload.y });
-                break;
-            }
-            case "focus": {
-                const room = this.displayer as Room;
-                room.dispatchMagixEvent(EventNames.PluginFocus, payload);
-                this.setAttributes({ focus: payload.name });
-                break;
-            }
-            case "resize": {
-                const room = this.displayer as Room;
-                room.dispatchMagixEvent(EventNames.PluginResize, payload);
-                this.updateAttributes([payload.name, PluginAttributes.Size], { width: payload.width, height: payload.height })
-                break;
-            }
-            case "init": {
-                this.onPluginBoxInit(payload.name);
-                break;
-            }
-            case "close": {
-                this.instancePlugins.delete(payload.name);
-                break;
-            }
-            default:
-                break;
-        }
-    }
-
-    public static async use(room: Room): Promise<WindowManager> {
-        let manger = room.getInvisiblePlugin(WindowManager.kind);
-        if (!manger) {
-            manger = await room.createInvisiblePlugin(WindowManager, {});
-        }
-        WindowManager.boardElement = (room as any).cameraObserver.mainView.divElement;
-        return manger as WindowManager;
-    }
-
-    public async addPlugin(name: string, url: string, isFirst = true) {
-        const scriptText = await loadPlugin(url);
-        try {
-            this.excuteFuntion(scriptText, name, url, isFirst);
-        } catch (error) {
-            if (error.message.includes("Can only have one anonymous define call per script file")) {
-                // @ts-ignore
-                const define = window.define;
-                if("function" == typeof define && define.amd) {
-                    delete define.amd;
-                }
-                this.excuteFuntion(scriptText, name, url, isFirst);
-            }
-        }      
-    }
-
-    private excuteFuntion(scriptText: string, name: string, url: string, isFirst: boolean) {
-        let moduleResult = Function(scriptText)();
-        if (typeof moduleResult === "undefined") {
-            // @ts-ignore
-            moduleResult = window[name];  
-        }
-        this.insertToSDK(this.displayer, moduleResult, name);
-        this.addPluginToAttirbutes({ name, url });
-        if (isFirst) {
-            this.setAttributes({ [name]: { 
-                [PluginAttributes.Size]: { width: 0, height: 0 },
-                [PluginAttributes.Position]: { x: 0, y: 0 }
-            } });
-        }
-    }
-
-    private addPluginToAttirbutes(payload: any): void {
-        const currentPlugins = this.attributes.plugins;
-        if (!currentPlugins) {
-            this.setAttributes({ plugins: { [payload.name]: payload } });
+            overwriteStyles = params.overwriteStyles;
+            cursor = params.cursor;
         } else {
-            this.setAttributes({ plugins: { ...currentPlugins, [payload.name]: payload  } });
-        }
-        this.instancePlugins.set(payload.name, payload);
-    }
-
-    public insertToSDK(room: any, moduleResult: any, name: string): void {
-        try {
-            room.invisiblePluginNode.pluginClasses = { ...room.invisiblePluginNode.pluginClasses, ...room.invisiblePluginNode.createPluginClasses([moduleResult[name]])};
-            room.invisiblePluginNode.refreshPlugin(moduleResult[name]);
-            if (!room.getInvisiblePlugin(moduleResult[name].kind)) {
-                room.createInvisiblePlugin(moduleResult[name], {});
+            room = params;
+            containerSizeRatio = options?.containerSizeRatio;
+            collectorStyles = options?.collectorStyles;
+            debug = options?.debug;
+            if (options?.chessboard != null) {
+                chessboard = options.chessboard;
             }
-            WindowManagerWrapper.addComponent(String(name), moduleResult[`${name}Wrapper`]);
+            overwriteStyles = options?.overwriteStyles;
+        }
+
+        this.checkVersion();
+        if (isRoom(room)) {
+            if (room.phase !== RoomPhase.Connected) {
+                throw new Error("[WindowManager]: Room only Connected can be mount");
+            }
+        }
+        if (!container) {
+            throw new Error("[WindowManager]: Container must provide");
+        }
+        if (WindowManager.isCreated) {
+            throw new Error("[WindowManager]: Already created cannot be created again");
+        }
+        const manager = await this.initManager(room);
+        this.debug = Boolean(debug);
+        if (this.debug) {
+            setOptions({ verbose: true });
+        }
+        log("Already insert room", manager);
+        if (containerSizeRatio) {
+            WindowManager.containerSizeRatio = containerSizeRatio;
+        }
+        WindowManager.container = container;
+        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
+        WindowManager.playground = playground;
+        if (chessboard) {
+            sizer.classList.add("netless-window-manager-chess-sizer");
+        }
+        if (overwriteStyles) {
+            const style = document.createElement("style");
+            style.textContent = overwriteStyles;
+            playground.appendChild(style);
+        }
+        await manager.ensureAttributes();
+        manager.appManager = new AppManager(manager, {
+            collectorContainer: collectorContainer,
+            collectorStyles: collectorStyles,
+        });
+        manager.observePlaygroundSize(playground, sizer, wrapper);
+        if (cursor) {
+            manager.cursorManager = new CursorManager(manager, manager.appManager);
+        }
+        manager.bindMainView(mainViewElement);
+        replaceRoomFunction(room, manager.appManager);
+        emitter.emit("onCreated");
+        WindowManager.isCreated = true;
+        try {
+            await initDb();
         } catch (error) {
-            console.log("insertToSDK error", error);
+            console.warn("[WindowManager]: indexedDB open failed");
+            console.log(error);
+        }
+        return manager;
+    }
+
+    private static async initManager(room: Room): Promise<WindowManager> {
+        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+        if (!manager) {
+            if (isRoom(room)) {
+                if (room.isWritable === false) {
+                    try {
+                        await room.setWritable(true);
+                    } catch (error) {
+                        throw new Error("[WindowManger]: room must be switched to be writable");
+                    }
+                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    await room.setWritable(false);
+                } else {
+                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                }
+            }
+        }
+        return manager;
+    }
+
+    /**
+     * 注册插件
+     */
+     public static register<AppOptions = any, SetupResult = any, Attributes = any>(
+        params: RegisterParams<AppOptions, SetupResult, Attributes>
+    ): Promise<void> {
+        return appRegister.register(params);
+    }
+
+    /**
+     * 创建 main View
+     */
+    public createMainView(): View {
+        if (this.appManager) {
+            return this.appManager.viewManager.mainView;
+        } else {
+            throw new AppManagerNotInitError();
         }
     }
 
-    public resize(name: string, width: number, height: number): void {
-        const cameraState = this.displayer.state.cameraState;
-        const newWidth = width / cameraState.width;
-        const newHeight = height / cameraState.height;
-        emitter.emit(EventNames.PluginResize, { name, width: newWidth, height: newHeight });
-    }
-
-    public getWindow(name: string): WinBox | undefined {
-        return WindowManagerWrapper.winboxMap.get(name);
-    }
-
-    public createView(name: string) {
-        const room = this.displayer as Room;
-        if (room) {
-            const view = room.views.createView();
-            view.mode = ViewVisionMode.Writable;
-            this.viewMap.set(name, view);
-            return view;
+    /**
+     * 创建一个 app 至白板
+     */
+    public async addApp(params: AddAppParams): Promise<string | undefined> {
+        if (this.appManager) {
+            if (!params.kind || typeof params.kind !== "string") {
+                throw new ParamsInvalidError();
+            }
+            const appImpl = await appRegister.appClasses.get(params.kind)?.();
+            if (appImpl && appImpl.config?.singleton) {
+                if (this.appManager.appProxies.has(params.kind)) {
+                    throw new AppCreateError();
+                }
+            }
+            const isDynamicPPT = this.setupScenePath(params, this.appManager);
+            if (isDynamicPPT === undefined) {
+                return;
+            }
+            if (params?.options?.scenePath) {
+                params.options.scenePath = ensureValidScenePath(params.options.scenePath);
+            }
+            const appId = await this.appManager.addApp(params, Boolean(isDynamicPPT));
+            return appId;
+        } else {
+            throw new AppManagerNotInitError();
         }
     }
 
-    public getRoomCameraState(): CameraState {
-        return this.displayer.state.cameraState;
+    private setupScenePath(params: AddAppParams, appManager: AppManager): boolean | undefined {
+        let isDynamicPPT = false;
+        if (params.options) {
+            const { scenePath, scenes } = params.options;
+            if (scenePath) {
+                if (!isValidScenePath(scenePath)) {
+                    throw new InvalidScenePath();
+                }
+                for (const appId in this.apps) {
+                    const appScenePath = appManager.delegate.getAppScenePath(appId);
+                    if (appScenePath && appScenePath === scenePath) {
+                        console.warn(`[WindowManager]: ScenePath ${scenePath} Already opened`);
+                        return;
+                    }
+                }
+            }
+            if (scenePath && scenes && scenes.length > 0) {
+                if (this.isDynamicPPT(scenes)) {
+                    isDynamicPPT = true;
+                    if (!this.displayer.entireScenes()[scenePath]) {
+                        this.room?.putScenes(scenePath, scenes);
+                    }
+                } else {
+                    if (!this.displayer.entireScenes()[scenePath]) {
+                        this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
+                    }
+                }
+            }
+            if (scenePath && scenes === undefined) {
+                this.room?.putScenes(scenePath, [{}])
+            }
+        }
+        return isDynamicPPT;
     }
 
-    public onWindowCreated(name: string, listener: any) {
-        emitter.on(`${name}${EventNames.WindowCreated}`, listener);
+    /**
+     * 关闭 APP
+     */
+    public async closeApp(appId: string): Promise<void> {
+        return this.appManager?.closeApp(appId);
     }
 
-    public onDestroy() {
-        emitter.offAny(this.eventListener);
+    /**
+     * 设置 mainView 的 ScenePath, 并且切换白板为可写状态
+     */
+    public setMainViewScenePath(scenePath: string): void {
+        if (this.appManager) {
+            this.appManager.setMainViewScenePath(scenePath);
+        }
+    }
+
+    /**
+     * 设置 mainView 的 SceneIndex, 并且切换白板为可写状态
+     */
+    public setMainViewSceneIndex(index: number): void {
+        if (this.appManager) {
+            this.appManager.setMainViewSceneIndex(index);
+        }
+    }
+
+    /**
+     * 返回 mainView 的 ScenePath
+     */
+    public getMainViewScenePath(): string {
+        return this.appManager?.delegate.getMainViewScenePath();
+    }
+
+    /**
+     * 返回 mainView 的 SceneIndex
+     */
+    public getMainViewSceneIndex(): number {
+        return this.appManager?.delegate.getMainViewSceneIndex();
+    }
+
+    /**
+     * 设置所有 app 的 readonly 模式
+     */
+    public setReadonly(readonly: boolean): void {
+        if (this.room?.isWritable) {
+            this.readonly = readonly;
+            this.appManager?.boxManager.teleBoxManager.setReadonly(readonly);
+        }
+    }
+
+    /**
+     * 切换 mainView 为可写
+     */
+    public switchMainViewToWriter(): Promise<void> | undefined {
+        return this.appManager?.viewManager.mainViewClickHandler();
+    }
+
+    /**
+     * app destroy 回调
+     */
+    public onAppDestroy(kind: string, listener: (error: Error) => void): void {
+        emitter.once(`destroy-${kind}`).then(listener);
+    }
+
+    /**
+     * 设置 ViewMode
+     */
+    public setViewMode(mode: ViewMode): void {
+        if (mode === ViewMode.Broadcaster) {
+            this.appManager?.delegate.setBroadcaster(this.displayer.observerId);
+            this.appManager?.delegate.setMainViewCamera(this.mainView.camera);
+            this.appManager?.delegate.setMainViewSize(this.mainView.size);
+        }
+        if (mode === ViewMode.Freedom) {
+            this.appManager?.delegate.setMainViewCamera(undefined);
+            this.appManager?.delegate.setMainViewSize(undefined);
+            this.appManager?.delegate.setBroadcaster(undefined);
+        }
+    }
+
+    public get mainView(): View {
+        if (this.appManager) {
+            return this.appManager.viewManager.mainView;
+        } else {
+            throw new AppManagerNotInitError();
+        }
+    }
+
+    public get camera(): Camera {
+        if (this.appManager) {
+            return this.appManager.viewManager.mainView.camera;
+        } else {
+            throw new AppManagerNotInitError();
+        }
+    }
+
+    public get apps(): Apps | undefined {
+        return this.appManager?.delegate.apps();
+    }
+
+    public get boxState(): string {
+        if (this.appManager) {
+            return this.appManager.boxManager.teleBoxManager.state;
+        } else {
+            throw new AppManagerNotInitError();
+        }
+    }
+
+    public override onDestroy(): void {
+        this._destroy();
+    }
+
+    public override destroy(): void {
+        this._destroy();
+    }
+
+    private _destroy() {
+        this.containerResizeObserver?.disconnect();
+        this.appManager?.destroy();
+        this.cursorManager?.destroy();
+        WindowManager.container = undefined;
+        WindowManager.wrapper = undefined;
+        WindowManager.isCreated = false;
+        if (WindowManager.playground) {
+            WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
+        }
+        log("Destroyed");
+    }
+
+    private bindMainView(divElement: HTMLDivElement) {
+        if (this.appManager) {
+            const mainView = this.appManager.viewManager.mainView;
+            mainView.divElement = divElement;
+            if (!mainView.focusScenePath) {
+                this.appManager.delegate.setMainViewFocusPath();
+            }
+            if (!this.appManager.delegate.getMainViewScenePath()) {
+                const sceneState = this.displayer.state.sceneState;
+                this.appManager.delegate.setMainViewScenePath(sceneState.scenePath);
+                this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
+            }
+
+            if (
+                this.appManager.delegate.focus === undefined &&
+                mainView.mode !== ViewVisionMode.Writable
+            ) {
+                this.appManager.viewManager.freedomAllViews();
+                this.appManager.viewManager.switchMainViewToWriter();
+            }
+            this.appManager.viewManager.addMainViewListener();
+        }
+    }
+
+    public get canOperate(): boolean {
+        if (isRoom(this.displayer)) {
+            return (
+                (this.displayer as Room).isWritable &&
+                (this.displayer as Room).phase === RoomPhase.Connected
+            );
+        } else {
+            return false;
+        }
+    }
+
+    public get room(): Room | undefined {
+        return this.canOperate ? (this.displayer as Room) : undefined;
+    }
+
+    public get broadcaster(): number | undefined {
+        return this.appManager?.delegate.broadcaster;
+    }
+
+    public safeSetAttributes(attributes: any): void {
+        if (this.canOperate) {
+            this.setAttributes(attributes);
+        }
+    }
+
+    public safeUpdateAttributes(keys: string[], value: any): void {
+        if (this.canOperate) {
+            this.updateAttributes(keys, value);
+        }
+    }
+
+    private safeDispatchMagixEvent(event: string, payload: any) {
+        if (this.canOperate) {
+            (this.displayer as Room).dispatchMagixEvent(event, payload);
+        }
+    }
+
+    private getSceneName(scenePath: string, index?: number) {
+        const scenes = this.displayer.entireScenes()[scenePath];
+        if (scenes && index !== undefined) {
+            return scenes[index]?.name;
+        }
+    }
+
+    private isDynamicPPT(scenes: SceneDefinition[]) {
+        const sceneSrc = scenes[0]?.ppt?.src;
+        return sceneSrc?.startsWith("pptx://");
+    }
+
+    private static checkVersion() {
+        const version = getVersionNumber(WhiteVersion);
+        if (version < getVersionNumber(REQUIRE_VERSION)) {
+            throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);
+        }
+    }
+
+    private async ensureAttributes() {
+        if (isNull(this.attributes)) {
+            await wait(50);
+        }
+        if (isObject(this.attributes)) {
+            if (!this.attributes[Fields.Apps]) {
+                this.safeSetAttributes({ [Fields.Apps]: {} });
+            }
+            if (!this.attributes[Fields.Cursors]) {
+                this.safeSetAttributes({ [Fields.Cursors]: {} });
+            }
+        }
+    }
+
+    private containerResizeObserver?: ResizeObserver;
+
+    private observePlaygroundSize(
+        container: HTMLElement,
+        sizer: HTMLElement,
+        wrapper: HTMLDivElement
+    ) {
+        this.updateSizer(container.getBoundingClientRect(), sizer, wrapper);
+
+        this.containerResizeObserver = new ResizeObserver(entries => {
+            const containerRect = entries[0]?.contentRect;
+            if (containerRect) {
+                this.updateSizer(containerRect, sizer, wrapper);
+                this.cursorManager?.updateContainerRect();
+            }
+        });
+
+        this.containerResizeObserver.observe(container);
+    }
+
+    private updateSizer(
+        { width, height }: DOMRectReadOnly,
+        sizer: HTMLElement,
+        wrapper: HTMLDivElement
+    ) {
+        if (width && height) {
+            if (height / width > WindowManager.containerSizeRatio) {
+                height = width * WindowManager.containerSizeRatio;
+                sizer.classList.toggle("netless-window-manager-sizer-horizontal", true);
+            } else {
+                width = height / WindowManager.containerSizeRatio;
+                sizer.classList.toggle("netless-window-manager-sizer-horizontal", false);
+            }
+            wrapper.style.width = `${width}px`;
+            wrapper.style.height = `${height}px`;
+        }
     }
 }
 
-export * from "./wrapper";
+WindowManager.register({
+    kind: AppDocsViewer.kind,
+    src: AppDocsViewer,
+});
+WindowManager.register({
+    kind: AppMediaPlayer.kind,
+    src: AppMediaPlayer,
+});
+
+export const BuiltinApps = {
+    DocsViewer: AppDocsViewer.kind as string,
+    MediaPlayer: AppMediaPlayer.kind as string,
+};
+
+export * from "./typings";

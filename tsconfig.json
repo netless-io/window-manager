@@ -1,15 +1,13 @@
-
 {
+    "extends": "@tsconfig/svelte/tsconfig.json",
     "compilerOptions": {
       "rootDir": "./src",
       "outDir": "dist",
       "strictNullChecks": true,
       "strict": true,
-      "sourceMap": true,
       "declaration": true,
-      "declarationMap": true,
       "noImplicitAny": true,
-      "module": "ES6",
+      "module": "ESNext",
       "skipLibCheck": true,
       "target": "es6",
       "jsx": "react",
@@ -22,11 +20,15 @@
       "allowSyntheticDefaultImports": true,
       "experimentalDecorators": true,
       "moduleResolution": "node",
-      "types" : [],
-      "allowJs": true
+      "allowJs": true,
+      "types": ["svelte"],
+      "noUnusedParameters": true,
+      "noImplicitOverride": true,
+      "isolatedModules": true,
     },
     "include": [
       "./src",
-      "../node_modules/@types/**/index.d.ts"
+      "./src/shim.d.ts",
+      "../node_modules/@types/**/index.d.ts",
     ]
   }

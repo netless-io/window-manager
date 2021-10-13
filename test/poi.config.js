@@ -1,5 +1,10 @@
 const dotenv = require('dotenv').config();
 
 module.exports = {
-    envs: dotenv.parsed
+    envs: dotenv.parsed,
+    configureWebpack: {
+        module: {
+            unknownContextCritical: false
+        }
+    },
 }
