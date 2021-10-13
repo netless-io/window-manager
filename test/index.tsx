@@ -10,6 +10,9 @@ let anyWindow = window as any;
 const createHelloWorld = () => {
     anyWindow.manager.addApp({
         kind: "HelloWorld",
+        options: {
+            scenePath: "/helloworld1"
+        }
     });
 }
 
@@ -250,13 +253,14 @@ const onRef = (ref) => {
 
 const HelloWorldApp = async () => {
     console.log('start loading HelloWorld...')
-    await new Promise(resolve => setTimeout(resolve, 5000))
+    // await new Promise(resolve => setTimeout(resolve, 2000))
     console.log('HelloWorld Loaded')
     return {
         kind: "HelloWorld",
         setup: (context) => {
             console.log("helloworld");
             console.log('helloworld options', context.getAppOptions());
+            context.mountView(context.getBox().$content);
             return "Hello World Result";
         }
     }

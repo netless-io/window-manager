@@ -503,7 +503,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.appManager) {
             const mainView = this.appManager.viewManager.mainView;
             mainView.divElement = divElement;
-            mainView.mode = ViewVisionMode.Writable;
             if (!mainView.focusScenePath) {
                 this.appManager.delegate.setMainViewFocusPath();
             }

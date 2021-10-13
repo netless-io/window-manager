@@ -42,7 +42,13 @@ export class ViewManager {
                 this.setMainViewSize(size);
             }
         });
-        this.switchMainViewModeToWriter();
+        const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
+        if (mainViewScenePath) {
+            setViewFocusScenePath(mainView, mainViewScenePath);
+        }
+        if (!this.delegate.focus) {
+            this.switchMainViewModeToWriter();
+        }
         return mainView;
     }
 

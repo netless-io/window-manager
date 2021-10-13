@@ -23,6 +23,7 @@ import type { Camera, SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
+import { get } from 'lodash';
 
 export class AppProxy {
     public id: string;
@@ -83,7 +84,8 @@ export class AppProxy {
 
     public getFullScenePath(): string | undefined {
         if (this.scenePath) {
-            return this.manager.delegate.getAppAttributes(this.id)[Fields.FullPath] || this.scenePath;
+            const appAttributes = this.manager.delegate.getAppAttributes(this.id);
+            return get(appAttributes, [Fields.FullPath], this.scenePath);
         }
     }
 
