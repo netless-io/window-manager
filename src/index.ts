@@ -129,6 +129,7 @@ export type MountParams = {
     overwriteStyles?: string;
     cursor?: boolean;
     debug?: boolean;
+    disableCameraTransform?: boolean;
 };
 
 export const callbacks: Emittery<PublicEvent> = new Emittery();
@@ -206,7 +207,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             overwriteStyles = params.overwriteStyles;
             cursor = params.cursor;
-            disableCameraTransform = Boolean(options?.disableCameraTransform);
+            disableCameraTransform = Boolean(params?.disableCameraTransform);
         } else {
             room = params;
             containerSizeRatio = options?.containerSizeRatio;
