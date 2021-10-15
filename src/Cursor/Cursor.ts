@@ -50,8 +50,8 @@ export class Cursor {
                 const containerRect = this.cursorManager.containerRect;
                 if (this.component && rect && containerRect) {
                     this.autoHidden();
-                    const translateX = x * rect.width; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
-                    const translateY = y * rect.height - 15; // y 减去 cursor 的高
+                    const translateX = x * rect.width - 2; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
+                    const translateY = y * rect.height - 18; // y 减去 cursor 的高
                     this.component.$set({ visible: true, x: translateX, y: translateY });
                 }
             }

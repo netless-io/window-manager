@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
-import { BuiltinApps, WindowManager } from "../dist/index.es";
+import { BuiltinApps, WindowManager } from "../";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
