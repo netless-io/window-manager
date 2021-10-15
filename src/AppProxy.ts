@@ -54,8 +54,7 @@ export class AppProxy {
         const options = this.params.options;
         if (options) {
             this.scenePath = options.scenePath;
-            const attr = this.manager.delegate.getAppAttributes(this.id);
-            if (attr?.isDynamicPPT && this.scenePath) {
+            if (this.appAttributes?.isDynamicPPT && this.scenePath) {
                 this.scenes = this.manager.displayer.entireScenes()[this.scenePath];
             } else {
                 this.scenes = options.scenes;
@@ -82,10 +81,13 @@ export class AppProxy {
         return this.manager.attributes[this.id];
     }
 
+    public get appAttributes() {
+        return this.manager.delegate.getAppAttributes(this.id);
+    }
+
     public getFullScenePath(): string | undefined {
         if (this.scenePath) {
-            const appAttributes = this.manager.delegate.getAppAttributes(this.id);
-            return get(appAttributes, [Fields.FullPath], this.scenePath);
+            return get(this.appAttributes, [Fields.FullPath], this.scenePath);
         }
     }
 
@@ -143,6 +145,7 @@ export class AppProxy {
                     if (boxInitState) {
                         if (boxInitState.focus && this.scenePath) {
                             this.manager.viewManager.switchAppToWriter(this.id);
+                            this.manager.viewManager.setMainViewFocusScenePath();
                         }
                         if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
                             this.boxManager.setBoxInitState(appId);

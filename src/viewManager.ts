@@ -186,7 +186,7 @@ export class ViewManager {
         }
     }
 
-    private setMainViewFocusScenePath() {
+    public setMainViewFocusScenePath() {
         const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
         if (mainViewScenePath) {
             setViewFocusScenePath(this.manager.mainView, mainViewScenePath);

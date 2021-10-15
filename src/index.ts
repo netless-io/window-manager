@@ -42,6 +42,7 @@ import type { NetlessApp, RegisterParams } from "./typings";
 import type { TELE_BOX_STATE } from "./BoxManager";
 import { REQUIRE_VERSION, DEFAULT_CONTAINER_RATIO } from "./constants";
 import { initDb } from "./Register/storage";
+import pRetry from "p-retry";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
@@ -182,6 +183,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             collectorStyles?: Partial<CSSStyleDeclaration>;
             debug?: boolean;
             overwriteStyles?: string;
+            disableCameraTransform?: boolean;
         }
     ): Promise<WindowManager> {
         let room: Room;
@@ -191,6 +193,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         let chessboard = true;
         let overwriteStyles: string | undefined;
         let cursor: boolean | undefined;
+        let disableCameraTransform = false;
         if ("room" in params) {
             room = params.room;
             container = params.container;
@@ -203,6 +206,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             overwriteStyles = params.overwriteStyles;
             cursor = params.cursor;
+            disableCameraTransform = Boolean(options?.disableCameraTransform);
         } else {
             room = params;
             containerSizeRatio = options?.containerSizeRatio;
@@ -226,12 +230,27 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
-        const manager = await this.initManager(room);
+        let manager = await this.initManager(room);
         this.debug = Boolean(debug);
         if (this.debug) {
             setOptions({ verbose: true });
         }
         log("Already insert room", manager);
+
+        if (isRoom(this.displayer)) {
+            if (!manager) {
+                throw new Error("[WindowManager]: init InvisiblePlugin failed");
+            }
+        } else {
+            await pRetry(async (count) => {
+                manager = await this.initManager(room);
+                if (!manager) {
+                    log(`manager is empty. retrying ${count}`)
+                    throw new Error();
+                }
+            }, { retries: 10 });
+        }
+
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
@@ -255,7 +274,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (cursor) {
             manager.cursorManager = new CursorManager(manager, manager.appManager);
         }
-        manager.bindMainView(mainViewElement);
+        manager.bindMainView(mainViewElement, disableCameraTransform);
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
@@ -499,9 +518,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         log("Destroyed");
     }
 
-    private bindMainView(divElement: HTMLDivElement) {
+    private bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
         if (this.appManager) {
             const mainView = this.appManager.viewManager.mainView;
+            mainView.disableCameraTransform = disableCameraTransform;
             mainView.divElement = divElement;
             if (!mainView.focusScenePath) {
                 this.appManager.delegate.setMainViewFocusPath();

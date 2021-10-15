@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
-import { BuiltinApps, WindowManager } from "../";
+import { BuiltinApps, WindowManager } from "../dist/index.es";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
@@ -213,7 +213,7 @@ const replay = () => {
         roomToken: process.env.ROOM_TOKEN,
         invisiblePlugins: [WindowManager],
         useMultiViews: true,
-        // beginTimestamp: Date.now() - 10 * 1000 * 60
+        // beginTimestamp: Date.now() - 5 * 1000 * 60
     }).then(async player => {
         await anyWindow.manager.destroy();
         anyWindow.room.disconnect();
@@ -293,7 +293,7 @@ const mountManager = async (room, root) => {
         container: root,
         // collectorStyles: { bottom: "100px", right: "30px" },
         containerSizeRatio: 9 / 16,
-        chessboard: false,
+        chessboard: true,
         debug: true,
         cursor: true,
     });

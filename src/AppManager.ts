@@ -6,7 +6,7 @@ import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
 import { callbacks, emitter } from "./index";
 import { CameraStore } from "./Utils/CameraStore";
 import { genAppId, makeValidScenePath } from "./Utils/Common";
-import { isRoom, reaction, ScenePathType } from "white-web-sdk";
+import { isPlayer, isRoom, reaction, ScenePathType } from "white-web-sdk";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
 import { ViewManager } from "./ViewManager";
@@ -93,6 +93,14 @@ export class AppManager {
                     );
                     this.focusByAttributes(apps);
                 }
+            }
+            if (isPlayer(this.displayer)) {
+                const ids = Object.keys(apps);
+                this.appProxies.forEach((appProxy, id) => {
+                    if (!ids.includes(id)) {
+                        appProxy.destroy(true, false);
+                    }
+                });
             }
         }
     }

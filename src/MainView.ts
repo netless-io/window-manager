@@ -40,7 +40,12 @@ export class MainViewProxy {
                 }
             )
         );
-
+        this.view.callbacks.on("onSizeUpdated", (size: Size) => {
+            if (delegate.broadcaster && delegate.broadcaster !== displayer.observerId && size) {
+                this.moveCameraToContian(delegate.getMainViewSize());
+                this.moveCamera(delegate.getMainViewCamera());
+            }
+        });
     }
 
     public get view(): View {
@@ -48,7 +53,7 @@ export class MainViewProxy {
     }
 
     public moveCameraToContian(size: Size): void {
-        if (!isEmpty(size) && !isEqual(size, this.size)) {
+        if (!isEmpty(size)) {
             this.view.moveCameraToContain({
                 width: size.width,
                 height: size.height,
@@ -56,7 +61,6 @@ export class MainViewProxy {
                 originY: -size.height / 2,
                 animationMode: AnimationMode.Immediately,
             });
-            this.size = size;
             this.scale = this.view.camera.scale;
         }
     }
