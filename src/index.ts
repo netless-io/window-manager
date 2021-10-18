@@ -310,6 +310,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                         throw new Error("[WindowManger]: room must be switched to be writable");
                     }
                     manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    await wait(500);
                     await room.setWritable(false);
                 } else {
                     manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
