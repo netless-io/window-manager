@@ -42,6 +42,10 @@ export const emitError = (error: Error) => {
     }
 };
 
+export const addEmitterOnceListener = (event: any, listener: any) => {
+    emitter.once(event).then(listener);
+}
+
 export const notifyMainViewModeChange = debounce(
     (callbacks: Emittery<PublicEvent>, mode: ViewVisionMode) => {
         callbacks.emit("mainViewModeChange", mode);

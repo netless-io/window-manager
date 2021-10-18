@@ -75,7 +75,7 @@ export class Cursor {
     }
 
     public get memberCursorName() {
-        return this.payload?.cursorName || this.memberId;
+        return this.payload?.nickName || this.payload?.cursorName || this.memberId;
     }
 
     private get memberTheme() {

@@ -6,7 +6,6 @@ import type { AppManager } from "./AppManager";
 
 export class MainViewProxy {
     private scale?: number;
-    private size?: Size;
     private disposers: any[] = [];
     
     constructor(private manager: AppManager) {

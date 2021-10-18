@@ -14,7 +14,7 @@ import { appRegister } from "./Register";
 import { CursorManager } from "./Cursor";
 import type { Apps } from "./AttributesDelegate";
 import { Fields } from "./AttributesDelegate";
-import { ensureValidScenePath, getVersionNumber, isValidScenePath, wait } from "./Utils/Common";
+import { addEmitterOnceListener, ensureValidScenePath, getVersionNumber, isValidScenePath, wait } from "./Utils/Common";
 import {
     InvisiblePlugin,
     isRoom,
@@ -106,10 +106,21 @@ export type AppInitState = {
     sceneIndex?: number;
 };
 
-export const emitter: Emittery<{
+type EmitterEvent = {
     onCreated: undefined;
-    [key: string]: any;
-}> = new Emittery();
+    InitReplay: AppInitState,
+    move: { appId: string, x: number, y: number },
+    focus: { appId: string },
+    close: { appId: string },
+    resize: { appId: string, width: number, height: number, x?: number, y?: number },
+    snapshot: { appId: string, rect: any },
+    error: Error,
+    [TELE_BOX_STATE.Normal]: undefined,
+    [TELE_BOX_STATE.Maximized]: undefined,
+    [TELE_BOX_STATE.Minimized]: undefined,
+}
+
+export const emitter: Emittery<EmitterEvent> = new Emittery();
 
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
@@ -451,7 +462,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * app destroy 回调
      */
     public onAppDestroy(kind: string, listener: (error: Error) => void): void {
-        emitter.once(`destroy-${kind}`).then(listener);
+        addEmitterOnceListener(`destroy-${kind}`, listener);
     }
 
     /**

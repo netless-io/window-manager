@@ -296,7 +296,7 @@ const mountManager = async (room, root) => {
         chessboard: true,
         debug: true,
         cursor: true,
-        disableCameraTransform: true,
+        // disableCameraTransform: true,
     });
 
     (window as any).manager = manager;

@@ -62,7 +62,7 @@ export class BoxManager {
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
                 callbacks.emit("boxStateChange", state);
-                emitter.emit(state, undefined);
+                emitter.emit(state as TELE_BOX_STATE, undefined);
             }
         });
         this.teleBoxManager.events.on("removed", boxes => {
@@ -126,15 +126,15 @@ export class BoxManager {
             id: params.appId,
         };
         this.teleBoxManager.create(createBoxConfig);
-        emitter.emit(`${params.appId}${Events.WindowCreated}`);
+            emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
 
-        const appState = this.manager.delegate.getAppState(params.appId);
-        if (appState) {
-            const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
-            if (isEmpty(snapshotRect)) {
-                this.setBoxInitState(params.appId);
+            const appState = this.manager.delegate.getAppState(params.appId);
+            if (appState) {
+                const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
+                if (isEmpty(snapshotRect)) {
+                    this.setBoxInitState(params.appId);
+                }
             }
-        }
     }
 
     public setBoxInitState(appId: string): void {
@@ -217,16 +217,20 @@ export class BoxManager {
                 y: state.y,
                 width: state.width || 0.5,
                 height: state.height || 0.5,
-            });
+            }, true);
             if (state.focus) {
-                this.teleBoxManager.update(box.id, { focus: true });
+                this.teleBoxManager.update(box.id, { focus: true }, true);
             }
-            if (state.boxState) {
-                this.teleBoxManager.setState(state.boxState);
-            }
-            if (state.snapshotRect) {
-                (box as TeleBox).setSnapshot(state.snapshotRect);
-            }
+            setTimeout(() => {
+                if (state.snapshotRect) {
+                    (box as TeleBox).setSnapshot(state.snapshotRect);
+                }
+            }, 30);
+            setTimeout(() => {
+                if (state.boxState && this.teleBoxManager.state !== state.boxState) {
+                    this.teleBoxManager.setState(state.boxState, true);
+                }
+            }, 0);
         }
     }
 

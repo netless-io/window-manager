@@ -132,7 +132,7 @@ export class AppProxy {
         log("setupApp", appId, app, options);
         const context = new AppContext(this.manager, appId, this, appOptions);
         try {
-            emitter.once(`${appId}${Events.WindowCreated}`).then(async () => {
+            emitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
                 const boxInitState = this.getAppInitState(appId);
                 this.boxManager.updateBoxState(boxInitState);
                 this.appEmitter.onAny(this.appListener);
@@ -334,7 +334,7 @@ export class AppProxy {
         await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
         await this.appEmitter.emit("destroy", { error });
         this.appEmitter.clearListeners();
-        emitter.emit(`destroy-${this.id}`, { error });
+        emitter.emit(`destroy-${this.id}` as any, { error });
         if (needCloseBox) {
             this.boxManager.closeBox(this.id);
         }

@@ -130,7 +130,7 @@ export class AppManager {
     }
 
     private afterAddApp(appProxy: AppProxy | undefined) {
-        if (appProxy) {
+        if (appProxy && appProxy.box) {
             emitter.emit("move", {
                 appId: appProxy.id,
                 x: appProxy.box?.x,
@@ -235,7 +235,7 @@ export class AppManager {
         if (this.room) {
             const scenePathType = this.displayer.scenePathType(scenePath);
             if (scenePathType === ScenePathType.None) {
-                throw new Error(`${scenePath} not valid scene`);
+                throw new Error(`[WindowManager]: ${scenePath} not valid scene`);
             } else if (scenePathType === ScenePathType.Page) {
                 this._setMainViewScenePath(scenePath);
             } else if (scenePathType === ScenePathType.Dir) {
