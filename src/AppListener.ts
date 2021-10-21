@@ -55,10 +55,6 @@ export class AppListeners {
                     this.appCloseHandler(data.payload);
                     break;
                 }
-                case Events.MainViewFocus: {
-                    this.mainViewFocusHandler();
-                    break;
-                }
                 case Events.SwitchViewsToFreedom: {
                     this.switchViewsToFreedomHandler();
                     break;
@@ -105,10 +101,6 @@ export class AppListeners {
         if (appProxy) {
             appProxy.destroy(true, true);
         }
-    };
-
-    private mainViewFocusHandler = () => {
-        this.manager.boxManager.blurFocusBox();
     };
 
     private switchViewsToFreedomHandler = () => {

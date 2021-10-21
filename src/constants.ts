@@ -12,7 +12,6 @@ export enum Events {
     WindowCreated = "WindowCreated",
     SetMainViewScenePath = "SetMainViewScenePath",
     SetMainViewSceneIndex = "SetMainViewSceneIndex",
-    MainViewFocus = "MainViewFocus",
     SwitchViewsToFreedom = "SwitchViewsToFreedom",
 }
 
