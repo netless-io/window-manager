@@ -35,10 +35,6 @@ export class AppListeners {
                     this.appMoveHandler(data.payload);
                     break;
                 }
-                case Events.AppFocus: {
-                    this.appFocusHandler(data.payload);
-                    break;
-                }
                 case Events.AppResize: {
                     this.appResizeHandler(data.payload);
                     break;
@@ -77,11 +73,6 @@ export class AppListeners {
         this.boxManager.moveBox(payload);
     };
 
-    private appFocusHandler = (payload: any) => {
-        this.boxManager.focusBox(payload);
-        this.manager.viewManager.refreshViews();
-    };
-
     private appResizeHandler = (payload: any) => {
         this.boxManager.resizeBox(Object.assign(payload, { skipUpdate: true }));
         this.manager.room?.refreshViewSize();
@@ -99,10 +90,6 @@ export class AppListeners {
 
     private appBoxStateHandler = (payload: any) => {
         this.boxManager.setBoxState(payload.state);
-        if (payload.state === TELE_BOX_STATE.Minimized) {
-            this.manager.viewManager.refreshViews();
-            this.viewManager.switchMainViewToWriter();
-        }
     };
 
     private appSnapshotHandler = (payload: any) => {
@@ -122,7 +109,6 @@ export class AppListeners {
 
     private mainViewFocusHandler = () => {
         this.manager.boxManager.blurFocusBox();
-        this.manager.viewManager.freedomAllViews();
     };
 
     private switchViewsToFreedomHandler = () => {

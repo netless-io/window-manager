@@ -87,7 +87,7 @@ export class BoxManager {
                 if (this.manager.canOperate) {
                     emitter.emit("focus", { appId: box.id });
                 } else {
-                    this.updateBox(box.id, { focus: false });
+                    this.teleBoxManager.update(box.id, { focus: false });
                 }
             } else {
                 this.blurFocusBox();
@@ -189,10 +189,6 @@ export class BoxManager {
         return this.teleBoxManager.remove(appId);
     }
 
-    public updateBox(appId: string, config: TeleBoxManagerUpdateConfig): void {
-        return this.teleBoxManager.update(appId, config);
-    }
-
     public boxIsFocus(appId: string): boolean | undefined {
         const box = this.getBox(appId);
         return box?.focus;
@@ -221,6 +217,7 @@ export class BoxManager {
             if (state.focus) {
                 this.teleBoxManager.update(box.id, { focus: true }, true);
             }
+            // TODO 连续调用 teleboxManager update 和 setState 会导致 box 出现问题. 先用 setTimeout 延迟调用,等 telebox 修复后去掉
             setTimeout(() => {
                 if (state.snapshotRect) {
                     (box as TeleBox).setSnapshot(state.snapshotRect);

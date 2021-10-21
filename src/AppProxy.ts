@@ -124,7 +124,7 @@ export class AppProxy {
         return this.boxManager.getBox(this.id);
     }
 
-    private focusBox() {
+    public focusBox() {
         this.boxManager.focusBox({ appId: this.id });
     }
 

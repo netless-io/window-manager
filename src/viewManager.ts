@@ -8,7 +8,7 @@ import {
     setViewMode,
 } from "./Utils/Common";
 import { TELE_BOX_STATE } from "@netless/telebox-insider";
-import { ViewVisionMode } from "white-web-sdk";
+import { ViewVisionMode, reaction } from "white-web-sdk";
 import type { Camera, Displayer, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { CameraStore } from "./Utils/CameraStore";
@@ -19,6 +19,7 @@ export class ViewManager {
     private mainViewIsAddListener = false;
     private delegate = this.manager.delegate;
     private timer?: number;
+    private disposer: any;
 
     constructor(
         private displayer: Displayer,
@@ -27,6 +28,19 @@ export class ViewManager {
     ) {
         this.mainView = this.createMainView();
         this.addMainViewCameraListener();
+        setTimeout(() => { // 延迟初始化 focus 的 reaction
+            this.disposer = reaction(
+                () => this.manager.delegate.focus,
+                focus => {
+                    if (focus) {
+                        this.switchAppToWriter(focus);
+                    } else {
+                        this.switchMainViewToWriter();
+                    }
+                },
+                { fireImmediately: true }
+            )
+        }, 100)
     }
 
     public get currentScenePath(): string {
@@ -129,11 +143,7 @@ export class ViewManager {
         if (!this.manager.canOperate) return;
         if (this.mainView.mode === ViewVisionMode.Writable) return;
         this.manager.delegate.cleanFocus();
-        this.freedomAllViews();
-        this.manager.dispatchInternalEvent(Events.SwitchViewsToFreedom, {});
-        this.manager.dispatchInternalEvent(Events.MainViewFocus, {});
         this.manager.boxManager.blurFocusBox();
-        await this.manager.viewManager.switchMainViewToWriter();
     }
 
     private mainViewCameraListener = (camera: Camera) => {
@@ -143,10 +153,11 @@ export class ViewManager {
         }
     };
 
-    public switchMainViewToWriter(): Promise<boolean> {
+    public switchMainViewToWriter(): Promise<boolean> | undefined {
         if (this.timer) {
             clearTimeout(this.timer);
         }
+        if (this.mainView.mode === ViewVisionMode.Writable) return;
         return new Promise((resolve, reject) => {
             this.timer = window.setTimeout(() => {
                 try {
@@ -181,7 +192,6 @@ export class ViewManager {
             }
         } else {
             if (this.manager.mainView.mode === ViewVisionMode.Writable) return;
-            this.freedomAllViews();
             this.switchMainViewToWriter();
         }
     }
@@ -197,7 +207,7 @@ export class ViewManager {
         this.manager.appProxies.forEach(appProxy => {
             appProxy.setViewFocusScenePath();
             if (appProxy.view) {
-                appProxy.view.mode = ViewVisionMode.Freedom;
+                setViewMode(appProxy.view, ViewVisionMode.Freedom)
             }
         });
         if (this.mainView.mode === ViewVisionMode.Writable) {
@@ -224,6 +234,7 @@ export class ViewManager {
                 appProxy.switchToWritable();
                 appProxy.recoverCamera();
                 appProxy.addCameraListener();
+                appProxy.focusBox();
             }
         }, SET_SCENEPATH_DELAY);
     }
@@ -235,6 +246,7 @@ export class ViewManager {
             WindowManager.wrapper = undefined;
         }
         this.releaseView(this.mainView);
+        this.disposer && this.disposer();
     }
 }
 

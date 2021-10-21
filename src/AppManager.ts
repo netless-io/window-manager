@@ -178,7 +178,6 @@ export class AppManager {
                     appProxy.setFullPath(scenePath);
                 }
             });
-            this.viewManager.refreshViews();
         }
         if (state.roomMembers) {
             this.windowManger.cursorManager?.setRoomMembers(state.roomMembers);
@@ -288,12 +287,6 @@ export class AppManager {
             }
             case "focus": {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                const appProxy = this.appProxies.get(payload.appId);
-                if (appProxy?.scenePath) {
-                    this.dispatchInternalEvent(Events.SwitchViewsToFreedom, {});
-                    this.viewManager.switchAppToWriter(payload.appId);
-                }
-                this.dispatchInternalEvent(Events.AppFocus, payload);
                 break;
             }
             case "blur": {
@@ -323,8 +316,6 @@ export class AppManager {
 
                 this.delegate.cleanFocus();
                 this.boxManager.blurFocusBox();
-                this.viewManager.freedomAllViews();
-                this.viewManager.switchMainViewToWriter();
                 break;
             }
             case TELE_BOX_STATE.Maximized: {

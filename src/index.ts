@@ -549,7 +549,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.delegate.focus === undefined &&
                 mainView.mode !== ViewVisionMode.Writable
             ) {
-                this.appManager.viewManager.freedomAllViews();
                 this.appManager.viewManager.switchMainViewToWriter();
             }
             this.appManager.viewManager.addMainViewListener();
