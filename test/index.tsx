@@ -246,7 +246,10 @@ const onRef = (ref) => {
         isWritable: !(isWritable === "false"),
         cursorAdapter: undefined,
     }).then(async room => {
-        room.setMemberState({ strokeColor: [0, 0, 1] });
+        if (room.isWritable) {
+            room.setMemberState({ strokeColor: [0, 0, 1] });
+        }
+
         (window as any).room = room;
         await mountManager(room, ref);
     })

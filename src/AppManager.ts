@@ -51,7 +51,9 @@ export class AppManager {
             const disposer = onObjectInserted(this.attributes.apps, () => {
                 this.attributesUpdateCallback(this.attributes.apps);
             });
-            this.reactionDisposers.push(disposer);
+            if (disposer) {
+                this.reactionDisposers.push(disposer);
+            }
             this.reactionDisposers.push(
                 reaction(
                     () => this.attributes[Fields.Broadcaster],
