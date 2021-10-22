@@ -202,6 +202,12 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.emitAppIsWritableChange();
         });
+        if (isWritable === true) {
+            this.windowManger.initMainViewAttributes();
+            if (!this.delegate.focus) {
+                this.viewManager.switchMainViewModeToWriter();
+            }
+        }
     };
 
     private get eventName() {

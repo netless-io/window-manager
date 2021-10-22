@@ -21,7 +21,7 @@ export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
 };
 
 export const setScenePath = (room: Room | undefined, scenePath: string) => {
-    if (room) {
+    if (room && room.isWritable) {
         if (room.state.sceneState.scenePath !== scenePath) {
             room.setScenePath(scenePath);
         }

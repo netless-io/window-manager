@@ -160,6 +160,9 @@ export class AttributesDelegate {
     }
 
     public updateCursor(observerId: string, position: Position) {
+        if (!get(this.manager.attributes, [Fields.Cursors])) {
+            this.manager.safeUpdateAttributes([Fields.Cursors], {});
+        }
         if (!get(this.manager.attributes, [Fields.Cursors, observerId])) {
             this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
         }

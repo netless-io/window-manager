@@ -310,6 +310,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                         throw new Error("[WindowManger]: room must be switched to be writable");
                     }
                     manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    manager.ensureAttributes();
                     await wait(500);
                     await room.setWritable(false);
                 } else {
@@ -539,12 +540,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (!mainView.focusScenePath) {
                 this.appManager.delegate.setMainViewFocusPath();
             }
-            if (!this.appManager.delegate.getMainViewScenePath()) {
-                const sceneState = this.displayer.state.sceneState;
-                this.appManager.delegate.setMainViewScenePath(sceneState.scenePath);
-                this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
-            }
-
+            this.initMainViewAttributes();
             if (
                 this.appManager.delegate.focus === undefined &&
                 mainView.mode !== ViewVisionMode.Writable
@@ -552,6 +548,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.viewManager.switchMainViewToWriter();
             }
             this.appManager.viewManager.addMainViewListener();
+        }
+    }
+
+    public initMainViewAttributes() {
+        if (!this.appManager) return;
+        if (!this.appManager.delegate.getMainViewScenePath()) {
+            const sceneState = this.displayer.state.sceneState;
+            this.appManager.delegate.setMainViewScenePath(sceneState.scenePath);
+            this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
         }
     }
 

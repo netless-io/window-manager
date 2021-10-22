@@ -288,6 +288,7 @@ export class AppProxy {
     }
 
     public setScenePath(): void {
+        if (!this.manager.canOperate) return;
         const fullScenePath = this.getFullScenePath();
         if (this.manager.room && fullScenePath && this.view) {
             setScenePath(this.manager.room, fullScenePath);
