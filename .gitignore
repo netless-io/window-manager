@@ -3,3 +3,5 @@ dist
 .env
 .idea
 .vscode
+e2e/cypress/*
+!e2e/cypress/integration/

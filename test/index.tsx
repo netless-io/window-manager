@@ -213,7 +213,6 @@ const replay = () => {
         roomToken: process.env.ROOM_TOKEN,
         invisiblePlugins: [WindowManager],
         useMultiViews: true,
-        // beginTimestamp: Date.now() - 5 * 1000 * 60
     }).then(async player => {
         await anyWindow.manager.destroy();
         anyWindow.room.disconnect();

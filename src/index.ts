@@ -16,8 +16,12 @@ import type { Apps } from "./AttributesDelegate";
 import { Fields } from "./AttributesDelegate";
 import { addEmitterOnceListener, ensureValidScenePath, getVersionNumber, isValidScenePath, wait } from "./Utils/Common";
 import {
+    AnimationMode,
+    CameraBound,
     InvisiblePlugin,
     isRoom,
+    Point,
+    Rectangle,
     RoomPhase,
     ViewMode,
     ViewVisionMode,
@@ -43,6 +47,8 @@ import type { TELE_BOX_STATE } from "./BoxManager";
 import { REQUIRE_VERSION, DEFAULT_CONTAINER_RATIO } from "./constants";
 import { initDb } from "./Register/storage";
 import pRetry from "p-retry";
+import type { TeleBoxState } from "@netless/telebox-insider";
+import type { AppProxy } from "./AppProxy";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
@@ -159,7 +165,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public readonly?: boolean;
     public emitter: Emittery<PublicEvent> = callbacks;
-    private appManager?: AppManager;
+    public appManager?: AppManager;
     public cursorManager?: CursorManager;
 
     constructor(context: InvisiblePluginContext) {
@@ -331,17 +337,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     /**
-     * 创建 main View
-     */
-    public createMainView(): View {
-        if (this.appManager) {
-            return this.appManager.viewManager.mainView;
-        } else {
-            throw new AppManagerNotInitError();
-        }
-    }
-
-    /**
      * 创建一个 app 至白板
      */
     public async addApp(params: AddAppParams): Promise<string | undefined> {
@@ -402,13 +397,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
         return isDynamicPPT;
-    }
-
-    /**
-     * 关闭 APP
-     */
-    public async closeApp(appId: string): Promise<void> {
-        return this.appManager?.closeApp(appId);
     }
 
     /**
@@ -503,12 +491,51 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.delegate.apps();
     }
 
-    public get boxState(): string {
+    public get boxState(): TeleBoxState {
         if (this.appManager) {
             return this.appManager.boxManager.teleBoxManager.state;
         } else {
             throw new AppManagerNotInitError();
         }
+    }
+
+    /**
+     * 查询所有的 App
+     */
+    public queryAll(): AppProxy[] {
+        return Array.from(this.appManager?.appProxies.values() || []);
+    }
+
+    /**
+     * 查询单个 App
+     */
+    public queryOne(appId: string): AppProxy | undefined {
+        return this.appManager?.appProxies.get(appId);
+    }
+
+    /**
+     * 关闭 APP
+     */
+    public async closeApp(appId: string): Promise<void> {
+        return this.appManager?.closeApp(appId);
+    }
+
+    public moveCamera(camera: Partial<Camera> & { animationMode?: AnimationMode | undefined }): void {
+        this.mainView.moveCamera(camera);
+    }
+
+    public moveCameraToContain(rectangle: Rectangle & Readonly<{
+        animationMode?: AnimationMode;
+    }>): void {
+        this.mainView.moveCameraToContain(rectangle);
+    }
+
+    public convertToPointInWorld(point: Point): Point {
+        return this.mainView.convertToPointInWorld(point);
+    }
+
+    public setCameraBound(cameraBound: CameraBound): void {
+        this.mainView.setCameraBound(cameraBound);
     }
 
     public override onDestroy(): void {
@@ -540,7 +567,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (!mainView.focusScenePath) {
                 this.appManager.delegate.setMainViewFocusPath();
             }
-            this.initMainViewAttributes();
             if (
                 this.appManager.delegate.focus === undefined &&
                 mainView.mode !== ViewVisionMode.Writable
@@ -548,15 +574,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.viewManager.switchMainViewToWriter();
             }
             this.appManager.viewManager.addMainViewListener();
-        }
-    }
-
-    public initMainViewAttributes() {
-        if (!this.appManager) return;
-        if (!this.appManager.delegate.getMainViewScenePath()) {
-            const sceneState = this.displayer.state.sceneState;
-            this.appManager.delegate.setMainViewScenePath(sceneState.scenePath);
-            this.appManager.delegate.setMainViewSceneIndex(sceneState.index);
         }
     }
 
@@ -571,8 +588,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    public get room(): Room | undefined {
-        return this.canOperate ? (this.displayer as Room) : undefined;
+    public get room(): Room {
+        return this.displayer as Room;
     }
 
     public get broadcaster(): number | undefined {
@@ -594,13 +611,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private safeDispatchMagixEvent(event: string, payload: any) {
         if (this.canOperate) {
             (this.displayer as Room).dispatchMagixEvent(event, payload);
-        }
-    }
-
-    private getSceneName(scenePath: string, index?: number) {
-        const scenes = this.displayer.entireScenes()[scenePath];
-        if (scenes && index !== undefined) {
-            return scenes[index]?.name;
         }
     }
 
@@ -626,6 +636,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             if (!this.attributes[Fields.Cursors]) {
                 this.safeSetAttributes({ [Fields.Cursors]: {} });
+            }
+            const sceneState = this.displayer.state.sceneState;
+            if (!this.attributes["_mainScenePath"]) {
+                this.safeSetAttributes({ _mainScenePath: sceneState.scenePath });
+            }
+            if (!this.attributes["_mainSceneIndex"]) {
+                this.safeSetAttributes({ _mainSceneIndex: sceneState.index });
             }
         }
     }
@@ -684,3 +701,5 @@ export const BuiltinApps = {
 };
 
 export * from "./typings";
+
+export { WhiteWindowSDK } from "./sdk";

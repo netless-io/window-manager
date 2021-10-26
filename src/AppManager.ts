@@ -188,7 +188,7 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
-    };
+    }
 
     private displayerWritableListener = (isReadonly: boolean) => {
         const isWritable = !isReadonly;
@@ -203,12 +203,11 @@ export class AppManager {
             appProxy.emitAppIsWritableChange();
         });
         if (isWritable === true) {
-            this.windowManger.initMainViewAttributes();
             if (!this.delegate.focus) {
                 this.viewManager.switchMainViewModeToWriter();
             }
         }
-    };
+    }
 
     private get eventName() {
         return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";

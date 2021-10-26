@@ -351,4 +351,8 @@ export class AppProxy {
         this.manager.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
     }
+
+    public async close(): Promise<void> {
+        return await this.destroy(true, true);
+    }
 }
