@@ -1,14 +1,16 @@
 import { isFunction } from 'lodash';
 import { RoomPhase } from 'white-web-sdk';
 import type { Room } from "white-web-sdk";
+import type { AppManager } from './AppManager';
 
+// 白板重连之后会刷新所有的对象，导致 listener 失效, 所以这里在重连之后重新对所有对象进行监听
 export class ReconnectRefresher {
     private phase: RoomPhase;
     private room: Room;
     private reactors: Map<string, any> = new Map();
     private disposers: Map<string, any> = new Map();
 
-    constructor(room: Room) {
+    constructor(room: Room, private manager: AppManager) {
         this.room = room;
         this.phase = room.phase;
         room.callbacks.on("onPhaseChanged", this.onPhaseChanged);
@@ -27,7 +29,8 @@ export class ReconnectRefresher {
             if (isFunction(func)) {
                 this.disposers.set(id, func());
             }
-        })
+        });
+        this.manager.notifyReconnected();
     }
 
     private releaseDisposers() {

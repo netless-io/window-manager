@@ -4,7 +4,7 @@ import type { Room} from "white-web-sdk";
 describe("只读模式加入房间", () => {
     before(() => {
         cy.visit("/?isWritable=false");
-        cy.wait(5000);
+        cy.wait(8000);
     })
 
     afterEach(() => {

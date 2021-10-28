@@ -48,6 +48,7 @@ export type AppEmitterEvent<T = any> = {
     containerRectUpdate: TeleBoxRect;
     roomStateChange: Partial<DisplayerState>;
     focus: boolean;
+    reconnected: void;
 };
 
 export type RegisterEventData = {

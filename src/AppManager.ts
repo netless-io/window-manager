@@ -12,7 +12,6 @@ import { callbacks, emitter } from './index';
 import { CameraStore } from './Utils/CameraStore';
 import { genAppId, makeValidScenePath } from './Utils/Common';
 import {
-    isPlayer,
     isRoom,
     reaction,
     ScenePathType
@@ -58,7 +57,7 @@ export class AppManager {
         this.mainViewProxy = new MainViewProxy(this);
 
         if (this.room) {
-            this.refresher = new ReconnectRefresher(this.room);
+            this.refresher = new ReconnectRefresher(this.room, this);
         }
 
         emitter.once("onCreated").then(async () => {
@@ -402,6 +401,12 @@ export class AppManager {
                 this.boxManager.focusBox({ appId: focusAppId });
             }
         }
+    }
+
+    public notifyReconnected() {
+        this.appProxies.forEach(appProxy => {
+            appProxy.appEmitter.emit("reconnected", undefined);
+        })
     }
 
     public dispatchInternalEvent(event: Events, payload: any) {
