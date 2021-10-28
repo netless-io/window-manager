@@ -1,7 +1,27 @@
-import AppDocsViewer from "@netless/app-docs-viewer";
-import AppMediaPlayer, { setOptions } from "@netless/app-media-player";
-import Emittery from "emittery";
-import { isNull, isObject } from "lodash";
+import AppDocsViewer from '@netless/app-docs-viewer';
+import AppMediaPlayer, { setOptions } from '@netless/app-media-player';
+import Emittery from 'emittery';
+import pRetry from 'p-retry';
+import {
+    addEmitterOnceListener,
+    ensureValidScenePath,
+    getVersionNumber,
+    isValidScenePath,
+    wait
+    } from './Utils/Common';
+import { AppManager } from './AppManager';
+import { appRegister } from './Register';
+import { CursorManager } from './Cursor';
+import { DEFAULT_CONTAINER_RATIO, REQUIRE_VERSION } from './constants';
+import { Fields } from './AttributesDelegate';
+import { initDb } from './Register/storage';
+import { isNull, isObject } from 'lodash';
+import { log } from './Utils/log';
+import { replaceRoomFunction } from './Utils/RoomHacker';
+import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
+import { setupWrapper } from './ViewManager';
+import './style.css';
+import '@netless/telebox-insider/dist/style.css';
 import {
     AppCreateError,
     AppManagerNotInitError,
@@ -9,30 +29,15 @@ import {
     ParamsInvalidError,
     WhiteWebSDKInvalidError,
 } from "./Utils/error";
-import { AppManager } from "./AppManager";
-import { appRegister } from "./Register";
-import { CursorManager } from "./Cursor";
 import type { Apps } from "./AttributesDelegate";
-import { Fields } from "./AttributesDelegate";
-import { addEmitterOnceListener, ensureValidScenePath, getVersionNumber, isValidScenePath, wait } from "./Utils/Common";
 import {
-    AnimationMode,
-    CameraBound,
     InvisiblePlugin,
     isRoom,
-    Point,
-    Rectangle,
     RoomPhase,
     ViewMode,
     ViewVisionMode,
     WhiteVersion,
 } from "white-web-sdk";
-import { log } from "./Utils/log";
-import { replaceRoomFunction } from "./Utils/RoomHacker";
-import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
-import { setupWrapper } from "./ViewManager";
-import "./style.css";
-import "@netless/telebox-insider/dist/style.css";
 import type {
     Displayer,
     SceneDefinition,
@@ -40,13 +45,14 @@ import type {
     Room,
     InvisiblePluginContext,
     Camera,
-} from "white-web-sdk";
+
+    AnimationMode,
+    CameraBound,
+    Point,
+    Rectangle} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TELE_BOX_STATE } from "./BoxManager";
-import { REQUIRE_VERSION, DEFAULT_CONTAINER_RATIO } from "./constants";
-import { initDb } from "./Register/storage";
-import pRetry from "p-retry";
 import type { TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./AppProxy";
 

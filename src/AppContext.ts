@@ -4,7 +4,7 @@ import {
     listenUpdated,
     reaction,
     unlistenDisposed,
-    unlistenUpdated
+    unlistenUpdated,
     } from 'white-web-sdk';
 import { BoxNotCreatedError } from './Utils/error';
 import { wait } from './Utils/Common';

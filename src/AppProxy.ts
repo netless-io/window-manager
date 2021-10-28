@@ -5,6 +5,7 @@ import { appRegister } from './Register';
 import { autorun, ViewVisionMode } from 'white-web-sdk';
 import { callbacks, emitter } from './index';
 import { Fields } from './AttributesDelegate';
+import { get } from 'lodash';
 import { log } from './Utils/log';
 import {
     notifyMainViewModeChange,
@@ -23,7 +24,6 @@ import type { Camera, SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
-import { get } from 'lodash';
 
 export class AppProxy {
     public id: string;
@@ -32,7 +32,6 @@ export class AppProxy {
     public scenes?: SceneDefinition[];
 
     private appListener: any;
-    private disposer: any;
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
@@ -274,13 +273,14 @@ export class AppProxy {
     }
 
     private appAttributesUpdateListener = (appId: string) => {
-        const disposer = autorun(() => {
-            const attrs = this.manager.windowManger.attributes[appId];
-            if (attrs) {
-                this.appEmitter.emit("attributesUpdate", attrs);
-            }
+        this.manager.refresher?.add(appId, () => {
+            return autorun(() => {
+                const attrs = this.manager.windowManger.attributes[appId];
+                if (attrs) {
+                    this.appEmitter.emit("attributesUpdate", attrs);
+                }
+            });
         });
-        this.disposer = disposer;
     };
 
     public recoverCamera(): void {
@@ -331,6 +331,7 @@ export class AppProxy {
     };
 
     public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
+        if (this.status === "destroyed") return;
         this.status = "destroyed";
         await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
         await this.appEmitter.emit("destroy", { error });
@@ -338,9 +339,6 @@ export class AppProxy {
         emitter.emit(`destroy-${this.id}` as any, { error });
         if (needCloseBox) {
             this.boxManager.closeBox(this.id);
-        }
-        if (this.disposer) {
-            this.disposer();
         }
         if (cleanAttrs) {
             this.manager.delegate.cleanAppAttributes(this.id);
@@ -350,6 +348,7 @@ export class AppProxy {
         this.removeCameraListener();
         this.manager.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
+        this.manager.refresher?.remove(this.id);
     }
 
     public async close(): Promise<void> {

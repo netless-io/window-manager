@@ -19,7 +19,6 @@ export class ViewManager {
     private mainViewIsAddListener = false;
     private delegate = this.manager.delegate;
     private timer?: number;
-    private disposer: any;
 
     constructor(
         private displayer: Displayer,
@@ -29,17 +28,19 @@ export class ViewManager {
         this.mainView = this.createMainView();
         this.addMainViewCameraListener();
         setTimeout(() => { // 延迟初始化 focus 的 reaction
-            this.disposer = reaction(
-                () => this.manager.delegate.focus,
-                focus => {
-                    if (focus) {
-                        this.switchAppToWriter(focus);
-                    } else {
-                        this.switchMainViewToWriter();
-                    }
-                },
-                { fireImmediately: true }
-            )
+            this.manager.refresher?.add("focus", () => {
+                return reaction(
+                    () => this.manager.delegate.focus,
+                    focus => {
+                        if (focus) {
+                            this.switchAppToWriter(focus);
+                        } else {
+                            this.switchMainViewToWriter();
+                        }
+                    },
+                    { fireImmediately: true }
+                )
+            });
         }, 100)
     }
 
@@ -246,7 +247,6 @@ export class ViewManager {
             WindowManager.wrapper = undefined;
         }
         this.releaseView(this.mainView);
-        this.disposer && this.disposer();
     }
 }
 

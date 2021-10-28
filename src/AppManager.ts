@@ -1,19 +1,30 @@
-import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
-import { AppListeners } from "./AppListener";
-import { AppProxy } from "./AppProxy";
-import { AttributesDelegate, Fields } from "./AttributesDelegate";
-import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
-import { callbacks, emitter } from "./index";
-import { CameraStore } from "./Utils/CameraStore";
-import { genAppId, makeValidScenePath } from "./Utils/Common";
-import { isPlayer, isRoom, reaction, ScenePathType } from "white-web-sdk";
-import { log } from "./Utils/log";
-import { MainViewProxy } from "./MainView";
-import { ViewManager } from "./ViewManager";
+import {
+    AppAttributes,
+    AppStatus,
+    Events,
+    MagixEventName
+    } from './constants';
+import { AppListeners } from './AppListener';
+import { AppProxy } from './AppProxy';
+import { AttributesDelegate, Fields } from './AttributesDelegate';
+import { BoxManager, TELE_BOX_STATE } from './BoxManager';
+import { callbacks, emitter } from './index';
+import { CameraStore } from './Utils/CameraStore';
+import { genAppId, makeValidScenePath } from './Utils/Common';
+import {
+    isPlayer,
+    isRoom,
+    reaction,
+    ScenePathType
+    } from 'white-web-sdk';
+import { log } from './Utils/log';
+import { MainViewProxy } from './MainView';
+import { onObjectInserted, onObjectRemoved } from './Utils/Reactive';
+import { ReconnectRefresher } from './ReconnectRefresher';
+import { ViewManager } from './ViewManager';
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type { AddAppParams, BaseInsertParams, WindowManager } from "./index";
-import { onObjectInserted } from "./Utils/Reactive";
 
 export class AppManager {
     public displayer: Displayer;
@@ -24,9 +35,10 @@ export class AppManager {
     public appStatus: Map<string, AppStatus> = new Map();
     public delegate = new AttributesDelegate(this);
     public mainViewProxy: MainViewProxy;
+    public refresher?: ReconnectRefresher;
 
     private appListeners: AppListeners;
-    private reactionDisposers: any[] = [];
+
 
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
@@ -45,23 +57,31 @@ export class AppManager {
         this.appListeners.addListeners();
         this.mainViewProxy = new MainViewProxy(this);
 
+        if (this.room) {
+            this.refresher = new ReconnectRefresher(this.room);
+        }
+
         emitter.once("onCreated").then(async () => {
             await this.attributesUpdateCallback(this.attributes.apps);
             emitter.onAny(this.boxEventListener);
-            const disposer = onObjectInserted(this.attributes.apps, () => {
-                this.attributesUpdateCallback(this.attributes.apps);
+            this.refresher?.add("apps", () => {
+                return onObjectInserted(this.attributes.apps, () => {
+                    this.attributesUpdateCallback(this.attributes.apps);
+                });
             });
-            if (disposer) {
-                this.reactionDisposers.push(disposer);
-            }
-            this.reactionDisposers.push(
-                reaction(
+            this.refresher?.add("appsClose", () => {
+                return onObjectRemoved(this.attributes.apps, () => {
+                    this.onAppDelete(this.attributes.apps);
+                });
+            });
+            this.refresher?.add("broadcaster", () => {
+                return reaction(
                     () => this.attributes[Fields.Broadcaster],
                     id => {
                         callbacks.emit("broadcastChange", id);
                     }
-                )
-            )
+                );
+            });
             if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
                 const mainScenePath = this.delegate.getMainViewScenePath();
                 if (!mainScenePath) return;
@@ -96,15 +116,16 @@ export class AppManager {
                     this.focusByAttributes(apps);
                 }
             }
-            if (isPlayer(this.displayer)) {
-                const ids = Object.keys(apps);
-                this.appProxies.forEach((appProxy, id) => {
-                    if (!ids.includes(id)) {
-                        appProxy.destroy(true, false);
-                    }
-                });
-            }
         }
+    }
+
+    private onAppDelete = (apps: any) => {
+        const ids = Object.keys(apps);
+        this.appProxies.forEach((appProxy, id) => {
+            if (!ids.includes(id)) {
+                appProxy.destroy(true, false);
+            }
+        });
     }
 
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
@@ -363,17 +384,10 @@ export class AppManager {
                 break;
             }
             case "close": {
-                this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppClose,
-                    payload,
-                });
                 const appProxy = this.appProxies.get(payload.appId);
                 if (appProxy) {
                     appProxy.destroy(false, true, payload.error);
                 }
-                setTimeout(() => {
-                    this.viewManager.refreshViews();
-                }, 100);
                 break;
             }
             default:
@@ -402,17 +416,14 @@ export class AppManager {
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();
         emitter.offAny(this.boxEventListener);
-        if (this.reactionDisposers.length) {
-            this.reactionDisposers.map(disposer => disposer());
-            this.reactionDisposers = [];
-        }
+
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
                 appProxy.destroy(true, false);
             });
         }
         this.viewManager.destroy();
-        this.mainViewProxy.destroy();
+        this.refresher?.destroy();
         callbacks.clearListeners();
     }
 }

@@ -1,6 +1,5 @@
-import { Events, MagixEventName } from "./constants";
-import { TELE_BOX_STATE } from "@netless/telebox-insider";
-import { ViewVisionMode } from "white-web-sdk";
+import { Events, MagixEventName } from './constants';
+import { ViewVisionMode } from 'white-web-sdk';
 import type { Event } from "white-web-sdk";
 import type { TeleBox } from "@netless/telebox-insider";
 import type { ViewManager } from "./ViewManager";
@@ -51,10 +50,6 @@ export class AppListeners {
                     this.appSnapshotHandler(data.payload);
                     break;
                 }
-                case Events.AppClose: {
-                    this.appCloseHandler(data.payload);
-                    break;
-                }
                 case Events.SwitchViewsToFreedom: {
                     this.switchViewsToFreedomHandler();
                     break;
@@ -92,14 +87,6 @@ export class AppListeners {
         const box = this.boxManager.getBox(payload.appId) as TeleBox;
         if (box) {
             box.setSnapshot(payload.rect);
-        }
-    };
-
-    private appCloseHandler = (payload: any) => {
-        this.boxManager.closeBox(payload.appId);
-        const appProxy = this.manager.appProxies.get(payload.appId);
-        if (appProxy) {
-            appProxy.destroy(true, true);
         }
     };
 

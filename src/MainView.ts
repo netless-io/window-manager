@@ -6,14 +6,13 @@ import type { AppManager } from "./AppManager";
 
 export class MainViewProxy {
     private scale?: number;
-    private disposers: any[] = [];
     
     constructor(private manager: AppManager) {
         const delegate = this.manager.delegate;
         const displayer = this.manager.displayer;
 
-        this.disposers.push(
-            reaction(
+        this.manager.refresher?.add(Fields.MainViewCamera, () => {
+            return reaction(
                 () => this.manager.attributes?.[Fields.MainViewCamera],
                 camera => {
                     if (delegate.broadcaster !== displayer.observerId && camera) {
@@ -24,9 +23,9 @@ export class MainViewProxy {
                     fireImmediately: true,
                 }
             )
-        );
-        this.disposers.push(
-            reaction(
+        });
+        this.manager.refresher?.add(Fields.MainViewSize, () => {
+            return reaction(
                 () => this.manager.attributes?.[Fields.MainViewSize],
                 size => {
                     if (delegate.broadcaster !== displayer.observerId && size) {
@@ -38,7 +37,8 @@ export class MainViewProxy {
                     fireImmediately: true,
                 }
             )
-        );
+        });
+
         this.view.callbacks.on("onSizeUpdated", (size: Size) => {
             if (delegate.broadcaster && delegate.broadcaster !== displayer.observerId && size) {
                 this.moveCameraToContian(delegate.getMainViewSize());
@@ -76,9 +76,5 @@ export class MainViewProxy {
                 animationMode: AnimationMode.Immediately,
             });
         }
-    }
-
-    public destroy() {
-        this.disposers.forEach(disposer => disposer());
     }
 }

@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
-import { BuiltinApps, WindowManager } from "../";
+import { AppContext, BuiltinApps, WindowManager } from "../";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
@@ -260,10 +260,10 @@ const HelloWorldApp = async () => {
     console.log('HelloWorld Loaded')
     return {
         kind: "HelloWorld",
-        setup: (context) => {
-            console.log("helloworld");
+        setup: (context: AppContext<any, any>) => {
             console.log('helloworld options', context.getAppOptions());
-            context.mountView(context.getBox().$content);
+            context.mountView(context.getBox().$content as any);
+            context.emitter.on("destroy",() => console.log("[HelloWorld]: destroy"))
             return "Hello World Result";
         }
     }
