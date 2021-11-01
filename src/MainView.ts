@@ -10,7 +10,6 @@ export class MainViewProxy {
     constructor(private manager: AppManager) {
         const delegate = this.manager.delegate;
         const displayer = this.manager.displayer;
-
         this.manager.refresher?.add(Fields.MainViewCamera, () => {
             return reaction(
                 () => this.manager.attributes?.[Fields.MainViewCamera],

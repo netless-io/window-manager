@@ -4,6 +4,7 @@ import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { AppContext, BuiltinApps, WindowManager } from "../";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
+import { first } from "lodash";
 
 let anyWindow = window as any;
 
@@ -207,6 +208,8 @@ const createVideo = () => {
     })
 }
 
+let firstPlay = false;
+
 const replay = () => {
     sdk.replayRoom({
         room: process.env.ROOM_UUID,
@@ -223,9 +226,11 @@ const replay = () => {
         }, 500)
         player.callbacks.on("onPhaseChanged", phase => {
             if (phase === PlayerPhase.Playing) {
+                if (firstPlay) return;
                 setTimeout(() => {
                     mountManager(player, document.getElementById("container"))
                 }, 1000)
+                firstPlay = true
             }
         })
     })
@@ -244,6 +249,7 @@ const onRef = (ref) => {
         },
         isWritable: !(isWritable === "false"),
         cursorAdapter: undefined,
+        uid: "test1",
     }).then(async room => {
         if (room.isWritable) {
             room.setMemberState({ strokeColor: [0, 0, 1] });

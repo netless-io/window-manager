@@ -54,42 +54,45 @@ export class AppManager {
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.addListeners();
-        this.mainViewProxy = new MainViewProxy(this);
 
         if (this.room) {
             this.refresher = new ReconnectRefresher(this.room, this);
         }
 
-        emitter.once("onCreated").then(async () => {
-            await this.attributesUpdateCallback(this.attributes.apps);
-            emitter.onAny(this.boxEventListener);
-            this.refresher?.add("apps", () => {
-                return onObjectInserted(this.attributes.apps, () => {
-                    this.attributesUpdateCallback(this.attributes.apps);
-                });
+        this.mainViewProxy = new MainViewProxy(this);
+
+        emitter.once("onCreated").then(() => this.onCreated());
+    }
+
+    private async onCreated() {
+        await this.attributesUpdateCallback(this.attributes.apps);
+        emitter.onAny(this.boxEventListener);
+        this.refresher?.add("apps", () => {
+            return onObjectInserted(this.attributes.apps, () => {
+                this.attributesUpdateCallback(this.attributes.apps);
             });
-            this.refresher?.add("appsClose", () => {
-                return onObjectRemoved(this.attributes.apps, () => {
-                    this.onAppDelete(this.attributes.apps);
-                });
-            });
-            this.refresher?.add("broadcaster", () => {
-                return reaction(
-                    () => this.attributes[Fields.Broadcaster],
-                    id => {
-                        callbacks.emit("broadcastChange", id);
-                    }
-                );
-            });
-            if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
-                const mainScenePath = this.delegate.getMainViewScenePath();
-                if (!mainScenePath) return;
-                const sceneState = this.displayer.state.sceneState;
-                if (sceneState.scenePath !== mainScenePath) {
-                    this.room?.setScenePath(mainScenePath);
-                }
-            }
         });
+        this.refresher?.add("appsClose", () => {
+            return onObjectRemoved(this.attributes.apps, () => {
+                this.onAppDelete(this.attributes.apps);
+            });
+        });
+        this.refresher?.add("broadcaster", () => {
+            return reaction(
+                () => this.attributes[Fields.Broadcaster],
+                id => {
+                    callbacks.emit("broadcastChange", id);
+                }
+            );
+        });
+        if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
+            const mainScenePath = this.delegate.getMainViewScenePath();
+            if (!mainScenePath) return;
+            const sceneState = this.displayer.state.sceneState;
+            if (sceneState.scenePath !== mainScenePath) {
+                this.room?.setScenePath(mainScenePath);
+            }
+        }
     }
 
     /**
@@ -247,6 +250,10 @@ export class AppManager {
 
     public get mainView() {
         return this.windowManger.mainView;
+    }
+
+    public get focusApp() {
+        return this.appProxies.get(this.delegate.focus);
     }
 
     public safeSetAttributes(attributes: any) {

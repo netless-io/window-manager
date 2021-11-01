@@ -5,6 +5,7 @@ import {
     reaction,
     unlistenDisposed,
     unlistenUpdated,
+    toJS
     } from 'white-web-sdk';
 import { BoxNotCreatedError } from './Utils/error';
 import { wait } from './Utils/Common';
@@ -21,6 +22,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly mobxUtils = {
         autorun,
         reaction,
+        toJS
     };
     public readonly objectUtils = {
         listenUpdated,

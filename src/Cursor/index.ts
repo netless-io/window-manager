@@ -2,18 +2,25 @@ import { Cursor } from './Cursor';
 import { CursorState } from '../constants';
 import { debounce } from 'lodash';
 import { Fields } from '../AttributesDelegate';
+import { onObjectInserted } from '../Utils/Reactive';
 import { TELE_BOX_STATE } from '@netless/telebox-insider';
 import { WindowManager } from '../index';
+import type { ReadonlyTeleBox} from '@netless/telebox-insider';
+import type { PositionType } from '../AttributesDelegate';
 import type { RoomMember } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
-import { onObjectInserted } from '../Utils/Reactive';
 
+export type EventType = {
+    type: PositionType, 
+    id?: string
+}
 export class CursorManager {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     private disposer: any;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
+    private mainViewElement?: HTMLDivElement;
 
     constructor(private manager: WindowManager, private appManager: AppManager) {
         this.roomMembers = this.manager.room?.state.roomMembers;
@@ -27,6 +34,10 @@ export class CursorManager {
             this.wrapperRect = wrapper.getBoundingClientRect();
             this.startReaction(wrapper);
         }
+    }
+
+    public setMainViewDivElement(div: HTMLDivElement) {
+        this.mainViewElement = div;
     }
 
     private startReaction(wrapper: HTMLElement) {
@@ -69,14 +80,50 @@ export class CursorManager {
         return this.appManager.delegate.getBoxState();
     }
 
+    public get focusBox() {
+        return this.appManager.boxManager.getFocusBox();
+    }
+
+    public get focusView() {
+        return this.appManager.focusApp?.view
+    }
+
+    private computedAppPosition(x: number, y: number) {
+        const viewRect = this.focusView?.divElement?.getBoundingClientRect();
+        if (viewRect) {
+            const ratioX = (x - viewRect.x) / viewRect.width;
+            const ratioY = (y - viewRect.y) / viewRect.height;
+            return { x: ratioX, y: ratioY };
+        }
+    }
+
+    /**
+     *  因为窗口内框在不同分辨率下的大小不一样，所以这里通过来鼠标事件的 target 来判断是在主白板还是在 APP 中
+     */
+    private getType = (event: MouseEvent | Touch): EventType => {
+        const target = event.target as HTMLElement;
+        const targetIsMain = target.parentElement === this.mainViewElement;
+        if (targetIsMain) {
+            return { type: "main" };
+        } else {
+            if (!this.focusView) return { type: "main" };
+            const focusApp = this.appManager.focusApp;
+            const targetIsFocusApp = target.parentElement === focusApp?.view?.divElement;
+            if (targetIsFocusApp) {
+                return { type: "app", id: focusApp?.id }
+            }
+            return { type: "main" };
+        }
+    }
+
     private mouseMoveListener = debounce((event: MouseEvent) => {
-        this.updateCursor(event.clientX, event.clientY);
+        this.updateCursor(this.getType(event), event.clientX, event.clientY);
     }, 5);
 
     private touchMoveListener = debounce((event: TouchEvent) => {
         if (event.touches.length === 1) {
             const touchEvent = event.touches[0];
-            this.updateCursor(touchEvent.clientX, touchEvent.clientY);
+            this.updateCursor(this.getType(touchEvent), touchEvent.clientX, touchEvent.clientY);
         }
     }, 5);
 
@@ -84,34 +131,40 @@ export class CursorManager {
         this.appManager.delegate.updateCursor(this.observerId, {
             x: 0,
             y: 0,
+            type: "main"
         });
         this.appManager.delegate.updateCursorState(this.observerId, CursorState.Leave);
-    }
-
-    public getBoxTitleHeight() {
-        if (this.boxState === TELE_BOX_STATE.Maximized) {
-            const box = this.appManager.boxManager.getTopBox();
-            if (box) {
-                return box.$titleBar?.clientHeight;
-            }
-        }
     }
 
     public getFocusBox() {
         return this.appManager.boxManager.getFocusBox();
     }
 
-    private updateCursor(clientX: number, clientY: number) {
+    private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
-            const x = (clientX - this.wrapperRect.x) / this.wrapperRect.width;
-            const y = (clientY - this.wrapperRect.y) / this.wrapperRect.height;
-            if (this.appManager.delegate.getCursorState(this.observerId)) {
-                this.appManager.delegate.updateCursorState(this.observerId, CursorState.Normal);
+            if (event.type === "main")  {
+                const x = (clientX - this.wrapperRect.x) / this.wrapperRect.width;
+                const y = (clientY - this.wrapperRect.y) / this.wrapperRect.height;
+                this.setNormalCursorState();
+                this.appManager.delegate.updateCursor(this.observerId, {
+                    x, y, ...event
+                });
+            } else if (event.type === "app") {
+                const appPosition = this.computedAppPosition(clientX, clientY);
+                if (appPosition) {
+                    this.setNormalCursorState();
+                    this.appManager.delegate.updateCursor(this.observerId, {
+                        x: appPosition.x, y: appPosition.y, ...event
+                    });
+                }
             }
-            this.appManager.delegate.updateCursor(this.observerId, {
-                x,
-                y,
-            });
+        }
+    }
+    
+    private setNormalCursorState() {
+        const cursorState = this.appManager.delegate.getCursorState(this.observerId)
+        if (cursorState !== CursorState.Normal) {
+            this.appManager.delegate.updateCursorState(this.observerId, CursorState.Normal);
         }
     }
 

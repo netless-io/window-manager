@@ -3,7 +3,7 @@ import pRetry from 'p-retry';
 import { ApplianceMap } from './icons';
 import { ApplianceNames, autorun } from 'white-web-sdk';
 import { CursorState } from '../constants';
-import { Fields } from '../AttributesDelegate';
+import { Fields, Position } from '../AttributesDelegate';
 import { get, omit } from 'lodash';
 import type { RoomMember } from "white-web-sdk";
 import type { CursorManager } from "./index";
@@ -13,6 +13,7 @@ import type { SvelteComponent } from "svelte";
 export type Payload = {
     [key: string]: any
 }
+
 
 export class Cursor {
     private member?: RoomMember;
@@ -43,22 +44,30 @@ export class Cursor {
         this.disposer = autorun(() => {
             const cursor = this.cursorPosition;
             const state = this.cursorState;
-            if (cursor) {
-                const x = cursor.x;
-                const y = cursor.y;
+            if (cursor.type === "main") {
                 const rect = this.cursorManager.wrapperRect;
-                const containerRect = this.cursorManager.containerRect;
-                if (this.component && rect && containerRect) {
+                if (this.component && rect) {
                     this.autoHidden();
-                    const translateX = x * rect.width - 2; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
-                    const translateY = y * rect.height - 18; // y 减去 cursor 的高
-                    this.component.$set({ visible: true, x: translateX, y: translateY });
+                    this.moveCursor(cursor, rect);
+                }
+            } else {
+                const viewRect = this.cursorManager.focusView?.divElement?.getBoundingClientRect();
+                if (viewRect && this.component) {
+                    this.autoHidden();
+                    this.moveCursor(cursor, viewRect);
                 }
             }
             if (state && state === CursorState.Leave) {
                 this.hide();
             }
         });
+    }
+
+    private moveCursor(cursor: Position, rect: DOMRect) {
+        const { x, y } = cursor;
+        const translateX = x * rect.width - 2 + rect.x; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
+        const translateY = y * rect.height - 18 + rect.y; // y 减去 cursor 的高
+        this.component?.$set({ visible: true, x: translateX, y: translateY });
     }
 
     public get memberApplianceName() {
@@ -106,11 +115,11 @@ export class Cursor {
         }
     }
 
-    public get cursorState() {
+    public get cursorState(): CursorState {
         return get(this.cursors, [this.memberId, Fields.CursorState]);
     }
 
-    public get cursorPosition() {
+    public get cursorPosition(): Position {
         return get(this.cursors, [this.memberId, Fields.Position]);
     }
 

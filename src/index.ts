@@ -119,7 +119,7 @@ export type AppInitState = {
 };
 
 type EmitterEvent = {
-    onCreated: undefined;
+    onCreated: undefined,
     InitReplay: AppInitState,
     move: { appId: string, x: number, y: number },
     focus: { appId: string },
@@ -127,6 +127,7 @@ type EmitterEvent = {
     resize: { appId: string, width: number, height: number, x?: number, y?: number },
     snapshot: { appId: string, rect: any },
     error: Error,
+    seek: number,
     [TELE_BOX_STATE.Normal]: undefined,
     [TELE_BOX_STATE.Maximized]: undefined,
     [TELE_BOX_STATE.Minimized]: undefined,
@@ -570,6 +571,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             const mainView = this.appManager.viewManager.mainView;
             mainView.disableCameraTransform = disableCameraTransform;
             mainView.divElement = divElement;
+            this.cursorManager?.setMainViewDivElement(divElement);
             if (!mainView.focusScenePath) {
                 this.appManager.delegate.setMainViewFocusPath();
             }

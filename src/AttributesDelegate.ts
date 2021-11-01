@@ -23,10 +23,14 @@ export type Apps = {
     [key: string]: AppSyncAttributes;
 };
 
-type Position = {
+export type Position = {
     x: number;
     y: number;
+    type: PositionType;
+    id?: string;
 };
+
+export type PositionType = "main" | "app";
 
 export class AttributesDelegate {
     constructor(private manager: AppManager) {}
