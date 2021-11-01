@@ -3,18 +3,22 @@ import { Fields } from './AttributesDelegate';
 import { isEmpty, isEqual } from 'lodash';
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
+import type { CameraStore } from './Utils/CameraStore';
 
 export class MainViewProxy {
     private scale?: number;
-    
-    constructor(private manager: AppManager) {
-        const delegate = this.manager.delegate;
-        const displayer = this.manager.displayer;
+    private displayer = this.manager.displayer;
+    private delegate = this.manager.delegate;
+
+    constructor(
+        private manager: AppManager,
+        private cameraStore: CameraStore,
+    ) {
         this.manager.refresher?.add(Fields.MainViewCamera, () => {
             return reaction(
                 () => this.manager.attributes?.[Fields.MainViewCamera],
                 camera => {
-                    if (delegate.broadcaster !== displayer.observerId && camera) {
+                    if (this.delegate.broadcaster !== this.displayer.observerId && camera) {
                         this.moveCamera(camera);
                     }
                 },
@@ -23,13 +27,14 @@ export class MainViewProxy {
                 }
             )
         });
+
         this.manager.refresher?.add(Fields.MainViewSize, () => {
             return reaction(
                 () => this.manager.attributes?.[Fields.MainViewSize],
                 size => {
-                    if (delegate.broadcaster !== displayer.observerId && size) {
+                    if (this.delegate.broadcaster !== this.displayer.observerId && size) {
                         this.moveCameraToContian(size);
-                        this.moveCamera(delegate.getMainViewCamera());
+                        this.moveCamera(this.delegate.getMainViewCamera());
                     }
                 },
                 {
@@ -39,15 +44,30 @@ export class MainViewProxy {
         });
 
         this.view.callbacks.on("onSizeUpdated", (size: Size) => {
-            if (delegate.broadcaster && delegate.broadcaster !== displayer.observerId && size) {
-                this.moveCameraToContian(delegate.getMainViewSize());
-                this.moveCamera(delegate.getMainViewCamera());
+            if (this.delegate.broadcaster && this.delegate.broadcaster !== this.displayer.observerId && size) {
+                this.moveCameraToContian(this.delegate.getMainViewSize());
+                this.moveCamera(this.delegate.getMainViewCamera());
             }
         });
     }
 
     public get view(): View {
         return this.manager.viewManager.mainView;   
+    }
+
+    private mainViewCameraListener = (camera: Camera) => {
+        this.cameraStore.setCamera("mainView", camera);
+        if (this.delegate.broadcaster === this.displayer.observerId) {
+            this.delegate.setMainViewCamera({ ...camera });
+        }
+    };
+
+    private addMainViewCameraListener() {
+        this.view.callbacks.on("onCameraUpdated", this.mainViewCameraListener);
+    }
+
+    private removeMainViewCameraListener() {
+        this.view.callbacks.off("onCameraUpdated", this.mainViewCameraListener);
     }
 
     public moveCameraToContian(size: Size): void {

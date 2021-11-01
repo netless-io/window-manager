@@ -1,10 +1,11 @@
 import App from './Cursor.svelte';
 import pRetry from 'p-retry';
 import { ApplianceMap } from './icons';
-import { ApplianceNames, autorun } from 'white-web-sdk';
+import { ApplianceNames, autorun, View } from 'white-web-sdk';
 import { CursorState } from '../constants';
-import { Fields, Position } from '../AttributesDelegate';
+import { Fields } from '../AttributesDelegate';
 import { get, omit } from 'lodash';
+import type { Position } from '../AttributesDelegate';
 import type { RoomMember } from "white-web-sdk";
 import type { CursorManager } from "./index";
 import type { WindowManager } from "../index";
@@ -48,13 +49,15 @@ export class Cursor {
                 const rect = this.cursorManager.wrapperRect;
                 if (this.component && rect) {
                     this.autoHidden();
-                    this.moveCursor(cursor, rect);
+                    this.moveCursor(cursor, rect, this.manager.mainView);
                 }
             } else {
-                const viewRect = this.cursorManager.focusView?.divElement?.getBoundingClientRect();
-                if (viewRect && this.component) {
+                const focusView = this.cursorManager.focusView;
+                const viewRect = focusView?.divElement?.getBoundingClientRect();
+                const viewCamera = focusView?.camera;
+                if (focusView && viewRect && viewCamera && this.component) {
                     this.autoHidden();
-                    this.moveCursor(cursor, viewRect);
+                    this.moveCursor(cursor, viewRect, focusView);
                 }
             }
             if (state && state === CursorState.Leave) {
@@ -63,11 +66,14 @@ export class Cursor {
         });
     }
 
-    private moveCursor(cursor: Position, rect: DOMRect) {
+    private moveCursor(cursor: Position, rect: DOMRect, view: any) {
         const { x, y } = cursor;
-        const translateX = x * rect.width - 2 + rect.x; // x 需要减去一半的 cursor 的宽, 加上 icon 的宽
-        const translateY = y * rect.height - 18 + rect.y; // y 减去 cursor 的高
-        this.component?.$set({ visible: true, x: translateX, y: translateY });
+        const point = view?.screen.convertPointToScreen(x, y);
+        if (point) {
+            const translateX = point.x + rect.x - 2;
+            const translateY = point.y + rect.y - 18;
+            this.component?.$set({ visible: true, x: translateX, y: translateY });
+        }
     }
 
     public get memberApplianceName() {

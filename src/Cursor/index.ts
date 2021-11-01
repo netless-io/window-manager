@@ -3,9 +3,7 @@ import { CursorState } from '../constants';
 import { debounce } from 'lodash';
 import { Fields } from '../AttributesDelegate';
 import { onObjectInserted } from '../Utils/Reactive';
-import { TELE_BOX_STATE } from '@netless/telebox-insider';
 import { WindowManager } from '../index';
-import type { ReadonlyTeleBox} from '@netless/telebox-insider';
 import type { PositionType } from '../AttributesDelegate';
 import type { RoomMember } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
@@ -21,6 +19,7 @@ export class CursorManager {
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
+    private delegate = this.appManager.delegate;
 
     constructor(private manager: WindowManager, private appManager: AppManager) {
         this.roomMembers = this.manager.room?.state.roomMembers;
@@ -77,7 +76,7 @@ export class CursorManager {
     }
 
     public get boxState() {
-        return this.appManager.delegate.getBoxState();
+        return this.delegate.getBoxState();
     }
 
     public get focusBox() {
@@ -86,15 +85,6 @@ export class CursorManager {
 
     public get focusView() {
         return this.appManager.focusApp?.view
-    }
-
-    private computedAppPosition(x: number, y: number) {
-        const viewRect = this.focusView?.divElement?.getBoundingClientRect();
-        if (viewRect) {
-            const ratioX = (x - viewRect.x) / viewRect.width;
-            const ratioY = (y - viewRect.y) / viewRect.height;
-            return { x: ratioX, y: ratioY };
-        }
     }
 
     /**
@@ -110,7 +100,7 @@ export class CursorManager {
             const focusApp = this.appManager.focusApp;
             const targetIsFocusApp = target.parentElement === focusApp?.view?.divElement;
             if (targetIsFocusApp) {
-                return { type: "app", id: focusApp?.id }
+                return { type: "app" };
             }
             return { type: "main" };
         }
@@ -128,12 +118,12 @@ export class CursorManager {
     }, 5);
 
     private initCursorAttributes() {
-        this.appManager.delegate.updateCursor(this.observerId, {
+        this.delegate.updateCursor(this.observerId, {
             x: 0,
             y: 0,
             type: "main"
         });
-        this.appManager.delegate.updateCursorState(this.observerId, CursorState.Leave);
+        this.delegate.updateCursorState(this.observerId, CursorState.Leave);
     }
 
     public getFocusBox() {
@@ -143,18 +133,26 @@ export class CursorManager {
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
             if (event.type === "main")  {
-                const x = (clientX - this.wrapperRect.x) / this.wrapperRect.width;
-                const y = (clientY - this.wrapperRect.y) / this.wrapperRect.height;
-                this.setNormalCursorState();
-                this.appManager.delegate.updateCursor(this.observerId, {
-                    x, y, ...event
-                });
-            } else if (event.type === "app") {
-                const appPosition = this.computedAppPosition(clientX, clientY);
-                if (appPosition) {
+                const mainView = this.appManager.mainView;
+                const rect = mainView?.divElement?.getBoundingClientRect();
+                if (rect) {
+                    const point = mainView.convertToPointInWorld({
+                        x: clientX - rect.x,
+                        y: clientY - rect.y,
+                    })
                     this.setNormalCursorState();
-                    this.appManager.delegate.updateCursor(this.observerId, {
-                        x: appPosition.x, y: appPosition.y, ...event
+                    this.delegate.updateCursor(this.observerId, {
+                        x: point.x, y: point.y, ...event
+                    });
+                }
+            } else if (event.type === "app") {
+                const viewRect = this.focusView?.divElement?.getBoundingClientRect();
+                if (viewRect) {
+                    const worldPosition = this.focusView?.convertToPointInWorld({ x: clientX - viewRect.x, y: clientY - viewRect.y });
+                    if (!worldPosition) return;
+                    this.setNormalCursorState();
+                    this.delegate.updateCursor(this.observerId, {
+                        x: worldPosition.x, y: worldPosition.y, ...event
                     });
                 }
             }
@@ -162,15 +160,15 @@ export class CursorManager {
     }
     
     private setNormalCursorState() {
-        const cursorState = this.appManager.delegate.getCursorState(this.observerId)
+        const cursorState = this.delegate.getCursorState(this.observerId)
         if (cursorState !== CursorState.Normal) {
-            this.appManager.delegate.updateCursorState(this.observerId, CursorState.Normal);
+            this.delegate.updateCursorState(this.observerId, CursorState.Normal);
         }
     }
 
     private mouseLeaveListener = () => {
         this.hideCursor(this.observerId);
-        this.appManager.delegate.updateCursorState(this.observerId, CursorState.Leave);
+        this.delegate.updateCursorState(this.observerId, CursorState.Leave);
     };
 
     public updateContainerRect() {
@@ -189,7 +187,7 @@ export class CursorManager {
     }
 
     public cleanMemberCursor(memberId: string) {
-        this.appManager.delegate.cleanCursor(memberId);
+        this.delegate.cleanCursor(memberId);
         const cursor = this.cursorInstances.get(memberId);
         if (cursor) {
             cursor.destroy();
@@ -217,7 +215,7 @@ export class CursorManager {
             if (instance) {
                 instance.destroy();
             }
-            this.appManager.delegate.cleanCursor(memberId);
+            this.delegate.cleanCursor(memberId);
         });
     }
 

@@ -250,6 +250,7 @@ const onRef = (ref) => {
         isWritable: !(isWritable === "false"),
         cursorAdapter: undefined,
         uid: "test1",
+        disableMagixEventDispatchLimit: true,
     }).then(async room => {
         if (room.isWritable) {
             room.setMemberState({ strokeColor: [0, 0, 1] });

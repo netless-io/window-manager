@@ -59,7 +59,7 @@ export class AppManager {
             this.refresher = new ReconnectRefresher(this.room, this);
         }
 
-        this.mainViewProxy = new MainViewProxy(this);
+        this.mainViewProxy = new MainViewProxy(this, this.cameraStore);
 
         emitter.once("onCreated").then(() => this.onCreated());
     }
