@@ -72,7 +72,11 @@ export class Cursor {
         if (point) {
             const translateX = point.x + rect.x - 2;
             const translateY = point.y + rect.y - 18;
-            this.component?.$set({ visible: true, x: translateX, y: translateY });
+            if (point.x < 0 || point.x > rect.width || point.y < 0 || point.y > rect.height) {
+                this.component?.$set({ visible: false });
+            } else {
+                this.component?.$set({ visible: true, x: translateX, y: translateY });
+            }
         }
     }
 
