@@ -45,6 +45,7 @@ export class Cursor {
         this.disposer = autorun(() => {
             const cursor = this.cursorPosition;
             const state = this.cursorState;
+            if (!cursor) return;
             if (cursor.type === "main") {
                 const rect = this.cursorManager.wrapperRect;
                 if (this.component && rect) {
@@ -125,11 +126,11 @@ export class Cursor {
         }
     }
 
-    public get cursorState(): CursorState {
+    public get cursorState(): CursorState | undefined {
         return get(this.cursors, [this.memberId, Fields.CursorState]);
     }
 
-    public get cursorPosition(): Position {
+    public get cursorPosition(): Position | undefined {
         return get(this.cursors, [this.memberId, Fields.Position]);
     }
 
