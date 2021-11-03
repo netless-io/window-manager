@@ -3,23 +3,29 @@ import { Fields } from './AttributesDelegate';
 import { debounce, isEmpty, isEqual } from 'lodash';
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
+import { emitter } from './index';
 
 export class MainViewProxy {
     private scale?: number;
     private delegate = this.manager.delegate;
     private started = false;
+    private observerId = this.manager.displayer.observerId;
 
     constructor(
         private manager: AppManager,
     ) {
-        this.start();
+        emitter.once("mainViewMounted").then(() => {
+            setTimeout(() => {
+                this.start();
+            }, 300); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
+        })
     }
 
     private cameraReaction = () => {
         return reaction(
             () => this.manager.attributes?.[Fields.MainViewCamera],
             camera => {
-                if (camera && camera.id !== this.manager.displayer.observerId) {
+                if (camera && camera.id !== this.observerId) {
                     this.moveCamera(camera);
                 }
             },
@@ -33,7 +39,7 @@ export class MainViewProxy {
         return reaction(
             () => this.manager.attributes?.[Fields.MainViewSize],
             size => {
-                if (size) {
+                if (size && size.id !== this.observerId) {
                     this.moveCameraToContian(size);
                     this.moveCamera(this.delegate.getMainViewCamera());
                 }
@@ -49,7 +55,10 @@ export class MainViewProxy {
     }
 
     private cameraListener = (camera: Camera) => {
-        this.delegate.setMainViewCamera({ ...camera, id: this.manager.displayer.observerId });
+        this.delegate.setMainViewCamera({ ...camera, id: this.observerId});
+        if (this.delegate.getMainViewSize().id !== this.observerId) {
+            this.setMainViewSize(this.view.size);
+        }
     }
 
     private sizeListener = (size: Size) => {
@@ -57,8 +66,8 @@ export class MainViewProxy {
     }
 
     public setMainViewSize = debounce(size => {
-        this.manager.delegate.setMainViewSize({ ...size });
-    }, 200);
+        this.manager.delegate.setMainViewSize({ ...size, id: this.observerId });
+    }, 50);
 
     private addCameraListener() {
         this.view.callbacks.on("onCameraUpdatedByDevice", this.cameraListener);

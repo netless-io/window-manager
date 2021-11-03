@@ -135,7 +135,7 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.MainViewCamera]);
     }
 
-    public getMainViewSize(): Size {
+    public getMainViewSize(): Size & { id: number } {
         return get(this.manager.attributes, [Fields.MainViewSize]);
     }
 
@@ -143,7 +143,7 @@ export class AttributesDelegate {
         this.manager.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
 
-    public setMainViewSize(size: Size | undefined) {
+    public setMainViewSize(size: Size & { id: number } | undefined) {
         this.manager.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 

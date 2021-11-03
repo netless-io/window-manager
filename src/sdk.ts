@@ -7,7 +7,7 @@ import type { WhiteWebSdkConfiguration, JoinRoomParams } from "white-web-sdk";
 
 type WhiteWindowSDKConfiguration = Omit<WhiteWebSdkConfiguration, "useMobXState">
 type WindowJoinRoomParams = {
-    joinRoomParams: Omit<JoinRoomParams, "useMultiViews">,
+    joinRoomParams: Omit<JoinRoomParams, "useMultiViews" | "disableMagixEventDispatchLimit">,
     mountParams: Omit<MountParams, "room">,
 }
 
@@ -24,6 +24,7 @@ export class WhiteWindowSDK {
             ...params.joinRoomParams,
             useMultiViews: true,
             invisiblePlugins: [...invisiblePlugins, WindowManager],
+            disableMagixEventDispatchLimit: true,
         });
         const manager = await WindowManager.mount({
             room,

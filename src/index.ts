@@ -128,6 +128,7 @@ type EmitterEvent = {
     snapshot: { appId: string, rect: any },
     error: Error,
     seek: number,
+    mainViewMounted: undefined,
     [TELE_BOX_STATE.Normal]: undefined,
     [TELE_BOX_STATE.Maximized]: undefined,
     [TELE_BOX_STATE.Minimized]: undefined,
@@ -468,7 +469,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setViewMode(mode: ViewMode): void {
         if (mode === ViewMode.Broadcaster) {
             this.appManager?.delegate.setMainViewCamera({ ...this.mainView.camera, id: this.displayer.observerId });
-            this.appManager?.delegate.setMainViewSize(this.mainView.size);
+            this.appManager?.delegate.setMainViewSize({ ...this.mainView.size, id: this.displayer.observerId });
             this.appManager?.mainViewProxy.start();
         }
         if (mode === ViewMode.Freedom) {
@@ -581,6 +582,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.appManager.viewManager.switchMainViewToWriter();
             }
             this.appManager.viewManager.addMainViewListener();
+            emitter.emit("mainViewMounted");
         }
     }
 
