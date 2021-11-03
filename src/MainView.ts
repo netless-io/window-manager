@@ -109,5 +109,6 @@ export class MainViewProxy {
         this.manager.refresher?.remove(Fields.MainViewCamera);
         this.manager.refresher?.remove(Fields.MainViewSize);
         this.view.callbacks.off("onSizeUpdated", this.sizeListener);
+        this.started = false;
     }
 }
