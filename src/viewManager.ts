@@ -51,11 +51,8 @@ export class ViewManager {
     public createMainView(): View {
         const mainView = this.displayer.views.createView();
         this.cameraStore.setCamera("mainView", mainView.camera);
-        mainView.callbacks.on("onSizeUpdated", (size: Size) => {
+        mainView.callbacks.on("onSizeUpdated", () => {
             this.manager.boxManager.updateManagerRect();
-            if (this.delegate.broadcaster === this.displayer.observerId) {
-                this.setMainViewSize(size);
-            }
         });
         const mainViewScenePath = this.manager.delegate.getMainViewScenePath();
         if (mainViewScenePath) {
@@ -149,9 +146,6 @@ export class ViewManager {
 
     private mainViewCameraListener = (camera: Camera) => {
         this.cameraStore.setCamera("mainView", camera);
-        if (this.delegate.broadcaster === this.displayer.observerId) {
-            this.delegate.setMainViewCamera({ ...camera });
-        }
     };
 
     public switchMainViewToWriter(): Promise<boolean> | undefined {

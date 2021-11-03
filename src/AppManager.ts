@@ -59,7 +59,7 @@ export class AppManager {
             this.refresher = new ReconnectRefresher(this.room, this);
         }
 
-        this.mainViewProxy = new MainViewProxy(this, this.cameraStore);
+        this.mainViewProxy = new MainViewProxy(this);
 
         emitter.once("onCreated").then(() => this.onCreated());
     }
@@ -76,14 +76,6 @@ export class AppManager {
             return onObjectRemoved(this.attributes.apps, () => {
                 this.onAppDelete(this.attributes.apps);
             });
-        });
-        this.refresher?.add("broadcaster", () => {
-            return reaction(
-                () => this.attributes[Fields.Broadcaster],
-                id => {
-                    callbacks.emit("broadcastChange", id);
-                }
-            );
         });
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
             const mainScenePath = this.delegate.getMainViewScenePath();

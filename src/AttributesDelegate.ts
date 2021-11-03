@@ -43,10 +43,6 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.Focus]);
     }
 
-    public get broadcaster() {
-        return get(this.manager.attributes, [Fields.Broadcaster]);
-    }
-
     public getAppAttributes(id: string): AppSyncAttributes {
         return get(this.apps(), [id]);
     }
@@ -143,16 +139,12 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.MainViewSize]);
     }
 
-    public setMainViewCamera(camera: Camera | undefined) {
+    public setMainViewCamera(camera: Camera & { id: number } | undefined) {
         this.manager.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
 
     public setMainViewSize(size: Size | undefined) {
         this.manager.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
-    }
-
-    public setBroadcaster(observerId: number | undefined) {
-        this.manager.safeSetAttributes({ [Fields.Broadcaster]: observerId });
     }
 
     public setAppFocus(appId: string, focus: boolean) {

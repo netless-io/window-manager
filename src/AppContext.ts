@@ -8,7 +8,7 @@ import {
     toJS
     } from 'white-web-sdk';
 import { BoxNotCreatedError } from './Utils/error';
-import { wait } from './Utils/Common';
+import { setScenePath, wait } from './Utils/Common';
 import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
@@ -103,11 +103,11 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public async setScenePath(scenePath: string): Promise<void> {
         if (!this.appProxy.box) return;
         if (this.appProxy.box.focus) {
-            this.getRoom()?.setScenePath(scenePath);
+            setScenePath(this.getRoom(), scenePath);
         } else {
             this.emitter.emit("focus", true);
             await wait(50);
-            this.getRoom()?.setScenePath(scenePath);
+            setScenePath(this.getRoom(), scenePath);
         }
     }
 

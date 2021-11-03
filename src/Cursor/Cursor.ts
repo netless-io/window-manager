@@ -1,7 +1,7 @@
 import App from './Cursor.svelte';
 import pRetry from 'p-retry';
 import { ApplianceMap } from './icons';
-import { ApplianceNames, autorun, View } from 'white-web-sdk';
+import { ApplianceNames, autorun } from 'white-web-sdk';
 import { CursorState } from '../constants';
 import { Fields } from '../AttributesDelegate';
 import { get, omit } from 'lodash';

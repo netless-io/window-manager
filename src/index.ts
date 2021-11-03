@@ -138,7 +138,6 @@ export const emitter: Emittery<EmitterEvent> = new Emittery();
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
     boxStateChange: `${TELE_BOX_STATE}`;
-    broadcastChange: number;
 };
 
 export type MountParams = {
@@ -174,7 +173,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public emitter: Emittery<PublicEvent> = callbacks;
     public appManager?: AppManager;
     public cursorManager?: CursorManager;
-
+    public viewMode = ViewMode.Broadcaster;
+    
     constructor(context: InvisiblePluginContext) {
         super(context);
     }
@@ -467,15 +467,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      */
     public setViewMode(mode: ViewMode): void {
         if (mode === ViewMode.Broadcaster) {
-            this.appManager?.delegate.setBroadcaster(this.displayer.observerId);
-            this.appManager?.delegate.setMainViewCamera(this.mainView.camera);
+            this.appManager?.delegate.setMainViewCamera({ ...this.mainView.camera, id: this.displayer.observerId });
             this.appManager?.delegate.setMainViewSize(this.mainView.size);
+            this.appManager?.mainViewProxy.start();
         }
         if (mode === ViewMode.Freedom) {
-            this.appManager?.delegate.setMainViewCamera(undefined);
-            this.appManager?.delegate.setMainViewSize(undefined);
-            this.appManager?.delegate.setBroadcaster(undefined);
+            this.appManager?.mainViewProxy.stop();
         }
+        this.viewMode = mode;
     }
 
     public get mainView(): View {
@@ -598,10 +597,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get room(): Room {
         return this.displayer as Room;
-    }
-
-    public get broadcaster(): number | undefined {
-        return this.appManager?.delegate.broadcaster;
     }
 
     public safeSetAttributes(attributes: any): void {
