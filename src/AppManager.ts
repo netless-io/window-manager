@@ -6,14 +6,14 @@ import {
     } from './constants';
 import { AppListeners } from './AppListener';
 import { AppProxy } from './AppProxy';
-import { AttributesDelegate, Fields } from './AttributesDelegate';
+import { AttributesDelegate } from './AttributesDelegate';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
 import { callbacks, emitter } from './index';
 import { CameraStore } from './Utils/CameraStore';
 import { genAppId, makeValidScenePath } from './Utils/Common';
 import {
+    isPlayer,
     isRoom,
-    reaction,
     ScenePathType
     } from 'white-web-sdk';
 import { log } from './Utils/log';
@@ -55,13 +55,18 @@ export class AppManager {
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.addListeners();
 
-        if (this.room) {
-            this.refresher = new ReconnectRefresher(this.room, this);
-        }
+        this.refresher = new ReconnectRefresher(this.room, this);
 
         this.mainViewProxy = new MainViewProxy(this);
 
         emitter.once("onCreated").then(() => this.onCreated());
+
+        if (isPlayer(this.displayer)) {
+            emitter.on("seek", time => {
+                this.appProxies.forEach(appProxy => appProxy.appEmitter.emit("seek", time));
+                this.attributesUpdateCallback(this.attributes.apps);
+            })
+        }
     }
 
     private async onCreated() {
@@ -420,7 +425,7 @@ export class AppManager {
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();
         emitter.offAny(this.boxEventListener);
-
+        emitter.clearListeners();
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
                 appProxy.destroy(true, false);

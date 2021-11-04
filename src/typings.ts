@@ -49,6 +49,7 @@ export type AppEmitterEvent<T = any> = {
     roomStateChange: Partial<DisplayerState>;
     focus: boolean;
     reconnected: void;
+    seek: number;
 };
 
 export type RegisterEventData = {

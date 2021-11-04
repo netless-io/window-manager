@@ -56,7 +56,7 @@ export class MainViewProxy {
 
     private cameraListener = (camera: Camera) => {
         this.delegate.setMainViewCamera({ ...camera, id: this.observerId});
-        if (this.delegate.getMainViewSize().id !== this.observerId) {
+        if (this.delegate.getMainViewSize()?.id !== this.observerId) {
             this.setMainViewSize(this.view.size);
         }
     }

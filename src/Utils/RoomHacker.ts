@@ -1,7 +1,7 @@
+import { emitter } from '../index';
 import { isPlayer } from 'white-web-sdk';
-import type { Camera, Room , Player } from "white-web-sdk";
+import type { Camera, Room , Player , PlayerSeekingResult } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
-import { emitter } from "../index";
 
 // 修改多窗口状态下一些失效的方法实现到 manager 的 mainview 上, 降低迁移成本
 export const replaceRoomFunction = (room: Room, manager: AppManager) => {
@@ -9,11 +9,14 @@ export const replaceRoomFunction = (room: Room, manager: AppManager) => {
         const player = room as unknown as Player;
         const originSeek = player.seekToProgressTime;
         // eslint-disable-next-line no-inner-declarations
-        function newSeek(time: number) {
-            originSeek.call(player, time);
-            emitter.emit("seek", time);
+        async function newSeek(time: number): Promise<PlayerSeekingResult> {
+            const seekResult = await originSeek.call(player, time);
+            if (seekResult === "success") {
+                emitter.emit("seek", time);
+            }
+            return seekResult;
         }
-        player.seekToProgressTime = newSeek as any;
+        player.seekToProgressTime = newSeek;
     } else {
         const descriptor = Object.getOwnPropertyDescriptor(room, "disableCameraTransform");
         if (descriptor) return;

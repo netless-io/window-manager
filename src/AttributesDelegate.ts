@@ -135,7 +135,7 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.MainViewCamera]);
     }
 
-    public getMainViewSize(): Size & { id: number } {
+    public getMainViewSize(): Size & { id: number } | undefined {
         return get(this.manager.attributes, [Fields.MainViewSize]);
     }
 
