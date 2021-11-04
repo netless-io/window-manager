@@ -467,6 +467,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * 设置 ViewMode
      */
     public setViewMode(mode: ViewMode): void {
+        if (!this.canOperate) return;
         if (mode === ViewMode.Broadcaster) {
             this.appManager?.delegate.setMainViewCamera({ ...this.mainView.camera, id: this.displayer.observerId });
             this.appManager?.delegate.setMainViewSize({ ...this.mainView.size, id: this.displayer.observerId });
