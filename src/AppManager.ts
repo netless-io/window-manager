@@ -51,8 +51,6 @@ export class AppManager {
             this.appProxies
         );
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
-        this.displayerWritableListener(!this.room?.isWritable);
-        this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.addListeners();
 
         this.refresher = new ReconnectRefresher(this.room, this);
@@ -90,6 +88,8 @@ export class AppManager {
                 this.room?.setScenePath(mainScenePath);
             }
         }
+        this.displayerWritableListener(!this.room?.isWritable);
+        this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
     }
 
     /**
@@ -226,6 +226,9 @@ export class AppManager {
             if (!this.delegate.focus) {
                 this.viewManager.switchMainViewModeToWriter();
             }
+            this.mainView.disableCameraTransform = false;
+        } else {
+            this.mainView.disableCameraTransform = true;
         }
     }
 
