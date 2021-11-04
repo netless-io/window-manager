@@ -214,9 +214,6 @@ export class BoxManager {
                 width: state.width || 0.5,
                 height: state.height || 0.5,
             }, true);
-            if (state.focus) {
-                this.teleBoxManager.update(box.id, { focus: true }, true);
-            }
             // TODO 连续调用 teleboxManager update 和 setState 会导致 box 出现问题. 先用 setTimeout 延迟调用,等 telebox 修复后去掉
             setTimeout(() => {
                 if (state.snapshotRect) {
@@ -228,6 +225,11 @@ export class BoxManager {
                     this.teleBoxManager.setState(state.boxState, true);
                 }
             }, 0);
+            setTimeout(() => {
+                if (state.focus) {
+                    this.teleBoxManager.update(box.id, { focus: true }, true);
+                }
+            }, 50);
         }
     }
 
