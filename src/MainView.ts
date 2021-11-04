@@ -9,7 +9,6 @@ export class MainViewProxy {
     private scale?: number;
     private delegate = this.manager.delegate;
     private started = false;
-    private observerId = this.manager.displayer.observerId;
 
     constructor(
         private manager: AppManager,
@@ -19,6 +18,10 @@ export class MainViewProxy {
                 this.start();
             }, 300); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
         })
+    }
+
+    private get observerId() {
+        return this.manager.displayer.observerId;
     }
 
     private cameraReaction = () => {
