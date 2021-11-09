@@ -5,7 +5,7 @@ import type { AkkoObjectUpdatedProperty } from "white-web-sdk";
 export const onObjectByEvent = (event: UpdateEventKind) => {
     return (object: any, func: () => void) => {
         if (object === undefined) return;
-        if (listenUpdated) {
+        if (listenUpdated && UpdateEventKind) {
             const listener = (events: readonly AkkoObjectUpdatedProperty<any>[]) => {
                 const kinds = events.map(e => e.kind);
                 if (kinds.includes(event)) {
@@ -28,5 +28,5 @@ export const onObjectByEvent = (event: UpdateEventKind) => {
     }
 }
 
-export const onObjectRemoved = onObjectByEvent(UpdateEventKind.Removed);
-export const onObjectInserted = onObjectByEvent(UpdateEventKind.Inserted);
+export const onObjectRemoved = onObjectByEvent(UpdateEventKind?.Removed);
+export const onObjectInserted = onObjectByEvent(UpdateEventKind?.Inserted);
