@@ -61,8 +61,7 @@ export class AppManager {
         if (isPlayer(this.displayer)) {
             emitter.on("seek", time => {
                 this.appProxies.forEach(appProxy => {
-                    appProxy.appEmitter.emit("seek", time);
-                    appProxy.onSeek();
+                    appProxy.onSeek(time);
                 });
                 this.attributesUpdateCallback(this.attributes.apps);
             });
@@ -414,8 +413,8 @@ export class AppManager {
 
     public notifyReconnected() {
         this.appProxies.forEach(appProxy => {
-            appProxy.appEmitter.emit("reconnected", undefined);
-        })
+            appProxy.onReconnected();
+        });
     }
 
     public dispatchInternalEvent(event: Events, payload: any) {

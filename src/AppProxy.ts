@@ -176,9 +176,18 @@ export class AppProxy extends Base {
         }
     }
 
-    public onSeek() {
+    public onSeek(time: number) {
+        this.appEmitter.emit("seek", time);
         const boxInitState = this.getAppInitState(this.id);
         this.boxManager.updateBoxState(boxInitState);
+    }
+
+    public async onReconnected() {
+        this.appEmitter.emit("reconnected", undefined);
+        await this.destroy(true, false);
+        const params = this.params;
+        const appProxy = new AppProxy(params, this.manager, this.id, this.isAddApp);
+        await appProxy.baseInsertApp(this.store.focus === this.id);
     }
 
     public switchToWritable() {
