@@ -60,9 +60,12 @@ export class AppManager {
 
         if (isPlayer(this.displayer)) {
             emitter.on("seek", time => {
-                this.appProxies.forEach(appProxy => appProxy.appEmitter.emit("seek", time));
+                this.appProxies.forEach(appProxy => {
+                    appProxy.appEmitter.emit("seek", time);
+                    appProxy.onSeek();
+                });
                 this.attributesUpdateCallback(this.attributes.apps);
-            })
+            });
         }
     }
 
@@ -252,7 +255,9 @@ export class AppManager {
     }
 
     public get focusApp() {
-        return this.appProxies.get(this.store.focus);
+        if (this.store.focus) {
+            return this.appProxies.get(this.store.focus);
+        }
     }
 
     public safeSetAttributes(attributes: any) {
@@ -332,7 +337,6 @@ export class AppManager {
                         width: payload.width,
                         height: payload.height,
                     });
-                    this.room?.refreshViewSize();
                 }
                 break;
             }

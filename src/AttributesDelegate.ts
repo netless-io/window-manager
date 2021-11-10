@@ -40,7 +40,7 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.Apps]);
     }
 
-    public get focus() {
+    public get focus(): string | undefined {
         return get(this.manager.attributes, [Fields.Focus]);
     }
 

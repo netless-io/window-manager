@@ -176,6 +176,11 @@ export class AppProxy extends Base {
         }
     }
 
+    public onSeek() {
+        const boxInitState = this.getAppInitState(this.id);
+        this.boxManager.updateBoxState(boxInitState);
+    }
+
     public switchToWritable() {
         if (this.view) {
             try {
@@ -196,11 +201,11 @@ export class AppProxy extends Base {
         const attrs = this.store.getAppState(id);
         if (!attrs) return;
         const position = attrs?.[AppAttributes.Position];
-        const focus = this.manager.attributes.focus;
+        const focus = this.store.focus;
         const size = attrs?.[AppAttributes.Size];
         const snapshotRect = attrs?.[AppAttributes.SnapshotRect];
         const sceneIndex = attrs?.[AppAttributes.SceneIndex];
-        const boxState = this.manager.attributes["boxState"];
+        const boxState = this.store.getBoxState();
         let payload = { boxState } as AppInitState;
         if (position) {
             payload = { ...payload, id: id, x: position.x, y: position.y };
@@ -217,7 +222,6 @@ export class AppProxy extends Base {
         if (sceneIndex) {
             payload = { ...payload, sceneIndex };
         }
-        emitter.emit(Events.InitReplay, payload);
         return payload;
     };
 

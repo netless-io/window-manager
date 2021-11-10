@@ -221,15 +221,15 @@ export class BoxManager {
             );
             // TODO 连续调用 teleboxManager update 和 setState 会导致 box 出现问题. 先用 setTimeout 延迟调用,等 telebox 修复后去掉
             setTimeout(() => {
-                if (state.snapshotRect) {
-                    (box as TeleBox).setSnapshot(state.snapshotRect);
-                }
-            }, 30);
-            setTimeout(() => {
                 if (state.boxState && this.teleBoxManager.state !== state.boxState) {
                     this.teleBoxManager.setState(state.boxState, true);
                 }
             }, 0);
+            setTimeout(() => {
+                if (state.snapshotRect) {
+                    (box as TeleBox).setSnapshot(state.snapshotRect);
+                }
+            }, 30);
             setTimeout(() => {
                 if (state.focus) {
                     this.teleBoxManager.update(box.id, { focus: true }, true);
