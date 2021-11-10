@@ -10,7 +10,7 @@ import { AttributesDelegate } from './AttributesDelegate';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
 import { callbacks, emitter } from './index';
 import { CameraStore } from './Utils/CameraStore';
-import { genAppId, makeValidScenePath } from './Utils/Common';
+import { genAppId, makeValidScenePath, setScenePath } from './Utils/Common';
 import {
     isPlayer,
     isRoom,
@@ -24,7 +24,6 @@ import { ViewManager } from './ViewManager';
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type { AddAppParams, BaseInsertParams, WindowManager } from "./index";
-
 export class AppManager {
     public displayer: Displayer;
     public boxManager: BoxManager;
@@ -32,7 +31,7 @@ export class AppManager {
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
-    public delegate = new AttributesDelegate(this);
+    public store = new AttributesDelegate(this);
     public mainViewProxy: MainViewProxy;
     public refresher?: ReconnectRefresher;
 
@@ -81,7 +80,7 @@ export class AppManager {
             });
         });
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
-            const mainScenePath = this.delegate.getMainViewScenePath();
+            const mainScenePath = this.store.getMainViewScenePath();
             if (!mainScenePath) return;
             const sceneState = this.displayer.state.sceneState;
             if (sceneState.scenePath !== mainScenePath) {
@@ -138,13 +137,13 @@ export class AppManager {
     private async beforeAddApp(params: AddAppParams, isDynamicPPT: boolean) {
         const appId = await genAppId(params.kind);
         this.appStatus.set(appId, AppStatus.StartCreate);
-        this.delegate.setupAppAttributes(params, appId, isDynamicPPT);
+        this.store.setupAppAttributes(params, appId, isDynamicPPT);
         if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
             this.boxManager.teleBoxManager.setState(TELE_BOX_STATE.Normal);
         }
         const needFocus = this.boxManager.boxState !== TELE_BOX_STATE.Minimized;
         if (needFocus) {
-            this.delegate.setAppFocus(appId, true);
+            this.store.setAppFocus(appId, true);
         }
         const attrs = params.attributes ?? {};
         this.safeUpdateAttributes([appId], attrs);
@@ -223,7 +222,7 @@ export class AppManager {
             appProxy.emitAppIsWritableChange();
         });
         if (isWritable === true) {
-            if (!this.delegate.focus) {
+            if (!this.store.focus) {
                 this.viewManager.switchMainViewModeToWriter();
             }
             this.mainView.disableCameraTransform = false;
@@ -253,7 +252,7 @@ export class AppManager {
     }
 
     public get focusApp() {
-        return this.appProxies.get(this.delegate.focus);
+        return this.appProxies.get(this.store.focus);
     }
 
     public safeSetAttributes(attributes: any) {
@@ -264,40 +263,39 @@ export class AppManager {
         this.windowManger.safeUpdateAttributes(keys, value);
     }
 
-    public setMainViewScenePath(scenePath: string) {
+    public async setMainViewScenePath(scenePath: string) {
         if (this.room) {
             const scenePathType = this.displayer.scenePathType(scenePath);
             if (scenePathType === ScenePathType.None) {
                 throw new Error(`[WindowManager]: ${scenePath} not valid scene`);
             } else if (scenePathType === ScenePathType.Page) {
-                this._setMainViewScenePath(scenePath);
+                await this._setMainViewScenePath(scenePath);
             } else if (scenePathType === ScenePathType.Dir) {
                 const validScenePath = makeValidScenePath(this.displayer, scenePath);
-                this._setMainViewScenePath(validScenePath);
+                await this._setMainViewScenePath(validScenePath);
             }
         }
     }
 
-    private _setMainViewScenePath(scenePath: string) {
+    private async _setMainViewScenePath(scenePath: string) {
         this.safeSetAttributes({ _mainScenePath: scenePath });
-        this.viewManager.freedomAllViews();
-        this.viewManager.switchMainViewToWriter();
-        this.delegate.setMainViewFocusPath();
+        await this.viewManager.switchMainViewToWriter();
+        setScenePath(this.room, scenePath);
+        this.store.setMainViewFocusPath();
     }
 
-    public setMainViewSceneIndex(index: number) {
+    public async setMainViewSceneIndex(index: number) {
         if (this.room) {
             this.safeSetAttributes({ _mainSceneIndex: index });
-            this.viewManager.freedomAllViews();
-            this.viewManager.switchMainViewToWriter();
+            await this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);
-            this.delegate.setMainViewScenePath(this.room.state.sceneState.scenePath);
-            this.delegate.setMainViewFocusPath();
+            this.store.setMainViewScenePath(this.room.state.sceneState.scenePath);
+            this.store.setMainViewFocusPath();
         }
     }
 
     public getAppInitPath(appId: string): string | undefined {
-        const attrs = this.delegate.getAppAttributes(appId);
+        const attrs = this.store.getAppAttributes(appId);
         if (attrs) {
             return attrs?.options?.scenePath;
         }
@@ -313,7 +311,7 @@ export class AppManager {
         switch (eventName) {
             case "move": {
                 this.dispatchInternalEvent(Events.AppMove, payload);
-                this.delegate.updateAppState(payload.appId, AppAttributes.Position, {
+                this.store.updateAppState(payload.appId, AppAttributes.Position, {
                     x: payload.x,
                     y: payload.y,
                 });
@@ -330,7 +328,7 @@ export class AppManager {
             case "resize": {
                 if (payload.width && payload.height) {
                     this.dispatchInternalEvent(Events.AppResize, payload);
-                    this.delegate.updateAppState(payload.appId, AppAttributes.Size, {
+                    this.store.updateAppState(payload.appId, AppAttributes.Size, {
                         width: payload.width,
                         height: payload.height,
                     });
@@ -348,7 +346,7 @@ export class AppManager {
                 });
                 this.safeSetAttributes({ boxState: eventName });
 
-                this.delegate.cleanFocus();
+                this.store.cleanFocus();
                 this.boxManager.blurFocusBox();
                 break;
             }
@@ -384,7 +382,7 @@ export class AppManager {
                     payload,
                 });
 
-                this.delegate.updateAppState(payload.appId, AppAttributes.SnapshotRect, {
+                this.store.updateAppState(payload.appId, AppAttributes.SnapshotRect, {
                     ...payload.rect,
                 });
                 break;
@@ -403,7 +401,7 @@ export class AppManager {
 
     public focusByAttributes(apps: any) {
         if (apps && Object.keys(apps).length === this.boxManager.appBoxMap.size) {
-            const focusAppId = this.delegate.focus;
+            const focusAppId = this.store.focus;
             if (focusAppId) {
                 this.boxManager.focusBox({ appId: focusAppId });
             }

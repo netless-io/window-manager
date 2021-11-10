@@ -19,7 +19,7 @@ export class CursorManager {
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
-    private delegate = this.appManager.delegate;
+    private store = this.appManager.store;
 
     constructor(private manager: WindowManager, private appManager: AppManager) {
         this.roomMembers = this.manager.room?.state.roomMembers;
@@ -76,7 +76,7 @@ export class CursorManager {
     }
 
     public get boxState() {
-        return this.delegate.getBoxState();
+        return this.store.getBoxState();
     }
 
     public get focusBox() {
@@ -118,12 +118,12 @@ export class CursorManager {
     }, 5);
 
     private initCursorAttributes() {
-        this.delegate.updateCursor(this.observerId, {
+        this.store.updateCursor(this.observerId, {
             x: 0,
             y: 0,
             type: "main"
         });
-        this.delegate.updateCursorState(this.observerId, CursorState.Leave);
+        this.store.updateCursorState(this.observerId, CursorState.Leave);
     }
 
     public getFocusBox() {
@@ -141,7 +141,7 @@ export class CursorManager {
                         y: clientY - rect.y,
                     })
                     this.setNormalCursorState();
-                    this.delegate.updateCursor(this.observerId, {
+                    this.store.updateCursor(this.observerId, {
                         x: point.x, y: point.y, ...event
                     });
                 }
@@ -151,7 +151,7 @@ export class CursorManager {
                     const worldPosition = this.focusView?.convertToPointInWorld({ x: clientX - viewRect.x, y: clientY - viewRect.y });
                     if (!worldPosition) return;
                     this.setNormalCursorState();
-                    this.delegate.updateCursor(this.observerId, {
+                    this.store.updateCursor(this.observerId, {
                         x: worldPosition.x, y: worldPosition.y, ...event
                     });
                 }
@@ -160,15 +160,15 @@ export class CursorManager {
     }
     
     private setNormalCursorState() {
-        const cursorState = this.delegate.getCursorState(this.observerId)
+        const cursorState = this.store.getCursorState(this.observerId)
         if (cursorState !== CursorState.Normal) {
-            this.delegate.updateCursorState(this.observerId, CursorState.Normal);
+            this.store.updateCursorState(this.observerId, CursorState.Normal);
         }
     }
 
     private mouseLeaveListener = () => {
         this.hideCursor(this.observerId);
-        this.delegate.updateCursorState(this.observerId, CursorState.Leave);
+        this.store.updateCursorState(this.observerId, CursorState.Leave);
     };
 
     public updateContainerRect() {
@@ -187,7 +187,7 @@ export class CursorManager {
     }
 
     public cleanMemberCursor(memberId: string) {
-        this.delegate.cleanCursor(memberId);
+        this.store.cleanCursor(memberId);
         const cursor = this.cursorInstances.get(memberId);
         if (cursor) {
             cursor.destroy();
@@ -215,7 +215,7 @@ export class CursorManager {
             if (instance) {
                 instance.destroy();
             }
-            this.delegate.cleanCursor(memberId);
+            this.store.cleanCursor(memberId);
         });
     }
 

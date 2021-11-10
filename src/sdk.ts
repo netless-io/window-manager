@@ -1,3 +1,4 @@
+import { isBoolean } from 'lodash';
 import { WhiteWebSdk } from 'white-web-sdk';
 import { WindowManager } from './index';
 import type { MountParams } from "./index";
@@ -30,6 +31,9 @@ export class WhiteWindowSDK {
             room,
             ...params.mountParams
         });
+        if (isBoolean(params.joinRoomParams.disableCameraTransform)) {
+            manager.mainView.disableCameraTransform = params.joinRoomParams.disableCameraTransform;
+        }
         return manager;
     }
 }

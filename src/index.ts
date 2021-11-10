@@ -381,7 +381,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     throw new InvalidScenePath();
                 }
                 for (const appId in this.apps) {
-                    const appScenePath = appManager.delegate.getAppScenePath(appId);
+                    const appScenePath = appManager.store.getAppScenePath(appId);
                     if (appScenePath && appScenePath === scenePath) {
                         console.warn(`[WindowManager]: ScenePath ${scenePath} Already opened`);
                         return;
@@ -410,18 +410,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 设置 mainView 的 ScenePath, 并且切换白板为可写状态
      */
-    public setMainViewScenePath(scenePath: string): void {
+    public async setMainViewScenePath(scenePath: string): Promise<void> {
         if (this.appManager) {
-            this.appManager.setMainViewScenePath(scenePath);
+            await this.appManager.setMainViewScenePath(scenePath);
         }
     }
 
     /**
      * 设置 mainView 的 SceneIndex, 并且切换白板为可写状态
      */
-    public setMainViewSceneIndex(index: number): void {
+    public async setMainViewSceneIndex(index: number): Promise<void> {
         if (this.appManager) {
-            this.appManager.setMainViewSceneIndex(index);
+            await this.appManager.setMainViewSceneIndex(index);
         }
     }
 
@@ -429,14 +429,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * 返回 mainView 的 ScenePath
      */
     public getMainViewScenePath(): string {
-        return this.appManager?.delegate.getMainViewScenePath();
+        return this.appManager?.store.getMainViewScenePath();
     }
 
     /**
      * 返回 mainView 的 SceneIndex
      */
     public getMainViewSceneIndex(): number {
-        return this.appManager?.delegate.getMainViewSceneIndex();
+        return this.appManager?.store.getMainViewSceneIndex();
     }
 
     /**
@@ -469,8 +469,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setViewMode(mode: ViewMode): void {
         if (!this.canOperate) return;
         if (mode === ViewMode.Broadcaster) {
-            this.appManager?.delegate.setMainViewCamera({ ...this.mainView.camera, id: this.displayer.observerId });
-            this.appManager?.delegate.setMainViewSize({ ...this.mainView.size, id: this.displayer.observerId });
+            this.appManager?.store.setMainViewCamera({ ...this.mainView.camera, id: this.displayer.observerId });
+            this.appManager?.store.setMainViewSize({ ...this.mainView.size, id: this.displayer.observerId });
             this.appManager?.mainViewProxy.start();
         }
         if (mode === ViewMode.Freedom) {
@@ -496,7 +496,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public get apps(): Apps | undefined {
-        return this.appManager?.delegate.apps();
+        return this.appManager?.store.apps();
     }
 
     public get boxState(): TeleBoxState {
@@ -574,10 +574,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             mainView.divElement = divElement;
             this.cursorManager?.setMainViewDivElement(divElement);
             if (!mainView.focusScenePath) {
-                this.appManager.delegate.setMainViewFocusPath();
+                this.appManager.store.setMainViewFocusPath();
             }
             if (
-                this.appManager.delegate.focus === undefined &&
+                this.appManager.store.focus === undefined &&
                 mainView.mode !== ViewVisionMode.Writable
             ) {
                 this.appManager.viewManager.switchMainViewToWriter();

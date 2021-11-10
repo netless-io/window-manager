@@ -28,7 +28,7 @@ export const replaceRoomFunction = (room: Room, manager: AppManager) => {
                 manager.mainView.disableCameraTransform = disable;
             },
         });
-    
+
         room.moveCamera = (camera: Camera) => manager.mainView.moveCamera(camera);
         room.moveCameraToContain = (...args) => manager.mainView.moveCameraToContain(...args);
         room.convertToPointInWorld = (...args) => manager.mainView.convertToPointInWorld(...args);

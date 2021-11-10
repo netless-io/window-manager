@@ -7,7 +7,7 @@ import { emitter } from './index';
 
 export class MainViewProxy {
     private scale?: number;
-    private delegate = this.manager.delegate;
+    private store = this.manager.store;
     private started = false;
 
     constructor(
@@ -44,7 +44,7 @@ export class MainViewProxy {
             size => {
                 if (size && size.id !== this.observerId) {
                     this.moveCameraToContian(size);
-                    this.moveCamera(this.delegate.getMainViewCamera());
+                    this.moveCamera(this.store.getMainViewCamera());
                 }
             },
             {
@@ -58,8 +58,8 @@ export class MainViewProxy {
     }
 
     private cameraListener = (camera: Camera) => {
-        this.delegate.setMainViewCamera({ ...camera, id: this.observerId});
-        if (this.delegate.getMainViewSize()?.id !== this.observerId) {
+        this.store.setMainViewCamera({ ...camera, id: this.observerId});
+        if (this.store.getMainViewSize()?.id !== this.observerId) {
             this.setMainViewSize(this.view.size);
         }
     }
@@ -69,7 +69,7 @@ export class MainViewProxy {
     }
 
     public setMainViewSize = debounce(size => {
-        this.manager.delegate.setMainViewSize({ ...size, id: this.observerId });
+        this.manager.store.setMainViewSize({ ...size, id: this.observerId });
     }, 50);
 
     private addCameraListener() {

@@ -24,8 +24,9 @@ import type { Camera, SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
+import { Base } from './Base';
 
-export class AppProxy {
+export class AppProxy extends Base {
     public id: string;
     public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
@@ -41,10 +42,11 @@ export class AppProxy {
 
     constructor(
         private params: BaseInsertParams,
-        private manager: AppManager,
+        manager: AppManager,
         appId: string,
         isAddApp: boolean
     ) {
+        super(manager);
         this.kind = params.kind;
         this.id = appId;
         this.appProxies.set(this.id, this);
@@ -81,7 +83,7 @@ export class AppProxy {
     }
 
     public get appAttributes() {
-        return this.manager.delegate.getAppAttributes(this.id);
+        return this.store.getAppAttributes(this.id);
     }
 
     public getFullScenePath(): string | undefined {
@@ -108,7 +110,7 @@ export class AppProxy {
             if (focus) {
                 this.focusBox();
                 this.manager.viewManager.switchAppToWriter(this.id);
-                this.manager.delegate.setMainViewFocusPath();
+                this.store.setMainViewFocusPath();
             }
             return {
                 appId: this.id,
@@ -179,7 +181,7 @@ export class AppProxy {
             try {
                 if (this.view.mode === ViewVisionMode.Writable) return;
                 if (this.manager.mainView.mode === ViewVisionMode.Writable) {
-                    this.manager.delegate.setMainViewFocusPath();
+                    this.store.setMainViewFocusPath();
                     notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
                     setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
                 }
@@ -191,7 +193,7 @@ export class AppProxy {
     }
 
     public getAppInitState = (id: string) => {
-        const attrs = this.manager.delegate.getAppState(id);
+        const attrs = this.store.getAppState(id);
         if (!attrs) return;
         const position = attrs?.[AppAttributes.Position];
         const focus = this.manager.attributes.focus;
@@ -341,7 +343,7 @@ export class AppProxy {
             this.boxManager.closeBox(this.id);
         }
         if (cleanAttrs) {
-            this.manager.delegate.cleanAppAttributes(this.id);
+            this.store.cleanAppAttributes(this.id);
         }
         this.appProxies.delete(this.id);
         this.manager.cameraStore.deleteCamera(this.id);

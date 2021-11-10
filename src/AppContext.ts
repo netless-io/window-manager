@@ -31,7 +31,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
         unlistenDisposed
     };
     private boxManager: BoxManager;
-    private delegate = this.manager.delegate;
+    private store = this.manager.store;
     public readonly isAddApp: boolean;
 
     constructor(
@@ -54,7 +54,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getScenes(): SceneDefinition[] | undefined {
-        const appAttr = this.delegate.getAppAttributes(this.appId);
+        const appAttr = this.store.getAppAttributes(this.appId);
         if (appAttr?.isDynamicPPT) {
             const appProxy = this.manager.appProxies.get(this.appId);
             if (appProxy) {

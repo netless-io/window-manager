@@ -50,6 +50,7 @@ export type CreateCollectorConfig = {
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     public appBoxMap: Map<string, string> = new Map();
+    private store = this.manager.store;
 
     constructor(
         private manager: AppManager,
@@ -126,15 +127,15 @@ export class BoxManager {
             id: params.appId,
         };
         this.teleBoxManager.create(createBoxConfig);
-            emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
+        emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
 
-            const appState = this.manager.delegate.getAppState(params.appId);
-            if (appState) {
-                const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
-                if (isEmpty(snapshotRect)) {
-                    this.setBoxInitState(params.appId);
-                }
+        const appState = this.manager.store.getAppState(params.appId);
+        if (appState) {
+            const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
+            if (isEmpty(snapshotRect)) {
+                this.setBoxInitState(params.appId);
             }
+        }
     }
 
     public setBoxInitState(appId: string): void {
@@ -208,12 +209,16 @@ export class BoxManager {
         if (!state) return;
         const box = this.getBox(state.id);
         if (box) {
-            this.teleBoxManager.update(box.id, {
-                x: state.x,
-                y: state.y,
-                width: state.width || 0.5,
-                height: state.height || 0.5,
-            }, true);
+            this.teleBoxManager.update(
+                box.id,
+                {
+                    x: state.x,
+                    y: state.y,
+                    width: state.width || 0.5,
+                    height: state.height || 0.5,
+                },
+                true
+            );
             // TODO 连续调用 teleboxManager update 和 setState 会导致 box 出现问题. 先用 setTimeout 延迟调用,等 telebox 修复后去掉
             setTimeout(() => {
                 if (state.snapshotRect) {

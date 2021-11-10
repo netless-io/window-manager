@@ -4,6 +4,7 @@ import { setViewFocusScenePath } from "./Utils/Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
 import type { Camera, Size } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
+import type { Cursor } from "./Cursor/Cursor";
 
 export enum Fields {
     Apps = "apps",
@@ -131,11 +132,11 @@ export class AttributesDelegate {
         this.manager.safeSetAttributes({ _mainSceneIndex: index });
     }
 
-    public getMainViewCamera(): Camera {
+    public getMainViewCamera(): MainViewCamera {
         return get(this.manager.attributes, [Fields.MainViewCamera]);
     }
 
-    public getMainViewSize(): Size & { id: number } | undefined {
+    public getMainViewSize(): MainViewSize {
         return get(this.manager.attributes, [Fields.MainViewSize]);
     }
 
@@ -190,4 +191,21 @@ export class AttributesDelegate {
             setViewFocusScenePath(this.manager.mainView, scenePath);
         }
     }
+}
+
+export type MainViewSize = {
+    id: number;
+    width: number;
+    height: number;
+}
+
+export type MainViewCamera = {
+    id: number;
+    centerX: number;
+    centerY: number;
+    scale: number;
+}
+
+export type Cursors = {
+    [key: number]: Cursor;
 }
