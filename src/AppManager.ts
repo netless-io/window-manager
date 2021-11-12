@@ -14,7 +14,8 @@ import { genAppId, makeValidScenePath, setScenePath } from './Utils/Common';
 import {
     isPlayer,
     isRoom,
-    ScenePathType
+    ScenePathType,
+    ViewVisionMode
     } from 'white-web-sdk';
 import { log } from './Utils/log';
 import { MainViewProxy } from './MainView';
@@ -41,20 +42,14 @@ export class AppManager {
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
+        this.mainViewProxy = new MainViewProxy(this);
         this.viewManager = new ViewManager(this.displayer as Room, this, this.cameraStore);
-        this.boxManager = new BoxManager(this, this.viewManager.mainView, this.appProxies, options);
-        this.appListeners = new AppListeners(
-            this,
-            this.windowManger,
-            this.viewManager,
-            this.appProxies
-        );
+        this.boxManager = new BoxManager(this, this.mainViewProxy.view, this.appProxies, options);
+        this.appListeners = new AppListeners(this, this.appProxies);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
 
         this.refresher = new ReconnectRefresher(this.room, this);
-
-        this.mainViewProxy = new MainViewProxy(this);
 
         emitter.once("onCreated").then(() => this.onCreated());
 
@@ -126,6 +121,23 @@ export class AppManager {
                 appProxy.destroy(true, false);
             }
         });
+    }
+
+    public bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
+        const mainView = this.mainViewProxy.view;
+        mainView.disableCameraTransform = disableCameraTransform;
+        mainView.divElement = divElement;
+        if (!mainView.focusScenePath) {
+            this.store.setMainViewFocusPath();
+        }
+        if (
+            this.store.focus === undefined &&
+            mainView.mode !== ViewVisionMode.Writable
+        ) {
+            this.viewManager.switchMainViewToWriter();
+        }
+        this.mainViewProxy.addMainViewListener();
+        emitter.emit("mainViewMounted");
     }
 
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
@@ -225,7 +237,7 @@ export class AppManager {
         });
         if (isWritable === true) {
             if (!this.store.focus) {
-                this.viewManager.switchMainViewModeToWriter();
+                this.mainViewProxy.switchViewModeToWriter();
             }
             this.mainView.disableCameraTransform = false;
         } else {

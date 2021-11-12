@@ -65,7 +65,6 @@ export class AppProxy extends Base {
         if (this.params.options?.scenePath) {
             // 只有传入了 scenePath 的 App 才会创建 View
             this.createView();
-            this.addCameraListener();
         }
         this.isAddApp = isAddApp;
     }
@@ -192,16 +191,20 @@ export class AppProxy extends Base {
 
     public switchToWritable() {
         if (this.view) {
+            if (this.view.mode === ViewVisionMode.Writable) return;
+            this.removeCameraListener();
             try {
-                if (this.view.mode === ViewVisionMode.Writable) return;
                 if (this.manager.mainView.mode === ViewVisionMode.Writable) {
                     this.store.setMainViewFocusPath();
                     notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
                     setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
                 }
                 setViewMode(this.view, ViewVisionMode.Writable);
+                this.recoverCamera();
             } catch (error) {
                 log("switch view failed", error);
+            } finally {
+                this.addCameraListener();
             }
         }
     }
@@ -335,8 +338,9 @@ export class AppProxy extends Base {
         this.view?.callbacks.off("onCameraUpdated", this.cameraListener);
     }
 
-    private createView(): View {
-        const view = this.viewManager.createView(this.id);
+    private async createView(): Promise<View> {
+        const view = await this.viewManager.createView(this.id);
+        this.addCameraListener();
         this.setViewFocusScenePath();
         return view;
     }

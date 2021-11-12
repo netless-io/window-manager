@@ -1,5 +1,5 @@
+import { Base } from './Base';
 import { callbacks, WindowManager } from './index';
-import { debounce } from 'lodash';
 import { reaction, ViewVisionMode } from 'white-web-sdk';
 import { SET_SCENEPATH_DELAY } from './constants';
 import { TELE_BOX_STATE } from '@netless/telebox-insider';
@@ -9,16 +9,14 @@ import {
     setViewFocusScenePath,
     setViewMode,
 } from "./Utils/Common";
-import type { Camera, Displayer, View } from "white-web-sdk";
+import type { Displayer, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { CameraStore } from "./Utils/CameraStore";
-import { Base } from './Base';
 
 export class ViewManager extends Base {
-    public mainView: View;
     private views: Map<string, View> = new Map();
-    private mainViewIsAddListener = false;
     private timer?: number;
+    private mainViewProxy = this.manager.mainViewProxy;
 
     constructor(
         private displayer: Displayer,
@@ -26,8 +24,6 @@ export class ViewManager extends Base {
         private cameraStore: CameraStore
     ) {
         super(manager);
-        this.mainView = this.createMainView();
-        this.addMainViewCameraListener();
         setTimeout(() => { // 延迟初始化 focus 的 reaction
             this.manager.refresher?.add("focus", () => {
                 return reaction(
@@ -37,37 +33,22 @@ export class ViewManager extends Base {
                             this.switchAppToWriter(focus);
                         } else {
                             this.switchMainViewToWriter();
+                            this.manager.boxManager.blurFocusBox();
                         }
                     },
                     { fireImmediately: true }
                 )
             });
-        }, 100)
+        }, 100);
     }
 
     public get currentScenePath(): string {
         return this.displayer.state.sceneState.scenePath;
     }
 
-    public createMainView(): View {
-        const mainView = this.displayer.views.createView();
-        this.cameraStore.setCamera("mainView", mainView.camera);
-        mainView.callbacks.on("onSizeUpdated", () => {
-            this.manager.boxManager.updateManagerRect();
-        });
-        const mainViewScenePath = this.store.getMainViewScenePath();
-        if (mainViewScenePath) {
-            setViewFocusScenePath(mainView, mainViewScenePath);
-        }
-        if (!this.store.focus) {
-            this.switchMainViewModeToWriter();
-        }
-        return mainView;
+    public get mainView(): View {
+        return this.mainViewProxy.view;
     }
-
-    public setMainViewSize = debounce(size => {
-        this.store.setMainViewSize({ ...size });
-    }, 200);
 
     public createView(appId: string): View {
         const view = this.displayer.views.createView();
@@ -95,76 +76,20 @@ export class ViewManager extends Base {
         return this.views.get(appId);
     }
 
-    private addMainViewCameraListener() {
-        this.mainView.callbacks.on("onCameraUpdated", this.mainViewCameraListener);
-    }
-
-    private removeMainViewCameraListener() {
-        this.mainView.callbacks.off("onCameraUpdated", this.mainViewCameraListener);
-    }
-
-    public switchMainViewToFreedom(): void {
-        this.store.setMainViewFocusPath();
-        notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
-        setViewMode(this.mainView, ViewVisionMode.Freedom);
-    }
-
-    public switchMainViewModeToWriter(): void {
-        if (!this.manager.canOperate) return;
-        if (this.mainView) {
-            if (this.mainView.mode === ViewVisionMode.Writable) return;
-            notifyMainViewModeChange(callbacks, ViewVisionMode.Writable);
-            setViewMode(this.mainView, ViewVisionMode.Writable);
-        }
-    }
-
-    public addMainViewListener(): void {
-        if (this.mainViewIsAddListener) return;
-        if (this.mainView.divElement) {
-            this.mainView.divElement.addEventListener("click", this.mainViewClickListener);
-            this.mainView.divElement.addEventListener("touchend", this.mainViewClickListener);
-            this.mainViewIsAddListener = true;
-        }
-    }
-
-    public removeMainViewListener(): void {
-        if (this.mainView.divElement) {
-            this.mainView.divElement.removeEventListener("click", this.mainViewClickListener);
-            this.mainView.divElement.removeEventListener("touchend", this.mainViewClickListener);
-        }
-    }
-
-    private mainViewClickListener = () => {
-        this.mainViewClickHandler();
-    };
-
-    public async mainViewClickHandler(): Promise<void> {
-        if (!this.manager.canOperate) return;
-        if (this.mainView.mode === ViewVisionMode.Writable) return;
-        this.store.cleanFocus();
-        this.manager.boxManager.blurFocusBox();
-    }
-
-    private mainViewCameraListener = (camera: Camera) => {
-        this.cameraStore.setCamera("mainView", camera);
-    };
-
     public switchMainViewToWriter(): Promise<boolean> | undefined {
         if (this.timer) {
             clearTimeout(this.timer);
         }
         if (this.mainView.mode === ViewVisionMode.Writable) return;
+        this.freedomAllViews();
         return new Promise((resolve, reject) => {
             this.timer = window.setTimeout(() => {
                 try {
                     const mainViewScenePath = this.store.getMainViewScenePath();
                     if (mainViewScenePath) {
                         this.freedomAllViews();
-                        this.removeMainViewCameraListener();
                         setScenePath(this.manager.room, mainViewScenePath);
-                        this.switchMainViewModeToWriter();
-                        this.manager.cameraStore.recoverCamera("mainView", this.mainView);
-                        this.addMainViewCameraListener();
+                        this.mainViewProxy.switchViewModeToWriter();
                     }
                     resolve(true);
                 } catch (error) {
@@ -179,15 +104,8 @@ export class ViewManager extends Base {
         this.setMainViewFocusScenePath();
         if (focus) {
             const appProxy = this.manager.appProxies.get(focus);
-            if (appProxy) {
-                if (appProxy.view?.mode === ViewVisionMode.Writable) return;
-                appProxy.removeCameraListener();
-                appProxy.switchToWritable();
-                appProxy.recoverCamera();
-                appProxy.addCameraListener();
-            }
+            appProxy?.switchToWritable();
         } else {
-            if (this.manager.mainView.mode === ViewVisionMode.Writable) return;
             this.switchMainViewToWriter();
         }
     }
@@ -210,7 +128,7 @@ export class ViewManager extends Base {
             notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
             this.mainView.mode = ViewVisionMode.Freedom;
         }
-        if (!this.manager.viewManager.mainView.focusScenePath) {
+        if (!this.mainView.focusScenePath) {
             this.store.setMainViewFocusPath();
         }
     }
@@ -225,18 +143,15 @@ export class ViewManager extends Base {
                 if (boxState && boxState === TELE_BOX_STATE.Minimized) {
                     return;
                 }
-                appProxy.removeCameraListener();
                 appProxy.setScenePath();
                 appProxy.switchToWritable();
-                appProxy.recoverCamera();
-                appProxy.addCameraListener();
                 appProxy.focusBox();
             }
         }, SET_SCENEPATH_DELAY);
     }
 
     public destroy(): void {
-        this.removeMainViewListener();
+        this.mainViewProxy.removeMainViewListener();
         if (WindowManager.wrapper) {
             WindowManager.wrapper.parentNode?.removeChild(WindowManager.wrapper);
             WindowManager.wrapper = undefined;

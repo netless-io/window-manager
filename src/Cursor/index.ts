@@ -1,17 +1,17 @@
-import { Cursor } from './Cursor';
-import { CursorState } from '../constants';
-import { debounce } from 'lodash';
-import { Fields } from '../AttributesDelegate';
-import { onObjectInserted } from '../Utils/Reactive';
-import { WindowManager } from '../index';
-import type { PositionType } from '../AttributesDelegate';
-import type { RoomMember } from "white-web-sdk";
+import { Cursor } from "./Cursor";
+import { CursorState } from "../constants";
+import { debounce } from "lodash";
+import { Fields } from "../AttributesDelegate";
+import { onObjectInserted } from "../Utils/Reactive";
+import { WindowManager } from "../index";
+import type { PositionType } from "../AttributesDelegate";
+import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 
 export type EventType = {
-    type: PositionType, 
-    id?: string
-}
+    type: PositionType;
+    id?: string;
+};
 export class CursorManager {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
@@ -79,31 +79,8 @@ export class CursorManager {
         return this.store.getBoxState();
     }
 
-    public get focusBox() {
-        return this.appManager.boxManager.getFocusBox();
-    }
-
     public get focusView() {
-        return this.appManager.focusApp?.view
-    }
-
-    /**
-     *  因为窗口内框在不同分辨率下的大小不一样，所以这里通过来鼠标事件的 target 来判断是在主白板还是在 APP 中
-     */
-    private getType = (event: MouseEvent | Touch): EventType => {
-        const target = event.target as HTMLElement;
-        const targetIsMain = target.parentElement === this.mainViewElement;
-        if (targetIsMain) {
-            return { type: "main" };
-        } else {
-            if (!this.focusView) return { type: "main" };
-            const focusApp = this.appManager.focusApp;
-            const targetIsFocusApp = target.parentElement === focusApp?.view?.divElement;
-            if (targetIsFocusApp) {
-                return { type: "app" };
-            }
-            return { type: "main" };
-        }
+        return this.appManager.focusApp?.view;
     }
 
     private mouseMoveListener = debounce((event: MouseEvent) => {
@@ -117,50 +94,62 @@ export class CursorManager {
         }
     }, 5);
 
+    private updateCursor(event: EventType, clientX: number, clientY: number) {
+        if (this.wrapperRect && this.manager.canOperate) {
+            const view = event.type === "main" ? this.appManager.mainView : this.focusView;
+            const point = this.getPoint(view, clientX, clientY);
+            if (point) {
+                this.setNormalCursorState();
+                this.store.updateCursor(this.observerId, {
+                    x: point.x,
+                    y: point.y,
+                    ...event,
+                });
+            }
+        }
+    }
+
+    private getPoint = (view: View | undefined, clientX: number, clientY: number): Point | undefined => {
+        const rect = view?.divElement?.getBoundingClientRect();
+        if (rect) {
+            const point = view?.convertToPointInWorld({
+                x: clientX - rect.x,
+                y: clientY - rect.y,
+            });
+            return point;
+        }
+    }
+
+    /**
+     *  因为窗口内框在不同分辨率下的大小不一样，所以这里通过来鼠标事件的 target 来判断是在主白板还是在 APP 中
+     */
+    private getType = (event: MouseEvent | Touch): EventType => {
+        const target = event.target as HTMLElement;
+        const focusApp = this.appManager.focusApp;
+        switch (target.parentElement) {
+            case this.mainViewElement: {
+                return { type: "main" }; 
+            }
+            case focusApp?.view?.divElement: {
+                return { type: "app" };
+            }
+            default: {
+                return { type: "main" };
+            }
+        }
+    };
+
     private initCursorAttributes() {
         this.store.updateCursor(this.observerId, {
             x: 0,
             y: 0,
-            type: "main"
+            type: "main",
         });
         this.store.updateCursorState(this.observerId, CursorState.Leave);
     }
 
-    public getFocusBox() {
-        return this.appManager.boxManager.getFocusBox();
-    }
-
-    private updateCursor(event: EventType, clientX: number, clientY: number) {
-        if (this.wrapperRect && this.manager.canOperate) {
-            if (event.type === "main")  {
-                const mainView = this.appManager.mainView;
-                const rect = mainView?.divElement?.getBoundingClientRect();
-                if (rect) {
-                    const point = mainView.convertToPointInWorld({
-                        x: clientX - rect.x,
-                        y: clientY - rect.y,
-                    })
-                    this.setNormalCursorState();
-                    this.store.updateCursor(this.observerId, {
-                        x: point.x, y: point.y, ...event
-                    });
-                }
-            } else if (event.type === "app") {
-                const viewRect = this.focusView?.divElement?.getBoundingClientRect();
-                if (viewRect) {
-                    const worldPosition = this.focusView?.convertToPointInWorld({ x: clientX - viewRect.x, y: clientY - viewRect.y });
-                    if (!worldPosition) return;
-                    this.setNormalCursorState();
-                    this.store.updateCursor(this.observerId, {
-                        x: worldPosition.x, y: worldPosition.y, ...event
-                    });
-                }
-            }
-        }
-    }
-    
     private setNormalCursorState() {
-        const cursorState = this.store.getCursorState(this.observerId)
+        const cursorState = this.store.getCursorState(this.observerId);
         if (cursorState !== CursorState.Normal) {
             this.store.updateCursorState(this.observerId, CursorState.Normal);
         }

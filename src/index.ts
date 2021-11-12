@@ -35,7 +35,6 @@ import {
     isRoom,
     RoomPhase,
     ViewMode,
-    ViewVisionMode,
     WhiteVersion,
 } from "white-web-sdk";
 import type {
@@ -49,7 +48,8 @@ import type {
     AnimationMode,
     CameraBound,
     Point,
-    Rectangle} from "white-web-sdk";
+    Rectangle,
+    ViewVisionMode} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TELE_BOX_STATE } from "./BoxManager";
@@ -168,7 +168,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.2.18";
+    public version = "0.2.19-canary.0";
 
     public appListeners?: AppListeners;
 
@@ -455,7 +455,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * 切换 mainView 为可写
      */
     public switchMainViewToWriter(): Promise<void> | undefined {
-        return this.appManager?.viewManager.mainViewClickHandler();
+        return this.appManager?.mainViewProxy.mainViewClickHandler();
     }
 
     /**
@@ -483,7 +483,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get mainView(): View {
         if (this.appManager) {
-            return this.appManager.viewManager.mainView;
+            return this.appManager.mainViewProxy.view;
         } else {
             throw new AppManagerNotInitError();
         }
@@ -491,7 +491,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get camera(): Camera {
         if (this.appManager) {
-            return this.appManager.viewManager.mainView.camera;
+            return this.appManager.mainViewProxy.view.camera;
         } else {
             throw new AppManagerNotInitError();
         }
@@ -571,21 +571,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
         if (this.appManager) {
-            const mainView = this.appManager.viewManager.mainView;
-            mainView.disableCameraTransform = disableCameraTransform;
-            mainView.divElement = divElement;
+            this.appManager.bindMainView(divElement, disableCameraTransform);
             this.cursorManager?.setMainViewDivElement(divElement);
-            if (!mainView.focusScenePath) {
-                this.appManager.store.setMainViewFocusPath();
-            }
-            if (
-                this.appManager.store.focus === undefined &&
-                mainView.mode !== ViewVisionMode.Writable
-            ) {
-                this.appManager.viewManager.switchMainViewToWriter();
-            }
-            this.appManager.viewManager.addMainViewListener();
-            emitter.emit("mainViewMounted");
         }
     }
 
@@ -613,12 +600,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public safeUpdateAttributes(keys: string[], value: any): void {
         if (this.canOperate) {
             this.updateAttributes(keys, value);
-        }
-    }
-
-    private safeDispatchMagixEvent(event: string, payload: any) {
-        if (this.canOperate) {
-            (this.displayer as Room).dispatchMagixEvent(event, payload);
         }
     }
 

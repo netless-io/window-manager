@@ -94,16 +94,6 @@ export class AttributesDelegate {
         this.manager.safeSetAttributes({ [Fields.Focus]: undefined });
     }
 
-    public cleanAttributes() {
-        this.manager.safeSetAttributes({
-            [Fields.Apps]: undefined,
-            [Fields.BoxState]: undefined,
-            [Fields.Focus]: undefined,
-            _mainScenePath: undefined,
-            _mainSceneIndex: undefined,
-        });
-    }
-
     public getAppSceneIndex(id: string) {
         return this.getAppState(id)?.[AppAttributes.SceneIndex];
     }

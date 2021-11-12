@@ -134,10 +134,6 @@ export class Cursor {
         return get(this.cursors, [this.memberId, Fields.Position]);
     }
 
-    public getFocusBox() {
-        return this.cursorManager.getFocusBox();
-    }
-
     private autoHidden() {
         if (this.timer) {
             clearTimeout(this.timer);
