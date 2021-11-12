@@ -212,6 +212,7 @@ export class CursorManager {
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
             wrapper.removeEventListener("mousemove", this.mouseMoveListener);
+            wrapper.removeEventListener("touchstart", this.touchMoveListener);
             wrapper.removeEventListener("touchmove", this.touchMoveListener);
             wrapper.removeEventListener("mouseleave", this.mouseLeaveListener);
             wrapper.removeEventListener("touchend", this.mouseLeaveListener);
