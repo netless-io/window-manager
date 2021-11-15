@@ -1,7 +1,12 @@
 import { callbacks, emitter, WindowManager } from "./index";
+import { debounce, maxBy } from "lodash";
+import {
+    DEFAULT_COLLECTOR_STYLE,
+    Events,
+    MIN_HEIGHT,
+    MIN_WIDTH
+    } from "./constants";
 import type { AddAppOptions, AppInitState } from "./index";
-import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
-import { debounce, get, isEmpty, maxBy } from "lodash";
 import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
@@ -19,7 +24,6 @@ import type Emittery from "emittery";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
-import type { AppProxy } from "./AppProxy";
 
 export { TELE_BOX_STATE };
 
@@ -50,9 +54,7 @@ export type CreateCollectorConfig = {
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     public appBoxMap: Map<string, string> = new Map();
-    private store = this.manager.store;
     private mainView = this.manager.mainView;
-    private appProxies = this.manager.appProxies;
 
     constructor(
         private manager: AppManager,
@@ -127,14 +129,6 @@ export class BoxManager {
         };
         this.teleBoxManager.create(createBoxConfig);
         emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
-
-        const appState = this.manager.store.getAppState(params.appId);
-        if (appState) {
-            const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
-            if (isEmpty(snapshotRect)) {
-                this.setBoxInitState(params.appId);
-            }
-        }
     }
 
     public setBoxInitState(appId: string): void {
@@ -242,11 +236,7 @@ export class BoxManager {
         if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
-            this.appProxies.forEach(proxy => {
-                if (this.teleBoxManager) {
-                    proxy.appEmitter.emit("containerRectUpdate", this.teleBoxManager.containerRect);
-                }
-            });
+            this.manager.notifyContainerRectUpdate(this.teleBoxManager.containerRect);
         }
     }
 

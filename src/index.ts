@@ -20,6 +20,7 @@ import { log } from './Utils/log';
 import { replaceRoomFunction } from './Utils/RoomHacker';
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
 import { setupWrapper } from './ViewManager';
+import { TELE_BOX_STATE } from './BoxManager';
 import './style.css';
 import '@netless/telebox-insider/dist/style.css';
 import {
@@ -52,7 +53,6 @@ import type {
     ViewVisionMode} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
-import type { TELE_BOX_STATE } from "./BoxManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./AppProxy";
 
@@ -503,7 +503,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get boxState(): TeleBoxState {
         if (this.appManager) {
-            return this.appManager.boxManager.teleBoxManager.state;
+            return this.appManager.store.getBoxState() || TELE_BOX_STATE.Normal;
         } else {
             throw new AppManagerNotInitError();
         }

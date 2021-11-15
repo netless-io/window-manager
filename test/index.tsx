@@ -320,7 +320,8 @@ const mountManager = async (room, root) => {
 
     manager.emitter.on("boxStateChange", state => {
         console.log("boxState", state);
-    })
+    });
+    console.log("boxState", manager.boxState);
 }
 const destroy = () => {
     anyWindow.manager.destroy();

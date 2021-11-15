@@ -8,7 +8,7 @@ import { AppListeners } from './AppListener';
 import { AppProxy } from './AppProxy';
 import { AttributesDelegate } from './AttributesDelegate';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
-import { callbacks, emitter } from './index';
+import { callbacks, emitter, TeleBoxRect } from './index';
 import { CameraStore } from './Utils/CameraStore';
 import { genAppId, makeValidScenePath, setScenePath } from './Utils/Common';
 import {
@@ -426,6 +426,12 @@ export class AppManager {
     public notifyReconnected() {
         this.appProxies.forEach(appProxy => {
             appProxy.onReconnected();
+        });
+    }
+
+    public notifyContainerRectUpdate(rect: TeleBoxRect) {
+        this.appProxies.forEach(appProxy => {
+            appProxy.appEmitter.emit("containerRectUpdate", rect);
         });
     }
 

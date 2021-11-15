@@ -5,7 +5,7 @@ import { appRegister } from './Register';
 import { autorun, ViewVisionMode } from 'white-web-sdk';
 import { callbacks, emitter } from './index';
 import { Fields } from './AttributesDelegate';
-import { get } from 'lodash';
+import { get, isEmpty } from 'lodash';
 import { log } from './Utils/log';
 import {
     notifyMainViewModeChange,
@@ -20,7 +20,7 @@ import type {
     setAppOptions,
     AppListenerKeys,
 } from "./index";
-import type { Camera, SceneState, View, SceneDefinition } from "white-web-sdk";
+import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
@@ -170,6 +170,14 @@ export class AppProxy extends Base {
                 options,
                 canOperate: this.manager.canOperate,
             });
+
+            const appState = this.store.getAppState(this.id);
+            if (appState) {
+                const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
+                if (isEmpty(snapshotRect)) {
+                    this.boxManager.setBoxInitState(this.id);
+                }
+            }
         } catch (error: any) {
             console.error(error);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
