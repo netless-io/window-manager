@@ -43,9 +43,9 @@ export class AppManager {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
         this.mainViewProxy = new MainViewProxy(this);
-        this.viewManager = new ViewManager(this.displayer as Room, this, this.cameraStore);
-        this.boxManager = new BoxManager(this, this.mainViewProxy.view, this.appProxies, options);
-        this.appListeners = new AppListeners(this, this.appProxies);
+        this.viewManager = new ViewManager(this);
+        this.boxManager = new BoxManager(this, options);
+        this.appListeners = new AppListeners(this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
 
@@ -262,7 +262,7 @@ export class AppManager {
     }
 
     public get mainView() {
-        return this.windowManger.mainView;
+        return this.mainViewProxy.view;
     }
 
     public get focusApp() {
@@ -449,6 +449,7 @@ export class AppManager {
         }
         this.viewManager.destroy();
         this.refresher?.destroy();
+        this.mainViewProxy.destroy();
         callbacks.clearListeners();
     }
 }

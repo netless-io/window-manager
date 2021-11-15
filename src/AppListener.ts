@@ -1,18 +1,15 @@
-import { Events, MagixEventName } from './constants';
-import { ViewVisionMode } from 'white-web-sdk';
+import { Events, MagixEventName } from "./constants";
+import { ViewVisionMode } from "white-web-sdk";
 import type { Event } from "white-web-sdk";
 import type { TeleBox } from "@netless/telebox-insider";
-import type { AppProxy } from "./AppProxy";
 import type { AppManager } from "./AppManager";
 
 export class AppListeners {
     private displayer = this.manager.displayer;
     private boxManager = this.manager.boxManager;
+    private appProxies = this.manager.appProxies;
 
-    constructor(
-        private manager: AppManager,
-        private appProxies: Map<string, AppProxy>
-    ) {}
+    constructor(private manager: AppManager) {}
 
     public addListeners() {
         this.displayer.addMagixEventListener(MagixEventName, this.mainMagixEventListener);

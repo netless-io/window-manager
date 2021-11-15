@@ -1,30 +1,28 @@
-import { Base } from './Base';
-import { callbacks, WindowManager } from './index';
-import { reaction, ViewVisionMode } from 'white-web-sdk';
-import { SET_SCENEPATH_DELAY } from './constants';
-import { TELE_BOX_STATE } from '@netless/telebox-insider';
+import { Base } from "./Base";
+import { callbacks, WindowManager } from "./index";
+import { reaction, ViewVisionMode } from "white-web-sdk";
+import { SET_SCENEPATH_DELAY } from "./constants";
+import { TELE_BOX_STATE } from "@netless/telebox-insider";
 import {
     notifyMainViewModeChange,
     setScenePath,
     setViewFocusScenePath,
     setViewMode,
 } from "./Utils/Common";
-import type { Displayer, View } from "white-web-sdk";
+import type { View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
-import type { CameraStore } from "./Utils/CameraStore";
 
 export class ViewManager extends Base {
     private views: Map<string, View> = new Map();
     private timer?: number;
-    private mainViewProxy = this.manager.mainViewProxy;
 
-    constructor(
-        private displayer: Displayer,
-        manager: AppManager,
-        private cameraStore: CameraStore
-    ) {
+    private mainViewProxy = this.manager.mainViewProxy;
+    private displayer = this.manager.displayer;
+
+    constructor(manager: AppManager) {
         super(manager);
-        setTimeout(() => { // 延迟初始化 focus 的 reaction
+        setTimeout(() => {
+            // 延迟初始化 focus 的 reaction
             this.manager.refresher?.add("focus", () => {
                 return reaction(
                     () => this.store.focus,
@@ -37,7 +35,7 @@ export class ViewManager extends Base {
                         }
                     },
                     { fireImmediately: true }
-                )
+                );
             });
         }, 100);
     }
@@ -52,7 +50,6 @@ export class ViewManager extends Base {
 
     public createView(appId: string): View {
         const view = this.displayer.views.createView();
-        this.cameraStore.setCamera(appId, view.camera);
         setViewMode(view, ViewVisionMode.Freedom);
         this.views.set(appId, view);
         return view;
@@ -121,7 +118,7 @@ export class ViewManager extends Base {
         this.manager.appProxies.forEach(appProxy => {
             appProxy.setViewFocusScenePath();
             if (appProxy.view) {
-                setViewMode(appProxy.view, ViewVisionMode.Freedom)
+                setViewMode(appProxy.view, ViewVisionMode.Freedom);
             }
         });
         if (this.mainView.mode === ViewVisionMode.Writable) {

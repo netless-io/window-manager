@@ -51,14 +51,13 @@ export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     public appBoxMap: Map<string, string> = new Map();
     private store = this.manager.store;
+    private mainView = this.manager.mainView;
+    private appProxies = this.manager.appProxies;
 
     constructor(
         private manager: AppManager,
-        private mainView: View,
-        private appProxies: Map<string, AppProxy>,
         collectorConfig?: CreateCollectorConfig
     ) {
-        this.mainView = mainView;
         this.teleBoxManager = this.setupBoxManager(collectorConfig);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {

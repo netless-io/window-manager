@@ -9,16 +9,18 @@ import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from './
 export class MainViewProxy {
     private scale?: number;
     private store = this.manager.store;
+    private cameraStore = this.manager.cameraStore;
     private started = false;
     private mainViewIsAddListener = false;
     private mainView: View;
+    private viewId = "mainView";
 
     constructor(
         private manager: AppManager,
     ) {
         this.mainView = this.createMainView();
+        this.cameraStore.register(this.viewId, this.mainView);
         emitter.once("mainViewMounted").then(() => {
-            this.view.callbacks.on("onCameraUpdated", this.mainViewCameraListener);
             setTimeout(() => {
                 this.start();
             }, 300); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
@@ -74,7 +76,6 @@ export class MainViewProxy {
 
     public createMainView(): View {
         const mainView = this.manager.displayer.views.createView();
-        this.manager.cameraStore.setCamera("mainView", mainView.camera);
         mainView.callbacks.on("onSizeUpdated", () => {
             this.manager.boxManager.updateManagerRect();
         });
@@ -138,19 +139,14 @@ export class MainViewProxy {
         this.view.callbacks.off("onCameraUpdatedByDevice", this.cameraListener);
     }
 
-    private mainViewCameraListener = (camera: Camera) => {
-        this.manager.cameraStore.setCamera("mainView", camera);
-    };
-
     public switchViewModeToWriter(): void {
         if (!this.manager.canOperate) return;
         if (this.view) {
             if (this.view.mode === ViewVisionMode.Writable) return;
-            this.view.callbacks.off("onCameraUpdated", this.mainViewCameraListener);
-            notifyMainViewModeChange(callbacks, ViewVisionMode.Writable);
-            setViewMode(this.view, ViewVisionMode.Writable);
-            this.manager.cameraStore.recoverCamera("mainView", this.view);
-            this.view.callbacks.on("onCameraUpdated", this.mainViewCameraListener);
+            this.cameraStore.switchView(this.viewId, this.mainView, () => {
+                notifyMainViewModeChange(callbacks, ViewVisionMode.Writable);
+                setViewMode(this.view, ViewVisionMode.Writable);
+            });
         }
     }
 
@@ -187,5 +183,10 @@ export class MainViewProxy {
         this.manager.refresher?.remove(Fields.MainViewSize);
         this.view.callbacks.off("onSizeUpdated", this.sizeListener);
         this.started = false;
+    }
+
+    public destroy() {
+        this.stop();
+        this.cameraStore.unregister(this.viewId, this.mainView);
     }
 }

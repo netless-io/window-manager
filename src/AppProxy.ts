@@ -36,6 +36,7 @@ export class AppProxy extends Base {
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
+    private cameraStore = this.manager.cameraStore;
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
@@ -190,23 +191,21 @@ export class AppProxy extends Base {
     }
 
     public switchToWritable() {
-        if (this.view) {
-            if (this.view.mode === ViewVisionMode.Writable) return;
-            this.removeCameraListener();
-            try {
-                if (this.manager.mainView.mode === ViewVisionMode.Writable) {
-                    this.store.setMainViewFocusPath();
-                    notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
-                    setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
+        this.cameraStore.switchView(this.id, this.view, () => {
+            if (this.view) {
+                if (this.view.mode === ViewVisionMode.Writable) return;
+                try {
+                    if (this.manager.mainView.mode === ViewVisionMode.Writable) {
+                        this.store.setMainViewFocusPath();
+                        notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
+                        setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
+                    }
+                    setViewMode(this.view, ViewVisionMode.Writable);
+                } catch (error) {
+                    log("switch view failed", error);
                 }
-                setViewMode(this.view, ViewVisionMode.Writable);
-                this.recoverCamera();
-            } catch (error) {
-                log("switch view failed", error);
-            } finally {
-                this.addCameraListener();
             }
-        }
+        });
     }
 
     public getAppInitState = (id: string) => {
@@ -301,25 +300,11 @@ export class AppProxy extends Base {
         });
     };
 
-    public recoverCamera(): void {
-        this.manager.cameraStore.recoverCamera(this.id, this.view);
-    }
-
     public setScenePath(): void {
         if (!this.manager.canOperate) return;
         const fullScenePath = this.getFullScenePath();
         if (this.manager.room && fullScenePath && this.view) {
             setScenePath(this.manager.room, fullScenePath);
-        }
-    }
-
-    public switchToFreedom(): void {
-        if (this.view && this.view.mode === ViewVisionMode.Writable) {
-            const scenePath = this.getFullScenePath();
-            if (scenePath) {
-                setViewFocusScenePath(this.view, scenePath);
-                setViewMode(this.view, ViewVisionMode.Freedom);
-            }
         }
     }
 
@@ -330,24 +315,12 @@ export class AppProxy extends Base {
         }
     }
 
-    public addCameraListener() {
-        this.view?.callbacks.on("onCameraUpdated", this.cameraListener);
-    }
-
-    public removeCameraListener() {
-        this.view?.callbacks.off("onCameraUpdated", this.cameraListener);
-    }
-
     private async createView(): Promise<View> {
         const view = await this.viewManager.createView(this.id);
-        this.addCameraListener();
+        this.cameraStore.register(this.id, view);
         this.setViewFocusScenePath();
         return view;
     }
-
-    private cameraListener = (camera: Camera) => {
-        this.manager.cameraStore.setCamera(this.id, camera);
-    };
 
     public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
         if (this.status === "destroyed") return;
@@ -363,14 +336,14 @@ export class AppProxy extends Base {
             this.store.cleanAppAttributes(this.id);
         }
         this.appProxies.delete(this.id);
-        this.manager.cameraStore.deleteCamera(this.id);
-        this.removeCameraListener();
-        this.manager.viewManager.destroyView(this.id);
+        this.cameraStore.unregister(this.id, this.view);
+
+        this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
         this.manager.refresher?.remove(this.id);
     }
 
-    public async close(): Promise<void> {
-        return await this.destroy(true, true);
+    public close(): Promise<void> {
+        return this.destroy(true, true);
     }
 }
