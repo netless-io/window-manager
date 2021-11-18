@@ -1,9 +1,10 @@
-import { Cursor } from "./Cursor";
-import { CursorState } from "../constants";
-import { debounce } from "lodash";
-import { Fields } from "../AttributesDelegate";
-import { onObjectInserted } from "../Utils/Reactive";
-import { WindowManager } from "../index";
+import { Base } from '../Base';
+import { Cursor } from './Cursor';
+import { CursorState } from '../constants';
+import { debounce } from 'lodash';
+import { Fields } from '../AttributesDelegate';
+import { onObjectInserted } from '../Utils/Reactive';
+import { WindowManager } from '../index';
 import type { PositionType } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
@@ -12,17 +13,23 @@ export type EventType = {
     type: PositionType;
     id?: string;
 };
-export class CursorManager {
+
+export type MoveCursorParams = {
+    uid: string;
+    x: number;
+    y: number;
+}
+export class CursorManager extends Base {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     private disposer: any;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
-    private store = this.appManager.store;
 
-    constructor(private manager: WindowManager, private appManager: AppManager) {
-        this.roomMembers = this.manager.room?.state.roomMembers;
+    constructor(private appManager: AppManager) {
+        super(appManager);
+        this.roomMembers = this.appManager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
             wrapper.addEventListener("mousemove", this.mouseMoveListener);
@@ -47,29 +54,25 @@ export class CursorManager {
     }
 
     private handleRoomMembersChange(wrapper: HTMLElement) {
-        const memberIds = this.roomMembers?.map(member => member.memberId);
-        if (memberIds?.length) {
-            for (const memberId in this.cursors) {
+        const uids = this.roomMembers?.map(member => member.payload?.uid);
+        if (uids?.length) {
+            for (const uid in this.cursors) {
                 if (
-                    memberIds.includes(Number(memberId)) &&
-                    !this.cursorInstances.has(memberId) &&
-                    memberId !== this.observerId
+                    uids.includes(uid) &&
+                    !this.cursorInstances.has(uid) &&
+                    uid !== this.context.uid
                 ) {
                     const component = new Cursor(
-                        this.manager,
+                        this.appManager,
                         this.cursors,
-                        memberId,
+                        uid,
                         this,
                         wrapper
                     );
-                    this.cursorInstances.set(memberId, component);
+                    this.cursorInstances.set(uid, component);
                 }
             }
         }
-    }
-
-    private get observerId() {
-        return String(this.manager.displayer.observerId);
     }
 
     public get cursors() {
@@ -101,7 +104,7 @@ export class CursorManager {
             const point = this.getPoint(view, clientX, clientY);
             if (point) {
                 this.setNormalCursorState();
-                this.store.updateCursor(this.observerId, {
+                this.store.updateCursor(this.context.uid, {
                     x: point.x,
                     y: point.y,
                     ...event,
@@ -141,24 +144,24 @@ export class CursorManager {
     };
 
     private initCursorAttributes() {
-        this.store.updateCursor(this.observerId, {
+        this.store.updateCursor(this.context.uid, {
             x: 0,
             y: 0,
             type: "main",
         });
-        this.store.updateCursorState(this.observerId, CursorState.Leave);
+        this.store.updateCursorState(this.context.uid, CursorState.Leave);
     }
 
     private setNormalCursorState() {
-        const cursorState = this.store.getCursorState(this.observerId);
+        const cursorState = this.store.getCursorState(this.context.uid);
         if (cursorState !== CursorState.Normal) {
-            this.store.updateCursorState(this.observerId, CursorState.Normal);
+            this.store.updateCursorState(this.context.uid, CursorState.Normal);
         }
     }
 
     private mouseLeaveListener = () => {
-        this.hideCursor(this.observerId);
-        this.store.updateCursorState(this.observerId, CursorState.Leave);
+        this.hideCursor(this.context.uid);
+        this.store.updateCursorState(this.context.uid, CursorState.Leave);
     };
 
     public updateContainerRect() {
@@ -176,36 +179,36 @@ export class CursorManager {
         }
     }
 
-    public cleanMemberCursor(memberId: string) {
-        this.store.cleanCursor(memberId);
-        const cursor = this.cursorInstances.get(memberId);
+    public cleanMemberCursor(uid: string) {
+        this.store.cleanCursor(uid);
+        const cursor = this.cursorInstances.get(uid);
         if (cursor) {
             cursor.destroy();
         }
     }
 
-    public hideCursor(memberId: string) {
-        const cursor = this.cursorInstances.get(memberId);
+    public hideCursor(uid: string) {
+        const cursor = this.cursorInstances.get(uid);
         if (cursor) {
             cursor.hide();
         }
     }
 
     public cleanMemberAttributes(members: readonly RoomMember[]) {
-        const memberIds = members.map(member => member.memberId);
+        const uids = members.map(member => member.payload?.uid);
         const needDeleteIds = [];
-        for (const memberId in this.cursors) {
-            const index = memberIds.findIndex(id => id === Number(memberId));
+        for (const uid in this.cursors) {
+            const index = uids.findIndex(id => id === uid);
             if (index === -1) {
-                needDeleteIds.push(memberId);
+                needDeleteIds.push(uid);
             }
         }
-        needDeleteIds.forEach(memberId => {
-            const instance = this.cursorInstances.get(memberId);
+        needDeleteIds.forEach(uid => {
+            const instance = this.cursorInstances.get(uid);
             if (instance) {
                 instance.destroy();
             }
-            this.store.cleanCursor(memberId);
+            this.store.cleanCursor(uid);
         });
     }
 

@@ -129,6 +129,7 @@ type EmitterEvent = {
     error: Error,
     seek: number,
     mainViewMounted: undefined,
+    observerIdChange: number;
     [TELE_BOX_STATE.Normal]: undefined,
     [TELE_BOX_STATE.Maximized]: undefined,
     [TELE_BOX_STATE.Minimized]: undefined,
@@ -300,7 +301,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         });
         manager.observePlaygroundSize(playground, sizer, wrapper);
         if (cursor) {
-            manager.cursorManager = new CursorManager(manager, manager.appManager);
+            manager.cursorManager = new CursorManager(manager.appManager);
         }
         manager.bindMainView(mainViewElement, disableCameraTransform);
         replaceRoomFunction(room, manager.appManager);
@@ -471,8 +472,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setViewMode(mode: ViewMode): void {
         if (!this.canOperate) return;
         if (mode === ViewMode.Broadcaster) {
-            this.appManager?.store.setMainViewCamera({ ...this.mainView.camera, id: this.displayer.observerId });
-            this.appManager?.store.setMainViewSize({ ...this.mainView.size, id: this.displayer.observerId });
+            this.appManager?.mainViewProxy.setCameraAndSize();
             this.appManager?.mainViewProxy.start();
         }
         if (mode === ViewMode.Freedom) {

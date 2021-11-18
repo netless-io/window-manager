@@ -1,30 +1,43 @@
 import { AnimationMode, reaction, ViewVisionMode } from 'white-web-sdk';
-import { Fields } from './AttributesDelegate';
+import { Base } from './Base';
+import { callbacks, emitter } from './index';
 import { debounce, isEmpty, isEqual } from 'lodash';
+import { Fields } from './AttributesDelegate';
+import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from './Utils/Common';
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
-import { callbacks, emitter } from './index';
-import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from './Utils/Common';
 
-export class MainViewProxy {
+export class MainViewProxy extends Base {
     private scale?: number;
-    private store = this.manager.store;
     private cameraStore = this.manager.cameraStore;
     private started = false;
     private mainViewIsAddListener = false;
     private mainView: View;
     private viewId = "mainView";
 
-    constructor(
-        private manager: AppManager,
-    ) {
+    constructor(manager: AppManager) {
+        super(manager);
         this.mainView = this.createMainView();
+        this.moveCameraSizeByAttributes();
         this.cameraStore.register(this.viewId, this.mainView);
         emitter.once("mainViewMounted").then(() => {
             setTimeout(() => {
                 this.start();
-            }, 300); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
+            }, 200); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
         })
+    }
+
+    private get mainViewCamera() {
+        return this.store.getMainViewCamera();
+    }
+
+    private get mainViewSize() {
+        return this.store.getMainViewSize();
+    }
+
+    private moveCameraSizeByAttributes() {
+        this.moveCameraToContian(this.mainViewSize);
+        this.moveCamera(this.mainViewCamera);
     }
 
     public start() {
@@ -36,16 +49,16 @@ export class MainViewProxy {
         this.started = true;
     }
 
-
-    private get observerId() {
-        return this.manager.displayer.observerId;
+    public setCameraAndSize(): void {
+        this.store.setMainViewCamera({ ...this.mainView.camera, id: this.context.uid  });
+        this.store.setMainViewSize({ ...this.mainView.size, id: this.context.uid });
     }
 
     private cameraReaction = () => {
         return reaction(
-            () => this.manager.attributes?.[Fields.MainViewCamera],
+            () => this.mainViewCamera,
             camera => {
-                if (camera && camera.id !== this.observerId) {
+                if (camera && camera.id !== this.context.uid) {
                     this.moveCamera(camera);
                 }
             },
@@ -57,11 +70,11 @@ export class MainViewProxy {
 
     private sizeReaction = () => {
         return reaction(
-            () => this.manager.attributes?.[Fields.MainViewSize],
+            () => this.mainViewSize,
             size => {
-                if (size && size.id !== this.observerId) {
+                if (size && size.id !== this.context.uid) {
                     this.moveCameraToContian(size);
-                    this.moveCamera(this.store.getMainViewCamera());
+                    this.moveCamera(this.mainViewCamera);
                 }
             },
             {
@@ -77,7 +90,7 @@ export class MainViewProxy {
     public createMainView(): View {
         const mainView = this.manager.displayer.views.createView();
         mainView.callbacks.on("onSizeUpdated", () => {
-            this.manager.boxManager.updateManagerRect();
+            this.context.updateManagerRect();
         });
         const mainViewScenePath = this.store.getMainViewScenePath();
         if (mainViewScenePath) {
@@ -90,8 +103,8 @@ export class MainViewProxy {
     }
 
     private cameraListener = (camera: Camera) => {
-        this.store.setMainViewCamera({ ...camera, id: this.observerId});
-        if (this.store.getMainViewSize()?.id !== this.observerId) {
+        this.store.setMainViewCamera({ ...camera, id: this.context.uid});
+        if (this.store.getMainViewSize()?.id !== this.context.uid) {
             this.setMainViewSize(this.view.size);
         }
     }
@@ -120,7 +133,7 @@ export class MainViewProxy {
         if (!this.manager.canOperate) return;
         if (this.view.mode === ViewVisionMode.Writable) return;
         this.store.cleanFocus();
-        this.manager.boxManager.blurFocusBox();
+        this.context.blurFocusBox();
     }
 
     private sizeListener = (size: Size) => {
@@ -128,7 +141,7 @@ export class MainViewProxy {
     }
 
     public setMainViewSize = debounce(size => {
-        this.store.setMainViewSize({ ...size, id: this.observerId });
+        this.store.setMainViewSize({ ...size, id: this.context.uid });
     }, 50);
 
     private addCameraListener() {

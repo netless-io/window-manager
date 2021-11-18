@@ -249,7 +249,7 @@ const onRef = (ref) => {
         },
         isWritable: !(isWritable === "false"),
         cursorAdapter: undefined,
-        uid: "test1",
+        uid: Math.random().toString().substr(3, 8),
         disableMagixEventDispatchLimit: true,
     }).then(async room => {
         if (room.isWritable) {

@@ -53,6 +53,17 @@ export class AppProxy extends Base {
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
         this.appListener = this.makeAppEventListener(this.id);
+        this.isAddApp = isAddApp;
+
+        this.initScenes();
+
+        if (this.params.options?.scenePath) {
+            // 只有传入了 scenePath 的 App 才会创建 View
+            this.createView();
+        }
+    }
+
+    private initScenes() {
         const options = this.params.options;
         if (options) {
             this.scenePath = options.scenePath;
@@ -62,12 +73,6 @@ export class AppProxy extends Base {
                 this.scenes = options.scenes;
             }
         }
-
-        if (this.params.options?.scenePath) {
-            // 只有传入了 scenePath 的 App 才会创建 View
-            this.createView();
-        }
-        this.isAddApp = isAddApp;
     }
 
     public get view(): View | undefined {
@@ -98,27 +103,30 @@ export class AppProxy extends Base {
 
     public async baseInsertApp(focus?: boolean): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
-        if (params.kind) {
-            const appImpl = await appRegister.appClasses.get(params.kind)?.();
-            const appParams = appRegister.registered.get(params.kind);
-            if (appImpl) {
-                await this.setupApp(this.id, appImpl, params.options, appParams?.appOptions);
-            } else {
-                throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
-            }
-            this.boxManager.updateManagerRect();
-            if (focus) {
-                this.focusBox();
-                this.manager.viewManager.switchAppToWriter(this.id);
-                this.store.setMainViewFocusPath();
-            }
-            return {
-                appId: this.id,
-                app: appImpl,
-            };
-        } else {
+        if (!params.kind) {
             throw new Error("[WindowManager]: kind require");
         }
+        const appImpl = await appRegister.appClasses.get(params.kind)?.();
+        const appParams = appRegister.registered.get(params.kind);
+        if (appImpl) {
+            await this.setupApp(this.id, appImpl, params.options, appParams?.appOptions);
+        } else {
+            throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
+        }
+        this.context.updateManagerRect();
+        if (focus) {
+            this.focusApp();
+        }
+        return {
+            appId: this.id,
+            app: appImpl,
+        };
+    }
+
+    private focusApp() {
+        this.focusBox();
+        this.context.switchAppToWriter(this.id);
+        this.store.setMainViewFocusPath();
     }
 
     public get box(): ReadonlyTeleBox | undefined {
@@ -143,25 +151,8 @@ export class AppProxy extends Base {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
                     const result = await app.setup(context);
                     appRegister.notifyApp(app.kind, "created", { appId, result });
-                    if (boxInitState) {
-                        if (boxInitState.focus && this.scenePath) {
-                            this.manager.viewManager.switchAppToWriter(this.id);
-                            this.manager.viewManager.setMainViewFocusScenePath();
-                        }
-                        if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
-                            this.boxManager.setBoxInitState(appId);
-                        }
-                    }
-                    const box = this.boxManager.getBox(appId);
-                    if (box) {
-                        this.boxManager.resizeBox({
-                            // 兼容移动端创建时会出现 PPT 不适配的问题
-                            appId,
-                            width: box.width + 0.001,
-                            height: box.height + 0.001,
-                            skipUpdate: true,
-                        });
-                    }
+                    this.afterSetupApp(boxInitState);
+                    this.fixMobileSize();
                 }, 50);
             });
             this.boxManager.createBox({
@@ -170,17 +161,45 @@ export class AppProxy extends Base {
                 options,
                 canOperate: this.manager.canOperate,
             });
+            this.createSnapshot();
 
-            const appState = this.store.getAppState(this.id);
-            if (appState) {
-                const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
-                if (isEmpty(snapshotRect)) {
-                    this.boxManager.setBoxInitState(this.id);
-                }
-            }
         } catch (error: any) {
             console.error(error);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
+        }
+    }
+
+    // 兼容移动端创建时会出现 PPT 不适配的问题
+    private fixMobileSize() {
+        const box = this.boxManager.getBox(this.id);
+        if (box) {
+            this.boxManager.resizeBox({
+                appId: this.id,
+                width: box.width + 0.001,
+                height: box.height + 0.001,
+                skipUpdate: true,
+            });
+        }
+    }
+
+    private createSnapshot() {
+        const appState = this.store.getAppState(this.id);
+        if (appState) {
+            const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
+            if (isEmpty(snapshotRect)) {
+                this.boxManager.setBoxInitState(this.id);
+            }
+        }
+    }
+
+    private afterSetupApp(boxInitState: AppInitState | undefined): void {
+        if (boxInitState) {
+            if (boxInitState.focus && this.scenePath) {
+                this.context.switchAppToWriter(this.id);
+            }
+            if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
+                this.boxManager.setBoxInitState(this.id);
+            }
         }
     }
 
@@ -300,7 +319,7 @@ export class AppProxy extends Base {
     private appAttributesUpdateListener = (appId: string) => {
         this.manager.refresher?.add(appId, () => {
             return autorun(() => {
-                const attrs = this.manager.windowManger.attributes[appId];
+                const attrs = this.manager.attributes[appId];
                 if (attrs) {
                     this.appEmitter.emit("attributesUpdate", attrs);
                 }
