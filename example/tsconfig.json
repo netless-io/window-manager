@@ -11,6 +11,7 @@
         "./babel.config.js",
         "dist",
         "./poi.config.js",
-        "./test.js"
+        "./test.js",
+        "../dist/index.es.js"
     ]
 }
