@@ -1,12 +1,12 @@
-import Emittery from 'emittery';
-import { AppAttributes, AppEvents, Events } from './constants';
-import { AppContext } from './AppContext';
-import { appRegister } from './Register';
-import { autorun, ViewVisionMode } from 'white-web-sdk';
-import { callbacks, emitter } from './index';
-import { Fields } from './AttributesDelegate';
-import { get, isEmpty } from 'lodash';
-import { log } from './Utils/log';
+import Emittery from "emittery";
+import { AppAttributes, AppEvents, Events } from "./constants";
+import { AppContext } from "./AppContext";
+import { appRegister } from "./Register";
+import { autorun, ViewVisionMode } from "white-web-sdk";
+import { callbacks, emitter } from "./index";
+import { Fields } from "./AttributesDelegate";
+import { get, isEmpty } from "lodash";
+import { log } from "./Utils/log";
 import {
     notifyMainViewModeChange,
     setScenePath,
@@ -24,7 +24,7 @@ import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
-import { Base } from './Base';
+import { Base } from "./Base";
 
 export class AppProxy extends Base {
     public id: string;
@@ -137,7 +137,12 @@ export class AppProxy extends Base {
         this.boxManager.focusBox({ appId: this.id });
     }
 
-    private async setupApp(appId: string, app: NetlessApp, options?: setAppOptions, appOptions?: any) {
+    private async setupApp(
+        appId: string,
+        app: NetlessApp,
+        options?: setAppOptions,
+        appOptions?: any
+    ) {
         log("setupApp", appId, app, options);
         const context = new AppContext(this.manager, appId, this, appOptions);
         try {
@@ -161,8 +166,6 @@ export class AppProxy extends Base {
                 options,
                 canOperate: this.manager.canOperate,
             });
-            this.createSnapshot();
-
         } catch (error: any) {
             console.error(error);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
@@ -175,20 +178,10 @@ export class AppProxy extends Base {
         if (box) {
             this.boxManager.resizeBox({
                 appId: this.id,
-                width: box.width + 0.001,
-                height: box.height + 0.001,
+                width: box.intrinsicWidth + 0.001,
+                height: box.intrinsicHeight + 0.001,
                 skipUpdate: true,
             });
-        }
-    }
-
-    private createSnapshot() {
-        const appState = this.store.getAppState(this.id);
-        if (appState) {
-            const snapshotRect = get(appState, [AppAttributes.SnapshotRect]);
-            if (isEmpty(snapshotRect)) {
-                this.boxManager.setBoxInitState(this.id);
-            }
         }
     }
 
@@ -197,7 +190,7 @@ export class AppProxy extends Base {
             if (boxInitState.focus && this.scenePath) {
                 this.context.switchAppToWriter(this.id);
             }
-            if (!boxInitState?.x || !boxInitState.y || !boxInitState.snapshotRect) {
+            if (!boxInitState?.x || !boxInitState.y) {
                 this.boxManager.setBoxInitState(this.id);
             }
         }
@@ -241,10 +234,10 @@ export class AppProxy extends Base {
         const position = attrs?.[AppAttributes.Position];
         const focus = this.store.focus;
         const size = attrs?.[AppAttributes.Size];
-        const snapshotRect = attrs?.[AppAttributes.SnapshotRect];
         const sceneIndex = attrs?.[AppAttributes.SceneIndex];
-        const boxState = this.store.getBoxState();
-        let payload = { boxState } as AppInitState;
+        const maximized = this.manager.attributes?.["maximized"];
+        const minimized = this.manager.attributes?.["minimized"];
+        let payload = { maximized, minimized } as AppInitState;
         if (position) {
             payload = { ...payload, id: id, x: position.x, y: position.y };
         }
@@ -253,9 +246,6 @@ export class AppProxy extends Base {
         }
         if (size) {
             payload = { ...payload, width: size.width, height: size.height };
-        }
-        if (snapshotRect) {
-            payload = { ...payload, snapshotRect };
         }
         if (sceneIndex) {
             payload = { ...payload, sceneIndex };

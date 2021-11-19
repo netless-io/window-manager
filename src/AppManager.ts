@@ -360,7 +360,6 @@ export class AppManager {
                         state: eventName,
                     },
                 });
-                this.safeSetAttributes({ boxState: eventName });
 
                 this.store.cleanFocus();
                 this.boxManager.blurFocusBox();
@@ -378,7 +377,6 @@ export class AppManager {
                 if (topBox) {
                     emitter.emit("focus", { appId: topBox.id });
                 }
-                this.safeSetAttributes({ boxState: eventName });
                 break;
             }
             case TELE_BOX_STATE.Normal: {
@@ -390,17 +388,6 @@ export class AppManager {
                     },
                 });
                 this.safeSetAttributes({ boxState: eventName });
-                break;
-            }
-            case "snapshot": {
-                this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppSnapshot,
-                    payload,
-                });
-
-                this.store.updateAppState(payload.appId, AppAttributes.SnapshotRect, {
-                    ...payload.rect,
-                });
                 break;
             }
             case "close": {

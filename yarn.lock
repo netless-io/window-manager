@@ -122,13 +122,15 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@^0.1.19":
-  version "0.1.19"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.1.19.tgz#7b05bf7cca9665fb7a5264fd3b3bd8e6cd08d231"
-  integrity sha512-xyoY/Tj+ve9qxOjZKKglF2Nf4mdzEpxqNBGXWhvRvW/KBX/5fpZ1wF0MaxCeHFZbpG9hHM+tdP/K6qbf00BQxQ==
+"@netless/telebox-insider@0.2.2":
+  version "0.2.2"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.2.tgz#773a5157dee7e6a7c09d63797150db09a11a83c7"
+  integrity sha512-ftgR/CawVLfw/XAIQp1Wvtez4Po8S+YhTwzG/Ng1WQ/RFNOI2uwc+hTShK6nZGMnu3WxZGGvRaazTyeOj2OegQ==
   dependencies:
+    "@types/shallowequal" "^1.1.1"
     eventemitter3 "^4.0.7"
-    side-effect-manager "^0.1.3"
+    shallowequal "^1.1.0"
+    side-effect-manager "^0.1.4"
     stylefire "^7.0.3"
 
 "@netless/xml-js@1.6.15":
@@ -376,6 +378,11 @@
   version "0.12.1"
   resolved "https://registry.npmjs.org/@types/retry/-/retry-0.12.1.tgz#d8f1c0d0dc23afad6dc16a9e993a0865774b4065"
   integrity sha512-xoDlM2S4ortawSWORYqsdU+2rxdh4LRW9ytc3zmT37RIKQh6IHyKwwtKhKis9ah8ol07DCkZxPt8BBvPjC6v4g==
+
+"@types/shallowequal@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.npmjs.org/@types/shallowequal/-/shallowequal-1.1.1.tgz#aad262bb3f2b1257d94c71d545268d592575c9b1"
+  integrity sha512-Lhni3aX80zbpdxRuWhnuYPm8j8UQaa571lHP/xI4W+7BAFhSIhRReXnqjEgT/XzPoXZTJkCqstFMJ8CZTK6IlQ==
 
 "@types/sinonjs__fake-timers@^6.0.2":
   version "6.0.4"
@@ -3531,6 +3538,11 @@ semver@^7.2.1, semver@^7.3.5:
   dependencies:
     lru-cache "^6.0.0"
 
+shallowequal@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/shallowequal/-/shallowequal-1.1.0.tgz#188d521de95b9087404fd4dcb68b13df0ae4e7f8"
+  integrity sha512-y0m1JoUZSlPAjXVtPPW70aZWfIL/dSP7AFkRnniLCrK/8MDKog3TySTBmckD+RObVxH0v4Tox67+F14PdED2oQ==
+
 shebang-command@^2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz#ccd0af4f8835fbdc265b82461aaf0c36663f34ea"
@@ -3552,10 +3564,10 @@ side-channel@^1.0.4:
     get-intrinsic "^1.0.2"
     object-inspect "^1.9.0"
 
-side-effect-manager@^0.1.3:
-  version "0.1.3"
-  resolved "https://registry.npmjs.org/side-effect-manager/-/side-effect-manager-0.1.3.tgz#787aaf7b74f9e8967387ec7e1b1d03fa40c5c96f"
-  integrity sha512-Ej2ig3xtMkpYoQeTP94ym/qP5k0UWQE3RlIgIkQys209S1B4wZRsY7Kh+CzSwlN+R1u9Gt6Ls6d8jnclVUWm1g==
+side-effect-manager@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.npmjs.org/side-effect-manager/-/side-effect-manager-0.1.4.tgz#96e8ad1475f420f76e3c1e2ea2fa6582dfd9d74a"
+  integrity sha512-eX5nnZQq75zhALv6bMYW/Uws45CHt9Z0YyN3klL67u3nWigNM+0cZb8OXNpBiM4wEALbmAo86tMww9zHvc1IXQ==
 
 signal-exit@^3.0.2:
   version "3.0.5"

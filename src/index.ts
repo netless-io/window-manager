@@ -113,9 +113,10 @@ export type AppInitState = {
     width?: number;
     height?: number;
     focus?: boolean;
-    snapshotRect?: any;
-    boxState?: TELE_BOX_STATE;
+    maximized?: boolean;
+    minimized?: boolean;
     sceneIndex?: number;
+    boxState?: TeleBoxState; // 兼容旧版 telebox
 };
 
 type EmitterEvent = {
@@ -125,7 +126,6 @@ type EmitterEvent = {
     focus: { appId: string },
     close: { appId: string },
     resize: { appId: string, width: number, height: number, x?: number, y?: number },
-    snapshot: { appId: string, rect: any },
     error: Error,
     seek: number,
     mainViewMounted: undefined,
@@ -133,6 +133,8 @@ type EmitterEvent = {
     [TELE_BOX_STATE.Normal]: undefined,
     [TELE_BOX_STATE.Maximized]: undefined,
     [TELE_BOX_STATE.Minimized]: undefined,
+    // minimized: boolean,
+    // maximized: boolean,
 }
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();
