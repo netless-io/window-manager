@@ -22,7 +22,6 @@ export type MoveCursorParams = {
 export class CursorManager extends Base {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
-    private disposer: any;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
@@ -48,20 +47,25 @@ export class CursorManager extends Base {
     }
 
     private startReaction(wrapper: HTMLElement) {
-        this.disposer = onObjectInserted(this.cursors, () => {
-            this.handleRoomMembersChange(wrapper);
-        });
+        this.manager.refresher?.add("cursors", () => {
+            return onObjectInserted(this.cursors, () => {
+                this.handleRoomMembersChange(wrapper);
+            });
+        })
     }
 
-    private handleRoomMembersChange(wrapper: HTMLElement) {
+    private handleRoomMembersChange = debounce((wrapper: HTMLElement) => {
         const uids = this.roomMembers?.map(member => member.payload?.uid);
+        const cursors = Object.keys(this.cursors);
         if (uids?.length) {
-            for (const uid in this.cursors) {
+            cursors.map(uid => {
                 if (
                     uids.includes(uid) &&
-                    !this.cursorInstances.has(uid) &&
-                    uid !== this.context.uid
+                    !this.cursorInstances.has(uid)
                 ) {
+                    if (uid === this.context.uid) {
+                        return;
+                    }
                     const component = new Cursor(
                         this.appManager,
                         this.cursors,
@@ -71,9 +75,9 @@ export class CursorManager extends Base {
                     );
                     this.cursorInstances.set(uid, component);
                 }
-            }
+            })
         }
-    }
+    }, 100);
 
     public get cursors() {
         return this.manager.attributes?.[Fields.Cursors];
@@ -221,10 +225,10 @@ export class CursorManager extends Base {
             wrapper.removeEventListener("mouseleave", this.mouseLeaveListener);
             wrapper.removeEventListener("touchend", this.mouseLeaveListener);
         }
-        this.disposer && this.disposer();
         if (this.cursorInstances.size) {
             this.cursorInstances.forEach(cursor => cursor.destroy());
             this.cursorInstances.clear();
         }
+        this.manager.refresher?.remove("cursors");
     }
 }

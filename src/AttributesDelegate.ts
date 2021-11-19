@@ -52,6 +52,10 @@ export class AttributesDelegate {
         return get(this.apps(), [id, Fields.State]);
     }
 
+    public getMaximized() {
+        return get(this.manager.attributes, ["maximized"])
+    }
+
     public setupAppAttributes(params: AddAppParams, id: string, isDynamicPPT: boolean) {
         const attributes = this.manager.attributes;
         if (!attributes.apps) {

@@ -5,13 +5,9 @@
         "target": "es6",
         "jsx": "react",
         "moduleResolution": "node",
-        "allowJs": true,
+        "allowJs": false,
     },
     "exclude": [
-        "./babel.config.js",
-        "dist",
-        "./poi.config.js",
-        "./test.js",
-        "../dist/index.es.js"
+       "*.js"
     ]
 }

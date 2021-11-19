@@ -459,6 +459,7 @@ export class AppManager {
             });
         }
         this.viewManager.destroy();
+        this.boxManager.destroy();
         this.refresher?.destroy();
         this.mainViewProxy.destroy();
         callbacks.clearListeners();

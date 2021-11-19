@@ -38,9 +38,6 @@ export class Cursor extends Base {
             if (!this.cursorPosition) {
                 throw new Error();
             }
-            if (this.memberId === this.context.uid) {
-                return;
-            }
             this.startReaction();
         }, { retries: 3 });
         this.autoHidden();
@@ -145,6 +142,7 @@ export class Cursor extends Base {
         }
         this.timer = window.setTimeout(() => {
             this.hide();
+            this.store.updateCursorState(this.context.uid, CursorState.Leave);
         }, 1000 * 10); // 10 秒钟自动隐藏
     }
 
