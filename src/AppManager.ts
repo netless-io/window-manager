@@ -12,6 +12,7 @@ import { callbacks, emitter } from './index';
 import { CameraStore } from './Utils/CameraStore';
 import { genAppId, makeValidScenePath, setScenePath } from './Utils/Common';
 import {
+    autorun,
     isPlayer,
     isRoom,
     ScenePathType,
@@ -75,6 +76,22 @@ export class AppManager {
             return onObjectRemoved(this.attributes.apps, () => {
                 this.onAppDelete(this.attributes.apps);
             });
+        });
+        this.refresher?.add("maximized", () => {
+            return autorun(
+                () => {
+                    const maximized = this.attributes.maximized
+                    this.boxManager.teleBoxManager.setMaximized(Boolean(maximized), true);
+                }
+            )
+        });
+        this.refresher?.add("minimized", () => {
+            return autorun(
+                () => {
+                    const minimized = this.attributes.minimized
+                    this.boxManager.teleBoxManager.setMinimized(Boolean(minimized), true);
+                }
+            )
         });
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
             const mainScenePath = this.store.getMainViewScenePath();

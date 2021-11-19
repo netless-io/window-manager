@@ -38,6 +38,9 @@ export class Cursor extends Base {
             if (!this.cursorPosition) {
                 throw new Error();
             }
+            if (this.memberId === this.context.uid) {
+                return;
+            }
             this.startReaction();
         }, { retries: 3 });
         this.autoHidden();

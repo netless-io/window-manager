@@ -219,9 +219,11 @@ export class BoxManager {
             } else if (state.boxState) {
                 this.teleBoxManager.setState(state.boxState, true);
             }
-            if (state.focus) {
-                this.teleBoxManager.update(box.id, { focus: true }, true);
-            }
+            setTimeout(() => {
+                if (state.focus) {
+                    this.teleBoxManager.update(box.id, { focus: true }, true);
+                }
+            }, 50);
         }
     }
 

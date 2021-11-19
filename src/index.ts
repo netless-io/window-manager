@@ -45,7 +45,6 @@ import type {
     Room,
     InvisiblePluginContext,
     Camera,
-
     AnimationMode,
     CameraBound,
     Point,
@@ -61,6 +60,8 @@ const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 export type WindowMangerAttributes = {
     modelValue?: string;
     boxState: TELE_BOX_STATE;
+    maximized?: boolean;
+    minimized?: boolean;
     [key: string]: any;
 };
 

@@ -2,7 +2,7 @@ import React from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import type { AppContext} from "../dist";
-import { BuiltinApps, WindowManager } from "../dist";
+import { BuiltinApps, WindowManager } from "../dist/index.es";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
@@ -214,7 +214,7 @@ const replay = () => {
     sdk.replayRoom({
         room: process.env.ROOM_UUID,
         roomToken: process.env.ROOM_TOKEN,
-        invisiblePlugins: [WindowManager],
+        invisiblePlugins: [WindowManager as any],
         useMultiViews: true,
     }).then(async player => {
         await anyWindow.manager.destroy();
@@ -240,7 +240,7 @@ const onRef = (ref) => {
     sdk.joinRoom({
         uuid: process.env.ROOM_UUID,
         roomToken: process.env.ROOM_TOKEN,
-        invisiblePlugins: [WindowManager],
+        invisiblePlugins: [WindowManager as any],
         useMultiViews: true,
         userPayload: {
             userId: "111",
