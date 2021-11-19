@@ -133,8 +133,6 @@ type EmitterEvent = {
     [TELE_BOX_STATE.Normal]: undefined,
     [TELE_BOX_STATE.Maximized]: undefined,
     [TELE_BOX_STATE.Minimized]: undefined,
-    // minimized: boolean,
-    // maximized: boolean,
 }
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();
@@ -171,7 +169,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.2.19";
+    public version = "0.3.0-canary.0";
 
     public appListeners?: AppListeners;
 
