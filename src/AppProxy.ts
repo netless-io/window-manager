@@ -5,7 +5,7 @@ import { appRegister } from "./Register";
 import { autorun, ViewVisionMode } from "white-web-sdk";
 import { callbacks, emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
-import { get, isEmpty } from "lodash";
+import { get } from "lodash";
 import { log } from "./Utils/log";
 import {
     notifyMainViewModeChange,

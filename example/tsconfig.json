@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "skipLibCheck": true,
+        "target": "es6",
+        "jsx": "react",
+        "moduleResolution": "node",
+        "allowJs": true,
+    },
+    "exclude": [
+        "./babel.config.js",
+        "dist",
+        "./poi.config.js",
+        "./test.js"
+    ]
+}

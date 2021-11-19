@@ -1,12 +1,12 @@
 import React from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
-import { AppContext, BuiltinApps, WindowManager } from "../";
+import type { AppContext} from "../dist";
+import { BuiltinApps, WindowManager } from "../dist";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
-import { first } from "lodash";
 
-let anyWindow = window as any;
+const anyWindow = window as any;
 
 const createHelloWorld = () => {
     anyWindow.manager.addApp({

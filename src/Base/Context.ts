@@ -1,7 +1,6 @@
 import { memoize } from "lodash";
 import { emitter } from "../index";
 import type { AppManager } from "../AppManager";
-import type { MoveCursorParams } from "../Cursor";
 
 export class Context {
     public observerId: number;

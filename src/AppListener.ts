@@ -1,7 +1,6 @@
 import { Events, MagixEventName } from "./constants";
 import { ViewVisionMode } from "white-web-sdk";
 import type { Event } from "white-web-sdk";
-import type { TeleBox } from "@netless/telebox-insider";
 import type { AppManager } from "./AppManager";
 
 export class AppListeners {
