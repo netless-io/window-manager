@@ -102,13 +102,8 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
 
     public async setScenePath(scenePath: string): Promise<void> {
         if (!this.appProxy.box) return;
-        if (this.appProxy.box.focus) {
-            setScenePath(this.getRoom(), scenePath);
-        } else {
-            this.emitter.emit("focus", true);
-            await wait(50);
-            setScenePath(this.getRoom(), scenePath);
-        }
+        this.appProxy.setFullPath(scenePath);
+        this.manager.viewManager.switchAppToWriter(this.appId);
     }
 
     public mountView(dom: HTMLDivElement): void {

@@ -2,7 +2,6 @@ import { Base } from "./Base";
 import { callbacks, WindowManager } from "./index";
 import { reaction, ViewVisionMode } from "white-web-sdk";
 import { SET_SCENEPATH_DELAY } from "./constants";
-import { TELE_BOX_STATE } from "@netless/telebox-insider";
 import {
     notifyMainViewModeChange,
     setScenePath,
@@ -15,6 +14,7 @@ import type { AppManager } from "./AppManager";
 export class ViewManager extends Base {
     private views: Map<string, View> = new Map();
     private timer?: number;
+    private appTimer?: number;
 
     private mainViewProxy = this.manager.mainViewProxy;
     private displayer = this.manager.displayer;
@@ -133,7 +133,10 @@ export class ViewManager extends Base {
     public switchAppToWriter(id: string): void {
         this.freedomAllViews();
         // 为了同步端不闪烁, 需要给 room setScenePath 一个延迟
-        setTimeout(() => {
+        if (this.appTimer) {
+            clearTimeout(this.appTimer);
+        }
+        this.appTimer = setTimeout(() => {
             const appProxy = this.manager.appProxies.get(id);
             if (appProxy) {
                 if (this.manager.boxManager.teleBoxManager.minimized) return;
