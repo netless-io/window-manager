@@ -80,16 +80,20 @@ export class AppManager {
         this.refresher?.add("maximized", () => {
             return autorun(
                 () => {
-                    const maximized = this.attributes.maximized
-                    this.boxManager.teleBoxManager.setMaximized(Boolean(maximized), true);
+                    const maximized = this.attributes.maximized;
+                    if (this.boxManager.teleBoxManager.maximized !== maximized) {
+                        this.boxManager.teleBoxManager.setMaximized(Boolean(maximized), true);
+                    }
                 }
             )
         });
         this.refresher?.add("minimized", () => {
             return autorun(
                 () => {
-                    const minimized = this.attributes.minimized
-                    this.boxManager.teleBoxManager.setMinimized(Boolean(minimized), true);
+                    const minimized = this.attributes.minimized;
+                    if (this.boxManager.teleBoxManager.minimized !== minimized) {
+                        this.boxManager.teleBoxManager.setMinimized(Boolean(minimized), true);
+                    }
                 }
             )
         });
@@ -98,7 +102,7 @@ export class AppManager {
             if (!mainScenePath) return;
             const sceneState = this.displayer.state.sceneState;
             if (sceneState.scenePath !== mainScenePath) {
-                this.room?.setScenePath(mainScenePath);
+                setScenePath(this.room, mainScenePath);
             }
         }
         this.displayerWritableListener(!this.room?.isWritable);

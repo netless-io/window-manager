@@ -122,16 +122,17 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@0.2.3":
-  version "0.2.3"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.3.tgz#288fc410a68eaf9f1ed054926d4ac7ca53fa5901"
-  integrity sha512-4uhB/3q3fCeBft764D+5tGUojrZ8X9iC0rhpndnBkrwwOlPUUD2LqTZZaDTXolL1E2MRtAAxdAMRoW/KFOz9fg==
+"@netless/telebox-insider@0.2.4":
+  version "0.2.4"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.4.tgz#1262b94faf862693abc44884b488841d582f8f02"
+  integrity sha512-StaxotnLXU09/VSLyJVqbpaYvZVSmOTMgw0c+3++xqh9ayoSNQNLsL1eEWGoa3qqK/4ni7A3D77QpCS+VZtcQw==
   dependencies:
     "@types/shallowequal" "^1.1.1"
     eventemitter3 "^4.0.7"
     shallowequal "^1.1.0"
-    side-effect-manager "^0.1.4"
+    side-effect-manager "^0.1.5"
     stylefire "^7.0.3"
+    value-enhancer "^0.0.7"
 
 "@netless/xml-js@1.6.15":
   version "1.6.15"
@@ -3564,10 +3565,10 @@ side-channel@^1.0.4:
     get-intrinsic "^1.0.2"
     object-inspect "^1.9.0"
 
-side-effect-manager@^0.1.4:
-  version "0.1.4"
-  resolved "https://registry.npmjs.org/side-effect-manager/-/side-effect-manager-0.1.4.tgz#96e8ad1475f420f76e3c1e2ea2fa6582dfd9d74a"
-  integrity sha512-eX5nnZQq75zhALv6bMYW/Uws45CHt9Z0YyN3klL67u3nWigNM+0cZb8OXNpBiM4wEALbmAo86tMww9zHvc1IXQ==
+side-effect-manager@^0.1.5:
+  version "0.1.5"
+  resolved "https://registry.npmjs.org/side-effect-manager/-/side-effect-manager-0.1.5.tgz#d9b205e4317b60f90876f6ad498a1ac7e038c7d7"
+  integrity sha512-aAEXMS+9qW7rY2cwq4S6UjW3IBO/ZLWRI0sH1oGJ1eDE7YBFR1TW950qffnpx/0hByusAOVbu2zjThk9Vcjs+Q==
 
 signal-exit@^3.0.2:
   version "3.0.5"
@@ -4024,6 +4025,13 @@ v8-compile-cache@^2.0.3:
   version "2.3.0"
   resolved "https://registry.npmjs.org/v8-compile-cache/-/v8-compile-cache-2.3.0.tgz#2de19618c66dc247dcfb6f99338035d8245a2cee"
   integrity sha512-l8lCEmLcLYZh4nbunNZvQCJc5pv7+RCwa8q/LdUx8u7lsWvPDKmpodJAJNwkAhJC//dFY48KuIEmjtd4RViDrA==
+
+value-enhancer@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.npmjs.org/value-enhancer/-/value-enhancer-0.0.7.tgz#b2440bc264ea8518653e367549762951cd1f46ca"
+  integrity sha512-Gns+pJcsv2+AXHf3p4l9Vry4wKYPb52a/YsGqJ7wOe1jXYqXetTL3p/9iwUPtFesJE3p7y80hX4HuX1tb6Hj1g==
+  dependencies:
+    side-effect-manager "^0.1.5"
 
 vanilla-lazyload@^17.4.0:
   version "17.4.0"

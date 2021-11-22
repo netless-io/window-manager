@@ -136,10 +136,7 @@ export class ViewManager extends Base {
         setTimeout(() => {
             const appProxy = this.manager.appProxies.get(id);
             if (appProxy) {
-                const boxState = this.store.getBoxState();
-                if (boxState && boxState === TELE_BOX_STATE.Minimized) {
-                    return;
-                }
+                if (this.manager.boxManager.teleBoxManager.minimized) return;
                 appProxy.setScenePath();
                 appProxy.switchToWritable();
                 appProxy.focusBox();

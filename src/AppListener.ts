@@ -30,10 +30,6 @@ export class AppListeners {
                     this.appResizeHandler(data.payload);
                     break;
                 }
-                case Events.AppBlur: {
-                    this.appBlurHandler(data.payload);
-                    break;
-                }
                 case Events.AppBoxStateChange: {
                     this.appBoxStateHandler(data.payload);
                     break;
@@ -57,20 +53,9 @@ export class AppListeners {
         this.manager.room?.refreshViewSize();
     };
 
-    private appBlurHandler = (payload: any) => {
-        const proxy = this.appProxies.get(payload.appId);
-        if (proxy) {
-            proxy.appEmitter.emit("writableChange", false);
-            if (proxy.view?.mode === ViewVisionMode.Writable) {
-                this.manager.viewManager.refreshViews();
-            }
-        }
-    };
-
     private appBoxStateHandler = (payload: any) => {
         this.boxManager.setBoxState(payload.state);
     };
-
 
     private switchViewsToFreedomHandler = () => {
         this.manager.viewManager.freedomAllViews();

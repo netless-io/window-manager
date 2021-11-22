@@ -26,7 +26,7 @@ export const setScenePath = (room: Room | undefined, scenePath: string) => {
             room.setScenePath(scenePath);
         }
     }
-};
+}
 
 export const setViewMode = (view: View, mode: ViewVisionMode) => {
     if (view.mode !== mode) {
