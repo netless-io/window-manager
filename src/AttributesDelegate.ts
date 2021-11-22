@@ -52,6 +52,10 @@ export class AttributesDelegate {
         return get(this.apps(), [id, Fields.State]);
     }
 
+    public getMaximized() {
+        return get(this.manager.attributes, ["maximized"])
+    }
+
     public setupAppAttributes(params: AddAppParams, id: string, isDynamicPPT: boolean) {
         const attributes = this.manager.attributes;
         if (!attributes.apps) {
@@ -130,11 +134,11 @@ export class AttributesDelegate {
         return get(this.manager.attributes, [Fields.MainViewSize]);
     }
 
-    public setMainViewCamera(camera: Camera & { id: number } | undefined) {
+    public setMainViewCamera(camera: Camera & { id: string } | undefined) {
         this.manager.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
 
-    public setMainViewSize(size: Size & { id: number } | undefined) {
+    public setMainViewSize(size: Size & { id: string } | undefined) {
         this.manager.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 
@@ -146,32 +150,32 @@ export class AttributesDelegate {
         }
     }
 
-    public updateCursor(observerId: string, position: Position) {
+    public updateCursor(uid: string, position: Position) {
         if (!get(this.manager.attributes, [Fields.Cursors])) {
             this.manager.safeUpdateAttributes([Fields.Cursors], {});
         }
-        if (!get(this.manager.attributes, [Fields.Cursors, observerId])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
+        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
+            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
         }
-        this.manager.safeUpdateAttributes([Fields.Cursors, observerId, Fields.Position], position);
+        this.manager.safeUpdateAttributes([Fields.Cursors, uid, Fields.Position], position);
     }
 
-    public updateCursorState(observerId: string, cursorState: string | undefined) {
-        if (!get(this.manager.attributes, [Fields.Cursors, observerId])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, observerId], {});
+    public updateCursorState(uid: string, cursorState: string | undefined) {
+        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
+            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
         }
         this.manager.safeUpdateAttributes(
-            [Fields.Cursors, observerId, Fields.CursorState],
+            [Fields.Cursors, uid, Fields.CursorState],
             cursorState
         );
     }
 
-    public getCursorState(observerId: string) {
-        return get(this.manager.attributes, [Fields.Cursors, observerId, Fields.CursorState]);
+    public getCursorState(uid: string) {
+        return get(this.manager.attributes, [Fields.Cursors, uid, Fields.CursorState]);
     }
 
-    public cleanCursor(observerId: string) {
-        this.manager.safeUpdateAttributes([Fields.Cursors, observerId], undefined);
+    public cleanCursor(uid: string) {
+        this.manager.safeUpdateAttributes([Fields.Cursors, uid], undefined);
     }
 
     // TODO 状态中保存一个 SceneName 优化性能
@@ -184,18 +188,18 @@ export class AttributesDelegate {
 }
 
 export type MainViewSize = {
-    id: number;
+    id: string;
     width: number;
     height: number;
 }
 
 export type MainViewCamera = {
-    id: number;
+    id: string;
     centerX: number;
     centerY: number;
     scale: number;
 }
 
 export type Cursors = {
-    [key: number]: Cursor;
+    [key: string]: Cursor;
 }

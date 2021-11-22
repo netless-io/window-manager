@@ -1,7 +1,7 @@
 import { listenUpdated, unlistenUpdated, reaction, UpdateEventKind } from "white-web-sdk";
 import type { AkkoObjectUpdatedProperty } from "white-web-sdk";
 
-// 兼容 13 和 14 版本 SDK
+// 兼容 13 和 14 版本 SDK
 export const onObjectByEvent = (event: UpdateEventKind) => {
     return (object: any, func: () => void) => {
         if (object === undefined) return;

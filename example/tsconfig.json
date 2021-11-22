@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "skipLibCheck": true,
+        "target": "es6",
+        "jsx": "react",
+        "moduleResolution": "node",
+        "allowJs": false,
+    },
+    "exclude": [
+       "*.js"
+    ]
+}

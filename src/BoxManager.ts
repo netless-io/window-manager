@@ -17,7 +17,6 @@ import type {
     TeleBoxManagerUpdateConfig,
     TeleBoxManagerCreateConfig,
     ReadonlyTeleBox,
-    TeleBox,
     TeleBoxManagerConfig,
 } from "@netless/telebox-insider";
 import type Emittery from "emittery";
@@ -67,21 +66,27 @@ export class BoxManager {
                 emitter.emit(state as TELE_BOX_STATE, undefined);
             }
         });
+        this.teleBoxManager.events.on("minimized", minimized => {
+            this.manager.safeSetAttributes({ minimized });
+        });
+        this.teleBoxManager.events.on("maximized",  maximized => {
+            this.manager.safeSetAttributes({ maximized });
+        });
         this.teleBoxManager.events.on("removed", boxes => {
             boxes.forEach(box => {
                 emitter.emit("close", { appId: box.id });
             });
         });
         this.teleBoxManager.events.on(
-            "move",
+            "intrinsic_move",
             debounce((box: ReadonlyTeleBox): void => {
-                emitter.emit("move", { appId: box.id, x: box.x, y: box.y });
+                emitter.emit("move", { appId: box.id, x: box.intrinsicX, y: box.intrinsicY });
             }, 50)
         );
         this.teleBoxManager.events.on(
-            "resize",
+            "intrinsic_resize",
             debounce((box: ReadonlyTeleBox): void => {
-                emitter.emit("resize", { appId: box.id, width: box.width, height: box.height });
+                emitter.emit("resize", { appId: box.id, width: box.intrinsicWidth, height: box.intrinsicHeight });
             }, 200)
         );
         this.teleBoxManager.events.on("focused", box => {
@@ -94,9 +99,6 @@ export class BoxManager {
             } else {
                 this.blurFocusBox();
             }
-        });
-        this.teleBoxManager.events.on("snapshot", box => {
-            emitter.emit("snapshot", { appId: box.id, rect: { ...box.rectSnapshot } });
         });
     }
 
@@ -134,14 +136,13 @@ export class BoxManager {
     public setBoxInitState(appId: string): void {
         const box = this.teleBoxManager.queryOne({ id: appId });
         if (box) {
-            emitter.emit("snapshot", { appId: appId, rect: { ...box.rectSnapshot } });
             if (box.state === TELE_BOX_STATE.Maximized) {
                 emitter.emit("resize", {
                     appId: appId,
                     x: box.x,
                     y: box.y,
-                    width: box.width,
-                    height: box.height,
+                    width: box.intrinsicWidth,
+                    height: box.intrinsicHeight,
                 });
             }
         }
@@ -212,22 +213,19 @@ export class BoxManager {
                 },
                 true
             );
-            // TODO 连续调用 teleboxManager update 和 setState 会导致 box 出现问题. 先用 setTimeout 延迟调用,等 telebox 修复后去掉
-            setTimeout(() => {
-                if (state.boxState && this.teleBoxManager.state !== state.boxState) {
-                    this.teleBoxManager.setState(state.boxState, true);
-                }
-            }, 0);
-            setTimeout(() => {
-                if (state.snapshotRect) {
-                    (box as TeleBox).setSnapshot(state.snapshotRect);
-                }
-            }, 30);
+            if (state.maximized != null) {
+                this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
+                this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
+            } 
+            if (state.boxState) {
+                this.teleBoxManager.setState(state.boxState, true);
+            }
             setTimeout(() => {
                 if (state.focus) {
                     this.teleBoxManager.update(box.id, { focus: true }, true);
                 }
             }, 50);
+            callbacks.emit("boxStateChange", this.teleBoxManager.state);
         }
     }
 
@@ -286,5 +284,9 @@ export class BoxManager {
     public setBoxState(state: TELE_BOX_STATE): void {
         this.teleBoxManager.setState(state, true);
         callbacks.emit("boxStateChange", state);
+    }
+
+    public destroy() {
+        this.teleBoxManager.destroy();
     }
 }

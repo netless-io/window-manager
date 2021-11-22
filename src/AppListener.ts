@@ -1,7 +1,6 @@
 import { Events, MagixEventName } from "./constants";
 import { ViewVisionMode } from "white-web-sdk";
 import type { Event } from "white-web-sdk";
-import type { TeleBox } from "@netless/telebox-insider";
 import type { AppManager } from "./AppManager";
 
 export class AppListeners {
@@ -39,10 +38,6 @@ export class AppListeners {
                     this.appBoxStateHandler(data.payload);
                     break;
                 }
-                case Events.AppSnapshot: {
-                    this.appSnapshotHandler(data.payload);
-                    break;
-                }
                 case Events.SwitchViewsToFreedom: {
                     this.switchViewsToFreedomHandler();
                     break;
@@ -76,12 +71,6 @@ export class AppListeners {
         this.boxManager.setBoxState(payload.state);
     };
 
-    private appSnapshotHandler = (payload: any) => {
-        const box = this.boxManager.getBox(payload.appId) as TeleBox;
-        if (box) {
-            box.setSnapshot(payload.rect);
-        }
-    };
 
     private switchViewsToFreedomHandler = () => {
         this.manager.viewManager.freedomAllViews();

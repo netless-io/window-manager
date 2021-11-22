@@ -31,7 +31,7 @@ export class ViewManager extends Base {
                             this.switchAppToWriter(focus);
                         } else {
                             this.switchMainViewToWriter();
-                            this.manager.boxManager.blurFocusBox();
+                            this.context.blurFocusBox();
                         }
                     },
                     { fireImmediately: true }

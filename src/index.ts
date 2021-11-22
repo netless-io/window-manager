@@ -20,9 +20,9 @@ import { log } from './Utils/log';
 import { replaceRoomFunction } from './Utils/RoomHacker';
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
 import { setupWrapper } from './ViewManager';
-import { TELE_BOX_STATE } from './BoxManager';
 import './style.css';
 import '@netless/telebox-insider/dist/style.css';
+import type { TELE_BOX_STATE } from './BoxManager';
 import {
     AppCreateError,
     AppManagerNotInitError,
@@ -45,7 +45,6 @@ import type {
     Room,
     InvisiblePluginContext,
     Camera,
-
     AnimationMode,
     CameraBound,
     Point,
@@ -61,6 +60,8 @@ const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 export type WindowMangerAttributes = {
     modelValue?: string;
     boxState: TELE_BOX_STATE;
+    maximized?: boolean;
+    minimized?: boolean;
     [key: string]: any;
 };
 
@@ -113,9 +114,10 @@ export type AppInitState = {
     width?: number;
     height?: number;
     focus?: boolean;
-    snapshotRect?: any;
-    boxState?: TELE_BOX_STATE;
+    maximized?: boolean;
+    minimized?: boolean;
     sceneIndex?: number;
+    boxState?: TeleBoxState; // 兼容旧版 telebox
 };
 
 type EmitterEvent = {
@@ -125,10 +127,10 @@ type EmitterEvent = {
     focus: { appId: string },
     close: { appId: string },
     resize: { appId: string, width: number, height: number, x?: number, y?: number },
-    snapshot: { appId: string, rect: any },
     error: Error,
     seek: number,
     mainViewMounted: undefined,
+    observerIdChange: number;
     [TELE_BOX_STATE.Normal]: undefined,
     [TELE_BOX_STATE.Maximized]: undefined,
     [TELE_BOX_STATE.Minimized]: undefined,
@@ -168,7 +170,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.2.19";
+    public version = "0.3.0";
 
     public appListeners?: AppListeners;
 
@@ -300,7 +302,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         });
         manager.observePlaygroundSize(playground, sizer, wrapper);
         if (cursor) {
-            manager.cursorManager = new CursorManager(manager, manager.appManager);
+            manager.cursorManager = new CursorManager(manager.appManager);
         }
         manager.bindMainView(mainViewElement, disableCameraTransform);
         replaceRoomFunction(room, manager.appManager);
@@ -471,8 +473,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setViewMode(mode: ViewMode): void {
         if (!this.canOperate) return;
         if (mode === ViewMode.Broadcaster) {
-            this.appManager?.store.setMainViewCamera({ ...this.mainView.camera, id: this.displayer.observerId });
-            this.appManager?.store.setMainViewSize({ ...this.mainView.size, id: this.displayer.observerId });
+            this.appManager?.mainViewProxy.setCameraAndSize();
             this.appManager?.mainViewProxy.start();
         }
         if (mode === ViewMode.Freedom) {
@@ -503,7 +504,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get boxState(): TeleBoxState {
         if (this.appManager) {
-            return this.appManager.store.getBoxState() || TELE_BOX_STATE.Normal;
+            return this.appManager.boxManager.teleBoxManager.state;
         } else {
             throw new AppManagerNotInitError();
         }

@@ -8,10 +8,11 @@ import { AppListeners } from './AppListener';
 import { AppProxy } from './AppProxy';
 import { AttributesDelegate } from './AttributesDelegate';
 import { BoxManager, TELE_BOX_STATE } from './BoxManager';
-import { callbacks, emitter, TeleBoxRect } from './index';
+import { callbacks, emitter } from './index';
 import { CameraStore } from './Utils/CameraStore';
 import { genAppId, makeValidScenePath, setScenePath } from './Utils/Common';
 import {
+    autorun,
     isPlayer,
     isRoom,
     ScenePathType,
@@ -24,7 +25,7 @@ import { ReconnectRefresher } from './ReconnectRefresher';
 import { ViewManager } from './ViewManager';
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
-import type { AddAppParams, BaseInsertParams, WindowManager } from "./index";
+import type { AddAppParams, BaseInsertParams, WindowManager , TeleBoxRect } from "./index";
 export class AppManager {
     public displayer: Displayer;
     public boxManager: BoxManager;
@@ -75,6 +76,22 @@ export class AppManager {
             return onObjectRemoved(this.attributes.apps, () => {
                 this.onAppDelete(this.attributes.apps);
             });
+        });
+        this.refresher?.add("maximized", () => {
+            return autorun(
+                () => {
+                    const maximized = this.attributes.maximized
+                    this.boxManager.teleBoxManager.setMaximized(Boolean(maximized), true);
+                }
+            )
+        });
+        this.refresher?.add("minimized", () => {
+            return autorun(
+                () => {
+                    const minimized = this.attributes.minimized
+                    this.boxManager.teleBoxManager.setMinimized(Boolean(minimized), true);
+                }
+            )
         });
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
             const mainScenePath = this.store.getMainViewScenePath();
@@ -221,6 +238,7 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
+        emitter.emit("observerIdChange", this.displayer.observerId);
     }
 
     private displayerWritableListener = (isReadonly: boolean) => {
@@ -359,7 +377,6 @@ export class AppManager {
                         state: eventName,
                     },
                 });
-                this.safeSetAttributes({ boxState: eventName });
 
                 this.store.cleanFocus();
                 this.boxManager.blurFocusBox();
@@ -377,7 +394,6 @@ export class AppManager {
                 if (topBox) {
                     emitter.emit("focus", { appId: topBox.id });
                 }
-                this.safeSetAttributes({ boxState: eventName });
                 break;
             }
             case TELE_BOX_STATE.Normal: {
@@ -389,17 +405,6 @@ export class AppManager {
                     },
                 });
                 this.safeSetAttributes({ boxState: eventName });
-                break;
-            }
-            case "snapshot": {
-                this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppSnapshot,
-                    payload,
-                });
-
-                this.store.updateAppState(payload.appId, AppAttributes.SnapshotRect, {
-                    ...payload.rect,
-                });
                 break;
             }
             case "close": {
@@ -454,6 +459,7 @@ export class AppManager {
             });
         }
         this.viewManager.destroy();
+        this.boxManager.destroy();
         this.refresher?.destroy();
         this.mainViewProxy.destroy();
         callbacks.clearListeners();

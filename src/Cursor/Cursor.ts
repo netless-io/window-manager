@@ -8,27 +8,29 @@ import { get, omit } from 'lodash';
 import type { Position } from '../AttributesDelegate';
 import type { RoomMember } from "white-web-sdk";
 import type { CursorManager } from "./index";
-import type { WindowManager } from "../index";
 import type { SvelteComponent } from "svelte";
+import { Base } from '../Base';
+import type { AppManager } from '../AppManager';
 
 export type Payload = {
     [key: string]: any
 }
 
 
-export class Cursor {
+export class Cursor extends Base {
     private member?: RoomMember;
     private disposer: any;
     private timer?: number;
     private component?: SvelteComponent;
 
     constructor(
-        private manager: WindowManager,
+        manager: AppManager,
         private cursors: any,
         private memberId: string,
         private cursorManager: CursorManager,
         private wrapper?: HTMLElement
     ) {
+        super(manager);
         this.setMember();
         this.createCursor();
         pRetry(() => {
@@ -140,6 +142,7 @@ export class Cursor {
         }
         this.timer = window.setTimeout(() => {
             this.hide();
+            this.store.updateCursorState(this.context.uid, CursorState.Leave);
         }, 1000 * 10); // 10 秒钟自动隐藏
     }
 
@@ -177,9 +180,7 @@ export class Cursor {
     }
 
     public setMember() {
-        this.member = this.cursorManager.roomMembers?.find(
-            member => member.memberId === Number(this.memberId)
-        );
+        this.member = this.context.memoizeFindMember(this.context.observerId);
         this.component?.$set(omit(this.initProps(), ["x", "y", "visible"]));
     }
 
