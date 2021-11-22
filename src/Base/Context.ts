@@ -14,15 +14,22 @@ export class Context {
     };
 
     public get uid() {
-        return this.memoizeFindMember(this.observerId)?.payload?.uid || "";
+        return this.findMember(this.observerId)?.payload?.uid || "";
     }
 
-    private findMember =  (memberId: number) => {
+    public findMember = (memberId: number) => {
         const roomMembers = this.manager.room?.state.roomMembers;
         return roomMembers?.find(member => member.memberId === memberId);
     }
 
+    public findMemberByUid = (uid: string) => {
+        const roomMembers = this.manager.room?.state.roomMembers;
+        return roomMembers?.find(member => member.payload?.uid === uid);
+    }
+
     public memoizeFindMember = memoize(this.findMember);
+
+    public memoizeFindMemberByUid = memoize(this.findMemberByUid);
 
     public updateManagerRect() {
         this.manager.boxManager.updateManagerRect();

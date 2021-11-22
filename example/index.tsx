@@ -244,7 +244,7 @@ const onRef = (ref) => {
         useMultiViews: true,
         userPayload: {
             userId: "111",
-            cursorName: "测试测试",
+            cursorName: Math.random().toString().substr(3, 8),
             avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
         },
         isWritable: !(isWritable === "false"),

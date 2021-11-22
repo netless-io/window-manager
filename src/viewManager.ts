@@ -5,7 +5,6 @@ import { SET_SCENEPATH_DELAY } from "./constants";
 import {
     notifyMainViewModeChange,
     setScenePath,
-    setViewFocusScenePath,
     setViewMode,
 } from "./Utils/Common";
 import type { View } from "white-web-sdk";
@@ -96,24 +95,6 @@ export class ViewManager extends Base {
         });
     }
 
-    public refreshViews(): void {
-        const focus = this.store.focus;
-        this.setMainViewFocusScenePath();
-        if (focus) {
-            const appProxy = this.manager.appProxies.get(focus);
-            appProxy?.switchToWritable();
-        } else {
-            this.switchMainViewToWriter();
-        }
-    }
-
-    public setMainViewFocusScenePath() {
-        const mainViewScenePath = this.store.getMainViewScenePath();
-        if (mainViewScenePath) {
-            setViewFocusScenePath(this.manager.mainView, mainViewScenePath);
-        }
-    }
-
     public freedomAllViews(): void {
         this.manager.appProxies.forEach(appProxy => {
             appProxy.setViewFocusScenePath();
@@ -131,15 +112,15 @@ export class ViewManager extends Base {
     }
 
     public switchAppToWriter(id: string): void {
-        this.freedomAllViews();
-        // 为了同步端不闪烁, 需要给 room setScenePath 一个延迟
         if (this.appTimer) {
             clearTimeout(this.appTimer);
         }
+        this.freedomAllViews();
+        // 为了同步端不闪烁, 需要给 room setScenePath 一个延迟
         this.appTimer = setTimeout(() => {
             const appProxy = this.manager.appProxies.get(id);
             if (appProxy) {
-                if (this.manager.boxManager.teleBoxManager.minimized) return;
+                if (this.manager.boxManager.minimized) return;
                 appProxy.setScenePath();
                 appProxy.switchToWritable();
                 appProxy.focusBox();

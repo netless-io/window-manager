@@ -449,7 +449,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setReadonly(readonly: boolean): void {
         if (this.room?.isWritable) {
             this.readonly = readonly;
-            this.appManager?.boxManager.teleBoxManager.setReadonly(readonly);
+            this.appManager?.boxManager.setReadonly(readonly);
         }
     }
 
@@ -504,7 +504,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get boxState(): TeleBoxState {
         if (this.appManager) {
-            return this.appManager.boxManager.teleBoxManager.state;
+            return this.appManager.boxManager.boxState;
         } else {
             throw new AppManagerNotInitError();
         }

@@ -1,12 +1,10 @@
 import { Events, MagixEventName } from "./constants";
-import { ViewVisionMode } from "white-web-sdk";
 import type { Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
 export class AppListeners {
     private displayer = this.manager.displayer;
     private boxManager = this.manager.boxManager;
-    private appProxies = this.manager.appProxies;
 
     constructor(private manager: AppManager) {}
 

@@ -102,8 +102,16 @@ export class BoxManager {
         });
     }
 
-    public get boxState(): string {
+    public get boxState() {
         return this.teleBoxManager.state;
+    }
+
+    public get maximized() {
+        return this.teleBoxManager.maximized;
+    }
+
+    public get minimized() {
+        return this.teleBoxManager.minimized;
     }
 
     public createBox(params: CreateBoxParams): void {
@@ -284,6 +292,18 @@ export class BoxManager {
     public setBoxState(state: TELE_BOX_STATE): void {
         this.teleBoxManager.setState(state, true);
         callbacks.emit("boxStateChange", state);
+    }
+
+    public setMaximized(maximized: boolean) {
+        this.teleBoxManager.setMaximized(maximized, true);
+    }
+
+    public setMinimized(minimized: boolean) {
+        this.teleBoxManager.setMinimized(minimized, true);
+    }
+
+    public setReadonly(readonly: boolean) {
+        this.teleBoxManager.setReadonly(readonly);
     }
 
     public destroy() {

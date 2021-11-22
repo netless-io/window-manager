@@ -81,8 +81,8 @@ export class AppManager {
             return autorun(
                 () => {
                     const maximized = this.attributes.maximized;
-                    if (this.boxManager.teleBoxManager.maximized !== maximized) {
-                        this.boxManager.teleBoxManager.setMaximized(Boolean(maximized), true);
+                    if (this.boxManager.maximized !== maximized) {
+                        this.boxManager.setMaximized(Boolean(maximized));
                     }
                 }
             )
@@ -91,8 +91,8 @@ export class AppManager {
             return autorun(
                 () => {
                     const minimized = this.attributes.minimized;
-                    if (this.boxManager.teleBoxManager.minimized !== minimized) {
-                        this.boxManager.teleBoxManager.setMinimized(Boolean(minimized), true);
+                    if (this.boxManager.minimized !== minimized) {
+                        this.boxManager.setMinimized(Boolean(minimized));
                     }
                 }
             )
@@ -174,7 +174,7 @@ export class AppManager {
         this.appStatus.set(appId, AppStatus.StartCreate);
         this.store.setupAppAttributes(params, appId, isDynamicPPT);
         if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
-            this.boxManager.teleBoxManager.setState(TELE_BOX_STATE.Normal);
+            this.boxManager.setBoxState(TELE_BOX_STATE.Normal);
         }
         const needFocus = this.boxManager.boxState !== TELE_BOX_STATE.Minimized;
         if (needFocus) {
@@ -250,9 +250,9 @@ export class AppManager {
         const isManualWritable =
             this.windowManger.readonly === undefined || this.windowManger.readonly === false;
         if (this.windowManger.readonly === undefined) {
-            this.boxManager.teleBoxManager.setReadonly(isReadonly);
+            this.boxManager.setReadonly(isReadonly);
         } else {
-            this.boxManager.teleBoxManager.setReadonly(!(isWritable && isManualWritable));
+            this.boxManager.setReadonly(!(isWritable && isManualWritable));
         }
         this.appProxies.forEach(appProxy => {
             appProxy.emitAppIsWritableChange();

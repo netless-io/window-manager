@@ -180,7 +180,7 @@ export class Cursor extends Base {
     }
 
     public setMember() {
-        this.member = this.context.memoizeFindMember(this.context.observerId);
+        this.member = this.context.memoizeFindMemberByUid(this.memberId);
         this.component?.$set(omit(this.initProps(), ["x", "y", "visible"]));
     }
 

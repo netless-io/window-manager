@@ -8,7 +8,6 @@ import {
     toJS
     } from 'white-web-sdk';
 import { BoxNotCreatedError } from './Utils/error';
-import { setScenePath, wait } from './Utils/Common';
 import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
