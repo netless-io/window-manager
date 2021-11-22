@@ -142,7 +142,7 @@ export class Cursor extends Base {
         }
         this.timer = window.setTimeout(() => {
             this.hide();
-            this.store.updateCursorState(this.context.uid, CursorState.Leave);
+            this.store.updateCursorState(this.memberId, CursorState.Leave);
         }, 1000 * 10); // 10 秒钟自动隐藏
     }
 

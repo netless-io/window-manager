@@ -237,6 +237,7 @@ const replay = () => {
 }
 
 const onRef = (ref) => {
+    const uid = Math.random().toString().substr(3, 8)
     sdk.joinRoom({
         uuid: process.env.ROOM_UUID,
         roomToken: process.env.ROOM_TOKEN,
@@ -244,12 +245,12 @@ const onRef = (ref) => {
         useMultiViews: true,
         userPayload: {
             userId: "111",
-            cursorName: Math.random().toString().substr(3, 8),
+            cursorName: uid,
             avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
         },
         isWritable: !(isWritable === "false"),
         cursorAdapter: undefined,
-        uid: Math.random().toString().substr(3, 8),
+        uid: uid,
         disableMagixEventDispatchLimit: true,
     }).then(async room => {
         if (room.isWritable) {
