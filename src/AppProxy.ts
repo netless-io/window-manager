@@ -211,6 +211,7 @@ export class AppProxy extends Base {
     }
 
     public switchToWritable() {
+        appRegister.notifyApp(this.kind, "focus", { appId: this.id });
         this.cameraStore.switchView(this.id, this.view, () => {
             if (this.view) {
                 if (this.view.mode === ViewVisionMode.Writable) return;

@@ -36,7 +36,7 @@ export class Cursor extends Base {
         pRetry(() => {
             this.disposer && this.disposer();
             if (!this.cursorPosition) {
-                throw new Error();
+                console.warn(`${memberId} not exist`);
             }
             this.startReaction();
         }, { retries: 3 });

@@ -284,6 +284,9 @@ WindowManager.register({
     addHooks: (emitter) => {
         emitter.on('created', result => {
             console.log('HelloWordResult', result);
+        });
+        emitter.on("focus", result => {
+            console.log('HelloWorld focus', result);
         })
     }
 });

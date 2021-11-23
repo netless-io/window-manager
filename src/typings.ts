@@ -59,6 +59,7 @@ export type RegisterEventData = {
 export type RegisterEvents<SetupResult = any> = {
     created: RegisterEventData & { result: SetupResult; };
     destroy: RegisterEventData;
+    focus: RegisterEventData;
 };
 
 export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any> = {

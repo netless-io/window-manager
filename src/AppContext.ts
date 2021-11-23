@@ -102,7 +102,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public async setScenePath(scenePath: string): Promise<void> {
         if (!this.appProxy.box) return;
         this.appProxy.setFullPath(scenePath);
-        this.manager.viewManager.switchAppToWriter(this.appId);
+        this.appProxy.context.switchAppToWriter(this.appId);
     }
 
     public mountView(dom: HTMLDivElement): void {

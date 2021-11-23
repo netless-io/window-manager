@@ -1,31 +1,20 @@
-import {
-    AppAttributes,
-    AppStatus,
-    Events,
-    MagixEventName
-    } from './constants';
-import { AppListeners } from './AppListener';
-import { AppProxy } from './AppProxy';
-import { AttributesDelegate } from './AttributesDelegate';
-import { BoxManager, TELE_BOX_STATE } from './BoxManager';
-import { callbacks, emitter } from './index';
-import { CameraStore } from './Utils/CameraStore';
-import { genAppId, makeValidScenePath, setScenePath } from './Utils/Common';
-import {
-    autorun,
-    isPlayer,
-    isRoom,
-    ScenePathType,
-    ViewVisionMode
-    } from 'white-web-sdk';
-import { log } from './Utils/log';
-import { MainViewProxy } from './MainView';
-import { onObjectInserted, onObjectRemoved } from './Utils/Reactive';
-import { ReconnectRefresher } from './ReconnectRefresher';
-import { ViewManager } from './ViewManager';
+import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
+import { AppListeners } from "./AppListener";
+import { AppProxy } from "./AppProxy";
+import { AttributesDelegate } from "./AttributesDelegate";
+import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
+import { callbacks, emitter } from "./index";
+import { CameraStore } from "./Utils/CameraStore";
+import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
+import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
+import { log } from "./Utils/log";
+import { MainViewProxy } from "./MainView";
+import { onObjectInserted, onObjectRemoved } from "./Utils/Reactive";
+import { ReconnectRefresher } from "./ReconnectRefresher";
+import { ViewManager } from "./ViewManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
-import type { AddAppParams, BaseInsertParams, WindowManager , TeleBoxRect } from "./index";
+import type { AddAppParams, BaseInsertParams, WindowManager, TeleBoxRect } from "./index";
 export class AppManager {
     public displayer: Displayer;
     public boxManager: BoxManager;
@@ -38,7 +27,6 @@ export class AppManager {
     public refresher?: ReconnectRefresher;
 
     private appListeners: AppListeners;
-
 
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
@@ -78,24 +66,20 @@ export class AppManager {
             });
         });
         this.refresher?.add("maximized", () => {
-            return autorun(
-                () => {
-                    const maximized = this.attributes.maximized;
-                    if (this.boxManager.maximized !== maximized) {
-                        this.boxManager.setMaximized(Boolean(maximized));
-                    }
+            return autorun(() => {
+                const maximized = this.attributes.maximized;
+                if (this.boxManager.maximized !== maximized) {
+                    this.boxManager.setMaximized(Boolean(maximized));
                 }
-            )
+            });
         });
         this.refresher?.add("minimized", () => {
-            return autorun(
-                () => {
-                    const minimized = this.attributes.minimized;
-                    if (this.boxManager.minimized !== minimized) {
-                        this.boxManager.setMinimized(Boolean(minimized));
-                    }
+            return autorun(() => {
+                const minimized = this.attributes.minimized;
+                if (this.boxManager.minimized !== minimized) {
+                    this.boxManager.setMinimized(Boolean(minimized));
                 }
-            )
+            });
         });
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
             const mainScenePath = this.store.getMainViewScenePath();
@@ -142,7 +126,7 @@ export class AppManager {
                 appProxy.destroy(true, false);
             }
         });
-    }
+    };
 
     public bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
         const mainView = this.mainViewProxy.view;
@@ -151,10 +135,7 @@ export class AppManager {
         if (!mainView.focusScenePath) {
             this.store.setMainViewFocusPath();
         }
-        if (
-            this.store.focus === undefined &&
-            mainView.mode !== ViewVisionMode.Writable
-        ) {
+        if (this.store.focus === undefined && mainView.mode !== ViewVisionMode.Writable) {
             this.viewManager.switchMainViewToWriter();
         }
         this.mainViewProxy.addMainViewListener();
@@ -172,6 +153,8 @@ export class AppManager {
     private async beforeAddApp(params: AddAppParams, isDynamicPPT: boolean) {
         const appId = await genAppId(params.kind);
         this.appStatus.set(appId, AppStatus.StartCreate);
+        const attrs = params.attributes ?? {};
+        this.safeUpdateAttributes([appId], attrs);
         this.store.setupAppAttributes(params, appId, isDynamicPPT);
         if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
             this.boxManager.setBoxState(TELE_BOX_STATE.Normal);
@@ -180,8 +163,6 @@ export class AppManager {
         if (needFocus) {
             this.store.setAppFocus(appId, true);
         }
-        const attrs = params.attributes ?? {};
-        this.safeUpdateAttributes([appId], attrs);
         return { appId, needFocus };
     }
 
@@ -243,7 +224,7 @@ export class AppManager {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
         emitter.emit("observerIdChange", this.displayer.observerId);
-    }
+    };
 
     private displayerWritableListener = (isReadonly: boolean) => {
         const isWritable = !isReadonly;
@@ -265,7 +246,7 @@ export class AppManager {
         } else {
             this.mainView.disableCameraTransform = true;
         }
-    }
+    };
 
     private get eventName() {
         return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
