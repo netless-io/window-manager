@@ -21,7 +21,7 @@ const createDocs1 = () => {
     anyWindow.manager.addApp({
         kind: BuiltinApps.DocsViewer,
         options: {
-            scenePath: "/test5/",
+            scenePath: "/test5",
             title: "ppt1",
             scenes: [
                 {

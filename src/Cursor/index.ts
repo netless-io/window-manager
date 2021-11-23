@@ -1,7 +1,7 @@
 import { Base } from '../Base';
 import { Cursor } from './Cursor';
 import { CursorState } from '../constants';
-import { debounce } from 'lodash';
+import { compact, debounce, uniq } from 'lodash';
 import { Fields } from '../AttributesDelegate';
 import { onObjectInserted } from '../Utils/Reactive';
 import { WindowManager } from '../index';
@@ -54,8 +54,12 @@ export class CursorManager extends Base {
         })
     }
 
+    private getUids = (members: readonly RoomMember[] | undefined) => {
+        return compact(uniq(members?.map(member => member.payload?.uid)));
+    }
+
     private handleRoomMembersChange = debounce((wrapper: HTMLElement) => {
-        const uids = this.roomMembers?.map(member => member.payload?.uid);
+        const uids = this.getUids(this.roomMembers);
         const cursors = Object.keys(this.cursors);
         if (uids?.length) {
             cursors.map(uid => {
@@ -199,14 +203,15 @@ export class CursorManager extends Base {
     }
 
     public cleanMemberAttributes(members: readonly RoomMember[]) {
-        const uids = members.map(member => member.payload?.uid);
-        const needDeleteIds = [];
-        for (const uid in this.cursors) {
-            const index = uids.findIndex(id => id === uid);
+        const uids = this.getUids(members);
+        const needDeleteIds: string[] = [];
+        const cursors = Object.keys(this.cursors);
+        cursors.map(cursorId => {
+            const index = uids.findIndex(id => id === cursorId);
             if (index === -1) {
-                needDeleteIds.push(uid);
+                needDeleteIds.push(cursorId);
             }
-        }
+        });
         needDeleteIds.forEach(uid => {
             const instance = this.cursorInstances.get(uid);
             if (instance) {

@@ -225,9 +225,6 @@ export class BoxManager {
                 this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
                 this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
             } 
-            if (state.boxState) {
-                this.teleBoxManager.setState(state.boxState, true);
-            }
             setTimeout(() => {
                 if (state.focus) {
                     this.teleBoxManager.update(box.id, { focus: true }, true);
@@ -287,11 +284,6 @@ export class BoxManager {
 
     public updateAll(config: TeleBoxManagerUpdateConfig): void {
         this.teleBoxManager.updateAll(config);
-    }
-
-    public setBoxState(state: TELE_BOX_STATE): void {
-        this.teleBoxManager.setState(state, true);
-        callbacks.emit("boxStateChange", state);
     }
 
     public setMaximized(maximized: boolean) {

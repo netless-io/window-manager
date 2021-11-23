@@ -1,4 +1,3 @@
-import { memoize } from "lodash";
 import { emitter } from "../index";
 import type { AppManager } from "../AppManager";
 
@@ -26,10 +25,6 @@ export class Context {
         const roomMembers = this.manager.room?.state.roomMembers;
         return roomMembers?.find(member => member.payload?.uid === uid);
     }
-
-    public memoizeFindMember = memoize(this.findMember);
-
-    public memoizeFindMemberByUid = memoize(this.findMemberByUid);
 
     public updateManagerRect() {
         this.manager.boxManager.updateManagerRect();

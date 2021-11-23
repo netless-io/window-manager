@@ -384,7 +384,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 if (!isValidScenePath(scenePath)) {
                     throw new InvalidScenePath();
                 }
-                for (const appId in this.apps) {
+                const apps = Object.keys(this.apps || {});
+                for (const appId of apps) {
                     const appScenePath = appManager.store.getAppScenePath(appId);
                     if (appScenePath && appScenePath === scenePath) {
                         console.warn(`[WindowManager]: ScenePath ${scenePath} Already opened`);

@@ -104,7 +104,7 @@ export class ViewManager extends Base {
         });
         if (this.mainView.mode === ViewVisionMode.Writable) {
             notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
-            this.mainView.mode = ViewVisionMode.Freedom;
+            setViewMode(this.mainView, ViewVisionMode.Freedom);
         }
         if (!this.mainView.focusScenePath) {
             this.store.setMainViewFocusPath();

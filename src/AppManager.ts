@@ -69,6 +69,12 @@ export class AppManager {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
                 if (this.boxManager.maximized !== maximized) {
+                    if (maximized === true && this.boxManager.minimized === false) {
+                        const topBox = this.boxManager.getTopBox();
+                        if (topBox) {
+                            emitter.emit("focus", { appId: topBox.id });
+                        }
+                    }
                     this.boxManager.setMaximized(Boolean(maximized));
                 }
             });
@@ -77,6 +83,10 @@ export class AppManager {
             return autorun(() => {
                 const minimized = this.attributes.minimized;
                 if (this.boxManager.minimized !== minimized) {
+                    if (minimized === true) {
+                        this.store.cleanFocus();
+                        this.boxManager.blurFocusBox();
+                    }
                     this.boxManager.setMinimized(Boolean(minimized));
                 }
             });
@@ -156,10 +166,10 @@ export class AppManager {
         const attrs = params.attributes ?? {};
         this.safeUpdateAttributes([appId], attrs);
         this.store.setupAppAttributes(params, appId, isDynamicPPT);
-        if (this.boxManager.boxState === TELE_BOX_STATE.Minimized) {
-            this.boxManager.setBoxState(TELE_BOX_STATE.Normal);
+        if (this.boxManager.minimized) {
+            this.boxManager.setMinimized(false);
         }
-        const needFocus = this.boxManager.boxState !== TELE_BOX_STATE.Minimized;
+        const needFocus = !this.boxManager.minimized;
         if (needFocus) {
             this.store.setAppFocus(appId, true);
         }
@@ -340,10 +350,6 @@ export class AppManager {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
                 break;
             }
-            case "blur": {
-                this.dispatchInternalEvent(Events.AppBlur, payload);
-                break;
-            }
             case "resize": {
                 if (payload.width && payload.height) {
                     this.dispatchInternalEvent(Events.AppResize, payload);
@@ -352,44 +358,6 @@ export class AppManager {
                         height: payload.height,
                     });
                 }
-                break;
-            }
-            case TELE_BOX_STATE.Minimized: {
-                this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppBoxStateChange,
-                    payload: {
-                        ...payload,
-                        state: eventName,
-                    },
-                });
-
-                this.store.cleanFocus();
-                this.boxManager.blurFocusBox();
-                break;
-            }
-            case TELE_BOX_STATE.Maximized: {
-                this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppBoxStateChange,
-                    payload: {
-                        ...payload,
-                        state: eventName,
-                    },
-                });
-                const topBox = this.boxManager.getTopBox();
-                if (topBox) {
-                    emitter.emit("focus", { appId: topBox.id });
-                }
-                break;
-            }
-            case TELE_BOX_STATE.Normal: {
-                this.safeDispatchMagixEvent(MagixEventName, {
-                    eventName: Events.AppBoxStateChange,
-                    payload: {
-                        ...payload,
-                        state: eventName,
-                    },
-                });
-                this.safeSetAttributes({ boxState: eventName });
                 break;
             }
             case "close": {
