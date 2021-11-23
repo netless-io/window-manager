@@ -181,6 +181,10 @@ export class Cursor extends Base {
 
     public setMember() {
         this.member = this.context.findMemberByUid(this.memberId);
+        this.updateComponent();
+    }
+
+    private updateComponent() {
         this.component?.$set(omit(this.initProps(), ["x", "y"]));
     }
 

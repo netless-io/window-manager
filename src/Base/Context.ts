@@ -13,7 +13,7 @@ export class Context {
     };
 
     public get uid() {
-        return this.findMember(this.observerId)?.payload?.uid || "";
+        return this.manager.room?.uid || "";
     }
 
     public findMember = (memberId: number) => {

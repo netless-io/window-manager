@@ -83,7 +83,7 @@ export class AppManager {
             return autorun(() => {
                 const minimized = this.attributes.minimized;
                 if (this.boxManager.minimized !== minimized) {
-                    if (minimized === true) {
+                    if (minimized === true && this.store.focus !== undefined) {
                         this.store.cleanFocus();
                         this.boxManager.blurFocusBox();
                     }

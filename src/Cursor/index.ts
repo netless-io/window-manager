@@ -187,7 +187,7 @@ export class CursorManager extends Base {
         }
     }
 
-    public cleanMemberCursor(uid: string) {
+    public deleteCursor(uid: string) {
         this.store.cleanCursor(uid);
         const cursor = this.cursorInstances.get(uid);
         if (cursor) {
@@ -213,11 +213,7 @@ export class CursorManager extends Base {
             }
         });
         needDeleteIds.forEach(uid => {
-            const instance = this.cursorInstances.get(uid);
-            if (instance) {
-                instance.destroy();
-            }
-            this.store.cleanCursor(uid);
+            this.deleteCursor(uid);
         });
     }
 
