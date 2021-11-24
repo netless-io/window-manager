@@ -2,7 +2,7 @@ import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { AttributesDelegate } from "./AttributesDelegate";
-import { BoxManager, TELE_BOX_STATE } from "./BoxManager";
+import { BoxManager } from "./BoxManager";
 import { callbacks, emitter } from "./index";
 import { CameraStore } from "./Utils/CameraStore";
 import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
@@ -69,12 +69,6 @@ export class AppManager {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
                 if (this.boxManager.maximized !== maximized) {
-                    if (maximized === true && this.boxManager.minimized === false) {
-                        const topBox = this.boxManager.getTopBox();
-                        if (topBox) {
-                            emitter.emit("focus", { appId: topBox.id });
-                        }
-                    }
                     this.boxManager.setMaximized(Boolean(maximized));
                 }
             });

@@ -10,7 +10,7 @@ const anyWindow = window as any;
 
 const createHelloWorld = () => {
     anyWindow.manager.addApp({
-        kind: "HelloWorld",
+        kind: "HelloWorld1",
         options: {
             scenePath: "/helloworld1"
         }
@@ -267,7 +267,6 @@ const HelloWorldApp = async () => {
     // await new Promise(resolve => setTimeout(resolve, 2000))
     console.log('HelloWorld Loaded')
     return {
-        kind: "HelloWorld",
         setup: (context: AppContext<any, any>) => {
             console.log('helloworld options', context.getAppOptions());
             context.mountView(context.getBox().$content as any);
@@ -278,7 +277,7 @@ const HelloWorldApp = async () => {
 };
 
 WindowManager.register({
-    kind: "HelloWorld",
+    kind: "HelloWorld1",
     src: HelloWorldApp,
     appOptions: () => 'AppOptions',
     addHooks: (emitter) => {
