@@ -149,7 +149,7 @@ export class Cursor extends Base {
     private async createCursor() {
         if (this.member && this.wrapper) {
             this.component = new App({
-                target: this.wrapper,
+                target: document.documentElement,
                 props: this.initProps(),
             });
         }

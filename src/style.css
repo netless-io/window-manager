@@ -117,7 +117,7 @@
     position: fixed;
     width: 26px;
     height: 26px;
-    z-index: 2000;
+    z-index: 2147483647;
     left: 0;
     top: 0;
     will-change: transform;
