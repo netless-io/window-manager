@@ -14,7 +14,13 @@ import { ReconnectRefresher } from "./ReconnectRefresher";
 import { ViewManager } from "./ViewManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
-import type { AddAppParams, BaseInsertParams, WindowManager, TeleBoxRect } from "./index";
+import type {
+    AddAppParams,
+    BaseInsertParams,
+    WindowManager,
+    TeleBoxRect,
+    EmitterEvent,
+} from "./index";
 export class AppManager {
     public displayer: Displayer;
     public boxManager: BoxManager;
@@ -330,7 +336,7 @@ export class AppManager {
         }
     }
 
-    private boxEventListener = (eventName: string | number, payload: any) => {
+    private boxEventListener = (eventName: keyof EmitterEvent, payload: any) => {
         switch (eventName) {
             case "move": {
                 this.dispatchInternalEvent(Events.AppMove, payload);
@@ -359,6 +365,10 @@ export class AppManager {
                 if (appProxy) {
                     appProxy.destroy(false, true, payload.error);
                 }
+                break;
+            }
+            case "boxStateChange": {
+                this.dispatchInternalEvent(Events.AppBoxStateChange, payload);
                 break;
             }
             default:

@@ -1,6 +1,8 @@
-import { Events, MagixEventName } from "./constants";
+import { callbacks } from './index';
+import { Events, MagixEventName } from './constants';
 import type { Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
+import type { TeleBoxState } from "@netless/telebox-insider";
 
 export class AppListeners {
     private displayer = this.manager.displayer;
@@ -32,6 +34,10 @@ export class AppListeners {
                     this.switchViewsToFreedomHandler();
                     break;
                 }
+                case Events.AppBoxStateChange: {
+                    this.boxStateChangeHandler(data.payload);
+                    break;
+                }
                 default:
                     break;
             }
@@ -50,4 +56,8 @@ export class AppListeners {
     private switchViewsToFreedomHandler = () => {
         this.manager.viewManager.freedomAllViews();
     };
+
+    private boxStateChangeHandler = (state: TeleBoxState) => {
+        callbacks.emit("boxStateChange", state);
+    }
 }

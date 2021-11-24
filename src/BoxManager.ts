@@ -63,7 +63,7 @@ export class BoxManager {
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
                 callbacks.emit("boxStateChange", state);
-                emitter.emit(state as TELE_BOX_STATE, undefined);
+                emitter.emit("boxStateChange", state);
             }
         });
         this.teleBoxManager.events.on("minimized", minimized => {

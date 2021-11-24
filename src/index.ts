@@ -120,7 +120,7 @@ export type AppInitState = {
     boxState?: TeleBoxState; // 兼容旧版 telebox
 };
 
-type EmitterEvent = {
+export type EmitterEvent = {
     onCreated: undefined,
     InitReplay: AppInitState,
     move: { appId: string, x: number, y: number },
@@ -131,9 +131,7 @@ type EmitterEvent = {
     seek: number,
     mainViewMounted: undefined,
     observerIdChange: number;
-    [TELE_BOX_STATE.Normal]: undefined,
-    [TELE_BOX_STATE.Maximized]: undefined,
-    [TELE_BOX_STATE.Minimized]: undefined,
+    boxStateChange: string;
 }
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();
@@ -170,7 +168,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.3.6-canary.0";
+    public version = "0.3.6-canary.1";
 
     public appListeners?: AppListeners;
 
