@@ -32,6 +32,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     private boxManager: BoxManager;
     private store = this.manager.store;
     public readonly isAddApp: boolean;
+    public readonly isReplay = this.manager.isReplay;
 
     constructor(
         private manager: AppManager,

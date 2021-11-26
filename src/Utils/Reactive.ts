@@ -1,5 +1,5 @@
 import { listenUpdated, unlistenUpdated, reaction, UpdateEventKind } from "white-web-sdk";
-import type { AkkoObjectUpdatedProperty } from "white-web-sdk";
+import type { AkkoObjectUpdatedProperty , AkkoObjectUpdatedListener } from "white-web-sdk";
 
 // 兼容 13 和 14 版本 SDK
 export const onObjectByEvent = (event: UpdateEventKind) => {
@@ -26,6 +26,31 @@ export const onObjectByEvent = (event: UpdateEventKind) => {
             )
         }
     }
+}
+
+export const safeListenPropsUpdated = <T>(
+    getProps: () => T,
+    callback: AkkoObjectUpdatedListener<T>
+  ) => {
+    let disposeListenUpdated: (() => void) | null = null;
+    const disposeReaction = reaction(
+      getProps,
+      () => {
+        if (disposeListenUpdated) {
+          disposeListenUpdated();
+          disposeListenUpdated = null;
+        }
+        const props = getProps();
+        disposeListenUpdated = () => unlistenUpdated(props, callback);
+        listenUpdated(props, callback);
+      },
+      { fireImmediately: true }
+    );
+
+    return () => {
+      disposeListenUpdated?.();
+      disposeReaction();
+    };
 }
 
 export const onObjectRemoved = onObjectByEvent(UpdateEventKind.Removed);

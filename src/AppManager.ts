@@ -9,7 +9,7 @@ import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
 import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
-import { onObjectInserted, onObjectRemoved } from "./Utils/Reactive";
+import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { ViewManager } from "./ViewManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
@@ -31,6 +31,7 @@ export class AppManager {
     public store = new AttributesDelegate(this);
     public mainViewProxy: MainViewProxy;
     public refresher?: ReconnectRefresher;
+    public isReplay = this.windowManger.isReplay;
 
     private appListeners: AppListeners;
 
@@ -54,15 +55,17 @@ export class AppManager {
                     appProxy.onSeek(time);
                 });
                 this.attributesUpdateCallback(this.attributes.apps);
+                this.onAppDelete(this.attributes.apps);
             });
         }
     }
 
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
+        this.boxManager.updateManagerRect();
         emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
-            return onObjectInserted(this.attributes.apps, () => {
+            return safeListenPropsUpdated(() => this.attributes.apps, () => {
                 this.attributesUpdateCallback(this.attributes.apps);
             });
         });

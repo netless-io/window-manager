@@ -29,7 +29,7 @@ export const setScenePath = (room: Room | undefined, scenePath: string) => {
 }
 
 export const setViewMode = (view: View, mode: ViewVisionMode) => {
-    if (view.mode !== mode) {
+    if (!(view as any).didRelease && view.mode !== mode) {
         view.mode = mode;
     }
 };

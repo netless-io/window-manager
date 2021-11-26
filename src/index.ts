@@ -33,6 +33,7 @@ import {
 import type { Apps } from "./AttributesDelegate";
 import {
     InvisiblePlugin,
+    isPlayer,
     isRoom,
     RoomPhase,
     ViewMode,
@@ -177,7 +178,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public appManager?: AppManager;
     public cursorManager?: CursorManager;
     public viewMode = ViewMode.Broadcaster;
-    
+    public isReplay = isPlayer(this.displayer);
+
     constructor(context: InvisiblePluginContext) {
         super(context);
     }
