@@ -30,10 +30,6 @@ export class AppListeners {
                     this.appResizeHandler(data.payload);
                     break;
                 }
-                case Events.SwitchViewsToFreedom: {
-                    this.switchViewsToFreedomHandler();
-                    break;
-                }
                 case Events.AppBoxStateChange: {
                     this.boxStateChangeHandler(data.payload);
                     break;
@@ -51,10 +47,6 @@ export class AppListeners {
     private appResizeHandler = (payload: any) => {
         this.boxManager.resizeBox(Object.assign(payload, { skipUpdate: true }));
         this.manager.room?.refreshViewSize();
-    };
-
-    private switchViewsToFreedomHandler = () => {
-        this.manager.viewManager.freedomAllViews();
     };
 
     private boxStateChangeHandler = (state: TeleBoxState) => {

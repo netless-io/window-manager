@@ -19,7 +19,7 @@ import { isNull, isObject } from 'lodash';
 import { log } from './Utils/log';
 import { replaceRoomFunction } from './Utils/RoomHacker';
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
-import { setupWrapper } from './ViewManager';
+import { setupWrapper } from './NewViewManager';
 import './style.css';
 import '@netless/telebox-insider/dist/style.css';
 import type { TELE_BOX_STATE } from './BoxManager';
@@ -48,11 +48,10 @@ import type {
     Camera,
     AnimationMode,
     CameraBound,
-    Point,
     Rectangle,
-    ViewVisionMode} from "white-web-sdk";
+    MemberState} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
-import type { NetlessApp, RegisterParams } from "./typings";
+import type { NetlessApp, Point, RegisterParams } from "./typings";
 import type { TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./AppProxy";
 
@@ -138,7 +137,6 @@ export type EmitterEvent = {
 export const emitter: Emittery<EmitterEvent> = new Emittery();
 
 export type PublicEvent = {
-    mainViewModeChange: ViewVisionMode;
     boxStateChange: `${TELE_BOX_STATE}`;
 };
 
@@ -160,6 +158,7 @@ export type MountParams = {
 export const callbacks: Emittery<PublicEvent> = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
+    
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
@@ -169,7 +168,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
+<<<<<<< HEAD
     public version = "0.3.8-canary.0";
+=======
+
+    public version = "0.3.7";
+>>>>>>> 3b703e8 (feat: use sdk new view)
 
     public appListeners?: AppListeners;
 
@@ -327,12 +331,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     } catch (error) {
                         throw new Error("[WindowManger]: room must be switched to be writable");
                     }
-                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as unknown as WindowManager;
                     manager.ensureAttributes();
                     await wait(500);
                     await room.setWritable(false);
                 } else {
-                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as unknown as WindowManager;
                 }
             }
         }
@@ -457,9 +461,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 切换 mainView 为可写
      */
-    public switchMainViewToWriter(): Promise<void> | undefined {
-        return this.appManager?.mainViewProxy.mainViewClickHandler();
-    }
+    // public switchMainViewToWriter(): Promise<void> | undefined {
+    //     // return this.appManager?.mainViewProxy.mainViewClickHandler();
+    // }
 
     /**
      * app destroy 回调
@@ -550,6 +554,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.mainView.setCameraBound(cameraBound);
     }
 
+    public setMemberState(state: Partial<MemberState>): MemberState {
+        return this.mainView.setMemberState(state);
+    }
+
     public override onDestroy(): void {
         this._destroy();
     }
@@ -630,7 +638,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             const sceneState = this.displayer.state.sceneState;
             if (!this.attributes["_mainScenePath"]) {
-                this.safeSetAttributes({ _mainScenePath: sceneState.scenePath });
+                this.safeSetAttributes({ _mainScenePath: sceneState.contextPath });
             }
             if (!this.attributes["_mainSceneIndex"]) {
                 this.safeSetAttributes({ _mainSceneIndex: sceneState.index });

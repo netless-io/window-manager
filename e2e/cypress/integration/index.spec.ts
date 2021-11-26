@@ -44,13 +44,7 @@ describe("正常流程", () => {
             const apps = manager.queryAll();
             const app = apps[0];
             cy.get(".netless-window-manager-main-view").click({ force: true })
-            cy.wait(1000).then(() => {
-                expect(manager.mainView.mode).to.be.equal(ViewVisionMode.Writable);
-            })
             cy.get(`[data-tele-box-i-d=${app.id}] .telebox-content-wrap`).click({ force: true });
-            cy.wait(1000).then(() => {
-                expect(app.view.mode).to.be.equal(ViewVisionMode.Writable);
-            })
         });
     })
 

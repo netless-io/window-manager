@@ -254,7 +254,7 @@ const onRef = (ref) => {
         disableMagixEventDispatchLimit: true,
     }).then(async room => {
         if (room.isWritable) {
-            room.setMemberState({ strokeColor: [0, 0, 1] });
+            // room.setMemberState({ strokeColor: [0, 0, 1] });
         }
 
         (window as any).room = room;

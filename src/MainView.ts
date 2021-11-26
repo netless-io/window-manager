@@ -1,30 +1,25 @@
-import { AnimationMode, reaction, ViewVisionMode } from 'white-web-sdk';
-import { Base } from './Base';
-import { callbacks, emitter } from './index';
-import { debounce, isEmpty, isEqual } from 'lodash';
-import { Fields } from './AttributesDelegate';
-import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from './Utils/Common';
+import { AnimationMode, reaction } from "white-web-sdk";
+import { Base } from "./Base";
+import { debounce, isEmpty, isEqual } from "lodash";
+import { emitter } from "./index";
+import { Fields } from "./AttributesDelegate";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
+import { getScenePath } from "./Utils/Common";
 
 export class MainViewProxy extends Base {
     private scale?: number;
-    private cameraStore = this.manager.cameraStore;
     private started = false;
-    private mainViewIsAddListener = false;
-    private mainView: View;
+    private mainView?: View;
     private viewId = "mainView";
 
     constructor(manager: AppManager) {
         super(manager);
-        this.mainView = this.createMainView();
-        this.moveCameraSizeByAttributes();
-        this.cameraStore.register(this.viewId, this.mainView);
         emitter.once("mainViewMounted").then(() => {
             setTimeout(() => {
                 this.start();
             }, 200); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
-        })
+        });
     }
 
     private get mainViewCamera() {
@@ -50,8 +45,8 @@ export class MainViewProxy extends Base {
     }
 
     public setCameraAndSize(): void {
-        this.store.setMainViewCamera({ ...this.mainView.camera, id: this.context.uid  });
-        this.store.setMainViewSize({ ...this.mainView.size, id: this.context.uid });
+        this.store.setMainViewCamera({ ...this.mainView?.camera, id: this.context.uid });
+        this.store.setMainViewSize({ ...this.mainView?.size, id: this.context.uid });
     }
 
     private cameraReaction = () => {
@@ -65,8 +60,8 @@ export class MainViewProxy extends Base {
             {
                 fireImmediately: true,
             }
-        )
-    }
+        );
+    };
 
     private sizeReaction = () => {
         return reaction(
@@ -80,65 +75,40 @@ export class MainViewProxy extends Base {
             {
                 fireImmediately: true,
             }
-        )
-    }
+        );
+    };
 
     public get view(): View {
-        return this.mainView;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.mainView!;
     }
 
-    public createMainView(): View {
-        const mainView = this.manager.displayer.views.createView();
+    public async createMainView(): Promise<View> {
+        const mainView = this.manager.viewManager.createView(this.viewId);
+        this.mainView = mainView;
+        this.moveCameraSizeByAttributes();
         mainView.callbacks.on("onSizeUpdated", () => {
             this.context.updateManagerRect();
         });
         const mainViewScenePath = this.store.getMainViewScenePath();
-        if (mainViewScenePath) {
-            setViewFocusScenePath(mainView, mainViewScenePath);
-        }
-        if (!this.store.focus) {
-            this.switchViewModeToWriter();
+        const mainViewSceneIndex = this.store.getMainViewSceneIndex();
+        const fullPath = getScenePath(this.manager.room, mainViewScenePath, mainViewSceneIndex);
+        if (mainView.focusScenePath !== fullPath) {
+            mainView.focusScenePath = fullPath;
         }
         return mainView;
     }
 
     private cameraListener = (camera: Camera) => {
-        this.store.setMainViewCamera({ ...camera, id: this.context.uid});
+        this.store.setMainViewCamera({ ...camera, id: this.context.uid });
         if (this.store.getMainViewSize()?.id !== this.context.uid) {
             this.setMainViewSize(this.view.size);
         }
-    }
-
-    public addMainViewListener(): void {
-        if (this.mainViewIsAddListener) return;
-        if (this.view.divElement) {
-            this.view.divElement.addEventListener("click", this.mainViewClickListener);
-            this.view.divElement.addEventListener("touchend", this.mainViewClickListener);
-            this.mainViewIsAddListener = true;
-        }
-    }
-
-    public removeMainViewListener(): void {
-        if (this.view.divElement) {
-            this.view.divElement.removeEventListener("click", this.mainViewClickListener);
-            this.view.divElement.removeEventListener("touchend", this.mainViewClickListener);
-        }
-    }
-
-    private mainViewClickListener = () => {
-        this.mainViewClickHandler();
     };
-
-    public async mainViewClickHandler(): Promise<void> {
-        if (!this.manager.canOperate) return;
-        if (this.view.mode === ViewVisionMode.Writable) return;
-        this.store.cleanFocus();
-        this.context.blurFocusBox();
-    }
 
     private sizeListener = (size: Size) => {
         this.setMainViewSize(size);
-    }
+    };
 
     public setMainViewSize = debounce(size => {
         this.store.setMainViewSize({ ...size, id: this.context.uid });
@@ -150,17 +120,6 @@ export class MainViewProxy extends Base {
 
     private removeCameraListener() {
         this.view.callbacks.off("onCameraUpdatedByDevice", this.cameraListener);
-    }
-
-    public switchViewModeToWriter(): void {
-        if (!this.manager.canOperate) return;
-        if (this.view) {
-            if (this.view.mode === ViewVisionMode.Writable) return;
-            this.cameraStore.switchView(this.viewId, this.mainView, () => {
-                notifyMainViewModeChange(callbacks, ViewVisionMode.Writable);
-                setViewMode(this.view, ViewVisionMode.Writable);
-            });
-        }
     }
 
     public moveCameraToContian(size: Size): void {
@@ -200,6 +159,5 @@ export class MainViewProxy extends Base {
 
     public destroy() {
         this.stop();
-        this.cameraStore.unregister(this.viewId, this.mainView);
     }
 }

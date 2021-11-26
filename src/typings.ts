@@ -76,3 +76,5 @@ export type AppListenerKeys = keyof AppEmitterEvent;
 export type { AppContext } from "./AppContext";
 export type { ReadonlyTeleBox, TeleBoxRect };
 export type { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room, Player };
+
+export type Point = { x: number, y: number };

@@ -1,18 +1,27 @@
-import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
-import { AppListeners } from "./AppListener";
-import { AppProxy } from "./AppProxy";
-import { AttributesDelegate } from "./AttributesDelegate";
-import { BoxManager } from "./BoxManager";
-import { callbacks, emitter } from "./index";
-import { CameraStore } from "./Utils/CameraStore";
-import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
-import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
-import { log } from "./Utils/log";
-import { MainViewProxy } from "./MainView";
-import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
-import { ReconnectRefresher } from "./ReconnectRefresher";
-import { ViewManager } from "./ViewManager";
-import type { Displayer, DisplayerState, Room } from "white-web-sdk";
+import {
+    AppAttributes,
+    AppStatus,
+    Events,
+    MagixEventName
+    } from './constants';
+import { AppListeners } from './AppListener';
+import { AppProxy } from './AppProxy';
+import { AttributesDelegate } from './AttributesDelegate';
+import {
+    autorun,
+    isPlayer,
+    isRoom,
+    ScenePathType
+    } from 'white-web-sdk';
+import { BoxManager } from './BoxManager';
+import { callbacks, emitter } from './index';
+import { genAppId, makeValidScenePath } from './Utils/Common';
+import { log } from './Utils/log';
+import { MainViewProxy } from './MainView';
+import { ViewManager } from './ViewManager';
+import { onObjectInserted, onObjectRemoved, safeListenPropsUpdated } from './Utils/Reactive';
+import { ReconnectRefresher } from './ReconnectRefresher';
+import type { Displayer, DisplayerState, Room , Player} from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type {
     AddAppParams,
@@ -21,28 +30,35 @@ import type {
     TeleBoxRect,
     EmitterEvent,
 } from "./index";
+
 export class AppManager {
+
     public displayer: Displayer;
     public boxManager: BoxManager;
-    public cameraStore: CameraStore;
     public viewManager: ViewManager;
-    public appProxies: Map<string, AppProxy> = new Map();
-    public appStatus: Map<string, AppStatus> = new Map();
     public store = new AttributesDelegate(this);
     public mainViewProxy: MainViewProxy;
     public refresher?: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
+    
+    public appProxies: Map<string, AppProxy> = new Map();
+    public appStatus: Map<string, AppStatus> = new Map();
 
     private appListeners: AppListeners;
 
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
-        this.cameraStore = new CameraStore();
-        this.mainViewProxy = new MainViewProxy(this);
         this.viewManager = new ViewManager(this);
+        this.mainViewProxy = new MainViewProxy(this);
         this.boxManager = new BoxManager(this, options);
         this.appListeners = new AppListeners(this);
-        this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
+
+        if (isRoom(this.displayer)) {
+            (this.displayer as Room).callbacks.on("onRoomStateChanged", this.displayerStateListener);
+        } else if (isPlayer(this.displayer)) {
+            (this.displayer as Player).callbacks.on("onPlayerStateChanged", this.displayerStateListener);
+        }
+
         this.appListeners.addListeners();
 
         this.refresher = new ReconnectRefresher(this.room, this);
@@ -66,7 +82,9 @@ export class AppManager {
         emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
             return safeListenPropsUpdated(() => this.attributes.apps, () => {
-                this.attributesUpdateCallback(this.attributes.apps);
+                setTimeout(() => {
+                    this.attributesUpdateCallback(this.attributes.apps);
+                }, 300);
             });
         });
         this.refresher?.add("appsClose", () => {
@@ -94,14 +112,6 @@ export class AppManager {
                 }
             });
         });
-        if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
-            const mainScenePath = this.store.getMainViewScenePath();
-            if (!mainScenePath) return;
-            const sceneState = this.displayer.state.sceneState;
-            if (sceneState.scenePath !== mainScenePath) {
-                setScenePath(this.room, mainScenePath);
-            }
-        }
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
     }
@@ -141,17 +151,13 @@ export class AppManager {
         });
     };
 
-    public bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
-        const mainView = this.mainViewProxy.view;
+    public async bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
+        const mainView = await this.mainViewProxy.createMainView();
         mainView.disableCameraTransform = disableCameraTransform;
         mainView.divElement = divElement;
         if (!mainView.focusScenePath) {
             this.store.setMainViewFocusPath();
         }
-        if (this.store.focus === undefined && mainView.mode !== ViewVisionMode.Writable) {
-            this.viewManager.switchMainViewToWriter();
-        }
-        this.mainViewProxy.addMainViewListener();
         emitter.emit("mainViewMounted");
     }
 
@@ -225,7 +231,6 @@ export class AppManager {
             this.appProxies.forEach(appProxy => {
                 if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
                     appProxy.emitAppSceneStateChange(sceneState);
-                    appProxy.setFullPath(scenePath);
                 }
             });
         }
@@ -252,18 +257,11 @@ export class AppManager {
             appProxy.emitAppIsWritableChange();
         });
         if (isWritable === true) {
-            if (!this.store.focus) {
-                this.mainViewProxy.switchViewModeToWriter();
-            }
             this.mainView.disableCameraTransform = false;
         } else {
             this.mainView.disableCameraTransform = true;
         }
     };
-
-    private get eventName() {
-        return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
-    }
 
     public get attributes() {
         return this.windowManger.attributes;
@@ -311,15 +309,12 @@ export class AppManager {
 
     private async _setMainViewScenePath(scenePath: string) {
         this.safeSetAttributes({ _mainScenePath: scenePath });
-        await this.viewManager.switchMainViewToWriter();
-        setScenePath(this.room, scenePath);
         this.store.setMainViewFocusPath();
     }
 
     public async setMainViewSceneIndex(index: number) {
         if (this.room) {
             this.safeSetAttributes({ _mainSceneIndex: index });
-            await this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);
             this.store.setMainViewScenePath(this.room.state.sceneState.scenePath);
             this.store.setMainViewFocusPath();
@@ -408,7 +403,11 @@ export class AppManager {
     }
 
     public destroy() {
-        this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
+        if (isRoom(this.displayer)) {
+            (this.displayer as Room).callbacks.off("onRoomStateChanged", this.displayerStateListener);
+        } else if (isPlayer(this.displayer)) {
+            (this.displayer as Player).callbacks.off("onPlayerStateChanged", this.displayerStateListener);
+        }
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();
         emitter.offAny(this.boxEventListener);
@@ -418,7 +417,6 @@ export class AppManager {
                 appProxy.destroy(true, false);
             });
         }
-        this.viewManager.destroy();
         this.boxManager.destroy();
         this.refresher?.destroy();
         this.mainViewProxy.destroy();

@@ -235,7 +235,7 @@ export class BoxManager {
     }
 
     public updateManagerRect(): void {
-        const rect = this.mainView.divElement?.getBoundingClientRect();
+        const rect = this.mainView?.divElement?.getBoundingClientRect();
         if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);

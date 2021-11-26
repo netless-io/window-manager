@@ -1,13 +1,14 @@
 import { Base } from '../Base';
+import { compact, debounce, uniq } from 'lodash';
 import { Cursor } from './Cursor';
 import { CursorState } from '../constants';
-import { compact, debounce, uniq } from 'lodash';
 import { Fields } from '../AttributesDelegate';
 import { onObjectInserted } from '../Utils/Reactive';
 import { WindowManager } from '../index';
 import type { PositionType } from "../AttributesDelegate";
-import type { Point, RoomMember, View } from "white-web-sdk";
+import type { RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
+import type { Point } from '../typings';
 
 export type EventType = {
     type: PositionType;

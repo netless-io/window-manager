@@ -1,10 +1,7 @@
 import { appRegister } from '../Register';
-import { debounce } from 'lodash';
 import { emitter } from '../index';
 import { v4 } from 'uuid';
-import type { PublicEvent } from "../index";
-import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
-import type Emittery from "emittery";
+import type { Displayer, ViewVisionMode, View, Room } from "white-web-sdk";
 
 export const genAppId = async (kind: string) => {
     const impl = await appRegister.appClasses.get(kind)?.();
@@ -20,10 +17,12 @@ export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
     }
 };
 
-export const setScenePath = (room: Room | undefined, scenePath: string) => {
-    if (room && room.isWritable) {
-        if (room.state.sceneState.scenePath !== scenePath) {
-            room.setScenePath(scenePath);
+export const getScenePath = (room: Room | undefined, dir: string | undefined, index: number): string | undefined => {
+    if (room && dir) {
+        const scenes = room.entireScenes();
+        const scene = scenes[dir]?.[index];
+        if (scene) {
+            return `${dir}/${scene.name}`;
         }
     }
 }
@@ -45,13 +44,6 @@ export const emitError = (error: Error) => {
 export const addEmitterOnceListener = (event: any, listener: any) => {
     emitter.once(event).then(listener);
 }
-
-export const notifyMainViewModeChange = debounce(
-    (callbacks: Emittery<PublicEvent>, mode: ViewVisionMode) => {
-        callbacks.emit("mainViewModeChange", mode);
-    },
-    200
-);
 
 export const makeValidScenePath = (displayer: Displayer, scenePath: string) => {
     const scenes = displayer.entireScenes()[scenePath];

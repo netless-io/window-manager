@@ -2,17 +2,13 @@ import Emittery from "emittery";
 import { AppAttributes, AppEvents, Events } from "./constants";
 import { AppContext } from "./AppContext";
 import { appRegister } from "./Register";
-import { autorun, ViewVisionMode } from "white-web-sdk";
-import { callbacks, emitter } from "./index";
+import { Base } from "./Base";
+import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
 import { get } from "lodash";
 import { log } from "./Utils/log";
-import {
-    notifyMainViewModeChange,
-    setScenePath,
-    setViewFocusScenePath,
-    setViewMode,
-} from "./Utils/Common";
+import { autorun } from "white-web-sdk";
+import { getScenePath, setViewFocusScenePath } from "./Utils/Common";
 import type {
     AppEmitterEvent,
     AppInitState,
@@ -24,7 +20,6 @@ import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
-import { Base } from "./Base";
 
 export class AppProxy extends Base {
     public id: string;
@@ -35,8 +30,6 @@ export class AppProxy extends Base {
     private appListener: any;
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
-    private viewManager = this.manager.viewManager;
-    private cameraStore = this.manager.cameraStore;
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
@@ -76,7 +69,7 @@ export class AppProxy extends Base {
     }
 
     public get view(): View | undefined {
-        return this.manager.viewManager.getView(this.id);
+        return this.manager.newViewManager.getView(this.id);
     }
 
     public get isWritable(): boolean {
@@ -93,8 +86,17 @@ export class AppProxy extends Base {
 
     public getFullScenePath(): string | undefined {
         if (this.scenePath) {
-            return get(this.appAttributes, [Fields.FullPath], this.scenePath);
+            return get(this.appAttributes, [Fields.FullPath], this.getFullScenePathFromScenes());
         }
+    }
+
+    public getFullScenePathFromScenes() {
+        const sceneIndex = get(this.appAttributes, ["state", "SceneIndex"], 0);
+        const fullPath = getScenePath(this.manager.room, this.scenePath, sceneIndex);
+        if (fullPath) {
+            this.setFullPath(fullPath);
+        }
+        return fullPath;
     }
 
     public setFullPath(path: string) {
@@ -125,8 +127,6 @@ export class AppProxy extends Base {
 
     private focusApp() {
         this.focusBox();
-        this.context.switchAppToWriter(this.id);
-        this.store.setMainViewFocusPath();
     }
 
     public get box(): ReadonlyTeleBox | undefined {
@@ -151,7 +151,6 @@ export class AppProxy extends Base {
                 this.boxManager.updateBoxState(boxInitState);
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
-                this.setViewFocusScenePath();
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
                     const result = await app.setup(context);
@@ -187,9 +186,6 @@ export class AppProxy extends Base {
 
     private afterSetupApp(boxInitState: AppInitState | undefined): void {
         if (boxInitState) {
-            if (boxInitState.focus && this.scenePath) {
-                this.context.switchAppToWriter(this.id);
-            }
             if (!boxInitState?.x || !boxInitState.y) {
                 this.boxManager.setBoxInitState(this.id);
             }
@@ -212,21 +208,13 @@ export class AppProxy extends Base {
 
     public switchToWritable() {
         appRegister.notifyApp(this.kind, "focus", { appId: this.id });
-        this.cameraStore.switchView(this.id, this.view, () => {
-            if (this.view) {
-                if (this.view.mode === ViewVisionMode.Writable) return;
-                try {
-                    if (this.manager.mainView.mode === ViewVisionMode.Writable) {
-                        this.store.setMainViewFocusPath();
-                        notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
-                        setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
-                    }
-                    setViewMode(this.view, ViewVisionMode.Writable);
-                } catch (error) {
-                    log("switch view failed", error);
-                }
+        if (this.view) {
+            try {
+                this.store.setMainViewFocusPath();
+            } catch (error) {
+                log("switch view failed", error);
             }
-        });
+        }
     }
 
     public getAppInitState = (id: string) => {
@@ -314,17 +302,13 @@ export class AppProxy extends Base {
                 if (attrs) {
                     this.appEmitter.emit("attributesUpdate", attrs);
                 }
+                const fullPath = this.appAttributes?.fullPath;
+                if (this.view && fullPath !== this.view.focusScenePath) {
+                    this.view.focusScenePath = fullPath;
+                }
             });
         });
     };
-
-    public setScenePath(): void {
-        if (!this.manager.canOperate) return;
-        const fullScenePath = this.getFullScenePath();
-        if (this.manager.room && fullScenePath && this.view) {
-            setScenePath(this.manager.room, fullScenePath);
-        }
-    }
 
     public setViewFocusScenePath() {
         const fullPath = this.getFullScenePath();
@@ -334,8 +318,7 @@ export class AppProxy extends Base {
     }
 
     private async createView(): Promise<View> {
-        const view = await this.viewManager.createView(this.id);
-        this.cameraStore.register(this.id, view);
+        const view = this.manager.newViewManager.createView(this.id);
         this.setViewFocusScenePath();
         return view;
     }
@@ -354,9 +337,7 @@ export class AppProxy extends Base {
             this.store.cleanAppAttributes(this.id);
         }
         this.appProxies.delete(this.id);
-        this.cameraStore.unregister(this.id, this.view);
-
-        this.viewManager.destroyView(this.id);
+        this.manager.newViewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
         this.manager.refresher?.remove(this.id);
     }
