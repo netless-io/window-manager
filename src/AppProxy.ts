@@ -69,7 +69,7 @@ export class AppProxy extends Base {
     }
 
     public get view(): View | undefined {
-        return this.manager.newViewManager.getView(this.id);
+        return this.manager.viewManager.getView(this.id);
     }
 
     public get isWritable(): boolean {
@@ -90,7 +90,7 @@ export class AppProxy extends Base {
         }
     }
 
-    public getFullScenePathFromScenes() {
+    private getFullScenePathFromScenes() {
         const sceneIndex = get(this.appAttributes, ["state", "SceneIndex"], 0);
         const fullPath = getScenePath(this.manager.room, this.scenePath, sceneIndex);
         if (fullPath) {
@@ -318,9 +318,13 @@ export class AppProxy extends Base {
     }
 
     private async createView(): Promise<View> {
-        const view = this.manager.newViewManager.createView(this.id);
+        const view = this.manager.viewManager.createView(this.id);
         this.setViewFocusScenePath();
         return view;
+    }
+
+    public cleanCurrentScene(): void {
+        this.view?.cleanCurrentScene();
     }
 
     public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
@@ -337,7 +341,7 @@ export class AppProxy extends Base {
             this.store.cleanAppAttributes(this.id);
         }
         this.appProxies.delete(this.id);
-        this.manager.newViewManager.destroyView(this.id);
+        this.manager.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
         this.manager.refresher?.remove(this.id);
     }

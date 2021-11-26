@@ -11,6 +11,7 @@ import {
     autorun,
     isPlayer,
     isRoom,
+    reaction,
     ScenePathType
     } from 'white-web-sdk';
 import { BoxManager } from './BoxManager';
@@ -48,7 +49,7 @@ export class AppManager {
 
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
-        this.viewManager = new ViewManager(this);
+        this.viewManager = new ViewManager(this, this.displayer);
         this.mainViewProxy = new MainViewProxy(this);
         this.boxManager = new BoxManager(this, options);
         this.appListeners = new AppListeners(this);
@@ -61,7 +62,7 @@ export class AppManager {
 
         this.appListeners.addListeners();
 
-        this.refresher = new ReconnectRefresher(this.room, this);
+        this.refresher = new ReconnectRefresher(this.room, () => this.notifyReconnected());
 
         emitter.once("onCreated").then(() => this.onCreated());
 
@@ -400,6 +401,20 @@ export class AppManager {
             eventName: event,
             payload: payload,
         });
+    }
+
+    public addReaction<T>(id: string, expression: () => T, callback: (result: T) => void) {
+        this.refresher?.add(id, () => {
+            return reaction(expression, callback, { fireImmediately: true });
+        });
+    }
+
+    public switchAppToWriter(id: string): void {
+        const appProxy = this.appProxies.get(id);
+        if (appProxy) {
+            if (this.boxManager.minimized) return;
+            appProxy.focusBox();
+        }
     }
 
     public destroy() {

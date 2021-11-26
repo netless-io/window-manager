@@ -6,7 +6,7 @@ import { CursorState } from '../constants';
 import { Fields } from '../AttributesDelegate';
 import { get, omit } from 'lodash';
 import type { Position } from '../AttributesDelegate';
-import type { RoomMember } from "white-web-sdk";
+import type { RoomMember , View } from "white-web-sdk";
 import type { CursorManager } from "./index";
 import type { SvelteComponent } from "svelte";
 import { Base } from '../Base';
@@ -69,9 +69,9 @@ export class Cursor extends Base {
         });
     }
 
-    private moveCursor(cursor: Position, rect: DOMRect, view: any) {
+    private moveCursor(cursor: Position, rect: DOMRect, view: View) {
         const { x, y } = cursor;
-        const point = view?.screen.convertPointToScreen(x, y);
+        const point = view?.convertToPointOnScreen(x, y);
         if (point) {
             const translateX = point.x + rect.x - 2;
             const translateY = point.y + rect.y - 18;

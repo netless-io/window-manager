@@ -1,7 +1,6 @@
 import { isFunction } from 'lodash';
 import { RoomPhase } from 'white-web-sdk';
 import type { Room } from "white-web-sdk";
-import type { AppManager } from './AppManager';
 import { log } from './Utils/log';
 
 // 白板重连之后会刷新所有的对象，导致 listener 失效, 所以这里在重连之后重新对所有对象进行监听
@@ -11,7 +10,7 @@ export class ReconnectRefresher {
     private reactors: Map<string, any> = new Map();
     private disposers: Map<string, any> = new Map();
 
-    constructor(room: Room | undefined, private manager: AppManager) {
+    constructor(room: Room | undefined, private notifyReconnected: () => void) {
         this.room = room;
         this.phase = room?.phase;
         room?.callbacks.on("onPhaseChanged", this.onPhaseChanged);
@@ -32,7 +31,7 @@ export class ReconnectRefresher {
                 this.disposers.set(id, func());
             }
         });
-        this.manager.notifyReconnected();
+        this.notifyReconnected();
     }
 
     private releaseDisposers() {

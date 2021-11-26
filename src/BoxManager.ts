@@ -53,7 +53,6 @@ export type CreateCollectorConfig = {
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     public appBoxMap: Map<string, string> = new Map();
-    private mainView = this.manager.mainView;
 
     constructor(
         private manager: AppManager,
@@ -235,7 +234,7 @@ export class BoxManager {
     }
 
     public updateManagerRect(): void {
-        const rect = this.mainView?.divElement?.getBoundingClientRect();
+        const rect = this.manager.mainView?.divElement?.getBoundingClientRect();
         if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);

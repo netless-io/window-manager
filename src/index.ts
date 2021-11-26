@@ -7,19 +7,19 @@ import {
     ensureValidScenePath,
     getVersionNumber,
     isValidScenePath,
-    wait
+    wait,
+    setupWrapper
     } from './Utils/Common';
 import { AppManager } from './AppManager';
 import { appRegister } from './Register';
 import { CursorManager } from './Cursor';
-import { DEFAULT_CONTAINER_RATIO, REQUIRE_VERSION } from './constants';
+import { DEFAULT_CONTAINER_RATIO, REQUIRE_SDK_VERSION, VERSION } from './constants';
 import { Fields } from './AttributesDelegate';
 import { initDb } from './Register/storage';
 import { isNull, isObject } from 'lodash';
 import { log } from './Utils/log';
 import { replaceRoomFunction } from './Utils/RoomHacker';
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
-import { setupWrapper } from './NewViewManager';
 import './style.css';
 import '@netless/telebox-insider/dist/style.css';
 import type { TELE_BOX_STATE } from './BoxManager';
@@ -168,12 +168,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-<<<<<<< HEAD
-    public version = "0.3.8-canary.0";
-=======
-
-    public version = "0.3.7";
->>>>>>> 3b703e8 (feat: use sdk new view)
+    public version = VERSION;
 
     public appListeners?: AppListeners;
 
@@ -620,8 +615,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private static checkVersion() {
         const version = getVersionNumber(WhiteVersion);
-        if (version < getVersionNumber(REQUIRE_VERSION)) {
-            throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);
+        if (version < getVersionNumber(REQUIRE_SDK_VERSION)) {
+            throw new WhiteWebSDKInvalidError(REQUIRE_SDK_VERSION);
         }
     }
 
