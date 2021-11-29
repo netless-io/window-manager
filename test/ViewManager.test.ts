@@ -2,13 +2,6 @@ import { ViewManager } from "../src/ViewManager";
 
 describe("ViewManager", () => {
 
-    const manager = {
-        addReaction: jest.fn(),
-        appProxies: new Map(),
-        boxManager: {
-            blurFocusBox: jest.fn(),
-        }
-    } as any;
     const displayer = {
         views: {
             createView: jest.fn().mockReturnValue({
@@ -23,18 +16,19 @@ describe("ViewManager", () => {
     })
 
     it("should create view", () => {
-        const viewManager = new ViewManager(manager, displayer);
-        expect(manager.addReaction).toBeCalled();
+        const viewManager = new ViewManager(displayer);
         const view = viewManager.createView("test");
+
         expect(view).toBeTruthy();
         expect(displayer.views.createView).toBeCalled();
-        expect(viewManager.getView("test")).toBeDefined();
+        expect(viewManager.getView("test")).toBe(view);
         expect(viewManager.views.size).toBe(1);
     });
 
     it("should destroy view", () => {
-        const viewManager = new ViewManager(manager, displayer);
+        const viewManager = new ViewManager(displayer);
         const view = viewManager.createView("test");
+
         expect(view).toBeTruthy();
         expect(viewManager.getView("test")).toBeDefined();
         viewManager.destroyView("test");
@@ -43,17 +37,19 @@ describe("ViewManager", () => {
     });
 
     it("should set view scenePath", () => {
-        const viewManager = new ViewManager(manager, displayer);
+        const viewManager = new ViewManager(displayer);
         const view = viewManager.createView("test");
+
         expect(view).toBeTruthy();
         viewManager.setViewScenePath("test", "/test");
         expect(view.focusScenePath).toBe("/test");
     });
     
     it("should destroy", () => {
-        const viewManager = new ViewManager(manager, displayer);
+        const viewManager = new ViewManager(displayer);
         const view = viewManager.createView("view1");
         viewManager.createView("view2");
+
         expect(viewManager.views.size).toBe(2);
         viewManager.destroy();
         expect(viewManager.views.size).toBe(0);

@@ -8,7 +8,8 @@ import {
     getVersionNumber,
     isValidScenePath,
     wait,
-    setupWrapper
+    setupWrapper,
+    checkIsDynamicPPT
     } from './Utils/Common';
 import { AppManager } from './AppManager';
 import { appRegister } from './Register';
@@ -393,7 +394,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 }
             }
             if (scenePath && scenes && scenes.length > 0) {
-                if (this.isDynamicPPT(scenes)) {
+                if (checkIsDynamicPPT(scenes)) {
                     isDynamicPPT = true;
                     if (!this.displayer.entireScenes()[scenePath]) {
                         this.room?.putScenes(scenePath, scenes);
@@ -452,13 +453,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             this.appManager?.boxManager.setReadonly(readonly);
         }
     }
-
-    /**
-     * 切换 mainView 为可写
-     */
-    // public switchMainViewToWriter(): Promise<void> | undefined {
-    //     // return this.appManager?.mainViewProxy.mainViewClickHandler();
-    // }
 
     /**
      * app destroy 回调
@@ -606,11 +600,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.canOperate) {
             this.updateAttributes(keys, value);
         }
-    }
-
-    private isDynamicPPT(scenes: SceneDefinition[]) {
-        const sceneSrc = scenes[0]?.ppt?.src;
-        return sceneSrc?.startsWith("pptx://");
     }
 
     private static checkVersion() {

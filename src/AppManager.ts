@@ -1,28 +1,17 @@
-import {
-    AppAttributes,
-    AppStatus,
-    Events,
-    MagixEventName
-    } from './constants';
-import { AppListeners } from './AppListener';
-import { AppProxy } from './AppProxy';
-import { AttributesDelegate } from './AttributesDelegate';
-import {
-    autorun,
-    isPlayer,
-    isRoom,
-    reaction,
-    ScenePathType
-    } from 'white-web-sdk';
-import { BoxManager } from './BoxManager';
-import { callbacks, emitter } from './index';
-import { genAppId, makeValidScenePath } from './Utils/Common';
-import { log } from './Utils/log';
-import { MainViewProxy } from './MainView';
-import { ViewManager } from './ViewManager';
-import { onObjectInserted, onObjectRemoved, safeListenPropsUpdated } from './Utils/Reactive';
-import { ReconnectRefresher } from './ReconnectRefresher';
-import type { Displayer, DisplayerState, Room , Player} from "white-web-sdk";
+import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
+import { AppListeners } from "./AppListener";
+import { AppProxy } from "./AppProxy";
+import { AttributesDelegate } from "./AttributesDelegate";
+import { autorun, isPlayer, isRoom, reaction, ScenePathType } from "white-web-sdk";
+import { BoxManager } from "./BoxManager";
+import { callbacks, emitter } from "./index";
+import { genAppId, makeValidScenePath } from "./Utils/Common";
+import { log } from "./Utils/log";
+import { MainViewProxy } from "./MainView";
+import { ViewManager } from "./ViewManager";
+import { onObjectRemoved } from "./Utils/Reactive";
+import { ReconnectRefresher } from "./ReconnectRefresher";
+import type { Displayer, DisplayerState, Room, Player } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type {
     AddAppParams,
@@ -33,7 +22,6 @@ import type {
 } from "./index";
 
 export class AppManager {
-
     public displayer: Displayer;
     public boxManager: BoxManager;
     public viewManager: ViewManager;
@@ -41,7 +29,7 @@ export class AppManager {
     public mainViewProxy: MainViewProxy;
     public refresher?: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
-    
+
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
 
@@ -49,15 +37,21 @@ export class AppManager {
 
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
-        this.viewManager = new ViewManager(this, this.displayer);
+        this.viewManager = new ViewManager(this.displayer);
         this.mainViewProxy = new MainViewProxy(this);
         this.boxManager = new BoxManager(this, options);
         this.appListeners = new AppListeners(this);
 
         if (isRoom(this.displayer)) {
-            (this.displayer as Room).callbacks.on("onRoomStateChanged", this.displayerStateListener);
+            (this.displayer as Room).callbacks.on(
+                "onRoomStateChanged",
+                this.displayerStateListener
+            );
         } else if (isPlayer(this.displayer)) {
-            (this.displayer as Player).callbacks.on("onPlayerStateChanged", this.displayerStateListener);
+            (this.displayer as Player).callbacks.on(
+                "onPlayerStateChanged",
+                this.displayerStateListener
+            );
         }
 
         this.appListeners.addListeners();
@@ -82,9 +76,10 @@ export class AppManager {
         this.boxManager.updateManagerRect();
         emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
-            return safeListenPropsUpdated(() => this.attributes.apps, () => {
+            return autorun(() => {
+                const apps = this.attributes.apps;
                 setTimeout(() => {
-                    this.attributesUpdateCallback(this.attributes.apps);
+                    this.attributesUpdateCallback(apps);
                 }, 300);
             });
         });
@@ -113,6 +108,17 @@ export class AppManager {
                 }
             });
         });
+        this.refresher?.add("focus", () => {
+            return autorun(() => {
+                const focus = this.attributes.focus;
+                if (focus) {
+                    const appProxy = this.appProxies.get(focus);
+                    if (appProxy) {
+                        appProxy.focus();
+                    }
+                }
+            });
+        });
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
     }
@@ -137,7 +143,6 @@ export class AppManager {
                         id,
                         false
                     );
-                    this.focusByAttributes(apps);
                 }
             }
         }
@@ -152,8 +157,8 @@ export class AppManager {
         });
     };
 
-    public async bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
-        const mainView = await this.mainViewProxy.createMainView();
+    public bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
+        const mainView = this.mainViewProxy.createMainView();
         mainView.disableCameraTransform = disableCameraTransform;
         mainView.divElement = divElement;
         if (!mainView.focusScenePath) {
@@ -303,7 +308,9 @@ export class AppManager {
                 await this._setMainViewScenePath(scenePath);
             } else if (scenePathType === ScenePathType.Dir) {
                 const validScenePath = makeValidScenePath(this.displayer, scenePath);
-                await this._setMainViewScenePath(validScenePath);
+                if (validScenePath) {
+                    await this._setMainViewScenePath(validScenePath);
+                }
             }
         }
     }
@@ -316,9 +323,20 @@ export class AppManager {
     public async setMainViewSceneIndex(index: number) {
         if (this.room) {
             this.safeSetAttributes({ _mainSceneIndex: index });
-            this.room.setSceneIndex(index);
-            this.store.setMainViewScenePath(this.room.state.sceneState.scenePath);
-            this.store.setMainViewFocusPath();
+            const mainViewScenePath = this.store.getMainViewScenePath() as string;
+            if (mainViewScenePath) {
+                const sceneList = mainViewScenePath.split("/");
+                sceneList.pop();
+                let sceneDir = sceneList.join("/");
+                if (sceneDir === "") {
+                    sceneDir  = "/";
+                }
+                const scenePath = makeValidScenePath(this.displayer, sceneDir, index);
+                if (scenePath) {
+                    this.store.setMainViewScenePath(scenePath);
+                    this.store.setMainViewFocusPath();
+                }
+            }
         }
     }
 
@@ -375,19 +393,11 @@ export class AppManager {
         }
     };
 
-    public focusByAttributes(apps: any) {
-        if (apps && Object.keys(apps).length === this.boxManager.appBoxMap.size) {
-            const focusAppId = this.store.focus;
-            if (focusAppId) {
-                this.boxManager.focusBox({ appId: focusAppId });
-            }
-        }
-    }
-
     public notifyReconnected() {
         this.appProxies.forEach(appProxy => {
             appProxy.onReconnected();
         });
+        this.mainViewProxy.onReconnected();
     }
 
     public notifyContainerRectUpdate(rect: TeleBoxRect) {
@@ -409,19 +419,17 @@ export class AppManager {
         });
     }
 
-    public switchAppToWriter(id: string): void {
-        const appProxy = this.appProxies.get(id);
-        if (appProxy) {
-            if (this.boxManager.minimized) return;
-            appProxy.focusBox();
-        }
-    }
-
     public destroy() {
         if (isRoom(this.displayer)) {
-            (this.displayer as Room).callbacks.off("onRoomStateChanged", this.displayerStateListener);
+            (this.displayer as Room).callbacks.off(
+                "onRoomStateChanged",
+                this.displayerStateListener
+            );
         } else if (isPlayer(this.displayer)) {
-            (this.displayer as Player).callbacks.off("onPlayerStateChanged", this.displayerStateListener);
+            (this.displayer as Player).callbacks.off(
+                "onPlayerStateChanged",
+                this.displayerStateListener
+            );
         }
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();

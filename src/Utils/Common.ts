@@ -1,7 +1,7 @@
 import { appRegister } from '../Register';
 import { emitter, WindowManager } from '../index';
 import { v4 } from 'uuid';
-import type { Displayer, ViewVisionMode, View, Room } from "white-web-sdk";
+import type { Displayer, ViewVisionMode, View, Room, SceneDefinition } from "white-web-sdk";
 
 export const genAppId = async (kind: string) => {
     const impl = await appRegister.appClasses.get(kind)?.();
@@ -45,9 +45,10 @@ export const addEmitterOnceListener = (event: any, listener: any) => {
     emitter.once(event).then(listener);
 }
 
-export const makeValidScenePath = (displayer: Displayer, scenePath: string) => {
+export const makeValidScenePath = (displayer: Displayer, scenePath: string, index = 0) => {
     const scenes = displayer.entireScenes()[scenePath];
-    const firstSceneName = scenes[0].name;
+    if (!scenes) return;
+    const firstSceneName = scenes[index].name;
     if (scenePath === "/") {
         return `/${firstSceneName}`;
     } else {
@@ -71,6 +72,11 @@ export const getVersionNumber = (version: string) => {
     const versionString = version.split(".").map(s => s.padStart(2, "0")).join("");
     return parseInt(versionString);
 };
+
+export const checkIsDynamicPPT = (scenes: SceneDefinition[]) => {
+    const sceneSrc = scenes[0]?.ppt?.src;
+    return sceneSrc?.startsWith("pptx://");
+}
 
 export const wait = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
 

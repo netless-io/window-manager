@@ -217,6 +217,11 @@ export class AppProxy extends Base {
         }
     }
 
+    public focus() {
+        appRegister.notifyApp(this.kind, "focus", { appId: this.id });
+        this.focusBox();
+    }
+
     public getAppInitState = (id: string) => {
         const attrs = this.store.getAppState(id);
         if (!attrs) return;

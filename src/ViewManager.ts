@@ -1,18 +1,9 @@
 import type { View , Displayer} from "white-web-sdk";
-import type { AppManager } from "./AppManager";
 
 export class ViewManager {
     public views: Map<string, View> = new Map();
 
-    constructor(manager: AppManager, private displayer: Displayer) {
-        manager.addReaction("focus", () => manager.store.focus, (focus) => {
-            if (focus) {
-                manager.switchAppToWriter(focus);
-            } else {
-                manager.boxManager.blurFocusBox();
-            }
-        })
-    }
+    constructor(private displayer: Displayer) {}
 
     public createView(id: string): View {
         const view = this.displayer.views.createView();

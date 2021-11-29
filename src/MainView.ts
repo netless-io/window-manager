@@ -5,7 +5,7 @@ import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
-import { getScenePath } from "./Utils/Common";
+import { log } from "./Utils/log";
 
 export class MainViewProxy extends Base {
     private scale?: number;
@@ -83,20 +83,27 @@ export class MainViewProxy extends Base {
         return this.mainView!;
     }
 
-    public async createMainView(): Promise<View> {
+    public createMainView(): View {
         const mainView = this.manager.viewManager.createView(this.viewId);
         this.mainView = mainView;
         this.moveCameraSizeByAttributes();
         mainView.callbacks.on("onSizeUpdated", () => {
             this.context.updateManagerRect();
         });
-        const mainViewScenePath = this.store.getMainViewScenePath();
-        const mainViewSceneIndex = this.store.getMainViewSceneIndex();
-        const fullPath = getScenePath(this.manager.room, mainViewScenePath, mainViewSceneIndex);
-        if (mainView.focusScenePath !== fullPath) {
-            mainView.focusScenePath = fullPath;
-        }
+        this.setFocusScenePath(mainView);
         return mainView;
+    }
+
+    private setFocusScenePath(view: View) {
+        const mainViewScenePath = this.store.getMainViewScenePath();
+        if (view.focusScenePath !== mainViewScenePath) {
+            view.focusScenePath = mainViewScenePath;
+        }
+    }
+
+    public onReconnected() {
+        log("MainViewProxy onReconnected");
+        this.setFocusScenePath(this.view);
     }
 
     private cameraListener = (camera: Camera) => {

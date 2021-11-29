@@ -12,7 +12,7 @@
     "predev": "yarn type-gen",
     "build:lib:types": "tsc --emitDeclarationOnly",
     "lint": "eslint --ext .ts,.tsx,.svelte . && prettier --check .",
-    "test": "jest --coverage"
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
