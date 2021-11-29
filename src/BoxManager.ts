@@ -289,8 +289,8 @@ export class BoxManager {
         this.teleBoxManager.setMaximized(maximized, true);
     }
 
-    public setMinimized(minimized: boolean) {
-        this.teleBoxManager.setMinimized(minimized, true);
+    public setMinimized(minimized: boolean, skipUpdate = true) {
+        this.teleBoxManager.setMinimized(minimized, skipUpdate);
     }
 
     public setReadonly(readonly: boolean) {

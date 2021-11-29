@@ -78,6 +78,7 @@ export class AppManager {
         this.refresher?.add("apps", () => {
             return autorun(() => {
                 const apps = this.attributes.apps;
+                //新版非 Active View 两边同时创建 View 会有报错, 这里加一个延迟保证不会报错
                 setTimeout(() => {
                     this.attributesUpdateCallback(apps);
                 }, 300);
@@ -195,9 +196,6 @@ export class AppManager {
         const attrs = params.attributes ?? {};
         this.safeUpdateAttributes([appId], attrs);
         this.store.setupAppAttributes(params, appId, isDynamicPPT);
-        if (this.boxManager.minimized) {
-            this.boxManager.setMinimized(false);
-        }
         const needFocus = !this.boxManager.minimized;
         if (needFocus) {
             this.store.setAppFocus(appId, true);
@@ -212,6 +210,9 @@ export class AppManager {
                 x: appProxy.box?.x,
                 y: appProxy.box?.y,
             });
+        }
+        if (this.boxManager.minimized) {
+            this.boxManager.setMinimized(false, false);
         }
     }
 

@@ -1,6 +1,6 @@
-import { appRegister } from '../Register';
-import { emitter, WindowManager } from '../index';
-import { v4 } from 'uuid';
+import { appRegister } from "../Register";
+import { emitter, WindowManager } from "../index";
+import { v4 } from "uuid";
 import type { Displayer, ViewVisionMode, View, Room, SceneDefinition } from "white-web-sdk";
 
 export const genAppId = async (kind: string) => {
@@ -17,7 +17,11 @@ export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
     }
 };
 
-export const getScenePath = (room: Room | undefined, dir: string | undefined, index: number): string | undefined => {
+export const getScenePath = (
+    room: Room | undefined,
+    dir: string | undefined,
+    index: number
+): string | undefined => {
     if (room && dir) {
         const scenes = room.entireScenes();
         const scene = scenes[dir]?.[index];
@@ -25,7 +29,7 @@ export const getScenePath = (room: Room | undefined, dir: string | undefined, in
             return `${dir}/${scene.name}`;
         }
     }
-}
+};
 
 export const setViewMode = (view: View, mode: ViewVisionMode) => {
     if (!(view as any).didRelease && view.mode !== mode) {
@@ -43,7 +47,7 @@ export const emitError = (error: Error) => {
 
 export const addEmitterOnceListener = (event: any, listener: any) => {
     emitter.once(event).then(listener);
-}
+};
 
 export const makeValidScenePath = (displayer: Displayer, scenePath: string, index = 0) => {
     const scenes = displayer.entireScenes()[scenePath];
@@ -58,7 +62,7 @@ export const makeValidScenePath = (displayer: Displayer, scenePath: string, inde
 
 export const isValidScenePath = (scenePath: string) => {
     return scenePath.startsWith("/");
-}
+};
 
 export const ensureValidScenePath = (scenePath: string) => {
     if (scenePath.endsWith("/")) {
@@ -66,19 +70,22 @@ export const ensureValidScenePath = (scenePath: string) => {
     } else {
         return scenePath;
     }
-}
+};
 
 export const getVersionNumber = (version: string) => {
-    const versionString = version.split(".").map(s => s.padStart(2, "0")).join("");
+    const versionString = version
+        .split(".")
+        .map(s => s.padStart(2, "0"))
+        .join("");
     return parseInt(versionString);
 };
 
 export const checkIsDynamicPPT = (scenes: SceneDefinition[]) => {
     const sceneSrc = scenes[0]?.ppt?.src;
     return sceneSrc?.startsWith("pptx://");
-}
+};
 
-export const wait = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
+export const wait = (time: number) => new Promise(resolve => setTimeout(resolve, time));
 
 export const setupWrapper = (
     root: HTMLElement

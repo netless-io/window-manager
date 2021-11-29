@@ -65,6 +65,7 @@ export class ReconnectRefresher {
 
     public destroy() {
         this.room?.callbacks.off("onPhaseChanged", this.onPhaseChanged);
+        this.reactors.clear();
         this.releaseDisposers();
     }
 }
