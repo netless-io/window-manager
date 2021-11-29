@@ -151,19 +151,12 @@ export class AttributesDelegate {
     }
 
     public updateCursor(uid: string, position: Position) {
-        if (!get(this.manager.attributes, [Fields.Cursors])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors], {});
-        }
-        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
-        }
+        this.ensureAttributes([Fields.Cursors, uid, Fields.Position]);
         this.manager.safeUpdateAttributes([Fields.Cursors, uid, Fields.Position], position);
     }
 
     public updateCursorState(uid: string, cursorState: string | undefined) {
-        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
-        }
+        this.ensureAttributes([Fields.Cursors, uid, Fields.CursorState]);
         this.manager.safeUpdateAttributes(
             [Fields.Cursors, uid, Fields.CursorState],
             cursorState
@@ -184,6 +177,15 @@ export class AttributesDelegate {
         if (scenePath) {
             setViewFocusScenePath(this.manager.mainView, scenePath);
         }
+    }
+
+    private ensureAttributes(keys: string[]) {
+        keys.forEach((_, index) => {
+            const path = keys.slice(0, index + 1);
+            if (!get(this.manager.attributes, path)) {
+                this.manager.safeUpdateAttributes(path, {});
+            }
+        });
     }
 }
 

@@ -50,7 +50,9 @@ import type {
     AnimationMode,
     CameraBound,
     Rectangle,
-    MemberState} from "white-web-sdk";
+    MemberState,
+    RoomMember,
+    RoomState} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, Point, RegisterParams } from "./typings";
 import type { TeleBoxState } from "@netless/telebox-insider";
@@ -133,6 +135,8 @@ export type EmitterEvent = {
     mainViewMounted: undefined,
     observerIdChange: number;
     boxStateChange: string;
+    roomMembersChange: readonly RoomMember[];
+    roomStateChange: Partial<RoomState>;
 }
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();

@@ -206,20 +206,11 @@ export class AppProxy extends Base {
         await appProxy.baseInsertApp(this.store.focus === this.id);
     }
 
-    public switchToWritable() {
-        appRegister.notifyApp(this.kind, "focus", { appId: this.id });
-        if (this.view) {
-            try {
-                this.store.setMainViewFocusPath();
-            } catch (error) {
-                log("switch view failed", error);
-            }
-        }
-    }
-
     public focus() {
-        appRegister.notifyApp(this.kind, "focus", { appId: this.id });
-        this.focusBox();
+        if (!this.box?.focus) {
+            appRegister.notifyApp(this.kind, "focus", { appId: this.id });
+            this.focusBox();
+        }
     }
 
     public getAppInitState = (id: string) => {

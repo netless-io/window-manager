@@ -33,5 +33,6 @@ export const replaceRoomFunction = (room: Room, manager: AppManager) => {
         room.moveCameraToContain = (...args) => manager.mainView.moveCameraToContain(...args);
         room.convertToPointInWorld = (...args) => manager.mainView.convertToPointInWorld(...args);
         room.setCameraBound = (...args) => manager.mainView.setCameraBound(...args);
+        room.cleanCurrentScene = () => manager.mainView.cleanCurrentScene();
     }
 };

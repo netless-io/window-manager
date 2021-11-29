@@ -11,7 +11,7 @@ import { MainViewProxy } from "./MainView";
 import { ViewManager } from "./ViewManager";
 import { onObjectRemoved } from "./Utils/Reactive";
 import { ReconnectRefresher } from "./ReconnectRefresher";
-import type { Displayer, DisplayerState, Room, Player } from "white-web-sdk";
+import type { Displayer, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type {
     AddAppParams,
@@ -20,6 +20,8 @@ import type {
     TeleBoxRect,
     EmitterEvent,
 } from "./index";
+import { DisplayerListener } from "./DisplayerListener";
+import { SideEffectManager } from "side-effect-manager";
 
 export class AppManager {
     public displayer: Displayer;
@@ -34,6 +36,9 @@ export class AppManager {
     public appStatus: Map<string, AppStatus> = new Map();
 
     private appListeners: AppListeners;
+    private displayerListener: DisplayerListener;
+
+    private sideEffectManager = new SideEffectManager();
 
     constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
         this.displayer = windowManger.displayer;
@@ -42,21 +47,16 @@ export class AppManager {
         this.boxManager = new BoxManager(this, options);
         this.appListeners = new AppListeners(this);
 
-        if (isRoom(this.displayer)) {
-            (this.displayer as Room).callbacks.on(
-                "onRoomStateChanged",
-                this.displayerStateListener
-            );
-        } else if (isPlayer(this.displayer)) {
-            (this.displayer as Player).callbacks.on(
-                "onPlayerStateChanged",
-                this.displayerStateListener
-            );
-        }
-
-        this.appListeners.addListeners();
+        this.sideEffectManager.add(() => {
+            this.appListeners.addListeners();
+            return () => {
+                this.appListeners.removeListeners();
+            };
+        });
 
         this.refresher = new ReconnectRefresher(this.room, () => this.notifyReconnected());
+
+        this.displayerListener = new DisplayerListener(this.displayer);
 
         emitter.once("onCreated").then(() => this.onCreated());
 
@@ -120,7 +120,21 @@ export class AppManager {
             });
         });
         this.displayerWritableListener(!this.room?.isWritable);
-        this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
+        this.sideEffectManager.add(() => {
+            this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
+            return () => {
+                this.displayer.callbacks.off(
+                    "onEnableWriteNowChanged",
+                    this.displayerWritableListener
+                );
+            };
+        });
+
+        emitter.on("roomStateChange", state => {
+            this.appProxies.forEach(appProxy => {
+                appProxy.appEmitter.emit("roomStateChange", state);
+            });
+        });
     }
 
     /**
@@ -230,26 +244,6 @@ export class AppManager {
         }
     }
 
-    private displayerStateListener = (state: Partial<DisplayerState>) => {
-        const sceneState = state.sceneState;
-        if (sceneState) {
-            const scenePath = sceneState.scenePath;
-            this.appProxies.forEach(appProxy => {
-                if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
-                    appProxy.emitAppSceneStateChange(sceneState);
-                }
-            });
-        }
-        if (state.roomMembers) {
-            this.windowManger.cursorManager?.setRoomMembers(state.roomMembers);
-            this.windowManger.cursorManager?.cleanMemberAttributes(state.roomMembers);
-        }
-        this.appProxies.forEach(appProxy => {
-            appProxy.appEmitter.emit("roomStateChange", state);
-        });
-        emitter.emit("observerIdChange", this.displayer.observerId);
-    };
-
     private displayerWritableListener = (isReadonly: boolean) => {
         const isWritable = !isReadonly;
         const isManualWritable =
@@ -329,7 +323,7 @@ export class AppManager {
                 sceneList.pop();
                 let sceneDir = sceneList.join("/");
                 if (sceneDir === "") {
-                    sceneDir  = "/";
+                    sceneDir = "/";
                 }
                 const scenePath = makeValidScenePath(this.displayer, sceneDir, index);
                 if (scenePath) {
@@ -364,7 +358,7 @@ export class AppManager {
                 break;
             }
             case "focus": {
-                this.windowManger.safeSetAttributes({ focus: payload.appId });
+                this.safeSetAttributes({ focus: payload.appId });
                 break;
             }
             case "resize": {
@@ -420,19 +414,6 @@ export class AppManager {
     }
 
     public destroy() {
-        if (isRoom(this.displayer)) {
-            (this.displayer as Room).callbacks.off(
-                "onRoomStateChanged",
-                this.displayerStateListener
-            );
-        } else if (isPlayer(this.displayer)) {
-            (this.displayer as Player).callbacks.off(
-                "onPlayerStateChanged",
-                this.displayerStateListener
-            );
-        }
-        this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
-        this.appListeners.removeListeners();
         emitter.offAny(this.boxEventListener);
         emitter.clearListeners();
         if (this.appProxies.size) {
@@ -443,6 +424,8 @@ export class AppManager {
         this.boxManager.destroy();
         this.refresher?.destroy();
         this.mainViewProxy.destroy();
+        this.displayerListener.destroy();
         callbacks.clearListeners();
+        this.sideEffectManager.flushAll();
     }
 }
