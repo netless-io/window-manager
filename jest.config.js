@@ -9,7 +9,7 @@ module.exports = {
         tsconfig: "./test/tsconfig.json",
       },
     },
-    testMatch: ["**/test/*.test.ts"],
+    testMatch: ["**/test/*.test.ts", "**/test/**/*.test.ts"],
     setupFiles: ["jest-canvas-mock", "jest-fetch-mock"],
     transform: {
         '^.+\\.svelte$': [

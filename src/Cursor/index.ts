@@ -1,11 +1,12 @@
-import { Base } from "../Base";
-import { compact, debounce, uniq } from "lodash";
-import { Cursor } from "./Cursor";
-import { CursorState } from "../constants";
-import { Fields } from "../AttributesDelegate";
-import { onObjectInserted } from "../Utils/Reactive";
-import { emitter, WindowManager } from "../index";
-import { SideEffectManager } from "side-effect-manager";
+import { autorun } from 'white-web-sdk';
+import { Base } from '../Base';
+import { compact, debounce, uniq } from 'lodash';
+import { Cursor } from './Cursor';
+import { CursorState } from '../constants';
+import { emitter, WindowManager } from '../index';
+import { Fields } from '../AttributesDelegate';
+import { onObjectInserted } from '../Utils/Reactive';
+import { SideEffectManager } from 'side-effect-manager';
 import type { PositionType } from "../AttributesDelegate";
 import type { RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
@@ -21,13 +22,24 @@ export type MoveCursorParams = {
     x: number;
     y: number;
 };
+
+export type CursorContext = {
+    focusView: View | undefined;
+    wrapperRect?: DOMRect;
+    findMemberByUid: (uid: string) => RoomMember | undefined;
+    updateCursorState: (uid: string, state: CursorState) => void;
+    onCursorChange: (callback: (state: any) => void) => void;
+    flushSideEffect: (uid: string) => void;
+};
+
 export class CursorManager extends Base {
     public containerRect?: DOMRect;
-    public wrapperRect?: DOMRect;
+    private _wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
     private sideEffectManager = new SideEffectManager();
+    private reactionId = "cursors";
 
     constructor(private appManager: AppManager) {
         super(appManager);
@@ -50,7 +62,7 @@ export class CursorManager extends Base {
             });
 
             this.initCursorAttributes();
-            this.wrapperRect = wrapper.getBoundingClientRect();
+            this._wrapperRect = wrapper.getBoundingClientRect();
             this.startReaction(wrapper);
             emitter.on("roomMembersChange", roomMembers => {
                 this.roomMembers = roomMembers;
@@ -60,12 +72,16 @@ export class CursorManager extends Base {
         }
     }
 
+    private get wrapperRect() {
+        return this._wrapperRect;
+    }
+
     public setMainViewDivElement(div: HTMLDivElement) {
         this.mainViewElement = div;
     }
 
     private startReaction(wrapper: HTMLElement) {
-        this.manager.refresher?.add("cursors", () => {
+        this.manager.refresher?.add(this.reactionId, () => {
             return onObjectInserted(this.cursors, () => {
                 this.handleRoomMembersChange(wrapper);
             });
@@ -76,7 +92,7 @@ export class CursorManager extends Base {
         return compact(uniq(members?.map(member => member.payload?.uid)));
     };
 
-    private handleRoomMembersChange = debounce((wrapper: HTMLElement) => {
+    private handleRoomMembersChange = (wrapper: HTMLElement) => {
         const uids = this.getUids(this.roomMembers);
         const cursors = Object.keys(this.cursors);
         if (uids?.length) {
@@ -85,12 +101,41 @@ export class CursorManager extends Base {
                     if (uid === this.context.uid) {
                         return;
                     }
-                    const component = new Cursor(this.appManager, this.cursors, uid, this, wrapper);
+                    const component = new Cursor(
+                        this.appManager.mainView,
+                        uid,
+                        {
+                            findMemberByUid: this.context.findMemberByUid,
+                            updateCursorState: this.updateCursorState,
+                            onCursorChange: this.onCursorChange(uid),
+                            flushSideEffect: this.flushSideEffect,
+                            focusView: this.focusView,
+                            wrapperRect: this.wrapperRect,
+                        },
+                        wrapper
+                    );
                     this.cursorInstances.set(uid, component);
                 }
             });
         }
-    }, 100);
+    };
+
+    private onCursorChange = (uid: string) => {
+       return (callback: (state: any) => void) => {
+           this.sideEffectManager.add(() => {
+               const disposer = autorun(() => {
+                    const position = this.cursors?.[uid]?.[Fields.Position];
+                    const state = this.cursors?.[uid]?.[Fields.CursorState];
+                    callback({ position, state });
+               })
+               return disposer;
+           }, uid);
+       }
+    };
+
+    private flushSideEffect = (uid: string) => {
+        this.sideEffectManager.flush(uid);
+    }
 
     public get cursors() {
         return this.manager.attributes?.[Fields.Cursors];
@@ -116,7 +161,7 @@ export class CursorManager extends Base {
     }, 5);
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
-        if (this.wrapperRect && this.manager.canOperate) {
+        if (this._wrapperRect && this.manager.canOperate) {
             const view = event.type === "main" ? this.appManager.mainView : this.focusView;
             const point = this.getPoint(view, clientX, clientY);
             if (point) {
@@ -186,8 +231,7 @@ export class CursorManager extends Base {
     };
 
     public updateContainerRect() {
-        this.containerRect = WindowManager.container?.getBoundingClientRect();
-        this.wrapperRect = WindowManager.wrapper?.getBoundingClientRect();
+        this._wrapperRect = WindowManager.wrapper?.getBoundingClientRect();
     }
 
     public setRoomMembers(members: readonly RoomMember[]) {
@@ -205,6 +249,7 @@ export class CursorManager extends Base {
         const cursor = this.cursorInstances.get(uid);
         if (cursor) {
             cursor.destroy();
+            this.cursorInstances.delete(uid);
         }
     }
 
@@ -230,12 +275,16 @@ export class CursorManager extends Base {
         });
     }
 
+    private updateCursorState = (uid: string, state: CursorState) => {
+        this.store.updateCursorState(uid, state);
+    };
+
     public destroy() {
         if (this.cursorInstances.size) {
             this.cursorInstances.forEach(cursor => cursor.destroy());
             this.cursorInstances.clear();
         }
-        this.manager.refresher?.remove("cursors");
+        this.manager.refresher?.remove(this.reactionId);
         this.sideEffectManager.flushAll();
     }
 }

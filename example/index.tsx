@@ -252,6 +252,7 @@ const onRef = (ref) => {
         cursorAdapter: undefined,
         uid: uid,
         disableMagixEventDispatchLimit: true,
+        disableNewPencil: false
     }).then(async room => {
         if (room.isWritable) {
             // room.setMemberState({ strokeColor: [0, 0, 1] });
@@ -289,6 +290,10 @@ WindowManager.register({
         })
     }
 });
+
+// WindowManager.register({
+//     kind: "NetlessMonaco", src: "https://cdn.jsdelivr.net/npm/@netless/app-monaco@0.1.11/dist/main.iife.js"
+// });
 
 const sdk = new WhiteWebSdk({
     appIdentifier: process.env.APPID,
