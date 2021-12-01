@@ -314,6 +314,7 @@ export class AppManager {
         await this.viewManager.switchMainViewToWriter();
         setScenePath(this.room, scenePath);
         this.store.setMainViewFocusPath();
+        this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
     }
 
     public async setMainViewSceneIndex(index: number) {
@@ -321,8 +322,10 @@ export class AppManager {
             this.safeSetAttributes({ _mainSceneIndex: index });
             await this.viewManager.switchMainViewToWriter();
             this.room.setSceneIndex(index);
-            this.store.setMainViewScenePath(this.room.state.sceneState.scenePath);
+            const nextScenePath = this.room.state.sceneState.scenePath;
+            this.store.setMainViewScenePath(nextScenePath);
             this.store.setMainViewFocusPath();
+            this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath });
         }
     }
 

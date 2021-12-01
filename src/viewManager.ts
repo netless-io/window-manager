@@ -2,11 +2,7 @@ import { Base } from "./Base";
 import { callbacks, WindowManager } from "./index";
 import { reaction, ViewVisionMode } from "white-web-sdk";
 import { SET_SCENEPATH_DELAY } from "./constants";
-import {
-    notifyMainViewModeChange,
-    setScenePath,
-    setViewMode,
-} from "./Utils/Common";
+import { notifyMainViewModeChange, setScenePath, setViewMode } from "./Utils/Common";
 import type { View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
