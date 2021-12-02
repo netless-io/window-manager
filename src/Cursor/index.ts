@@ -33,7 +33,6 @@ export type CursorContext = {
 };
 
 export class CursorManager extends Base {
-    public containerRect?: DOMRect;
     private _wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];

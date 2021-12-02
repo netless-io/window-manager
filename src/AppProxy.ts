@@ -2,7 +2,6 @@ import Emittery from "emittery";
 import { AppAttributes, AppEvents, Events } from "./constants";
 import { AppContext } from "./AppContext";
 import { appRegister } from "./Register";
-import { Base } from "./Base";
 import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
 import { get } from "lodash";
@@ -21,7 +20,7 @@ import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 
-export class AppProxy extends Base {
+export class AppProxy {
     public id: string;
     public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
@@ -30,17 +29,17 @@ export class AppProxy extends Base {
     private appListener: any;
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
+    private store = this.manager.store;
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
 
     constructor(
         private params: BaseInsertParams,
-        manager: AppManager,
+        private manager: AppManager,
         appId: string,
         isAddApp: boolean
     ) {
-        super(manager);
         this.kind = params.kind;
         this.id = appId;
         this.appProxies.set(this.id, this);
@@ -115,7 +114,7 @@ export class AppProxy extends Base {
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
-        this.context.updateManagerRect();
+        emitter.emit("updateManagerRect", undefined);
         if (focus) {
             this.focusApp();
         }

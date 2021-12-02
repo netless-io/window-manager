@@ -99,6 +99,7 @@ export class BoxManager {
                 this.blurFocusBox();
             }
         });
+        emitter.on("updateManagerRect", () => this.updateManagerRect())
     }
 
     public get boxState() {
@@ -233,7 +234,7 @@ export class BoxManager {
         }
     }
 
-    public updateManagerRect(): void {
+    private updateManagerRect(): void {
         const rect = this.manager.mainView?.divElement?.getBoundingClientRect();
         if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };

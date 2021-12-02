@@ -34,7 +34,7 @@ describe("ReconnectRefresher", () => {
         return { refresher, reactor, disposer };
     }
 
-    it("constructor", () => {
+    test("constructor", () => {
         const refresher = new ReconnectRefresher(room, notify);
         expect(refresher).toBeTruthy();
         expect(room.callbacks.on).toBeCalledWith("onPhaseChanged", expect.any(Function));

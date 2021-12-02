@@ -26,10 +26,6 @@ export class Context {
         return roomMembers?.find(member => member.payload?.uid === uid);
     }
 
-    public updateManagerRect() {
-        this.manager.boxManager.updateManagerRect();
-    }
-
     public blurFocusBox() {
         this.manager.boxManager.blurFocusBox();
     }

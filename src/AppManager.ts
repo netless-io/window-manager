@@ -73,7 +73,7 @@ export class AppManager {
 
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
-        this.boxManager.updateManagerRect();
+        emitter.emit("updateManagerRect", undefined);
         emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
             return autorun(() => {
@@ -144,7 +144,7 @@ export class AppManager {
      * @param {*} attributes
      * @memberof WindowManager
      */
-    public async attributesUpdateCallback(apps: any) {
+    private async attributesUpdateCallback(apps: any) {
         if (apps) {
             for (const id in apps) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
@@ -219,7 +219,7 @@ export class AppManager {
     public async closeApp(appId: string) {
         const appProxy = this.appProxies.get(appId);
         if (appProxy) {
-            appProxy.destroy(true, true);
+            await appProxy.destroy(true, true);
         }
     }
 

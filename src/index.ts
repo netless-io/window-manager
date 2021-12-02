@@ -137,6 +137,7 @@ export type EmitterEvent = {
     boxStateChange: string;
     roomMembersChange: readonly RoomMember[];
     roomStateChange: Partial<RoomState>;
+    updateManagerRect: void;
 }
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();

@@ -1,20 +1,20 @@
 import { AnimationMode, reaction } from "white-web-sdk";
-import { Base } from "./Base";
 import { debounce, isEmpty, isEqual } from "lodash";
 import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
+import { log } from "./Utils/log";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
-import { log } from "./Utils/log";
 
-export class MainViewProxy extends Base {
+export class MainViewProxy {
     private scale?: number;
     private started = false;
     private mainView?: View;
     private viewId = "mainView";
+    private store = this.manager.store;
+    private uid = this.manager.room?.uid;
 
-    constructor(manager: AppManager) {
-        super(manager);
+    constructor(private manager: AppManager) {
         emitter.once("mainViewMounted").then(() => {
             setTimeout(() => {
                 this.start();
@@ -45,15 +45,15 @@ export class MainViewProxy extends Base {
     }
 
     public setCameraAndSize(): void {
-        this.store.setMainViewCamera({ ...this.mainView?.camera, id: this.context.uid });
-        this.store.setMainViewSize({ ...this.mainView?.size, id: this.context.uid });
+        this.store.setMainViewCamera({ ...this.mainView?.camera, id: this.uid });
+        this.store.setMainViewSize({ ...this.mainView?.size, id: this.uid });
     }
 
     private cameraReaction = () => {
         return reaction(
             () => this.mainViewCamera,
             camera => {
-                if (camera && camera.id !== this.context.uid) {
+                if (camera && camera.id !== this.uid) {
                     this.moveCamera(camera);
                 }
             },
@@ -67,7 +67,7 @@ export class MainViewProxy extends Base {
         return reaction(
             () => this.mainViewSize,
             size => {
-                if (size && size.id !== this.context.uid) {
+                if (size && size.id !== this.uid) {
                     this.moveCameraToContian(size);
                     this.moveCamera(this.mainViewCamera);
                 }
@@ -88,7 +88,7 @@ export class MainViewProxy extends Base {
         this.mainView = mainView;
         this.moveCameraSizeByAttributes();
         mainView.callbacks.on("onSizeUpdated", () => {
-            this.context.updateManagerRect();
+            emitter.emit("updateManagerRect", undefined);
         });
         this.setFocusScenePath(mainView);
         return mainView;
@@ -107,8 +107,8 @@ export class MainViewProxy extends Base {
     }
 
     private cameraListener = (camera: Camera) => {
-        this.store.setMainViewCamera({ ...camera, id: this.context.uid });
-        if (this.store.getMainViewSize()?.id !== this.context.uid) {
+        this.store.setMainViewCamera({ ...camera, id: this.uid });
+        if (this.store.getMainViewSize()?.id !== this.uid) {
             this.setMainViewSize(this.view.size);
         }
     };
@@ -118,7 +118,7 @@ export class MainViewProxy extends Base {
     };
 
     public setMainViewSize = debounce(size => {
-        this.store.setMainViewSize({ ...size, id: this.context.uid });
+        this.store.setMainViewSize({ ...size, id: this.uid });
     }, 50);
 
     private addCameraListener() {
