@@ -169,9 +169,6 @@ export class AppManager {
         const attrs = params.attributes ?? {};
         this.safeUpdateAttributes([appId], attrs);
         this.store.setupAppAttributes(params, appId, isDynamicPPT);
-        if (this.boxManager.minimized) {
-            this.boxManager.setMinimized(false);
-        }
         const needFocus = !this.boxManager.minimized;
         if (needFocus) {
             this.store.setAppFocus(appId, true);
@@ -186,6 +183,9 @@ export class AppManager {
                 x: appProxy.box?.x,
                 y: appProxy.box?.y,
             });
+        }
+        if (this.boxManager.minimized) {
+            this.boxManager.setMinimized(false, false);
         }
     }
 
