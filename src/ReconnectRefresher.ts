@@ -1,7 +1,7 @@
-import { isFunction } from 'lodash';
-import { RoomPhase } from 'white-web-sdk';
+import { isFunction } from "lodash";
+import { log } from "./Utils/log";
+import { RoomPhase } from "white-web-sdk";
 import type { Room } from "white-web-sdk";
-import { log } from './Utils/log';
 
 // 白板重连之后会刷新所有的对象，导致 listener 失效, 所以这里在重连之后重新对所有对象进行监听
 export class ReconnectRefresher {

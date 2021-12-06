@@ -1,6 +1,9 @@
 import { appRegister } from "../Register";
 import { emitter, WindowManager } from "../index";
+import { REQUIRE_SDK_VERSION } from "../constants";
 import { v4 } from "uuid";
+import { WhiteVersion } from "white-web-sdk";
+import { WhiteWebSDKInvalidError } from "./error";
 import type { Displayer, ViewVisionMode, View, Room, SceneDefinition } from "white-web-sdk";
 
 export const genAppId = async (kind: string) => {
@@ -114,4 +117,11 @@ export const setupWrapper = (
     WindowManager.wrapper = wrapper;
 
     return { playground, wrapper, sizer, mainViewElement };
+};
+
+export const checkVersion = () => {
+    const version = getVersionNumber(WhiteVersion);
+    if (version < getVersionNumber(REQUIRE_SDK_VERSION)) {
+        throw new WhiteWebSDKInvalidError(REQUIRE_SDK_VERSION);
+    }
 };

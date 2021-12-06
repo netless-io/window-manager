@@ -1,24 +1,25 @@
-import Emittery from 'emittery';
-import pRetry from 'p-retry';
-import { AppManager } from './AppManager';
-import { appRegister } from './Register';
-import { CursorManager } from './Cursor';
-import { DEFAULT_CONTAINER_RATIO, REQUIRE_SDK_VERSION, VERSION } from './constants';
-import { Fields } from './AttributesDelegate';
-import { initDb } from './Register/storage';
-import { injectStyle } from './Utils/Style';
-import { isNull, isObject } from 'lodash';
-import { log } from './Utils/log';
-import { replaceRoomFunction } from './Utils/RoomHacker';
-import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
+import Emittery from "emittery";
+import pRetry from "p-retry";
+import { AppManager } from "./AppManager";
+import { appRegister } from "./Register";
+import { ContainerResizeObserver } from "./ContainerResizeObserver";
+import { CursorManager } from "./Cursor";
+import { DEFAULT_CONTAINER_RATIO, VERSION } from "./constants";
+import { Fields } from "./AttributesDelegate";
+import { initDb } from "./Register/storage";
+import { injectStyle } from "./Utils/Style";
+import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
+import { isNull, isObject } from "lodash";
+import { log } from "./Utils/log";
+import { replaceRoomFunction } from "./Utils/RoomHacker";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
-    getVersionNumber,
     isValidScenePath,
     wait,
     setupWrapper,
     checkIsDynamicPPT,
+    checkVersion,
 } from "./Utils/Common";
 import type { TELE_BOX_STATE } from "./BoxManager";
 import {
@@ -26,17 +27,8 @@ import {
     AppManagerNotInitError,
     InvalidScenePath,
     ParamsInvalidError,
-    WhiteWebSDKInvalidError,
 } from "./Utils/error";
 import type { Apps } from "./AttributesDelegate";
-import {
-    InvisiblePlugin,
-    isPlayer,
-    isRoom,
-    RoomPhase,
-    ViewMode,
-    WhiteVersion,
-} from "white-web-sdk";
 import type {
     Displayer,
     SceneDefinition,
@@ -58,8 +50,6 @@ import type { AppProxy } from "./AppProxy";
 import style from "./style.css?inline";
 
 injectStyle(style);
-
-const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -185,6 +175,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public viewMode = ViewMode.Broadcaster;
     public isReplay = isPlayer(this.displayer);
 
+    private containerResizeObserver?: ContainerResizeObserver;
+
     constructor(context: InvisiblePluginContext) {
         super(context);
     }
@@ -253,18 +245,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             overwriteStyles = options?.overwriteStyles;
         }
 
-        this.checkVersion();
-        if (isRoom(room)) {
-            if (room.phase !== RoomPhase.Connected) {
-                throw new Error("[WindowManager]: Room only Connected can be mount");
-            }
-        }
+        checkVersion();
+
         if (!container) {
             throw new Error("[WindowManager]: Container must provide");
         }
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
+
         let manager = await this.initManager(room);
         this.debug = Boolean(debug);
         log("Already insert room", manager);
@@ -272,6 +261,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (isRoom(this.displayer)) {
             if (!manager) {
                 throw new Error("[WindowManager]: init InvisiblePlugin failed");
+            }
+            if (room.phase !== RoomPhase.Connected) {
+                throw new Error("[WindowManager]: Room only Connected can be mount");
             }
         } else {
             await pRetry(
@@ -292,6 +284,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         WindowManager.container = container;
         const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
         WindowManager.playground = playground;
+
         if (chessboard) {
             sizer.classList.add("netless-window-manager-chess-sizer");
         }
@@ -301,14 +294,23 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             playground.appendChild(style);
         }
         await manager.ensureAttributes();
+
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
             collectorStyles: collectorStyles,
         });
-        manager.observePlaygroundSize(playground, sizer, wrapper);
+
         if (cursor) {
             manager.cursorManager = new CursorManager(manager.appManager);
         }
+
+        manager.containerResizeObserver = ContainerResizeObserver.create(
+            playground,
+            sizer,
+            wrapper,
+            manager.cursorManager
+        );
+
         manager.bindMainView(mainViewElement, disableCameraTransform);
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
@@ -560,7 +562,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public setMemberState(state: Partial<MemberState>): MemberState {
-        return this.mainView.setMemberState(state);
+        return (this.mainView as any).setMemberState(state);
     }
 
     public override onDestroy(): void {
@@ -618,13 +620,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    private static checkVersion() {
-        const version = getVersionNumber(WhiteVersion);
-        if (version < getVersionNumber(REQUIRE_SDK_VERSION)) {
-            throw new WhiteWebSDKInvalidError(REQUIRE_SDK_VERSION);
-        }
-    }
-
     private async ensureAttributes() {
         if (isNull(this.attributes)) {
             await wait(50);
@@ -645,47 +640,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
     }
-
-    private containerResizeObserver?: ResizeObserver;
-
-    private observePlaygroundSize(
-        container: HTMLElement,
-        sizer: HTMLElement,
-        wrapper: HTMLDivElement
-    ) {
-        this.updateSizer(container.getBoundingClientRect(), sizer, wrapper);
-
-        this.containerResizeObserver = new ResizeObserver(entries => {
-            const containerRect = entries[0]?.contentRect;
-            if (containerRect) {
-                this.updateSizer(containerRect, sizer, wrapper);
-                this.cursorManager?.updateContainerRect();
-            }
-        });
-
-        this.containerResizeObserver.observe(container);
-    }
-
-    private updateSizer(
-        { width, height }: DOMRectReadOnly,
-        sizer: HTMLElement,
-        wrapper: HTMLDivElement
-    ) {
-        if (width && height) {
-            if (height / width > WindowManager.containerSizeRatio) {
-                height = width * WindowManager.containerSizeRatio;
-                sizer.classList.toggle("netless-window-manager-sizer-horizontal", true);
-            } else {
-                width = height / WindowManager.containerSizeRatio;
-                sizer.classList.toggle("netless-window-manager-sizer-horizontal", false);
-            }
-            wrapper.style.width = `${width}px`;
-            wrapper.style.height = `${height}px`;
-        }
-    }
 }
 
 export * from "./typings";
 
-export { WhiteWindowSDK } from "./sdk";
 export { BuiltinApps } from "./BuiltinApp";
