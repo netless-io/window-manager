@@ -1,12 +1,24 @@
-import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
+import pRetry from "p-retry";
+import {
+    AppAttributes,
+    AppStatus,
+    Events,
+    MagixEventName
+    } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { AttributesDelegate } from "./AttributesDelegate";
+import {
+    autorun,
+    isPlayer,
+    isRoom,
+    ScenePathType,
+    ViewVisionMode
+    } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { callbacks, emitter } from "./index";
 import { CameraStore } from "./Utils/CameraStore";
 import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
-import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
@@ -117,16 +129,28 @@ export class AppManager {
             for (const id in apps) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
-                    await this.baseInsertApp(
-                        {
-                            kind: app.kind,
-                            options: app.options,
-                            isDynamicPPT: app.isDynamicPPT,
-                        },
-                        id,
-                        false
-                    );
-                    this.focusByAttributes(apps);
+
+                    pRetry(async () => {
+                        this.appStatus.set(id, AppStatus.StartCreate);
+                        // 防御 appAttributes 有可能为 undefined 的情况，这里做一个重试
+                        const appAttributes = this.attributes[id];
+                        if (!appAttributes) {
+                            throw new Error("appAttributes is undefined");
+                        }
+                        await this.baseInsertApp(
+                            {
+                                kind: app.kind,
+                                options: app.options,
+                                isDynamicPPT: app.isDynamicPPT,
+                            },
+                            id,
+                            false
+                        );
+                        this.focusByAttributes(apps);
+                    }, { retries: 3 }).catch(err => {
+                        console.warn(`[WindowManager]: Insert App Error`, err);
+                        this.appStatus.delete(id);
+                    });
                 }
             }
         }
@@ -202,7 +226,6 @@ export class AppManager {
         isAddApp: boolean,
         focus?: boolean
     ) {
-        this.appStatus.set(appId, AppStatus.StartCreate);
         if (this.appProxies.has(appId)) {
             console.warn("[WindowManager]: app duplicate exists and cannot be created again");
             return;
