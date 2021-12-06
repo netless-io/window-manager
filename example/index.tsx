@@ -3,7 +3,6 @@ import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import type { AppContext} from "../dist";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
-import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
 const anyWindow = window as any;
