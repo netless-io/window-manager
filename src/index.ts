@@ -12,6 +12,7 @@ import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-we
 import { isNull, isObject } from "lodash";
 import { log } from "./Utils/log";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
+import { setupBuiltin } from "./BuiltinApp";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
@@ -42,6 +43,7 @@ import type {
     MemberState,
     RoomMember,
     RoomState,
+    Player,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, Point, RegisterParams } from "./typings";
@@ -138,7 +140,7 @@ export type PublicEvent = {
 };
 
 export type MountParams = {
-    room: Room;
+    room: Room | Player;
     container: HTMLElement;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
@@ -183,67 +185,23 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     /**
      * 挂载 WindowManager
-     * @deprecated
      */
-    public static async mount(
-        room: Room,
-        container: HTMLElement,
-        collectorContainer?: HTMLElement,
-        options?: {
-            chessboard: boolean;
-            containerSizeRatio: number;
-            collectorStyles?: Partial<CSSStyleDeclaration>;
-            debug?: boolean;
-            overwriteStyles?: string;
-        }
-    ): Promise<WindowManager>;
-
-    public static async mount(params: MountParams): Promise<WindowManager>;
-
-    public static async mount(
-        params: MountParams | Room,
-        container?: HTMLElement,
-        collectorContainer?: HTMLElement,
-        options?: {
-            chessboard?: boolean;
-            containerSizeRatio: number;
-            collectorStyles?: Partial<CSSStyleDeclaration>;
-            debug?: boolean;
-            overwriteStyles?: string;
-            disableCameraTransform?: boolean;
-        }
-    ): Promise<WindowManager> {
-        let room: Room;
-        let containerSizeRatio: number | undefined;
-        let collectorStyles: Partial<CSSStyleDeclaration> | undefined;
-        let debug: boolean | undefined;
+    public static async mount(params: MountParams): Promise<WindowManager> {
         let chessboard = true;
-        let overwriteStyles: string | undefined;
-        let cursor: boolean | undefined;
         let disableCameraTransform = false;
-        if ("room" in params) {
-            room = params.room;
-            container = params.container;
-            collectorContainer = params.collectorContainer;
-            containerSizeRatio = params.containerSizeRatio;
-            collectorStyles = params.collectorStyles;
-            debug = params.debug;
-            if (params.chessboard != null) {
-                chessboard = params.chessboard;
-            }
-            overwriteStyles = params.overwriteStyles;
-            cursor = params.cursor;
-            disableCameraTransform = Boolean(params?.disableCameraTransform);
-        } else {
-            room = params;
-            containerSizeRatio = options?.containerSizeRatio;
-            collectorStyles = options?.collectorStyles;
-            debug = options?.debug;
-            if (options?.chessboard != null) {
-                chessboard = options.chessboard;
-            }
-            overwriteStyles = options?.overwriteStyles;
+
+        const room = params.room;
+        const container = params.container;
+        const collectorContainer = params.collectorContainer;
+        const containerSizeRatio = params.containerSizeRatio;
+        const collectorStyles = params.collectorStyles;
+        const debug = params.debug;
+        if (params.chessboard != null) {
+            chessboard = params.chessboard;
         }
+        const overwriteStyles = params.overwriteStyles;
+        const cursor = params.cursor;
+        disableCameraTransform = Boolean(params?.disableCameraTransform);
 
         checkVersion();
 
@@ -256,6 +214,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
         let manager = await this.initManager(room);
         this.debug = Boolean(debug);
+        setupBuiltin();
         log("Already insert room", manager);
 
         if (isRoom(this.displayer)) {
@@ -324,10 +283,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return manager;
     }
 
-    private static async initManager(room: Room): Promise<WindowManager> {
+    private static async initManager(room: Room | Player): Promise<WindowManager> {
         let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
         if (!manager) {
             if (isRoom(room)) {
+                room = room as Room;
                 if (room.isWritable === false) {
                     try {
                         await room.setWritable(true);

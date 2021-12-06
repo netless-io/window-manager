@@ -1,5 +1,5 @@
-import { callbacks } from './index';
-import { Events, MagixEventName } from './constants';
+import { callbacks } from "./index";
+import { Events, MagixEventName } from "./constants";
 import type { Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
@@ -51,5 +51,5 @@ export class AppListeners {
 
     private boxStateChangeHandler = (state: TeleBoxState) => {
         callbacks.emit("boxStateChange", state);
-    }
+    };
 }

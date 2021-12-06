@@ -1,11 +1,6 @@
 import { callbacks, emitter, WindowManager } from "./index";
 import { debounce, maxBy } from "lodash";
-import {
-    DEFAULT_COLLECTOR_STYLE,
-    Events,
-    MIN_HEIGHT,
-    MIN_WIDTH
-    } from "./constants";
+import { DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import type { AddAppOptions, AppInitState } from "./index";
 import {
     TELE_BOX_MANAGER_EVENT,
@@ -54,10 +49,7 @@ export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     public appBoxMap: Map<string, string> = new Map();
 
-    constructor(
-        private manager: AppManager,
-        collectorConfig?: CreateCollectorConfig
-    ) {
+    constructor(private manager: AppManager, collectorConfig?: CreateCollectorConfig) {
         this.teleBoxManager = this.setupBoxManager(collectorConfig);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
@@ -68,7 +60,7 @@ export class BoxManager {
         this.teleBoxManager.events.on("minimized", minimized => {
             this.manager.safeSetAttributes({ minimized });
         });
-        this.teleBoxManager.events.on("maximized",  maximized => {
+        this.teleBoxManager.events.on("maximized", maximized => {
             this.manager.safeSetAttributes({ maximized });
         });
         this.teleBoxManager.events.on("removed", boxes => {
@@ -85,7 +77,11 @@ export class BoxManager {
         this.teleBoxManager.events.on(
             "intrinsic_resize",
             debounce((box: ReadonlyTeleBox): void => {
-                emitter.emit("resize", { appId: box.id, width: box.intrinsicWidth, height: box.intrinsicHeight });
+                emitter.emit("resize", {
+                    appId: box.id,
+                    width: box.intrinsicWidth,
+                    height: box.intrinsicHeight,
+                });
             }, 200)
         );
         this.teleBoxManager.events.on("focused", box => {
@@ -99,7 +95,7 @@ export class BoxManager {
                 this.blurFocusBox();
             }
         });
-        emitter.on("updateManagerRect", () => this.updateManagerRect())
+        emitter.on("updateManagerRect", () => this.updateManagerRect());
     }
 
     public get boxState() {
@@ -224,7 +220,7 @@ export class BoxManager {
             if (state.maximized != null) {
                 this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
                 this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
-            } 
+            }
             setTimeout(() => {
                 if (state.focus) {
                     this.teleBoxManager.update(box.id, { focus: true }, true);

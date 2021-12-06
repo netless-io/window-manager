@@ -1,3 +1,4 @@
+import { BoxNotCreatedError } from "./Utils/error";
 import {
     autorun,
     listenDisposed,
@@ -5,9 +6,8 @@ import {
     reaction,
     unlistenDisposed,
     unlistenUpdated,
-    toJS
-    } from 'white-web-sdk';
-import { BoxNotCreatedError } from './Utils/error';
+    toJS,
+} from "white-web-sdk";
 import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
@@ -21,13 +21,13 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly mobxUtils = {
         autorun,
         reaction,
-        toJS
+        toJS,
     };
     public readonly objectUtils = {
         listenUpdated,
         unlistenUpdated,
         listenDisposed,
-        unlistenDisposed
+        unlistenDisposed,
     };
     private boxManager: BoxManager;
     private store = this.manager.store;
@@ -38,7 +38,7 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
         private manager: AppManager,
         public appId: string,
         private appProxy: AppProxy,
-        private appOptions?: AppOptions | (() => AppOptions),
+        private appOptions?: AppOptions | (() => AppOptions)
     ) {
         this.emitter = appProxy.appEmitter;
         this.boxManager = this.manager.boxManager;
@@ -117,6 +117,8 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getAppOptions(): AppOptions | undefined {
-        return typeof this.appOptions === 'function' ? (this.appOptions as () => AppOptions)() : this.appOptions
+        return typeof this.appOptions === "function"
+            ? (this.appOptions as () => AppOptions)()
+            : this.appOptions;
     }
 }
