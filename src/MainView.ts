@@ -12,7 +12,7 @@ export class MainViewProxy {
     private mainView?: View;
     private viewId = "mainView";
     private store = this.manager.store;
-    private uid = this.manager.room?.uid;
+    private uid = this.manager.room?.uid || "";
 
     constructor(private manager: AppManager) {
         emitter.once("mainViewMounted").then(() => {
@@ -45,8 +45,10 @@ export class MainViewProxy {
     }
 
     public setCameraAndSize(): void {
-        this.store.setMainViewCamera({ ...this.mainView?.camera, id: this.uid });
-        this.store.setMainViewSize({ ...this.mainView?.size, id: this.uid });
+        if (this.mainView) {
+            this.store.setMainViewCamera({ ...this.mainView.camera, id: this.uid });
+            this.store.setMainViewSize({ ...this.mainView.size, id: this.uid });
+        }
     }
 
     private cameraReaction = () => {

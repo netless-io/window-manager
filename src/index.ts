@@ -1,5 +1,3 @@
-import AppDocsViewer from '@netless/app-docs-viewer';
-import AppMediaPlayer, { setOptions } from '@netless/app-media-player';
 import Emittery from 'emittery';
 import pRetry from 'p-retry';
 import { AppManager } from './AppManager';
@@ -269,9 +267,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         let manager = await this.initManager(room);
         this.debug = Boolean(debug);
-        if (this.debug) {
-            setOptions({ verbose: true });
-        }
         log("Already insert room", manager);
 
         if (isRoom(this.displayer)) {
@@ -690,20 +685,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 }
 
-WindowManager.register({
-    kind: AppDocsViewer.kind,
-    src: AppDocsViewer,
-});
-WindowManager.register({
-    kind: AppMediaPlayer.kind,
-    src: AppMediaPlayer,
-});
-
-export const BuiltinApps = {
-    DocsViewer: AppDocsViewer.kind as string,
-    MediaPlayer: AppMediaPlayer.kind as string,
-};
-
 export * from "./typings";
 
 export { WhiteWindowSDK } from "./sdk";
+export { BuiltinApps } from "./BuiltinApp";
