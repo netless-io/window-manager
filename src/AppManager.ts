@@ -1,16 +1,30 @@
-import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
+import pRetry from "p-retry";
+import {
+    AppAttributes,
+    AppStatus,
+    Events,
+    MagixEventName
+    } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { AttributesDelegate } from "./AttributesDelegate";
-import { autorun, isPlayer, isRoom, reaction, ScenePathType } from "white-web-sdk";
+import {
+    autorun,
+    isPlayer,
+    isRoom,
+    reaction,
+    ScenePathType
+    } from "white-web-sdk";
 import { BoxManager } from "./BoxManager";
 import { callbacks, emitter } from "./index";
+import { DisplayerListener } from "./DisplayerListener";
 import { genAppId, makeValidScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
-import { ViewManager } from "./ViewManager";
 import { onObjectRemoved } from "./Utils/Reactive";
 import { ReconnectRefresher } from "./ReconnectRefresher";
+import { SideEffectManager } from "side-effect-manager";
+import { ViewManager } from "./ViewManager";
 import type { Displayer, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
 import type {
@@ -20,8 +34,6 @@ import type {
     TeleBoxRect,
     EmitterEvent,
 } from "./index";
-import { DisplayerListener } from "./DisplayerListener";
-import { SideEffectManager } from "side-effect-manager";
 
 export class AppManager {
     public displayer: Displayer;
@@ -149,15 +161,27 @@ export class AppManager {
             for (const id in apps) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
-                    await this.baseInsertApp(
-                        {
-                            kind: app.kind,
-                            options: app.options,
-                            isDynamicPPT: app.isDynamicPPT,
-                        },
-                        id,
-                        false
-                    );
+
+                    pRetry(async () => {
+                        this.appStatus.set(id, AppStatus.StartCreate);
+                        // 防御 appAttributes 有可能为 undefined 的情况，这里做一个重试
+                        const appAttributes = this.attributes[id];
+                        if (!appAttributes) {
+                            throw new Error("appAttributes is undefined");
+                        }
+                        await this.baseInsertApp(
+                            {
+                                kind: app.kind,
+                                options: app.options,
+                                isDynamicPPT: app.isDynamicPPT,
+                            },
+                            id,
+                            false
+                        );
+                    }, { retries: 3 }).catch(err => {
+                        console.warn(`[WindowManager]: Insert App Error`, err);
+                        this.appStatus.delete(id);
+                    });
                 }
             }
         }
@@ -229,7 +253,6 @@ export class AppManager {
         isAddApp: boolean,
         focus?: boolean
     ) {
-        this.appStatus.set(appId, AppStatus.StartCreate);
         if (this.appProxies.has(appId)) {
             console.warn("[WindowManager]: app duplicate exists and cannot be created again");
             return;
