@@ -1,9 +1,10 @@
-import { AnimationMode, reaction, ViewVisionMode } from 'white-web-sdk';
-import { Base } from './Base';
-import { callbacks, emitter } from './index';
-import { debounce, isEmpty, isEqual } from 'lodash';
-import { Fields } from './AttributesDelegate';
-import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from './Utils/Common';
+import { AnimationMode, reaction, ViewVisionMode } from "white-web-sdk";
+import { Base } from "./Base";
+import { callbacks, emitter } from "./index";
+import { createView } from "./ViewManager";
+import { debounce, isEmpty, isEqual } from "lodash";
+import { Fields } from "./AttributesDelegate";
+import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from "./Utils/Common";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
@@ -24,7 +25,7 @@ export class MainViewProxy extends Base {
             setTimeout(() => {
                 this.start();
             }, 200); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
-        })
+        });
     }
 
     private get mainViewCamera() {
@@ -50,7 +51,7 @@ export class MainViewProxy extends Base {
     }
 
     public setCameraAndSize(): void {
-        this.store.setMainViewCamera({ ...this.mainView.camera, id: this.context.uid  });
+        this.store.setMainViewCamera({ ...this.mainView.camera, id: this.context.uid });
         this.store.setMainViewSize({ ...this.mainView.size, id: this.context.uid });
     }
 
@@ -65,8 +66,8 @@ export class MainViewProxy extends Base {
             {
                 fireImmediately: true,
             }
-        )
-    }
+        );
+    };
 
     private sizeReaction = () => {
         return reaction(
@@ -80,15 +81,15 @@ export class MainViewProxy extends Base {
             {
                 fireImmediately: true,
             }
-        )
-    }
+        );
+    };
 
     public get view(): View {
         return this.mainView;
     }
 
     public createMainView(): View {
-        const mainView = this.manager.displayer.views.createView();
+        const mainView = createView(this.manager.displayer);
         mainView.callbacks.on("onSizeUpdated", () => {
             this.context.updateManagerRect();
         });
@@ -103,11 +104,11 @@ export class MainViewProxy extends Base {
     }
 
     private cameraListener = (camera: Camera) => {
-        this.store.setMainViewCamera({ ...camera, id: this.context.uid});
+        this.store.setMainViewCamera({ ...camera, id: this.context.uid });
         if (this.store.getMainViewSize()?.id !== this.context.uid) {
             this.setMainViewSize(this.view.size);
         }
-    }
+    };
 
     public addMainViewListener(): void {
         if (this.mainViewIsAddListener) return;
@@ -138,7 +139,7 @@ export class MainViewProxy extends Base {
 
     private sizeListener = (size: Size) => {
         this.setMainViewSize(size);
-    }
+    };
 
     public setMainViewSize = debounce(size => {
         this.store.setMainViewSize({ ...size, id: this.context.uid });

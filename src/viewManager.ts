@@ -3,7 +3,7 @@ import { callbacks, WindowManager } from "./index";
 import { reaction, ViewVisionMode } from "white-web-sdk";
 import { SET_SCENEPATH_DELAY } from "./constants";
 import { notifyMainViewModeChange, setScenePath, setViewMode } from "./Utils/Common";
-import type { View } from "white-web-sdk";
+import type { View, Displayer } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
 export class ViewManager extends Base {
@@ -44,7 +44,7 @@ export class ViewManager extends Base {
     }
 
     public createView(appId: string): View {
-        const view = this.displayer.views.createView();
+        const view = createView(this.displayer);
         setViewMode(view, ViewVisionMode.Freedom);
         this.views.set(appId, view);
         return view;
@@ -133,6 +133,19 @@ export class ViewManager extends Base {
         this.releaseView(this.mainView);
     }
 }
+
+export const createView = (displayer: Displayer): View => {
+    const view = displayer.views.createView();
+    setDefaultCameraBound(view);
+    return view;
+};
+
+export const setDefaultCameraBound = (view: View) => {
+    view.setCameraBound({
+        maxContentMode: () => 10,
+        minContentMode: () => 0.1,
+    });
+};
 
 export const setupWrapper = (
     root: HTMLElement
