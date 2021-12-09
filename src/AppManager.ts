@@ -202,10 +202,11 @@ export class AppManager {
 
     private afterAddApp(appProxy: AppProxy | undefined) {
         if (appProxy && appProxy.box) {
+            const box = appProxy.box;
             emitter.emit("move", {
                 appId: appProxy.id,
-                x: appProxy.box?.x,
-                y: appProxy.box?.y,
+                x: box?.intrinsicX,
+                y: box?.intrinsicY,
             });
         }
         if (this.boxManager.minimized) {
