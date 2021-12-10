@@ -1,7 +1,7 @@
 import { setWith } from "lodash";
 import { WindowManager } from "../src";
 import { AppManager } from "../src/AppManager";
-import { AppProxy } from "../src/AppProxy";
+import { AppProxy, Creator, initCreator } from "../src/App";
 
 describe("AppManager", () => {
     let appRegister;
@@ -23,6 +23,7 @@ describe("AppManager", () => {
     const windowManager = {
         displayer: {
             addMagixEventListener: jest.fn(),
+            dispatchMagixEvent: jest.fn(),
         },
         attributes: {},
         canOperate: true,
@@ -63,21 +64,22 @@ describe("AppManager", () => {
         expect(windowManager.attributes.state).toEqual(state);
     });
 
-    it("create app", async () => {
+    test("create app", async () => {
         const manager = new AppManager(windowManager, {});
         const kind = "test";
-        const app = await manager.addApp({ kind }, false);
 
+        const app = await Creator.create({ kind, isAddApp: true, isDynamicPPT: false })
         expect(app).toBeDefined();
         expect(manager.appProxies.get(app!)).toBeInstanceOf(AppProxy);
         expect(manager.appProxies.size).toEqual(1);
         expect(document.querySelectorAll(".telebox-box").length).toEqual(1);
     });
 
-    it("close app", async () => {
+    test("close app", async () => {
         const manager = new AppManager(windowManager, {});
         const kind = "test";
-        const app = await manager.addApp({ kind }, false);
+        initCreator(manager);
+        const app = await Creator.create({ kind, isAddApp: true, isDynamicPPT: false });
 
         expect(app).toBeDefined();
         expect(manager.appProxies.get(app!)).toBeInstanceOf(AppProxy);

@@ -18,9 +18,9 @@ module.exports = {
                 "preprocess": true
             }
         ],
-        ".+\\.(css|svg|styl|less|sass|scss|png|jpg|ttf|woff|woff2)$": "jest-transform-stub"
+        ".+\\.(css|svg|styl|less|sass|scss|png|jpg|ttf|woff|woff2|inline)$": "jest-transform-stub"
     },
     moduleNameMapper: {
-        "^.+.(css|styl|less|sass|scss|png|jpg|ttf|woff|woff2)$": "jest-transform-stub"
+        "^.+.(css|styl|less|sass|scss|png|jpg|ttf|woff|woff2|inline)$": "jest-transform-stub"
     }
   };

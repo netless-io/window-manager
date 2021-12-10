@@ -1,4 +1,4 @@
-import { BoxNotCreatedError } from "./Utils/error";
+import { BoxNotCreatedError } from "../Utils/error";
 import {
     autorun,
     listenDisposed,
@@ -11,10 +11,8 @@ import {
 import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
-import type { BoxManager } from "./BoxManager";
-import type { AppEmitterEvent } from "./index";
-import type { AppManager } from "./AppManager";
-import type { AppProxy } from "./AppProxy";
+import type { AppEmitterEvent } from "../index";
+import type { AppProxy, AppProxyContext } from "./AppProxy";
 
 export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
@@ -29,24 +27,21 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
         listenDisposed,
         unlistenDisposed,
     };
-    private boxManager: BoxManager;
-    private store = this.manager.store;
     public readonly isAddApp: boolean;
-    public readonly isReplay = this.manager.isReplay;
+    public readonly isReplay = this.context.isReplay();
 
     constructor(
-        private manager: AppManager,
         public appId: string,
+        private context: AppProxyContext,
         private appProxy: AppProxy,
         private appOptions?: AppOptions | (() => AppOptions)
     ) {
         this.emitter = appProxy.appEmitter;
-        this.boxManager = this.manager.boxManager;
         this.isAddApp = appProxy.isAddApp;
     }
 
     public getDisplayer() {
-        return this.manager.displayer;
+        return this.context.displayer;
     }
 
     public getAttributes(): TAttrs | undefined {
@@ -54,12 +49,9 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getScenes(): SceneDefinition[] | undefined {
-        const appAttr = this.store.getAppAttributes(this.appId);
+        const appAttr = this.appProxy.appAttributes;
         if (appAttr?.isDynamicPPT) {
-            const appProxy = this.manager.appProxies.get(this.appId);
-            if (appProxy) {
-                return appProxy.scenes;
-            }
+            return this.appProxy.scenes;
         } else {
             return appAttr?.options["scenes"];
         }
@@ -70,15 +62,15 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getInitScenePath() {
-        return this.manager.getAppInitPath(this.appId);
+        return this.context.getAppInitPath(this.appId);
     }
 
     public getIsWritable(): boolean {
-        return this.manager.canOperate;
+        return this.context.canOperate();
     }
 
     public getBox(): ReadonlyTeleBox {
-        const box = this.boxManager.getBox(this.appId);
+        const box = this.appProxy.box;
         if (box) {
             return box;
         } else {
@@ -87,16 +79,16 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     }
 
     public getRoom(): Room | undefined {
-        return this.manager.room;
+        return this.context.room;
     }
 
     public setAttributes(attributes: TAttrs) {
-        this.manager.safeSetAttributes({ [this.appId]: attributes });
+        this.context.safeSetAttributes({ [this.appId]: attributes });
     }
 
     public updateAttributes(keys: string[], value: any) {
-        if (this.manager.attributes[this.appId]) {
-            this.manager.safeUpdateAttributes([this.appId, ...keys], value);
+        if (this.context.attributes()[this.appId]) {
+            this.context.safeUpdateAttributes([this.appId, ...keys], value);
         }
     }
 

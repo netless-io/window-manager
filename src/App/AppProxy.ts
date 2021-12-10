@@ -1,24 +1,48 @@
 import Emittery from "emittery";
-import { AppAttributes, AppEvents, Events } from "./constants";
+import { AppAttributes, AppEvents, Events } from "../constants";
 import { AppContext } from "./AppContext";
-import { appRegister } from "./Register";
-import { emitter } from "./index";
-import { Fields } from "./AttributesDelegate";
-import { get } from "lodash";
-import { log } from "./Utils/log";
+import { appRegister } from "../Register";
 import { autorun } from "white-web-sdk";
-import { getScenePath, setViewFocusScenePath } from "./Utils/Common";
+import { emitter } from "../index";
+import { entireScenes, getScenePath, setViewFocusScenePath } from "../Utils/Common";
+import { Fields } from "../AttributesDelegate";
+import { get } from "lodash";
+import { log } from "../Utils/log";
 import type {
     AppEmitterEvent,
     AppInitState,
     BaseInsertParams,
     setAppOptions,
     AppListenerKeys,
-} from "./index";
-import type { SceneState, View, SceneDefinition } from "white-web-sdk";
-import type { AppManager } from "./AppManager";
-import type { NetlessApp } from "./typings";
+} from "../index";
+import type { SceneState, View, SceneDefinition, Displayer, Room } from "white-web-sdk";
+import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
+import type { BoxManager } from "../BoxManager";
+import type { ReconnectRefresher } from "../ReconnectRefresher";
+
+export type AppProxyContext = {
+    displayer: Displayer;
+    room: Room | undefined;
+    refresher?: ReconnectRefresher;
+    isReplay: () => boolean;
+    attributes: () => any;
+    focus: () => string | undefined;
+    getAppAttributes: (id: string) => any;
+    setProxy: (id: string, proxy: AppProxy) => void;
+    deleteProxy: (id: string) => void;
+    canOperate: () => boolean;
+    safeSetAttributes: (attributes: any) => void;
+    safeUpdateAttributes: (keys: string[], value: any) => void;
+    getAppState: (id: string) => any;
+    updateAppState: (appId: string, stateName: AppAttributes, state: any) => void;
+    createView: (id: string) => View;
+    getView: (id: string) => View | undefined;
+    destroyView: (id: string) => void;
+    getAppInitPath: (id: string) => any;
+    cleanAppAttributes: (id: string) => void;
+    deleteStatus: (id: string) => void;
+};
 
 export class AppProxy {
     public id: string;
@@ -27,22 +51,20 @@ export class AppProxy {
     public scenes?: SceneDefinition[];
 
     private appListener: any;
-    private boxManager = this.manager.boxManager;
-    private appProxies = this.manager.appProxies;
-    private store = this.manager.store;
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
 
     constructor(
         private params: BaseInsertParams,
-        private manager: AppManager,
+        private context: AppProxyContext,
+        private boxManager: BoxManager,
         appId: string,
         isAddApp: boolean
     ) {
         this.kind = params.kind;
         this.id = appId;
-        this.appProxies.set(this.id, this);
+        this.context.setProxy(appId, this);
         this.appEmitter = new Emittery();
         this.appListener = this.makeAppEventListener(this.id);
         this.isAddApp = isAddApp;
@@ -60,7 +82,7 @@ export class AppProxy {
         if (options) {
             this.scenePath = options.scenePath;
             if (this.appAttributes?.isDynamicPPT && this.scenePath) {
-                this.scenes = this.manager.displayer.entireScenes()[this.scenePath];
+                this.scenes = entireScenes(this.context.displayer)[this.scenePath];
             } else {
                 this.scenes = options.scenes;
             }
@@ -68,19 +90,19 @@ export class AppProxy {
     }
 
     public get view(): View | undefined {
-        return this.manager.viewManager.getView(this.id);
+        return this.context.getView(this.id);
     }
 
     public get isWritable(): boolean {
-        return this.manager.canOperate && !this.box?.readonly;
+        return this.context.canOperate() && !this.box?.readonly;
     }
 
     public get attributes() {
-        return this.manager.attributes[this.id];
+        return this.context.attributes()[this.id];
     }
 
     public get appAttributes() {
-        return this.store.getAppAttributes(this.id);
+        return this.context.getAppAttributes(this.id);
     }
 
     public getFullScenePath(): string | undefined {
@@ -91,7 +113,7 @@ export class AppProxy {
 
     private getFullScenePathFromScenes() {
         const sceneIndex = get(this.appAttributes, ["state", "SceneIndex"], 0);
-        const fullPath = getScenePath(this.manager.room, this.scenePath, sceneIndex);
+        const fullPath = getScenePath(this.context.room, this.scenePath, sceneIndex);
         if (fullPath) {
             this.setFullPath(fullPath);
         }
@@ -99,10 +121,10 @@ export class AppProxy {
     }
 
     public setFullPath(path: string) {
-        this.manager.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
+        this.context.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
     }
 
-    public async baseInsertApp(focus?: boolean): Promise<{ appId: string; app: NetlessApp }> {
+    public async baseInsertApp(): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (!params.kind) {
             throw new Error("[WindowManager]: kind require");
@@ -115,17 +137,10 @@ export class AppProxy {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
         emitter.emit("updateManagerRect", undefined);
-        if (focus) {
-            this.focusApp();
-        }
         return {
             appId: this.id,
             app: appImpl,
         };
-    }
-
-    private focusApp() {
-        this.focusBox();
     }
 
     public get box(): ReadonlyTeleBox | undefined {
@@ -133,7 +148,7 @@ export class AppProxy {
     }
 
     public focusBox() {
-        this.boxManager.focusBox({ appId: this.id });
+        this.boxManager.focusBox(this.id);
     }
 
     private async setupApp(
@@ -143,13 +158,14 @@ export class AppProxy {
         appOptions?: any
     ) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, appId, this, appOptions);
+        const context = new AppContext(appId, this.context, this, appOptions);
         try {
             emitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
                 const boxInitState = this.getAppInitState(appId);
                 this.boxManager.updateBoxState(boxInitState);
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
+                this.initStorePosition();
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
                     const result = await app.setup(context);
@@ -162,7 +178,7 @@ export class AppProxy {
                 appId: appId,
                 app,
                 options,
-                canOperate: this.manager.canOperate,
+                canOperate: this.context.canOperate(),
             });
         } catch (error: any) {
             console.error(error);
@@ -191,6 +207,16 @@ export class AppProxy {
         }
     }
 
+    private initStorePosition() {
+        const appState = this.context.getAppState(this.id);
+        if (!appState?.position.x || !appState?.position.y) {
+            this.context.updateAppState(this.id, AppAttributes.Position, {
+                x: this.box?.intrinsicX,
+                y: this.box?.intrinsicY,
+            });
+        }
+    }
+
     public onSeek(time: number) {
         this.appEmitter.emit("seek", time);
         const boxInitState = this.getAppInitState(this.id);
@@ -201,8 +227,14 @@ export class AppProxy {
         this.appEmitter.emit("reconnected", undefined);
         await this.destroy(true, false);
         const params = this.params;
-        const appProxy = new AppProxy(params, this.manager, this.id, this.isAddApp);
-        await appProxy.baseInsertApp(this.store.focus === this.id);
+        const appProxy = new AppProxy(
+            params,
+            this.context,
+            this.boxManager,
+            this.id,
+            this.isAddApp
+        );
+        await appProxy.baseInsertApp();
     }
 
     public focus() {
@@ -213,14 +245,14 @@ export class AppProxy {
     }
 
     public getAppInitState = (id: string) => {
-        const attrs = this.store.getAppState(id);
+        const attrs = this.context.getAppState(id);
         if (!attrs) return;
         const position = attrs?.[AppAttributes.Position];
-        const focus = this.store.focus;
+        const focus = this.context.focus();
         const size = attrs?.[AppAttributes.Size];
         const sceneIndex = attrs?.[AppAttributes.SceneIndex];
-        const maximized = this.manager.attributes?.["maximized"];
-        const minimized = this.manager.attributes?.["minimized"];
+        const maximized = this.context.attributes()?.["maximized"];
+        const minimized = this.context.attributes()?.["minimized"];
         let payload = { maximized, minimized } as AppInitState;
         if (position) {
             payload = { ...payload, id: id, x: position.x, y: position.y };
@@ -247,7 +279,7 @@ export class AppProxy {
 
     private makeAppEventListener(appId: string) {
         return (eventName: AppListenerKeys, data: any) => {
-            if (!this.manager.canOperate) return;
+            if (!this.context.canOperate()) return;
             switch (eventName) {
                 case "setBoxSize": {
                     this.boxManager.resizeBox({
@@ -279,7 +311,7 @@ export class AppProxy {
                     break;
                 }
                 case "focus": {
-                    this.boxManager.focusBox({ appId: this.id });
+                    this.boxManager.focusBox(this.id);
                     emitter.emit("focus", { appId: this.id });
                     break;
                 }
@@ -291,9 +323,9 @@ export class AppProxy {
     }
 
     private appAttributesUpdateListener = (appId: string) => {
-        this.manager.refresher?.add(appId, () => {
+        this.context.refresher?.add(appId, () => {
             return autorun(() => {
-                const attrs = this.manager.attributes[appId];
+                const attrs = this.context.attributes()[appId];
                 if (attrs) {
                     this.appEmitter.emit("attributesUpdate", attrs);
                 }
@@ -313,7 +345,7 @@ export class AppProxy {
     }
 
     private async createView(): Promise<View> {
-        const view = this.manager.viewManager.createView(this.id);
+        const view = this.context.createView(this.id);
         this.setViewFocusScenePath();
         return view;
     }
@@ -333,12 +365,12 @@ export class AppProxy {
             this.boxManager.closeBox(this.id);
         }
         if (cleanAttrs) {
-            this.store.cleanAppAttributes(this.id);
+            this.context.cleanAppAttributes(this.id);
         }
-        this.appProxies.delete(this.id);
-        this.manager.viewManager.destroyView(this.id);
-        this.manager.appStatus.delete(this.id);
-        this.manager.refresher?.remove(this.id);
+        this.context.deleteProxy(this.id);
+        this.context.destroyView(this.id);
+        this.context.deleteStatus(this.id);
+        this.context.refresher?.remove(this.id);
     }
 
     public close(): Promise<void> {

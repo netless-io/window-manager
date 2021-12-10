@@ -26,6 +26,7 @@ export class Cursor {
     ) {
         this.setMember();
         context.onCursorChange(({ position, state }: any) => {
+            if (!position && !state) return;
             if (position.type === "main") {
                 const rect = this.context.wrapperRect;
                 if (this.component && rect) {

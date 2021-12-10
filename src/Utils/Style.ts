@@ -8,7 +8,7 @@ export function injectStyle(style: string) {
         const styleDom = document.getElementById(STYLE_ID) as HTMLStyleElement;
         if (styleDom) return;
         const styleElement = document.createElement("style");
-        styleElement.innerHTML = style;
+        styleElement.textContent = document.createTextNode(style).textContent;
         styleElement.id = STYLE_ID;
         return document.head.appendChild(styleElement);
     }

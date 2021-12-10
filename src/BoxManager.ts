@@ -6,16 +6,16 @@ import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
     TeleBoxCollector,
-    TeleBoxManager,
+    TeleBoxManager
 } from "@netless/telebox-insider";
 import type {
     TeleBoxManagerUpdateConfig,
     TeleBoxManagerCreateConfig,
     ReadonlyTeleBox,
     TeleBoxManagerConfig,
-} from "@netless/telebox-insider";
+
+    TeleBoxRect} from "@netless/telebox-insider";
 import type Emittery from "emittery";
-import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
 
@@ -45,11 +45,18 @@ export type CreateCollectorConfig = {
     collectorStyles?: Partial<CSSStyleDeclaration>;
 };
 
+export type BoxManagerContext = {
+    mainView: () => View,
+    canOperate: () => boolean,
+    safeSetAttributes: (attributes: any) => void,
+    notifyContainerRectUpdate: (rect: TeleBoxRect) => void,
+}
+
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     public appBoxMap: Map<string, string> = new Map();
 
-    constructor(private manager: AppManager, collectorConfig?: CreateCollectorConfig) {
+    constructor(private context: BoxManagerContext, collectorConfig?: CreateCollectorConfig) {
         this.teleBoxManager = this.setupBoxManager(collectorConfig);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
@@ -58,10 +65,10 @@ export class BoxManager {
             }
         });
         this.teleBoxManager.events.on("minimized", minimized => {
-            this.manager.safeSetAttributes({ minimized });
+            this.context.safeSetAttributes({ minimized });
         });
         this.teleBoxManager.events.on("maximized", maximized => {
-            this.manager.safeSetAttributes({ maximized });
+            this.context.safeSetAttributes({ maximized });
         });
         this.teleBoxManager.events.on("removed", boxes => {
             boxes.forEach(box => {
@@ -86,7 +93,7 @@ export class BoxManager {
         );
         this.teleBoxManager.events.on("focused", box => {
             if (box) {
-                if (this.manager.canOperate) {
+                if (this.context.canOperate()) {
                     emitter.emit("focus", { appId: box.id });
                 } else {
                     this.teleBoxManager.update(box.id, { focus: false });
@@ -231,11 +238,11 @@ export class BoxManager {
     }
 
     private updateManagerRect(): void {
-        const rect = this.manager.mainView?.divElement?.getBoundingClientRect();
+        const rect = this.context.mainView()?.divElement?.getBoundingClientRect();
         if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
-            this.manager.notifyContainerRectUpdate(this.teleBoxManager.containerRect);
+            this.context.notifyContainerRectUpdate(this.teleBoxManager.containerRect);
         }
     }
 
@@ -243,8 +250,8 @@ export class BoxManager {
         this.teleBoxManager.update(appId, { x, y }, true);
     }
 
-    public focusBox({ appId }: AppId): void {
-        this.teleBoxManager.update(appId, { focus: true }, true);
+    public focusBox(id: string): void {
+        this.teleBoxManager.update(id, { focus: true }, true);
     }
 
     public resizeBox({ appId, width, height, skipUpdate }: ResizeBoxParams): void {

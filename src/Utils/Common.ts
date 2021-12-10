@@ -26,7 +26,7 @@ export const getScenePath = (
     index: number
 ): string | undefined => {
     if (room && dir) {
-        const scenes = room.entireScenes();
+        const scenes = entireScenes(room);
         const scene = scenes[dir]?.[index];
         if (scene) {
             return `${dir}/${scene.name}`;
@@ -53,7 +53,7 @@ export const addEmitterOnceListener = (event: any, listener: any) => {
 };
 
 export const makeValidScenePath = (displayer: Displayer, scenePath: string, index = 0) => {
-    const scenes = displayer.entireScenes()[scenePath];
+    const scenes = entireScenes(displayer)[scenePath];
     if (!scenes) return;
     const firstSceneName = scenes[index].name;
     if (scenePath === "/") {
@@ -62,6 +62,10 @@ export const makeValidScenePath = (displayer: Displayer, scenePath: string, inde
         return `${scenePath}/${firstSceneName}`;
     }
 };
+
+export const entireScenes = (displayer: Displayer) => {
+    return displayer.entireScenes();
+}
 
 export const isValidScenePath = (scenePath: string) => {
     return scenePath.startsWith("/");

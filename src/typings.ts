@@ -9,7 +9,7 @@ import type {
     SceneState,
     View,
 } from "white-web-sdk";
-import type { AppContext } from "./AppContext";
+import type { AppContext } from "./App/AppContext";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 
 export interface NetlessApp<Attributes = any, SetupResult = any, AppOptions = any> {
@@ -73,7 +73,7 @@ export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any
 
 export type AppListenerKeys = keyof AppEmitterEvent;
 
-export type { AppContext } from "./AppContext";
+export type { AppContext } from "./App";
 export type { ReadonlyTeleBox, TeleBoxRect };
 export type { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room, Player };
 

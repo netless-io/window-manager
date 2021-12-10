@@ -1,14 +1,16 @@
 import Emittery from "emittery";
 import pRetry from "p-retry";
 import { AppManager } from "./AppManager";
+import { AppManagerNotInitError, InvalidScenePath } from "./Utils/error";
 import { appRegister } from "./Register";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
+import { Creator } from "./App";
 import { CursorManager } from "./Cursor";
 import { DEFAULT_CONTAINER_RATIO, VERSION } from "./constants";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { injectStyle } from "./Utils/Style";
-import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
+import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ScenePathType, ViewMode } from "white-web-sdk";
 import { isNull, isObject } from "lodash";
 import { log } from "./Utils/log";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
@@ -23,12 +25,6 @@ import {
     checkVersion,
 } from "./Utils/Common";
 import type { TELE_BOX_STATE } from "./BoxManager";
-import {
-    AppCreateError,
-    AppManagerNotInitError,
-    InvalidScenePath,
-    ParamsInvalidError,
-} from "./Utils/error";
 import type { Apps } from "./AttributesDelegate";
 import type {
     Displayer,
@@ -48,7 +44,7 @@ import type {
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, Point, RegisterParams } from "./typings";
 import type { TeleBoxState } from "@netless/telebox-insider";
-import type { AppProxy } from "./AppProxy";
+import type { AppProxy } from "./App";
 import style from "./style.css?inline";
 
 injectStyle(style);
@@ -326,15 +322,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      */
     public async addApp(params: AddAppParams): Promise<string | undefined> {
         if (this.appManager) {
-            if (!params.kind || typeof params.kind !== "string") {
-                throw new ParamsInvalidError();
-            }
-            const appImpl = await appRegister.appClasses.get(params.kind)?.();
-            if (appImpl && appImpl.config?.singleton) {
-                if (this.appManager.appProxies.has(params.kind)) {
-                    throw new AppCreateError();
-                }
-            }
             const isDynamicPPT = this.setupScenePath(params, this.appManager);
             if (isDynamicPPT === undefined) {
                 return;
@@ -342,7 +329,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (params?.options?.scenePath) {
                 params.options.scenePath = ensureValidScenePath(params.options.scenePath);
             }
-            const appId = await this.appManager.addApp(params, Boolean(isDynamicPPT));
+            const appId = await Creator.create({ ...params, isAddApp: true, isDynamicPPT });
             return appId;
         } else {
             throw new AppManagerNotInitError();
@@ -369,11 +356,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (scenePath && scenes && scenes.length > 0) {
                 if (checkIsDynamicPPT(scenes)) {
                     isDynamicPPT = true;
-                    if (!this.displayer.entireScenes()[scenePath]) {
+                    if (this.displayer.scenePathType(scenePath) === ScenePathType.None) {
                         this.room?.putScenes(scenePath, scenes);
                     }
                 } else {
-                    if (!this.displayer.entireScenes()[scenePath]) {
+                    if (this.displayer.scenePathType(scenePath) === ScenePathType.None) {
                         this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                     }
                 }

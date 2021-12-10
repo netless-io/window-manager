@@ -1,48 +1,38 @@
 import pRetry from "p-retry";
-import {
-    AppAttributes,
-    AppStatus,
-    Events,
-    MagixEventName
-    } from "./constants";
 import { AppListeners } from "./AppListener";
-import { AppProxy } from "./AppProxy";
+import { AppStatus, MagixEventName } from "./constants";
 import { AttributesDelegate } from "./AttributesDelegate";
-import {
-    autorun,
-    isPlayer,
-    isRoom,
-    reaction,
-    ScenePathType
-    } from "white-web-sdk";
+import { autorun, isPlayer, isRoom, reaction, ScenePathType } from "white-web-sdk";
+import { BoxEventHandler } from "./BoxEventHandler";
 import { BoxManager } from "./BoxManager";
 import { callbacks, emitter } from "./index";
+import { Creator, initCreator } from "./App";
 import { DisplayerListener } from "./DisplayerListener";
-import { genAppId, makeValidScenePath } from "./Utils/Common";
-import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
+import { makeValidScenePath, setViewFocusScenePath } from "./Utils/Common";
 import { onObjectRemoved } from "./Utils/Reactive";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { SideEffectManager } from "side-effect-manager";
 import { ViewManager } from "./ViewManager";
+import type { AppProxy, AppProxyContext } from "./App";
+import type { Events, AppAttributes } from "./constants";
 import type { Displayer, Room } from "white-web-sdk";
 import type { CreateCollectorConfig } from "./BoxManager";
-import type {
-    AddAppParams,
-    BaseInsertParams,
-    WindowManager,
-    TeleBoxRect,
-    EmitterEvent,
-} from "./index";
+import type { WindowManager, TeleBoxRect } from "./index";
 
 export class AppManager {
     public displayer: Displayer;
     public boxManager: BoxManager;
     public viewManager: ViewManager;
-    public store = new AttributesDelegate(this);
+    public store = new AttributesDelegate({
+        attributes: () => this.attributes,
+        safeSetAttributes: (attributes: any) => this.safeSetAttributes(attributes),
+        safeUpdateAttributes: (keys: string[], value: any) =>
+            this.safeUpdateAttributes(keys, value),
+    });
     public mainViewProxy: MainViewProxy;
-    public refresher?: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
+    public refresher?: ReconnectRefresher;
 
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
@@ -56,14 +46,40 @@ export class AppManager {
         this.displayer = windowManger.displayer;
         this.viewManager = new ViewManager(this.displayer);
         this.mainViewProxy = new MainViewProxy(this);
-        this.boxManager = new BoxManager(this, options);
+        this.boxManager = new BoxManager(
+            {
+                mainView: () => this.mainView,
+                canOperate: () => this.canOperate,
+                safeSetAttributes: (attributes: any) => this.safeSetAttributes(attributes),
+                notifyContainerRectUpdate: rect => this.notifyContainerRectUpdate(rect),
+            },
+            options
+        );
         this.appListeners = new AppListeners(this);
+
+        initCreator(this);
 
         this.sideEffectManager.add(() => {
             this.appListeners.addListeners();
             return () => {
                 this.appListeners.removeListeners();
             };
+        });
+
+        this.sideEffectManager.add(() => {
+            const boxEventHandler = new BoxEventHandler({
+                emitter,
+                updateAppState: this.store.updateAppState,
+                safeSetAttributes: (attributes: any) => this.safeSetAttributes(attributes),
+                closeApp: (appId: string, error?: Error) => {
+                    const appProxy = this.appProxies.get(appId);
+                    appProxy?.destroy(false, true, error);
+                },
+                dispatchMagixEvent: (event: Events, payload: any) => {
+                    this.dispatchInternalEvent(event, payload);
+                },
+            });
+            return () => boxEventHandler.destroy();
         });
 
         this.refresher = new ReconnectRefresher(this.room, () => this.notifyReconnected());
@@ -86,7 +102,6 @@ export class AppManager {
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
         emitter.emit("updateManagerRect", undefined);
-        emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
             return autorun(() => {
                 const apps = this.attributes.apps;
@@ -124,12 +139,7 @@ export class AppManager {
         this.refresher?.add("focus", () => {
             return autorun(() => {
                 const focus = this.attributes.focus;
-                if (focus) {
-                    const appProxy = this.appProxies.get(focus);
-                    if (appProxy) {
-                        appProxy.focus();
-                    }
-                }
+                this.focusHandler(focus);
             });
         });
         this.displayerWritableListener(!this.room?.isWritable);
@@ -150,6 +160,15 @@ export class AppManager {
         });
     }
 
+    private focusHandler(focus: string) {
+        if (focus) {
+            const appProxy = this.appProxies.get(focus);
+            if (appProxy) {
+                appProxy.focus();
+            }
+        }
+    }
+
     /**
      * 插件更新 attributes 时的回调
      *
@@ -162,23 +181,26 @@ export class AppManager {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
 
-                    pRetry(async () => {
-                        this.appStatus.set(id, AppStatus.StartCreate);
-                        // 防御 appAttributes 有可能为 undefined 的情况，这里做一个重试
-                        const appAttributes = this.attributes[id];
-                        if (!appAttributes) {
-                            throw new Error("appAttributes is undefined");
-                        }
-                        await this.baseInsertApp(
-                            {
-                                kind: app.kind,
-                                options: app.options,
-                                isDynamicPPT: app.isDynamicPPT,
-                            },
-                            id,
-                            false
-                        );
-                    }, { retries: 3 }).catch(err => {
+                    pRetry(
+                        async () => {
+                            this.appStatus.set(id, AppStatus.StartCreate);
+                            // 防御 appAttributes 有可能为 undefined 的情况，这里做一个重试
+                            const appAttributes = this.attributes[id];
+                            if (!appAttributes) {
+                                throw new Error("appAttributes is undefined");
+                            }
+                            await Creator.createByAppId(
+                                {
+                                    kind: app.kind,
+                                    options: app.options,
+                                    isDynamicPPT: app.isDynamicPPT,
+                                    isAddApp: false,
+                                },
+                                id
+                            );
+                        },
+                        { retries: 3 }
+                    ).catch(err => {
                         console.warn(`[WindowManager]: Insert App Error`, err);
                         this.appStatus.delete(id);
                     });
@@ -201,25 +223,20 @@ export class AppManager {
         mainView.disableCameraTransform = disableCameraTransform;
         mainView.divElement = divElement;
         if (!mainView.focusScenePath) {
-            this.store.setMainViewFocusPath();
+            this.setMainViewFocusPath();
         }
         emitter.emit("mainViewMounted");
     }
 
-    public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
-        log("addApp", params);
-        const { appId, needFocus } = await this.beforeAddApp(params, isDynamicPPT);
-        const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
-        this.afterAddApp(appProxy);
-        return appProxy?.id;
+    // TODO 状态中保存一个 SceneName 优化性能
+    public setMainViewFocusPath() {
+        const scenePath = this.store.getMainViewScenePath();
+        if (scenePath) {
+            setViewFocusScenePath(this.mainView, scenePath);
+        }
     }
 
-    private async beforeAddApp(params: AddAppParams, isDynamicPPT: boolean) {
-        const appId = await genAppId(params.kind);
-        this.appStatus.set(appId, AppStatus.StartCreate);
-        const attrs = params.attributes ?? {};
-        this.safeUpdateAttributes([appId], attrs);
-        this.store.setupAppAttributes(params, appId, isDynamicPPT);
+    public updateFocusApp(appId: string) {
         const needFocus = !this.boxManager.minimized;
         if (needFocus) {
             this.store.setAppFocus(appId, true);
@@ -227,44 +244,10 @@ export class AppManager {
         return { appId, needFocus };
     }
 
-    private afterAddApp(appProxy: AppProxy | undefined) {
-        if (appProxy && appProxy.box) {
-            emitter.emit("move", {
-                appId: appProxy.id,
-                x: appProxy.box?.x,
-                y: appProxy.box?.y,
-            });
-        }
-        if (this.boxManager.minimized) {
-            this.boxManager.setMinimized(false, false);
-        }
-    }
-
     public async closeApp(appId: string) {
         const appProxy = this.appProxies.get(appId);
         if (appProxy) {
             await appProxy.destroy(true, true);
-        }
-    }
-
-    private async baseInsertApp(
-        params: BaseInsertParams,
-        appId: string,
-        isAddApp: boolean,
-        focus?: boolean
-    ) {
-        if (this.appProxies.has(appId)) {
-            console.warn("[WindowManager]: app duplicate exists and cannot be created again");
-            return;
-        }
-        const appProxy = new AppProxy(params, this, appId, isAddApp);
-        if (appProxy) {
-            await appProxy.baseInsertApp(focus);
-            this.appStatus.delete(appId);
-            return appProxy;
-        } else {
-            this.appStatus.delete(appId);
-            throw new Error("[WindowManger]: initialize AppProxy failed");
         }
     }
 
@@ -335,7 +318,7 @@ export class AppManager {
 
     private async _setMainViewScenePath(scenePath: string) {
         this.safeSetAttributes({ _mainScenePath: scenePath });
-        this.store.setMainViewFocusPath();
+        this.setMainViewFocusPath();
     }
 
     public async setMainViewSceneIndex(index: number) {
@@ -352,7 +335,7 @@ export class AppManager {
                 const scenePath = makeValidScenePath(this.displayer, sceneDir, index);
                 if (scenePath) {
                     this.store.setMainViewScenePath(scenePath);
-                    this.store.setMainViewFocusPath();
+                    this.setMainViewFocusPath();
                 }
             }
         }
@@ -371,58 +354,19 @@ export class AppManager {
         }
     }
 
-    private boxEventListener = (eventName: keyof EmitterEvent, payload: any) => {
-        switch (eventName) {
-            case "move": {
-                this.dispatchInternalEvent(Events.AppMove, payload);
-                this.store.updateAppState(payload.appId, AppAttributes.Position, {
-                    x: payload.x,
-                    y: payload.y,
-                });
-                break;
-            }
-            case "focus": {
-                this.safeSetAttributes({ focus: payload.appId });
-                break;
-            }
-            case "resize": {
-                if (payload.width && payload.height) {
-                    this.dispatchInternalEvent(Events.AppResize, payload);
-                    this.store.updateAppState(payload.appId, AppAttributes.Size, {
-                        width: payload.width,
-                        height: payload.height,
-                    });
-                }
-                break;
-            }
-            case "close": {
-                const appProxy = this.appProxies.get(payload.appId);
-                if (appProxy) {
-                    appProxy.destroy(false, true, payload.error);
-                }
-                break;
-            }
-            case "boxStateChange": {
-                this.dispatchInternalEvent(Events.AppBoxStateChange, payload);
-                break;
-            }
-            default:
-                break;
-        }
-    };
-
     public notifyReconnected() {
         this.appProxies.forEach(appProxy => {
             appProxy.onReconnected();
         });
         this.mainViewProxy.onReconnected();
+        this.focusHandler(this.attributes.focus);
     }
 
-    public notifyContainerRectUpdate(rect: TeleBoxRect) {
+    public notifyContainerRectUpdate = (rect: TeleBoxRect) => {
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("containerRectUpdate", rect);
         });
-    }
+    };
 
     public dispatchInternalEvent(event: Events, payload: any) {
         this.safeDispatchMagixEvent(MagixEventName, {
@@ -437,8 +381,51 @@ export class AppManager {
         });
     }
 
+    public setBoxToNormal() {
+        if (this.boxManager.minimized) {
+            this.boxManager.setMinimized(false, false);
+        }
+    }
+
+    public createAppProxyContext = (): AppProxyContext => {
+        return {
+            displayer: this.displayer,
+            room: this.room,
+            refresher: this.refresher,
+            isReplay: () => this.isReplay,
+            attributes: () => this.attributes,
+            canOperate: () => this.canOperate,
+            focus: () => this.attributes.focus,
+            setProxy: (id: string, AppProxy: AppProxy) => this.appProxies.set(id, AppProxy),
+            getAppState: (id: string) => this.store.getAppState(id),
+            updateAppState: (appId: string, stateName: AppAttributes, state: any) =>
+                this.store.updateAppState(appId, stateName, state),
+            getAppInitPath: (appId: string) => this.getAppInitPath(appId),
+            deleteStatus: (id: string) => this.appStatus.delete(id),
+            deleteProxy: id => this.appProxies.delete(id),
+            ...this.createViewsHelper(),
+            ...this.createAttributesHelper(),
+        };
+    };
+
+    public createAttributesHelper = () => {
+        return {
+            safeSetAttributes: (attributes: any) => this.safeSetAttributes(attributes),
+            safeUpdateAttributes: (keys: string[], value: any) => this.safeUpdateAttributes(keys, value),
+            getAppAttributes: (id: string) => this.store.getAppAttributes(id),
+            cleanAppAttributes: (id: string) => this.store.cleanAppAttributes(id),
+        }
+    }
+
+    public createViewsHelper = () => {
+        return {
+            getView: (id: string) => this.viewManager.getView(id),
+            createView: (id: string) => this.viewManager.createView(id),
+            destroyView: (id: string) => this.viewManager.destroyView(id),
+        }
+    }
+
     public destroy() {
-        emitter.offAny(this.boxEventListener);
         emitter.clearListeners();
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
