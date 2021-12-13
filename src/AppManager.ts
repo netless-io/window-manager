@@ -160,7 +160,7 @@ export class AppManager {
         const ids = Object.keys(apps);
         this.appProxies.forEach((appProxy, id) => {
             if (!ids.includes(id)) {
-                appProxy.destroy(true, false);
+                appProxy.destroy(true, false, true);
             }
         });
     };
@@ -217,7 +217,7 @@ export class AppManager {
     public async closeApp(appId: string) {
         const appProxy = this.appProxies.get(appId);
         if (appProxy) {
-            appProxy.destroy(true, true);
+            appProxy.destroy(true, true, false);
         }
     }
 
@@ -415,10 +415,12 @@ export class AppManager {
         }
     }
 
-    public notifyReconnected() {
-        this.appProxies.forEach(appProxy => {
-            appProxy.onReconnected();
+    public async notifyReconnected() {
+        const appProxies = Array.from(this.appProxies.values());
+        const reconnected = appProxies.map(appProxy => {
+            return appProxy.onReconnected();
         });
+        await Promise.all(reconnected);
     }
 
     public notifyContainerRectUpdate(rect: TeleBoxRect) {
@@ -442,7 +444,7 @@ export class AppManager {
         emitter.clearListeners();
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
-                appProxy.destroy(true, false);
+                appProxy.destroy(true, false, true);
             });
         }
         this.viewManager.destroy();

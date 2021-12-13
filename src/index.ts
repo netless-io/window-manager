@@ -1,28 +1,28 @@
-import AppDocsViewer from '@netless/app-docs-viewer';
-import AppMediaPlayer, { setOptions } from '@netless/app-media-player';
-import Emittery from 'emittery';
-import pRetry from 'p-retry';
+import AppDocsViewer from "@netless/app-docs-viewer";
+import AppMediaPlayer, { setOptions } from "@netless/app-media-player";
+import Emittery from "emittery";
+import pRetry from "p-retry";
+import { AppManager } from "./AppManager";
+import { appRegister } from "./Register";
+import { CursorManager } from "./Cursor";
+import { DEFAULT_CONTAINER_RATIO, REQUIRE_VERSION } from "./constants";
+import { Fields } from "./AttributesDelegate";
+import { initDb } from "./Register/storage";
+import { isNull, isObject } from "lodash";
+import { log } from "./Utils/log";
+import { replaceRoomFunction } from "./Utils/RoomHacker";
+import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
+import { setupWrapper } from "./ViewManager";
+import "./style.css";
+import "@netless/telebox-insider/dist/style.css";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
     getVersionNumber,
     isValidScenePath,
-    wait
-    } from './Utils/Common';
-import { AppManager } from './AppManager';
-import { appRegister } from './Register';
-import { CursorManager } from './Cursor';
-import { DEFAULT_CONTAINER_RATIO, REQUIRE_VERSION } from './constants';
-import { Fields } from './AttributesDelegate';
-import { initDb } from './Register/storage';
-import { isNull, isObject } from 'lodash';
-import { log } from './Utils/log';
-import { replaceRoomFunction } from './Utils/RoomHacker';
-import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer';
-import { setupWrapper } from './ViewManager';
-import './style.css';
-import '@netless/telebox-insider/dist/style.css';
-import type { TELE_BOX_STATE } from './BoxManager';
+    wait,
+} from "./Utils/Common";
+import type { TELE_BOX_STATE } from "./BoxManager";
 import {
     AppCreateError,
     AppManagerNotInitError,
@@ -50,7 +50,8 @@ import type {
     CameraBound,
     Point,
     Rectangle,
-    ViewVisionMode} from "white-web-sdk";
+    ViewVisionMode,
+} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxState } from "@netless/telebox-insider";
@@ -122,18 +123,18 @@ export type AppInitState = {
 };
 
 export type EmitterEvent = {
-    onCreated: undefined,
-    InitReplay: AppInitState,
-    move: { appId: string, x: number, y: number },
-    focus: { appId: string },
-    close: { appId: string },
-    resize: { appId: string, width: number, height: number, x?: number, y?: number },
-    error: Error,
-    seek: number,
-    mainViewMounted: undefined,
+    onCreated: undefined;
+    InitReplay: AppInitState;
+    move: { appId: string; x: number; y: number };
+    focus: { appId: string };
+    close: { appId: string };
+    resize: { appId: string; width: number; height: number; x?: number; y?: number };
+    error: Error;
+    seek: number;
+    mainViewMounted: undefined;
     observerIdChange: number;
     boxStateChange: string;
-}
+};
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();
 
@@ -169,7 +170,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.3.9";
+    public version = "0.3.10-canary.0";
 
     public appListeners?: AppListeners;
 
@@ -272,13 +273,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 throw new Error("[WindowManager]: init InvisiblePlugin failed");
             }
         } else {
-            await pRetry(async (count) => {
-                manager = await this.initManager(room);
-                if (!manager) {
-                    log(`manager is empty. retrying ${count}`)
-                    throw new Error();
-                }
-            }, { retries: 10 });
+            await pRetry(
+                async count => {
+                    manager = await this.initManager(room);
+                    if (!manager) {
+                        log(`manager is empty. retrying ${count}`);
+                        throw new Error();
+                    }
+                },
+                { retries: 10 }
+            );
         }
 
         if (containerSizeRatio) {
@@ -327,12 +331,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     } catch (error) {
                         throw new Error("[WindowManger]: room must be switched to be writable");
                     }
-                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    manager = (await room.createInvisiblePlugin(
+                        WindowManager,
+                        {}
+                    )) as WindowManager;
                     manager.ensureAttributes();
                     await wait(500);
                     await room.setWritable(false);
                 } else {
-                    manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+                    manager = (await room.createInvisiblePlugin(
+                        WindowManager,
+                        {}
+                    )) as WindowManager;
                 }
             }
         }
@@ -342,7 +352,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 注册插件
      */
-     public static register<AppOptions = any, SetupResult = any, Attributes = any>(
+    public static register<AppOptions = any, SetupResult = any, Attributes = any>(
         params: RegisterParams<AppOptions, SetupResult, Attributes>
     ): Promise<void> {
         return appRegister.register(params);
@@ -406,7 +416,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 }
             }
             if (scenePath && scenes === undefined) {
-                this.room?.putScenes(scenePath, [{}])
+                this.room?.putScenes(scenePath, [{}]);
             }
         }
         return isDynamicPPT;
@@ -532,13 +542,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.closeApp(appId);
     }
 
-    public moveCamera(camera: Partial<Camera> & { animationMode?: AnimationMode | undefined }): void {
+    public moveCamera(
+        camera: Partial<Camera> & { animationMode?: AnimationMode | undefined }
+    ): void {
         this.mainView.moveCamera(camera);
     }
 
-    public moveCameraToContain(rectangle: Rectangle & Readonly<{
-        animationMode?: AnimationMode;
-    }>): void {
+    public moveCameraToContain(
+        rectangle: Rectangle &
+            Readonly<{
+                animationMode?: AnimationMode;
+            }>
+    ): void {
         this.mainView.moveCameraToContain(rectangle);
     }
 

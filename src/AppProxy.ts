@@ -101,7 +101,10 @@ export class AppProxy extends Base {
         this.manager.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
     }
 
-    public async baseInsertApp(focus?: boolean): Promise<{ appId: string; app: NetlessApp }> {
+    public async baseInsertApp(
+        skipUpdate = false,
+        focus?: boolean
+    ): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (!params.kind) {
             throw new Error("[WindowManager]: kind require");
@@ -109,7 +112,7 @@ export class AppProxy extends Base {
         const appImpl = await appRegister.appClasses.get(params.kind)?.();
         const appParams = appRegister.registered.get(params.kind);
         if (appImpl) {
-            await this.setupApp(this.id, appImpl, params.options, appParams?.appOptions);
+            await this.setupApp(this.id, skipUpdate, appImpl, params.options, appParams?.appOptions);
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
@@ -139,6 +142,7 @@ export class AppProxy extends Base {
 
     private async setupApp(
         appId: string,
+        skipUpdate: boolean,
         app: NetlessApp,
         options?: setAppOptions,
         appOptions?: any
@@ -147,8 +151,11 @@ export class AppProxy extends Base {
         const context = new AppContext(this.manager, appId, this, appOptions);
         try {
             emitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
-                const boxInitState = this.getAppInitState(appId);
-                this.boxManager.updateBoxState(boxInitState);
+                let boxInitState: AppInitState | undefined;
+                if (!skipUpdate) {
+                    boxInitState = this.getAppInitState(appId);
+                    this.boxManager.updateBoxState(boxInitState);
+                }
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
                 this.setViewFocusScenePath();
@@ -204,10 +211,12 @@ export class AppProxy extends Base {
 
     public async onReconnected() {
         this.appEmitter.emit("reconnected", undefined);
-        await this.destroy(true, false);
+        const currentAppState = this.getAppInitState(this.id);
+        await this.destroy(true, false, true);
         const params = this.params;
         const appProxy = new AppProxy(params, this.manager, this.id, this.isAddApp);
-        await appProxy.baseInsertApp(this.store.focus === this.id);
+        await appProxy.baseInsertApp(true, this.store.focus === this.id);
+        this.boxManager.updateBoxState(currentAppState);
     }
 
     public switchToWritable() {
@@ -236,8 +245,8 @@ export class AppProxy extends Base {
         const focus = this.store.focus;
         const size = attrs?.[AppAttributes.Size];
         const sceneIndex = attrs?.[AppAttributes.SceneIndex];
-        const maximized = this.manager.attributes?.["maximized"];
-        const minimized = this.manager.attributes?.["minimized"];
+        const maximized = this.attributes?.["maximized"];
+        const minimized = this.attributes?.["minimized"];
         let payload = { maximized, minimized } as AppInitState;
         if (position) {
             payload = { ...payload, id: id, x: position.x, y: position.y };
@@ -289,7 +298,7 @@ export class AppProxy extends Base {
                 }
                 case AppEvents.destroy: {
                     if (this.status === "destroyed") return;
-                    this.destroy(true, data?.error);
+                    this.destroy(true, false, true, data?.error);
                     if (data?.error) {
                         console.error(data?.error);
                     }
@@ -340,7 +349,12 @@ export class AppProxy extends Base {
         return view;
     }
 
-    public async destroy(needCloseBox: boolean, cleanAttrs: boolean, error?: Error) {
+    public async destroy(
+        needCloseBox: boolean,
+        cleanAttrs: boolean,
+        skipUpdate: boolean,
+        error?: Error
+    ) {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
         await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
@@ -348,7 +362,7 @@ export class AppProxy extends Base {
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}` as any, { error });
         if (needCloseBox) {
-            this.boxManager.closeBox(this.id);
+            this.boxManager.closeBox(this.id, skipUpdate);
         }
         if (cleanAttrs) {
             this.store.cleanAppAttributes(this.id);
@@ -362,6 +376,6 @@ export class AppProxy extends Base {
     }
 
     public close(): Promise<void> {
-        return this.destroy(true, true);
+        return this.destroy(true, true, false);
     }
 }

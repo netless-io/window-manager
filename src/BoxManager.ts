@@ -188,8 +188,8 @@ export class BoxManager {
         return this.teleBoxManager.queryOne({ id: appId });
     }
 
-    public closeBox(appId: string): ReadonlyTeleBox | undefined {
-        return this.teleBoxManager.remove(appId);
+    public closeBox(appId: string, skipUpdate = false): ReadonlyTeleBox | undefined {
+        return this.teleBoxManager.remove(appId, skipUpdate);
     }
 
     public boxIsFocus(appId: string): boolean | undefined {

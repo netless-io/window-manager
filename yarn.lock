@@ -122,10 +122,10 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@0.2.6":
-  version "0.2.6"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.6.tgz#2b73a8308f874998de4186218b48a2f6a45eb4a5"
-  integrity sha512-JgWL1LumGmaDkVS1xMe7XkhBJsHUqvBZaMBO7EF/sSI1g3o6pX+dPMvfnz/ehQuRBWHMAGeW+Us2eeZeV1sWnw==
+"@netless/telebox-insider@0.2.7":
+  version "0.2.7"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.7.tgz#0525f8b72cb54e5d5f2f493d7b4b030e35e78163"
+  integrity sha512-DuvFuKM0h8RX1feSM/ZYNLNhlJw48yyQDbGcOvZW60Ncr+3t6BqN4z80gzvQLcNfpBD6yqYGWts2/k4fTLzlhQ==
   dependencies:
     "@types/shallowequal" "^1.1.1"
     eventemitter3 "^4.0.7"
@@ -4113,10 +4113,10 @@ which@^2.0.1:
   dependencies:
     isexe "^2.0.0"
 
-white-web-sdk@^2.15.11:
-  version "2.15.11"
-  resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.15.11.tgz#d0fb8d3750dae091b783e8c5ef844e4b4f2ae973"
-  integrity sha512-aL0+se+VnqtZYd+dm6W4Jopi6ei2MddnRbjOp8QkdV/q+lUh9NNGZ031baNv2njVHHO60ms4aHrkXiH7NgFDsg==
+white-web-sdk@^2.15.12:
+  version "2.15.12"
+  resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.15.12.tgz#d113376ad77006ee9c4cb138e132eba7fbf0a1fd"
+  integrity sha512-CpuEmJf+RAp4cT8ot+FbgZNHqDjxreyaVDu4oUvI7qEC2iOSSb4BF6wvGKay0JFlXehGieBkehvnuLaFm9LDZg==
   dependencies:
     "@juggle/resize-observer" "^3.3.1"
     "@netless/canvas-polyfill" "^0.0.4"

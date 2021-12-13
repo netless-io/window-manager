@@ -25,6 +25,7 @@
       "noUnusedParameters": true,
       "noImplicitOverride": true,
       "isolatedModules": true,
+      "resolveJsonModule": true,
     },
     "include": [
       "./src",
