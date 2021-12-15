@@ -54,7 +54,7 @@ import type {
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
-import type { TeleBoxState } from "@netless/telebox-insider";
+import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./AppProxy";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
@@ -156,6 +156,7 @@ export type MountParams = {
     cursor?: boolean;
     debug?: boolean;
     disableCameraTransform?: boolean;
+    prefersColorScheme?: TeleBoxColorScheme;
 };
 
 export const callbacks: Emittery<PublicEvent> = new Emittery();
@@ -170,7 +171,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.3.11";
+    public version = "0.3.12-canary.0";
 
     public appListeners?: AppListeners;
 
@@ -225,6 +226,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         let overwriteStyles: string | undefined;
         let cursor: boolean | undefined;
         let disableCameraTransform = false;
+        let prefersColorScheme: TeleBoxColorScheme | undefined = "light";
         if ("room" in params) {
             room = params.room;
             container = params.container;
@@ -238,6 +240,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             overwriteStyles = params.overwriteStyles;
             cursor = params.cursor;
             disableCameraTransform = Boolean(params?.disableCameraTransform);
+            prefersColorScheme = params.prefersColorScheme;
         } else {
             room = params;
             containerSizeRatio = options?.containerSizeRatio;
@@ -303,6 +306,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
             collectorStyles: collectorStyles,
+            prefersColorScheme: prefersColorScheme
         });
         manager.observePlaygroundSize(playground, sizer, wrapper);
         if (cursor) {

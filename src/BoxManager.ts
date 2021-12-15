@@ -12,6 +12,7 @@ import {
     TELE_BOX_STATE,
     TeleBoxCollector,
     TeleBoxManager,
+    TeleBoxColorScheme
 } from "@netless/telebox-insider";
 import type {
     TeleBoxManagerUpdateConfig,
@@ -45,9 +46,10 @@ type SetBoxMinSizeParams = AppId & { minWidth: number; minHeight: number };
 
 type SetBoxTitleParams = AppId & { title: string };
 
-export type CreateCollectorConfig = {
+export type CreateTeleBoxManagerConfig = {
     collectorContainer?: HTMLElement;
     collectorStyles?: Partial<CSSStyleDeclaration>;
+    prefersColorScheme?: TeleBoxColorScheme;
 };
 
 export class BoxManager {
@@ -57,9 +59,9 @@ export class BoxManager {
 
     constructor(
         private manager: AppManager,
-        collectorConfig?: CreateCollectorConfig
+        createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig,
     ) {
-        this.teleBoxManager = this.setupBoxManager(collectorConfig);
+        this.teleBoxManager = this.setupBoxManager(createTeleBoxManagerConfig);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
                 callbacks.emit("boxStateChange", state);
@@ -156,7 +158,7 @@ export class BoxManager {
         }
     }
 
-    public setupBoxManager(collectorConfig?: CreateCollectorConfig): TeleBoxManager {
+    public setupBoxManager(createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig): TeleBoxManager {
         const root = WindowManager.wrapper ? WindowManager.wrapper : document.body;
         const rect = root.getBoundingClientRect();
         const initManagerState: TeleBoxManagerConfig = {
@@ -168,9 +170,10 @@ export class BoxManager {
                 height: rect.height,
             },
             fence: false,
+            prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
         };
-        const container = collectorConfig?.collectorContainer || WindowManager.wrapper;
-        const styles = { ...DEFAULT_COLLECTOR_STYLE, ...collectorConfig?.collectorStyles };
+        const container = createTeleBoxManagerConfig?.collectorContainer || WindowManager.wrapper;
+        const styles = { ...DEFAULT_COLLECTOR_STYLE, ...createTeleBoxManagerConfig?.collectorStyles };
         const teleBoxCollector = new TeleBoxCollector({
             styles: styles,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

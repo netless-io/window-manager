@@ -25,7 +25,7 @@ import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { ViewManager } from "./ViewManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
-import type { CreateCollectorConfig } from "./BoxManager";
+import type { CreateTeleBoxManagerConfig } from "./BoxManager";
 import type {
     AddAppParams,
     BaseInsertParams,
@@ -47,7 +47,7 @@ export class AppManager {
 
     private appListeners: AppListeners;
 
-    constructor(public windowManger: WindowManager, options: CreateCollectorConfig) {
+    constructor(public windowManger: WindowManager, options: CreateTeleBoxManagerConfig) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
         this.mainViewProxy = new MainViewProxy(this);
