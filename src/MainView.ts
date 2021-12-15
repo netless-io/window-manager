@@ -88,6 +88,10 @@ export class MainViewProxy extends Base {
         return this.mainView;
     }
 
+    public get cameraState() {
+        return { ...this.view.camera, ...this.view.size };
+    }
+
     public createMainView(): View {
         const mainView = createView(this.manager.displayer);
         mainView.callbacks.on("onSizeUpdated", () => {
@@ -139,6 +143,7 @@ export class MainViewProxy extends Base {
 
     private sizeListener = (size: Size) => {
         this.setMainViewSize(size);
+        callbacks.emit("cameraStateChange", this.cameraState);
     };
 
     public setMainViewSize = debounce(size => {
@@ -147,10 +152,16 @@ export class MainViewProxy extends Base {
 
     private addCameraListener() {
         this.view.callbacks.on("onCameraUpdatedByDevice", this.cameraListener);
+        this.view.callbacks.on("onCameraUpdated", this.cameraStateChangeListener);
     }
 
     private removeCameraListener() {
         this.view.callbacks.off("onCameraUpdatedByDevice", this.cameraListener);
+        this.view.callbacks.off("onCameraUpdated", this.cameraStateChangeListener)
+    }
+
+    private cameraStateChangeListener = () => {
+        callbacks.emit("cameraStateChange", this.cameraState);
     }
 
     public switchViewModeToWriter(): void {

@@ -51,6 +51,7 @@ import type {
     Point,
     Rectangle,
     ViewVisionMode,
+    CameraState,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
@@ -143,6 +144,7 @@ export type PublicEvent = {
     boxStateChange: `${TELE_BOX_STATE}`;
     darkModeChange: boolean;
     prefersColorSchemeChange: TeleBoxColorScheme;
+    cameraStateChange: CameraState;
 };
 
 export type MountParams = {
@@ -510,6 +512,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public get camera(): Camera {
         if (this.appManager) {
             return this.appManager.mainViewProxy.view.camera;
+        } else {
+            throw new AppManagerNotInitError();
+        }
+    }
+
+    public get cameraState(): CameraState {
+        if (this.appManager) {
+            return this.appManager.mainViewProxy.cameraState;
         } else {
             throw new AppManagerNotInitError();
         }
