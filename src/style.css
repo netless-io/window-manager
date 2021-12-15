@@ -4,6 +4,7 @@
     position: relative;
     z-index: 1;
     overflow: hidden;
+    user-select: none;
 }
 
 .netless-window-manager-sizer {

@@ -104,13 +104,13 @@
   resolved "https://registry.yarnpkg.com/@juggle/resize-observer/-/resize-observer-3.3.1.tgz#b50a781709c81e10701004214340f25475a171a0"
   integrity sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==
 
-"@netless/app-docs-viewer@^0.1.21":
-  version "0.1.21"
-  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.21.tgz#781f74070ae9b6a98f60f2935be1d4e0409bad1f"
-  integrity sha512-vz2NVpkfoqkg+0n3gx0dVziyqrdVgsuGh5Z/cSHmF9cNSjiCc+9yyERo2pQV9J6n5RB+UfL/WYTTJD2ApedIAw==
+"@netless/app-docs-viewer@0.1.22":
+  version "0.1.22"
+  resolved "https://registry.npmjs.org/@netless/app-docs-viewer/-/app-docs-viewer-0.1.22.tgz#41c632aa76c2596ebb37a9185cb00ef250fd7aa7"
+  integrity sha512-eXMr1KCPCHo2e5GwueuD78LqmZInsj+BaT9lOUnQnf3j8M36B/dIkme+BpSS9IIXiVXULgJ2W/uYqXrqj0knGw==
   dependencies:
     debounce-fn "^5.0.0"
-    vanilla-lazyload "^17.4.0"
+    vanilla-lazyload "^17.5.0"
 
 "@netless/app-media-player@0.1.0-beta.5":
   version "0.1.0-beta.5"
@@ -4033,10 +4033,10 @@ value-enhancer@^0.0.8:
   dependencies:
     side-effect-manager "^0.1.5"
 
-vanilla-lazyload@^17.4.0:
-  version "17.4.0"
-  resolved "https://registry.npmjs.org/vanilla-lazyload/-/vanilla-lazyload-17.4.0.tgz#09d65a5be46242b82b557b9ccd886613de76f4c2"
-  integrity sha512-4IVX93uLEgQGBdSCaSE1XJgeNNT1+sV8PKiImM21EkDGJBH3tTWL9wYrMA4xT5C2EIEfw8WkinUxUG+uMY2ZyA==
+vanilla-lazyload@^17.5.0:
+  version "17.5.0"
+  resolved "https://registry.npmjs.org/vanilla-lazyload/-/vanilla-lazyload-17.5.0.tgz#ca2690fcf0627af3ad13e7fe41e7d0fac58d2a7e"
+  integrity sha512-1d2kjFT2BTrA2ynBBbJ58kIZqtB6TxocAvUFwmzjJ34RqLDlVPy4VmBDuAi6xgv+3LSmP6coKstU2eeRdI+ixw==
 
 vendors@^1.0.0:
   version "1.0.4"
