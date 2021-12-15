@@ -175,7 +175,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.3.12-canary.1";
+    public version = "0.3.12";
 
     public appListeners?: AppListeners;
 
