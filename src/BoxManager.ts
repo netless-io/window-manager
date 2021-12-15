@@ -1,24 +1,19 @@
 import { callbacks, emitter, WindowManager } from "./index";
 import { debounce, maxBy } from "lodash";
-import {
-    DEFAULT_COLLECTOR_STYLE,
-    Events,
-    MIN_HEIGHT,
-    MIN_WIDTH
-    } from "./constants";
-import type { AddAppOptions, AppInitState } from "./index";
+import { DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
     TeleBoxCollector,
     TeleBoxManager,
-    TeleBoxColorScheme
 } from "@netless/telebox-insider";
+import type { AddAppOptions, AppInitState } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
     TeleBoxManagerCreateConfig,
     ReadonlyTeleBox,
     TeleBoxManagerConfig,
+    TeleBoxColorScheme,
 } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { AppManager } from "./AppManager";
@@ -59,7 +54,7 @@ export class BoxManager {
 
     constructor(
         private manager: AppManager,
-        createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig,
+        createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig
     ) {
         this.teleBoxManager = this.setupBoxManager(createTeleBoxManagerConfig);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
@@ -71,7 +66,7 @@ export class BoxManager {
         this.teleBoxManager.events.on("minimized", minimized => {
             this.manager.safeSetAttributes({ minimized });
         });
-        this.teleBoxManager.events.on("maximized",  maximized => {
+        this.teleBoxManager.events.on("maximized", maximized => {
             this.manager.safeSetAttributes({ maximized });
         });
         this.teleBoxManager.events.on("removed", boxes => {
@@ -88,7 +83,11 @@ export class BoxManager {
         this.teleBoxManager.events.on(
             "intrinsic_resize",
             debounce((box: ReadonlyTeleBox): void => {
-                emitter.emit("resize", { appId: box.id, width: box.intrinsicWidth, height: box.intrinsicHeight });
+                emitter.emit("resize", {
+                    appId: box.id,
+                    width: box.intrinsicWidth,
+                    height: box.intrinsicHeight,
+                });
             }, 200)
         );
         this.teleBoxManager.events.on("focused", box => {
@@ -102,6 +101,12 @@ export class BoxManager {
                 this.blurFocusBox();
             }
         });
+        this.teleBoxManager.events.on("dark_mode", darkMode => {
+            callbacks.emit("darkModeChange", darkMode);
+        });
+        this.teleBoxManager.events.on("prefers_color_scheme", colorScheme => {
+            callbacks.emit("prefersColorSchemeChange", colorScheme);
+        });
     }
 
     public get boxState() {
@@ -114,6 +119,14 @@ export class BoxManager {
 
     public get minimized() {
         return this.teleBoxManager.minimized;
+    }
+
+    public get darkMode() {
+        return this.teleBoxManager.darkMode;
+    }
+
+    public get prefersColorScheme(): TeleBoxColorScheme {
+        return this.teleBoxManager.prefersColorScheme;
     }
 
     public createBox(params: CreateBoxParams): void {
@@ -158,7 +171,9 @@ export class BoxManager {
         }
     }
 
-    public setupBoxManager(createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig): TeleBoxManager {
+    public setupBoxManager(
+        createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig
+    ): TeleBoxManager {
         const root = WindowManager.wrapper ? WindowManager.wrapper : document.body;
         const rect = root.getBoundingClientRect();
         const initManagerState: TeleBoxManagerConfig = {
@@ -173,7 +188,10 @@ export class BoxManager {
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
         };
         const container = createTeleBoxManagerConfig?.collectorContainer || WindowManager.wrapper;
-        const styles = { ...DEFAULT_COLLECTOR_STYLE, ...createTeleBoxManagerConfig?.collectorStyles };
+        const styles = {
+            ...DEFAULT_COLLECTOR_STYLE,
+            ...createTeleBoxManagerConfig?.collectorStyles,
+        };
         const teleBoxCollector = new TeleBoxCollector({
             styles: styles,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -227,7 +245,7 @@ export class BoxManager {
             if (state.maximized != null) {
                 this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
                 this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
-            } 
+            }
             setTimeout(() => {
                 if (state.focus) {
                     this.teleBoxManager.update(box.id, { focus: true }, true);
@@ -299,6 +317,10 @@ export class BoxManager {
 
     public setReadonly(readonly: boolean) {
         this.teleBoxManager.setReadonly(readonly);
+    }
+
+    public setPrefersColorScheme(colorScheme: TeleBoxColorScheme) {
+        this.teleBoxManager.setPrefersColorScheme(colorScheme);
     }
 
     public destroy() {

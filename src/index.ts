@@ -141,6 +141,8 @@ export const emitter: Emittery<EmitterEvent> = new Emittery();
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
     boxStateChange: `${TELE_BOX_STATE}`;
+    darkModeChange: boolean;
+    prefersColorSchemeChange: TeleBoxColorScheme;
 };
 
 export type MountParams = {
@@ -306,7 +308,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         manager.appManager = new AppManager(manager, {
             collectorContainer: collectorContainer,
             collectorStyles: collectorStyles,
-            prefersColorScheme: prefersColorScheme
+            prefersColorScheme: prefersColorScheme,
         });
         manager.observePlaygroundSize(playground, sizer, wrapper);
         if (cursor) {
@@ -525,6 +527,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
+    public get darkMode(): boolean {
+        return Boolean(this.appManager?.boxManager.darkMode);
+    }
+
+    public get prefersColorScheme(): TeleBoxColorScheme {
+        if (this.appManager) {
+            return this.appManager.boxManager.prefersColorScheme;
+        } else {
+            throw new AppManagerNotInitError();
+        }
+    }
+
     /**
      * 查询所有的 App
      */
@@ -622,6 +636,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.canOperate) {
             this.updateAttributes(keys, value);
         }
+    }
+
+    public setPrefersColorScheme(scheme: TeleBoxColorScheme): void {
+        this.appManager?.boxManager.setPrefersColorScheme(scheme);
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {
