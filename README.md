@@ -1,5 +1,7 @@
 # WindowManager
 
+- 目录
+  - [references](docs/api.md)
 ## MainView
 
 `MainView` 也就是主白板, 是垫在所有窗口下面的主白板
@@ -73,24 +75,7 @@ sdk.joinRoom({
 });
 ```
 
-### mount
-
-
-`WindowManager.mount(params: MountParams)`
-
-| name                   | type                                    | defalut | desc                         |
-| ---------------------- | --------------------------------------- | ------- | ---------------------------- |
-| room                   | [require] Room                          |         | 房间实例                         |
-| container              | [require] HTMLElement                   |         | 房间挂载容器                       |
-| containerSizeRatio     | [optional] number                       | 9 / 16  | 多窗口区域的高宽比，默认为 9 : 16         |
-| chessboard             | [optional] boolean                      | true    | 多窗口区域以外的空间显示 PS 棋盘背景，默认 true |
-| collectorContainer     | [optional] HTMLElement                  |         | 用于多窗口最小化图标挂载的 dom            |
-| collectorStyles        | [optional] Partial{CSSStyleDeclaration} |         | 配置 collector 的样式             |
-| overwriteStyles        | [optional] string                       |         | 用于覆盖窗口的样式                    |
-| cursor                 | [optional] boolean                      | false   | 开启光标同步                       |
-| disableCameraTransform | [optional] boolean                      |         | 禁用主白板的相机移动                   |
-| prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
-| debug                  | [optional] boolean                      | false   | 打印日志信息                       |
+[mount 完整参数](docs/api.md#mount)
 
 
 > `containerSizeRatio` 为了保证窗口在不同分辨率下显示效果, 白板在相同的比例区域才能进行同步
@@ -101,13 +86,6 @@ sdk.joinRoom({
 
 > `collector` 就是窗口最小化时的图标, 默认大小 `width: 40px;` `height: 40px;`
 
-### manager 上的状态
-
-```javascript
-manager.mainView; // 主白板
-manager.apps; // 已经打开的所有 app 的属性
-manager.boxState; // 当前的窗口状态: maximized | minimized | normal
-```
 
 ### 光标同步
 
