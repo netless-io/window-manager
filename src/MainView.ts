@@ -94,9 +94,6 @@ export class MainViewProxy extends Base {
 
     public createMainView(): View {
         const mainView = createView(this.manager.displayer);
-        mainView.callbacks.on("onSizeUpdated", () => {
-            this.context.updateManagerRect();
-        });
         const mainViewScenePath = this.store.getMainViewScenePath();
         if (mainViewScenePath) {
             setViewFocusScenePath(mainView, mainViewScenePath);

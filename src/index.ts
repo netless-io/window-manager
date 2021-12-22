@@ -699,6 +699,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (containerRect) {
                 this.updateSizer(containerRect, sizer, wrapper);
                 this.cursorManager?.updateContainerRect();
+                this.appManager?.boxManager.updateManagerRect();
             }
         });
 
