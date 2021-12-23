@@ -26,6 +26,9 @@ export class MainViewProxy extends Base {
                 this.start();
             }, 200); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
         });
+        emitter.on("playgroundSizeChange", () => {
+            this.sizeChangeHandler(this.mainViewSize);
+        });
     }
 
     private get mainViewCamera() {
@@ -43,10 +46,9 @@ export class MainViewProxy extends Base {
 
     public start() {
         if (this.started) return;
+        this.sizeChangeHandler(this.mainViewSize);
         this.addCameraListener();
         this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
-        this.manager.refresher?.add(Fields.MainViewSize, this.sizeReaction);
-        this.view.callbacks.on("onSizeUpdated", this.sizeListener);
         this.started = true;
     }
 
@@ -60,6 +62,7 @@ export class MainViewProxy extends Base {
             () => this.mainViewCamera,
             camera => {
                 if (camera && camera.id !== this.context.uid) {
+                    this.moveCameraToContian(this.mainViewSize);
                     this.moveCamera(camera);
                 }
             },
@@ -69,20 +72,12 @@ export class MainViewProxy extends Base {
         );
     };
 
-    private sizeReaction = () => {
-        return reaction(
-            () => this.mainViewSize,
-            size => {
-                if (size && size.id !== this.context.uid) {
-                    this.moveCameraToContian(size);
-                    this.moveCamera(this.mainViewCamera);
-                }
-            },
-            {
-                fireImmediately: true,
-            }
-        );
-    };
+    private sizeChangeHandler =  debounce((size: Size) => {
+        if (size) {
+            this.moveCameraToContian(size);
+            this.moveCamera(this.mainViewCamera);
+        }
+    }, 30);
 
     public get view(): View {
         return this.mainView;
@@ -104,9 +99,9 @@ export class MainViewProxy extends Base {
         return mainView;
     }
 
-    private cameraListener = (camera: Camera) => {
+    private onCameraUpdatedByDevice = (camera: Camera) => {
         this.store.setMainViewCamera({ ...camera, id: this.context.uid });
-        if (this.store.getMainViewSize()?.id !== this.context.uid) {
+        if (!isEqual(this.mainViewSize, {...this.mainView.size, id: this.context.uid})) {
             this.setMainViewSize(this.view.size);
         }
     };
@@ -138,28 +133,25 @@ export class MainViewProxy extends Base {
         this.context.blurFocusBox();
     }
 
-    private sizeListener = (size: Size) => {
-        this.setMainViewSize(size);
-        callbacks.emit("cameraStateChange", this.cameraState);
-    };
-
     public setMainViewSize = debounce(size => {
         this.store.setMainViewSize({ ...size, id: this.context.uid });
     }, 50);
 
     private addCameraListener() {
-        this.view.callbacks.on("onCameraUpdatedByDevice", this.cameraListener);
-        this.view.callbacks.on("onCameraUpdated", this.cameraStateChangeListener);
+        this.view.callbacks.on("onCameraUpdatedByDevice", this.onCameraUpdatedByDevice);
+        this.view.callbacks.on("onCameraUpdated", this.onCameraOrSizeUpdated);
+        this.view.callbacks.on("onSizeUpdated", this.onCameraOrSizeUpdated);
     }
 
     private removeCameraListener() {
-        this.view.callbacks.off("onCameraUpdatedByDevice", this.cameraListener);
-        this.view.callbacks.off("onCameraUpdated", this.cameraStateChangeListener)
+        this.view.callbacks.off("onCameraUpdatedByDevice", this.onCameraUpdatedByDevice);
+        this.view.callbacks.off("onCameraUpdated", this.onCameraOrSizeUpdated);
+        this.view.callbacks.off("onSizeUpdated", this.onCameraOrSizeUpdated);
     }
 
-    private cameraStateChangeListener = () => {
+    private onCameraOrSizeUpdated = () => {
         callbacks.emit("cameraStateChange", this.cameraState);
-    }
+    };
 
     public switchViewModeToWriter(): void {
         if (!this.manager.canOperate) return;
@@ -203,7 +195,6 @@ export class MainViewProxy extends Base {
         this.removeCameraListener();
         this.manager.refresher?.remove(Fields.MainViewCamera);
         this.manager.refresher?.remove(Fields.MainViewSize);
-        this.view.callbacks.off("onSizeUpdated", this.sizeListener);
         this.started = false;
     }
 

@@ -135,6 +135,7 @@ export type EmitterEvent = {
     mainViewMounted: undefined;
     observerIdChange: number;
     boxStateChange: string;
+    playgroundSizeChange: DOMRect;
 };
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();
@@ -700,6 +701,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.updateSizer(containerRect, sizer, wrapper);
                 this.cursorManager?.updateContainerRect();
                 this.appManager?.boxManager.updateManagerRect();
+                emitter.emit("playgroundSizeChange", containerRect);
             }
         });
 
