@@ -24,6 +24,9 @@ export class MainViewProxy extends Base {
         emitter.once("mainViewMounted").then(() => {
             setTimeout(() => {
                 this.start();
+                if (!this.mainViewCamera || !this.mainViewSize) {
+                    this.setCameraAndSize();
+                }
             }, 200); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
         });
         emitter.on("playgroundSizeChange", () => {
