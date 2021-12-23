@@ -268,8 +268,8 @@ export class BoxManager {
         this.teleBoxManager.update(appId, { x, y }, true);
     }
 
-    public focusBox({ appId }: AppId): void {
-        this.teleBoxManager.update(appId, { focus: true }, true);
+    public focusBox({ appId }: AppId, skipUpdate = true): void {
+        this.teleBoxManager.update(appId, { focus: true }, skipUpdate);
     }
 
     public resizeBox({ appId, width, height, skipUpdate }: ResizeBoxParams): void {
@@ -313,6 +313,16 @@ export class BoxManager {
 
     public setMinimized(minimized: boolean, skipUpdate = true) {
         this.teleBoxManager.setMinimized(minimized, skipUpdate);
+    }
+
+    public focusTopBox(): void {
+        const boxes = this.teleBoxManager.query();
+        if (boxes.length >= 1) {
+            const box = this.getTopBox();
+            if (box) {
+                this.focusBox({ appId: box.id }, false);
+            }
+        }
     }
 
     public setReadonly(readonly: boolean) {

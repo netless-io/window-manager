@@ -395,6 +395,9 @@ export class AppManager {
                 if (appProxy) {
                     appProxy.destroy(false, true, payload.error);
                 }
+                if (this.boxManager.maximized) {
+                    this.boxManager.focusTopBox();
+                }
                 break;
             }
             case "boxStateChange": {
