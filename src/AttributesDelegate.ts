@@ -74,8 +74,8 @@ export class AttributesDelegate {
         this.manager.safeUpdateAttributes([Fields.Apps, id, Fields.State], {
             [AppAttributes.Size]: {},
             [AppAttributes.Position]: {},
-            [AppAttributes.SnapshotRect]: {},
             [AppAttributes.SceneIndex]: 0,
+            [AppAttributes.ZIndex]: 100,
         });
     }
 

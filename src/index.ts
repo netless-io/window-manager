@@ -121,6 +121,7 @@ export type AppInitState = {
     minimized?: boolean;
     sceneIndex?: number;
     boxState?: TeleBoxState; // 兼容旧版 telebox
+    zIndex?: number;
 };
 
 export type EmitterEvent = {

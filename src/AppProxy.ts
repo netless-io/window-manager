@@ -172,6 +172,7 @@ export class AppProxy extends Base {
                 app,
                 options,
                 canOperate: this.manager.canOperate,
+                smartPosition: this.isAddApp,
             });
         } catch (error: any) {
             console.error(error);
@@ -247,7 +248,8 @@ export class AppProxy extends Base {
         const sceneIndex = attrs?.[AppAttributes.SceneIndex];
         const maximized = this.attributes?.["maximized"];
         const minimized = this.attributes?.["minimized"];
-        let payload = { maximized, minimized } as AppInitState;
+        const zIndex = attrs?.zIndex;
+        let payload = { maximized, minimized, zIndex } as AppInitState;
         if (position) {
             payload = { ...payload, id: id, x: position.x, y: position.y };
         }

@@ -1,6 +1,6 @@
 import { callbacks, emitter, WindowManager } from "./index";
 import { debounce, maxBy } from "lodash";
-import { DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
+import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
@@ -29,6 +29,7 @@ export type CreateBoxParams = {
     emitter?: Emittery;
     options?: AddAppOptions;
     canOperate?: boolean;
+    smartPosition?: boolean;
 };
 
 type AppId = { appId: string };
@@ -70,7 +71,6 @@ export class BoxManager {
             this.manager.safeSetAttributes({ maximized });
         });
         this.teleBoxManager.events.on("removed", boxes => {
-            console.log("removed", boxes);
             boxes.forEach(box => {
                 emitter.emit("close", { appId: box.id });
             });
@@ -105,6 +105,9 @@ export class BoxManager {
         });
         this.teleBoxManager.events.on("prefers_color_scheme", colorScheme => {
             callbacks.emit("prefersColorSchemeChange", colorScheme);
+        });
+        this.teleBoxManager.events.on("z_index", box => {
+            this.manager.store.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
         });
     }
 
@@ -151,7 +154,7 @@ export class BoxManager {
             height,
             id: params.appId,
         };
-        this.teleBoxManager.create(createBoxConfig);
+        this.teleBoxManager.create(createBoxConfig, params.smartPosition);
         emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
     }
 
@@ -238,6 +241,7 @@ export class BoxManager {
                     y: state.y,
                     width: state.width || 0.5,
                     height: state.height || 0.5,
+                    zIndex: state.zIndex,
                 },
                 true
             );

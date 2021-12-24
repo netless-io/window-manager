@@ -17,8 +17,8 @@ export const MagixEventName = "__WindowManger";
 export enum AppAttributes {
     Size = "size",
     Position = "position",
-    SnapshotRect = "SnapshotRect",
     SceneIndex = "SceneIndex",
+    ZIndex = "zIndex",
 }
 
 export enum AppEvents {
