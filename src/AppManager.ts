@@ -100,7 +100,7 @@ export class AppManager {
                 if (this.boxManager.minimized !== minimized) {
                     if (minimized === true && this.store.focus !== undefined) {
                         this.store.cleanFocus();
-                        this.boxManager.blurFocusBox();
+                        this.boxManager.blurAllBox();
                     }
                     this.boxManager.setMinimized(Boolean(minimized));
                 }
@@ -395,9 +395,9 @@ export class AppManager {
                 if (appProxy) {
                     appProxy.destroy(false, true, payload.error);
                 }
-                if (this.boxManager.maximized) {
-                    this.boxManager.focusTopBox();
-                }
+                // if (this.boxManager.maximized) {
+                //     this.boxManager.focusTopBox();
+                // }
                 break;
             }
             case "boxStateChange": {

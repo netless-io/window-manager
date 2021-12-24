@@ -70,6 +70,7 @@ export class BoxManager {
             this.manager.safeSetAttributes({ maximized });
         });
         this.teleBoxManager.events.on("removed", boxes => {
+            console.log("removed", boxes);
             boxes.forEach(box => {
                 emitter.emit("close", { appId: box.id });
             });
@@ -95,10 +96,8 @@ export class BoxManager {
                 if (this.manager.canOperate) {
                     emitter.emit("focus", { appId: box.id });
                 } else {
-                    this.teleBoxManager.update(box.id, { focus: false });
+                    this.teleBoxManager.blurBox(box.id);
                 }
-            } else {
-                this.blurFocusBox();
             }
         });
         this.teleBoxManager.events.on("dark_mode", darkMode => {
@@ -248,7 +247,7 @@ export class BoxManager {
             }
             setTimeout(() => {
                 if (state.focus) {
-                    this.teleBoxManager.update(box.id, { focus: true }, true);
+                    this.teleBoxManager.focusBox(box.id, true)
                 }
             }, 50);
             callbacks.emit("boxStateChange", this.teleBoxManager.state);
@@ -269,7 +268,7 @@ export class BoxManager {
     }
 
     public focusBox({ appId }: AppId, skipUpdate = true): void {
-        this.teleBoxManager.update(appId, { focus: true }, skipUpdate);
+        this.teleBoxManager.focusBox(appId, skipUpdate);
     }
 
     public resizeBox({ appId, width, height, skipUpdate }: ResizeBoxParams): void {
@@ -292,15 +291,7 @@ export class BoxManager {
     }
 
     public blurAllBox(): void {
-        this.teleBoxManager.updateAll({ focus: false });
-    }
-
-    public blurFocusBox(): void {
-        const focusBoxes = this.teleBoxManager.query({ focus: true });
-        if (focusBoxes.length) {
-            const box = focusBoxes[0];
-            this.teleBoxManager.update(box.id, { focus: false });
-        }
+        this.teleBoxManager.blurAll();
     }
 
     public updateAll(config: TeleBoxManagerUpdateConfig): void {

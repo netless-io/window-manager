@@ -31,7 +31,7 @@ export class Context {
     }
 
     public blurFocusBox() {
-        this.manager.boxManager.blurFocusBox();
+        this.manager.boxManager.blurAllBox();
     }
 
     public switchAppToWriter(id: string) {
