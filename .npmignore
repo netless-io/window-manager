@@ -5,3 +5,5 @@ vite.config.json
 yarn.lock
 e2e/
 example/
+yarn.lock
+yarn-error.log
