@@ -66,6 +66,10 @@ export class BoxManager {
         });
         this.teleBoxManager.events.on("minimized", minimized => {
             this.manager.safeSetAttributes({ minimized });
+            if (minimized) {
+                this.manager.store.cleanFocus();
+                this.blurAllBox();
+            }
         });
         this.teleBoxManager.events.on("maximized", maximized => {
             this.manager.safeSetAttributes({ maximized });
