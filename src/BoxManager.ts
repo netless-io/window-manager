@@ -249,13 +249,15 @@ export class BoxManager {
                 },
                 true
             );
-            if (state.maximized != null) {
-                this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
-                this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
-            }
             setTimeout(() => {
                 if (state.focus) {
                     this.teleBoxManager.focusBox(box.id, true)
+                }
+                if (state.maximized != null) {
+                    this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
+                }
+                if (state.minimized != null) {
+                    this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
                 }
             }, 50);
             callbacks.emit("boxStateChange", this.teleBoxManager.state);

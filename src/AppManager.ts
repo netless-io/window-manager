@@ -101,7 +101,9 @@ export class AppManager {
                     if (minimized === true) {
                         this.boxManager.blurAllBox();
                     }
-                    this.boxManager.setMinimized(Boolean(minimized));
+                    setTimeout(() => {
+                        this.boxManager.setMinimized(Boolean(minimized));
+                    }, 0);
                 }
             });
         });
