@@ -1,21 +1,9 @@
 import pRetry from "p-retry";
-import {
-    AppAttributes,
-    AppStatus,
-    Events,
-    MagixEventName
-    } from "./constants";
+import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { AttributesDelegate } from "./AttributesDelegate";
-import {
-    autorun,
-    isPlayer,
-    isRoom,
-    ScenePathType,
-    ViewVisionMode
-    } from "white-web-sdk";
-import { BoxManager } from "./BoxManager";
+import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
 import { callbacks, emitter } from "./index";
 import { CameraStore } from "./Utils/CameraStore";
 import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
@@ -24,8 +12,8 @@ import { MainViewProxy } from "./MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { ViewManager } from "./ViewManager";
+import type { BoxManager } from "./BoxManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
-import type { CreateTeleBoxManagerConfig } from "./BoxManager";
 import type {
     AddAppParams,
     BaseInsertParams,
@@ -35,7 +23,6 @@ import type {
 } from "./index";
 export class AppManager {
     public displayer: Displayer;
-    public boxManager: BoxManager;
     public cameraStore: CameraStore;
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();
@@ -47,12 +34,11 @@ export class AppManager {
 
     private appListeners: AppListeners;
 
-    constructor(public windowManger: WindowManager, options: CreateTeleBoxManagerConfig) {
+    constructor(public windowManger: WindowManager, public boxManager: BoxManager) {
         this.displayer = windowManger.displayer;
         this.cameraStore = new CameraStore();
         this.mainViewProxy = new MainViewProxy(this);
         this.viewManager = new ViewManager(this);
-        this.boxManager = new BoxManager(this, options);
         this.appListeners = new AppListeners(this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
@@ -77,9 +63,12 @@ export class AppManager {
         this.boxManager.updateManagerRect();
         emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
-            return safeListenPropsUpdated(() => this.attributes.apps, () => {
-                this.attributesUpdateCallback(this.attributes.apps);
-            });
+            return safeListenPropsUpdated(
+                () => this.attributes.apps,
+                () => {
+                    this.attributesUpdateCallback(this.attributes.apps);
+                }
+            );
         });
         this.refresher?.add("appsClose", () => {
             return onObjectRemoved(this.attributes.apps, () => {
@@ -131,24 +120,27 @@ export class AppManager {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
 
-                    pRetry(async () => {
-                        this.appStatus.set(id, AppStatus.StartCreate);
-                        // 防御 appAttributes 有可能为 undefined 的情况，这里做一个重试
-                        const appAttributes = this.attributes[id];
-                        if (!appAttributes) {
-                            throw new Error("appAttributes is undefined");
-                        }
-                        await this.baseInsertApp(
-                            {
-                                kind: app.kind,
-                                options: app.options,
-                                isDynamicPPT: app.isDynamicPPT,
-                            },
-                            id,
-                            false
-                        );
-                        this.focusByAttributes(apps);
-                    }, { retries: 3 }).catch(err => {
+                    pRetry(
+                        async () => {
+                            this.appStatus.set(id, AppStatus.StartCreate);
+                            // 防御 appAttributes 有可能为 undefined 的情况，这里做一个重试
+                            const appAttributes = this.attributes[id];
+                            if (!appAttributes) {
+                                throw new Error("appAttributes is undefined");
+                            }
+                            await this.baseInsertApp(
+                                {
+                                    kind: app.kind,
+                                    options: app.options,
+                                    isDynamicPPT: app.isDynamicPPT,
+                                },
+                                id,
+                                false
+                            );
+                            this.focusByAttributes(apps);
+                        },
+                        { retries: 3 }
+                    ).catch(err => {
                         console.warn(`[WindowManager]: Insert App Error`, err);
                         this.appStatus.delete(id);
                     });
@@ -409,7 +401,7 @@ export class AppManager {
     };
 
     public focusByAttributes(apps: any) {
-        if (apps && Object.keys(apps).length === this.boxManager.appBoxMap.size) {
+        if (apps && Object.keys(apps).length === this.boxManager.boxSize) {
             const focusAppId = this.store.focus;
             if (focusAppId) {
                 this.boxManager.focusBox({ appId: focusAppId });

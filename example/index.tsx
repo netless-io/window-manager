@@ -252,6 +252,7 @@ const onRef = (ref) => {
         cursorAdapter: undefined,
         uid: uid,
         disableMagixEventDispatchLimit: true,
+        disableNewPencil: false,
     }).then(async room => {
         if (room.isWritable) {
             room.setMemberState({ strokeColor: [0, 0, 1] });

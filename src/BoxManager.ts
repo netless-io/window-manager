@@ -1,22 +1,22 @@
-import { callbacks, emitter, WindowManager } from "./index";
-import { debounce, maxBy } from "lodash";
 import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
+import { debounce, maxBy } from "lodash";
 import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
     TeleBoxCollector,
     TeleBoxManager,
 } from "@netless/telebox-insider";
-import type { AddAppOptions, AppInitState } from "./index";
+import { WindowManager } from "./index";
+import type { AddAppOptions, AppInitState, EmitterType, CallbacksType } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
     TeleBoxManagerCreateConfig,
     ReadonlyTeleBox,
     TeleBoxManagerConfig,
     TeleBoxColorScheme,
+    TeleBoxRect,
 } from "@netless/telebox-insider";
 import type Emittery from "emittery";
-import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
 
@@ -48,31 +48,63 @@ export type CreateTeleBoxManagerConfig = {
     prefersColorScheme?: TeleBoxColorScheme;
 };
 
+export type BoxManagerContext = {
+    safeSetAttributes: (attributes: any) => void;
+    getMainView: () => View;
+    updateAppState: (appId: string, field: AppAttributes, value: any) => void;
+    emitter: EmitterType;
+    callbacks: CallbacksType;
+    canOperate: () => boolean;
+    notifyContainerRectUpdate: (rect: TeleBoxRect) => void;
+    cleanFocus: () => void;
+};
+
+export const createBoxManager = (
+    manager: WindowManager,
+    callbacks: CallbacksType,
+    emitter: EmitterType,
+    options: CreateTeleBoxManagerConfig
+) => {
+    return new BoxManager(
+        {
+            safeSetAttributes: (attributes: any) => manager.safeSetAttributes(attributes),
+            getMainView: () => manager.mainView,
+            updateAppState: (...args) => manager.appManager?.store.updateAppState(...args),
+            canOperate: () => manager.canOperate,
+            notifyContainerRectUpdate: (rect: TeleBoxRect) =>
+                manager.appManager?.notifyContainerRectUpdate(rect),
+            cleanFocus: () => manager.appManager?.store.cleanFocus(),
+            callbacks,
+            emitter,
+        },
+        options
+    );
+};
+
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
-    public appBoxMap: Map<string, string> = new Map();
-    private mainView = this.manager.mainView;
 
     constructor(
-        private manager: AppManager,
-        createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig
+        private context: BoxManagerContext,
+        private createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig
     ) {
+        const { emitter, callbacks } = context;
         this.teleBoxManager = this.setupBoxManager(createTeleBoxManagerConfig);
         this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
             if (state) {
-                callbacks.emit("boxStateChange", state);
-                emitter.emit("boxStateChange", state);
+                this.context.callbacks.emit("boxStateChange", state);
+                this.context.emitter.emit("boxStateChange", state);
             }
         });
         this.teleBoxManager.events.on("minimized", minimized => {
-            this.manager.safeSetAttributes({ minimized });
+            this.context.safeSetAttributes({ minimized });
             if (minimized) {
-                this.manager.store.cleanFocus();
+                this.context.cleanFocus();
                 this.blurAllBox();
             }
         });
         this.teleBoxManager.events.on("maximized", maximized => {
-            this.manager.safeSetAttributes({ maximized });
+            this.context.safeSetAttributes({ maximized });
         });
         this.teleBoxManager.events.on("removed", boxes => {
             boxes.forEach(box => {
@@ -97,7 +129,7 @@ export class BoxManager {
         );
         this.teleBoxManager.events.on("focused", box => {
             if (box) {
-                if (this.manager.canOperate) {
+                if (this.canOperate) {
                     emitter.emit("focus", { appId: box.id });
                 } else {
                     this.teleBoxManager.blurBox(box.id);
@@ -111,8 +143,16 @@ export class BoxManager {
             callbacks.emit("prefersColorSchemeChange", colorScheme);
         });
         this.teleBoxManager.events.on("z_index", box => {
-            this.manager.store.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
+            this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
         });
+    }
+
+    private get mainView() {
+        return this.context.getMainView();
+    }
+
+    private get canOperate() {
+        return this.context.canOperate();
     }
 
     public get boxState() {
@@ -133,6 +173,10 @@ export class BoxManager {
 
     public get prefersColorScheme(): TeleBoxColorScheme {
         return this.teleBoxManager.prefersColorScheme;
+    }
+
+    public get boxSize() {
+        return this.teleBoxManager.boxes.length;
     }
 
     public createBox(params: CreateBoxParams): void {
@@ -159,14 +203,14 @@ export class BoxManager {
             id: params.appId,
         };
         this.teleBoxManager.create(createBoxConfig, params.smartPosition);
-        emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
+        this.context.emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
     }
 
     public setBoxInitState(appId: string): void {
         const box = this.teleBoxManager.queryOne({ id: appId });
         if (box) {
             if (box.state === TELE_BOX_STATE.Maximized) {
-                emitter.emit("resize", {
+                this.context.emitter.emit("resize", {
                     appId: appId,
                     x: box.x,
                     y: box.y,
@@ -193,22 +237,28 @@ export class BoxManager {
             fence: false,
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
         };
-        const container = createTeleBoxManagerConfig?.collectorContainer || WindowManager.wrapper;
-        const styles = {
-            ...DEFAULT_COLLECTOR_STYLE,
-            ...createTeleBoxManagerConfig?.collectorStyles,
-        };
-        const teleBoxCollector = new TeleBoxCollector({
-            styles: styles,
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        }).mount(container!);
-        initManagerState.collector = teleBoxCollector;
+
         const manager = new TeleBoxManager(initManagerState);
         if (this.teleBoxManager) {
             this.teleBoxManager.destroy();
         }
         this.teleBoxManager = manager;
+        const container = createTeleBoxManagerConfig?.collectorContainer || WindowManager.wrapper;
+        if (container) {
+            this.setCollectorContainer(container);
+        }
         return manager;
+    }
+
+    public setCollectorContainer(container: HTMLElement) {
+        const styles = {
+            ...DEFAULT_COLLECTOR_STYLE,
+            ...this.createTeleBoxManagerConfig?.collectorStyles,
+        };
+        const collector = new TeleBoxCollector({
+            styles
+        }).mount(container);
+        this.teleBoxManager.setCollector(collector);
     }
 
     public getBox(appId: string): ReadonlyTeleBox | undefined {
@@ -251,7 +301,7 @@ export class BoxManager {
             );
             setTimeout(() => {
                 if (state.focus) {
-                    this.teleBoxManager.focusBox(box.id, true)
+                    this.teleBoxManager.focusBox(box.id, true);
                 }
                 if (state.maximized != null) {
                     this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
@@ -260,7 +310,7 @@ export class BoxManager {
                     this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
                 }
             }, 50);
-            callbacks.emit("boxStateChange", this.teleBoxManager.state);
+            this.context.callbacks.emit("boxStateChange", this.teleBoxManager.state);
         }
     }
 
@@ -269,7 +319,7 @@ export class BoxManager {
         if (rect && rect.width > 0 && rect.height > 0) {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
-            this.manager.notifyContainerRectUpdate(this.teleBoxManager.containerRect);
+            this.context.notifyContainerRectUpdate(this.teleBoxManager.containerRect);
         }
     }
 

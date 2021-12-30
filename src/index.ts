@@ -4,6 +4,7 @@ import Emittery from "emittery";
 import pRetry from "p-retry";
 import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
+import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
 import { DEFAULT_CONTAINER_RATIO, REQUIRE_VERSION } from "./constants";
 import { Fields } from "./AttributesDelegate";
@@ -22,7 +23,7 @@ import {
     isValidScenePath,
     wait,
 } from "./Utils/Common";
-import type { TELE_BOX_STATE } from "./BoxManager";
+import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
 import {
     AppCreateError,
     AppManagerNotInitError,
@@ -139,7 +140,8 @@ export type EmitterEvent = {
     playgroundSizeChange: DOMRect;
 };
 
-export const emitter: Emittery<EmitterEvent> = new Emittery();
+export type EmitterType = Emittery<EmitterEvent>;
+export const emitter: EmitterType = new Emittery();
 
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
@@ -165,7 +167,8 @@ export type MountParams = {
     prefersColorScheme?: TeleBoxColorScheme;
 };
 
-export const callbacks: Emittery<PublicEvent> = new Emittery();
+export type CallbacksType = Emittery<PublicEvent>;
+export const callbacks: CallbacksType = new Emittery();
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind = "WindowManager";
@@ -173,6 +176,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static wrapper?: HTMLElement;
     public static playground?: HTMLElement;
     public static container?: HTMLElement;
+    private static collectorContainer?: HTMLElement;
     public static debug = false;
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
@@ -188,8 +192,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public viewMode = ViewMode.Broadcaster;
     public isReplay = isPlayer(this.displayer);
 
+    private boxManager?: BoxManager;
+
     constructor(context: InvisiblePluginContext) {
         super(context);
+        WindowManager.displayer = context.displayer;
     }
 
     /**
@@ -236,7 +243,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if ("room" in params) {
             room = params.room;
             container = params.container;
-            collectorContainer = params.collectorContainer;
+            this.collectorContainer = params.collectorContainer;
             containerSizeRatio = params.containerSizeRatio;
             collectorStyles = params.collectorStyles;
             debug = params.debug;
@@ -256,6 +263,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 chessboard = options.chessboard;
             }
             overwriteStyles = options?.overwriteStyles;
+            this.collectorContainer = collectorContainer;
         }
 
         this.checkVersion();
@@ -297,28 +305,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
         }
-        WindowManager.container = container;
-        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
-        WindowManager.playground = playground;
-        if (chessboard) {
-            sizer.classList.add("netless-window-manager-chess-sizer");
-        }
-        if (overwriteStyles) {
-            const style = document.createElement("style");
-            style.textContent = overwriteStyles;
-            playground.appendChild(style);
-        }
         await manager.ensureAttributes();
-        manager.appManager = new AppManager(manager, {
-            collectorContainer: collectorContainer,
+
+        const mainViewElement = this.initContainer(manager, container, chessboard, overwriteStyles);
+        const boxManager = createBoxManager(manager, callbacks, emitter, {
+            collectorContainer: this.collectorContainer,
             collectorStyles: collectorStyles,
             prefersColorScheme: prefersColorScheme,
         });
-        manager.observePlaygroundSize(playground, sizer, wrapper);
+        manager.boxManager = boxManager;
+        manager.appManager = new AppManager(manager, boxManager);
+        manager.bindMainView(mainViewElement, disableCameraTransform);
         if (cursor) {
             manager.cursorManager = new CursorManager(manager.appManager);
         }
-        manager.bindMainView(mainViewElement, disableCameraTransform);
         replaceRoomFunction(room, manager.appManager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
@@ -359,6 +359,28 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return manager;
     }
 
+    private static initContainer(
+        manager: WindowManager,
+        container: HTMLElement, 
+        chessboard: boolean | undefined,
+        overwriteStyles: string | undefined) {
+        if (!WindowManager.container) {
+            WindowManager.container = container;
+        }
+        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
+        WindowManager.playground = playground;
+        if (chessboard) {
+            sizer.classList.add("netless-window-manager-chess-sizer");
+        }
+        if (overwriteStyles) {
+            const style = document.createElement("style");
+            style.textContent = overwriteStyles;
+            playground.appendChild(style);
+        }
+        manager.observePlaygroundSize(playground, sizer, wrapper);
+        return mainViewElement;
+    }
+
     /**
      * 注册插件
      */
@@ -366,6 +388,24 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         params: RegisterParams<AppOptions, SetupResult, Attributes>
     ): Promise<void> {
         return appRegister.register(params);
+    }
+
+    public static setContainer(container: HTMLElement) {
+        if (this.isCreated && WindowManager.container) {
+            if (WindowManager.container.firstChild) {
+                container.appendChild(WindowManager.container.firstChild);
+            }
+        }
+        WindowManager.container = container;
+    }
+
+    public static setCollectorContainer(container: HTMLElement) {
+        const manager = this.displayer.getInvisiblePlugin(this.kind) as WindowManager;
+        if (this.isCreated && manager) {
+            manager.boxManager?.setCollectorContainer(container);
+        } else {
+            this.collectorContainer = container;
+        }
     }
 
     /**
@@ -613,12 +653,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (WindowManager.playground) {
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
         }
+        WindowManager.collectorContainer = undefined;
         log("Destroyed");
     }
 
-    private bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
+    private bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean | undefined) {
         if (this.appManager) {
-            this.appManager.bindMainView(divElement, disableCameraTransform);
+            this.appManager.bindMainView(divElement, Boolean(disableCameraTransform));
             this.cursorManager?.setMainViewDivElement(divElement);
         }
     }
@@ -701,7 +742,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (containerRect) {
                 this.updateSizer(containerRect, sizer, wrapper);
                 this.cursorManager?.updateContainerRect();
-                this.appManager?.boxManager.updateManagerRect();
+                this.boxManager?.updateManagerRect();
                 emitter.emit("playgroundSizeChange", containerRect);
             }
         });
