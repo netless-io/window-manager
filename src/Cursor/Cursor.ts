@@ -70,13 +70,20 @@ export class Cursor extends Base {
     }
 
     private moveCursor(cursor: Position, rect: DOMRect, view: any) {
-        const { x, y } = cursor;
+        const { x, y, type } = cursor;
         const point = view?.screen.convertPointToScreen(x, y);
         if (point) {
-            const translateX = point.x + rect.x - 2;
-            const translateY = point.y + rect.y - 18;
+            let translateX = point.x - 2;
+            let translateY = point.y - 18;
+            if (type === "app") {
+                const wrapperRect = this.cursorManager.wrapperRect;
+                if (wrapperRect) {
+                    translateX = translateX + rect.x - wrapperRect.x;
+                    translateY = translateY + rect.y - wrapperRect.y;
+                }
+            }
             if (point.x < 0 || point.x > rect.width || point.y < 0 || point.y > rect.height) {
-                this.component?.$set({ visible: false });
+                this.component?.$set({ visible: false, x: translateX, y: translateY });
             } else {
                 this.component?.$set({ visible: true, x: translateX, y: translateY });
             }
@@ -149,7 +156,7 @@ export class Cursor extends Base {
     private async createCursor() {
         if (this.member && this.wrapper) {
             this.component = new App({
-                target: document.documentElement,
+                target: this.wrapper,
                 props: this.initProps(),
             });
         }

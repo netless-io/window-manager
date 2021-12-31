@@ -384,6 +384,10 @@ export class BoxManager {
         this.teleBoxManager.setPrefersColorScheme(colorScheme);
     }
 
+    public setZIndex(id: string, zIndex: number, skipUpdate = true) {
+        this.teleBoxManager.update(id, { zIndex }, skipUpdate);
+    }
+
     public destroy() {
         this.teleBoxManager.destroy();
     }

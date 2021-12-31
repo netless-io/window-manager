@@ -1,10 +1,10 @@
-import { emitter } from '../index';
-import { isPlayer } from 'white-web-sdk';
+import { emitter } from "../index";
+import { isPlayer } from "white-web-sdk";
+import type { WindowManager } from '../index';
 import type { Camera, Room , Player , PlayerSeekingResult } from "white-web-sdk";
-import type { AppManager } from "../AppManager";
 
 // 修改多窗口状态下一些失效的方法实现到 manager 的 mainview 上, 降低迁移成本
-export const replaceRoomFunction = (room: Room, manager: AppManager) => {
+export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
     if (isPlayer(room)) {
         const player = room as unknown as Player;
         const originSeek = player.seekToProgressTime;
@@ -30,7 +30,7 @@ export const replaceRoomFunction = (room: Room, manager: AppManager) => {
         });
 
         room.moveCamera = (camera: Camera) => manager.mainView.moveCamera(camera);
-        room.moveCameraToContain = (...args) => manager.mainView.moveCameraToContain(...args);
+        room.moveCameraToContain = (...args) => manager.moveCameraToContain(...args);
         room.convertToPointInWorld = (...args) => manager.mainView.convertToPointInWorld(...args);
         room.setCameraBound = (...args) => manager.mainView.setCameraBound(...args);
         room.scenePreview = (...args) => manager.mainView.scenePreview(...args);

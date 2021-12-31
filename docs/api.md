@@ -4,6 +4,8 @@
   - [静态方法](#static-methods)
     - [`mount`](#mount)
     - [`register`](#register)
+    - [`setContainer`](#set-container)
+    - [`setCollectorContainer`](#set-collector-container)
   - [实例方法](#instance-methods)
     - [`addApp`](#addApp)
     - [`closeApp`](#closeApp)
@@ -63,6 +65,21 @@ WindowManager.register({
 })
 ```
 
+<h3 id="set-container">setContainer</h3>
+
+> 设置白板挂载容器
+
+```typescript
+WindowManager.setContainer(document.getElementById("container"));
+```
+
+<h3 id="set-container">setCollectorContainer</h3>
+
+> 设置 `Collector` 挂载的容器
+
+```typescript
+WindowManager.setCollectorContainer(document.getElementById("collector-container"));
+```
 
 <h2 id="instance-methods">实例方法</h2>
 

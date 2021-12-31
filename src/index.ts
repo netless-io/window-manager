@@ -199,72 +199,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         WindowManager.displayer = context.displayer;
     }
 
-    /**
-     * 挂载 WindowManager
-     * @deprecated
-     */
-    public static async mount(
-        room: Room,
-        container: HTMLElement,
-        collectorContainer?: HTMLElement,
-        options?: {
-            chessboard: boolean;
-            containerSizeRatio: number;
-            collectorStyles?: Partial<CSSStyleDeclaration>;
-            debug?: boolean;
-            overwriteStyles?: string;
-        }
-    ): Promise<WindowManager>;
-
-    public static async mount(params: MountParams): Promise<WindowManager>;
-
-    public static async mount(
-        params: MountParams | Room,
-        container?: HTMLElement,
-        collectorContainer?: HTMLElement,
-        options?: {
-            chessboard?: boolean;
-            containerSizeRatio: number;
-            collectorStyles?: Partial<CSSStyleDeclaration>;
-            debug?: boolean;
-            overwriteStyles?: string;
-            disableCameraTransform?: boolean;
-        }
-    ): Promise<WindowManager> {
-        let room: Room;
-        let containerSizeRatio: number | undefined;
-        let collectorStyles: Partial<CSSStyleDeclaration> | undefined;
-        let debug: boolean | undefined;
+    public static async mount(params: MountParams): Promise<WindowManager> {
         let chessboard = true;
-        let overwriteStyles: string | undefined;
-        let cursor: boolean | undefined;
-        let disableCameraTransform = false;
-        let prefersColorScheme: TeleBoxColorScheme | undefined = "light";
-        if ("room" in params) {
-            room = params.room;
-            container = params.container;
-            this.collectorContainer = params.collectorContainer;
-            containerSizeRatio = params.containerSizeRatio;
-            collectorStyles = params.collectorStyles;
-            debug = params.debug;
-            if (params.chessboard != null) {
-                chessboard = params.chessboard;
-            }
-            overwriteStyles = params.overwriteStyles;
-            cursor = params.cursor;
-            disableCameraTransform = Boolean(params?.disableCameraTransform);
-            prefersColorScheme = params.prefersColorScheme;
-        } else {
-            room = params;
-            containerSizeRatio = options?.containerSizeRatio;
-            collectorStyles = options?.collectorStyles;
-            debug = options?.debug;
-            if (options?.chessboard != null) {
-                chessboard = options.chessboard;
-            }
-            overwriteStyles = options?.overwriteStyles;
-            this.collectorContainer = collectorContainer;
+        const room = params.room;
+        WindowManager.container = params.container;
+        this.collectorContainer = params.collectorContainer;
+        const containerSizeRatio = params.containerSizeRatio;
+        const collectorStyles = params.collectorStyles;
+        const debug = params.debug;
+        if (params.chessboard != null) {
+            chessboard = params.chessboard;
         }
+        const overwriteStyles = params.overwriteStyles;
+        const cursor = params.cursor;
+        const disableCameraTransform = Boolean(params?.disableCameraTransform);
+        const prefersColorScheme = params.prefersColorScheme;
 
         this.checkVersion();
         if (isRoom(room)) {
@@ -272,7 +221,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 throw new Error("[WindowManager]: Room only Connected can be mount");
             }
         }
-        if (!container) {
+        if (!WindowManager.container) {
             throw new Error("[WindowManager]: Container must provide");
         }
         if (WindowManager.isCreated) {
@@ -307,7 +256,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         await manager.ensureAttributes();
 
-        const mainViewElement = this.initContainer(manager, container, chessboard, overwriteStyles);
+        const mainViewElement = this.initContainer(
+            manager,
+            WindowManager.container,
+            chessboard,
+            overwriteStyles
+        );
         const boxManager = createBoxManager(manager, callbacks, emitter, {
             collectorContainer: this.collectorContainer,
             collectorStyles: collectorStyles,
@@ -319,7 +273,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (cursor) {
             manager.cursorManager = new CursorManager(manager.appManager);
         }
-        replaceRoomFunction(room, manager.appManager);
+        replaceRoomFunction(room, manager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
         try {
@@ -361,9 +315,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     private static initContainer(
         manager: WindowManager,
-        container: HTMLElement, 
+        container: HTMLElement,
         chessboard: boolean | undefined,
-        overwriteStyles: string | undefined) {
+        overwriteStyles: string | undefined
+    ) {
         if (!WindowManager.container) {
             WindowManager.container = container;
         }

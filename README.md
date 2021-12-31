@@ -2,54 +2,14 @@
 
 - 目录
   - [references](docs/api.md)
+  - [从白板迁移](docs/migrate.md)
 ## MainView
 
 `MainView` 也就是主白板, 是垫在所有窗口下面的主白板
 
 因为多窗口的原因，所以抽象出来一个主白板, 并且把以前部分对 `room` 的操作, 迁移到对 `mainView` 操作
 
-### 注意事项
-
-多窗口模式必须开启白板的 `useMultiViews` 和 `useMobXState` 选项
-
-会造成原本以下 `room` 上的一些方法和 `state` 失效
-
-`方法`
-
--   `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
--   `room.scalePptToFit()` 暂无代替,不再推荐调用 `scalePptToFit`
--   `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
--   `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
-
-> 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mainView` 生效
-
--   `room.disableCameraTransform`
--   `room.moveCamera`
--   `room.moveCameraToContain`
--   `room.convertToPointInWorld`
--   `room.setCameraBound`
-
-`camera`
-
--   `room.state.cameraState` 用 `manager.mainView.camera` 和 `manager.mainView.size` 代替
-
-想要监听主白板 `camera` 的变化, 请使用如下方式代替
-
-```javascript
-manager.mainView.callbacks.on("onCameraUpdated", camera => {
-    console.log(camera);
-});
-```
-
-监听主白板 `size` 变化
-
-```javascript
-manager.mainView.callbacks.on("onSizeUpdated", size => {
-    console.log(size);
-});
-```
-
-### 接入
+### 快速开始
 
 ```javascript
 import { WhiteWebSdk } from "white-web-sdk";
@@ -58,7 +18,7 @@ import "@netless/window-manager/dist/style.css";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: "appIdentifier",
-    useMobXState: true
+    useMobXState: true // 请确保打开这个选项
 });
 
 sdk.joinRoom({
@@ -66,6 +26,7 @@ sdk.joinRoom({
     roomToken: "room token",
     invisiblePlugins: [WindowManager],
     useMultiViews: true, // 多窗口必须用开启 useMultiViews
+    disableMagixEventDispatchLimit: true, // 请确保打开这个选项
 }).then(async room => {
     const manager = await WindowManager.mount(
         room,

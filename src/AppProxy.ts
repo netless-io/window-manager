@@ -40,6 +40,7 @@ export class AppProxy extends Base {
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
+    private stateKey: string;
 
     constructor(
         private params: BaseInsertParams,
@@ -50,6 +51,7 @@ export class AppProxy extends Base {
         super(manager);
         this.kind = params.kind;
         this.id = appId;
+        this.stateKey = `${this.id}_state`;
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
         this.appListener = this.makeAppEventListener(this.id);
@@ -327,6 +329,14 @@ export class AppProxy extends Base {
                 }
             });
         });
+        this.manager.refresher?.add(this.stateKey,() => {
+            return autorun(() => {
+                const appState = this.appAttributes.state;
+                if (appState?.zIndex && appState.zIndex !== this.box?.zIndex) {
+                    this.boxManager.setZIndex(appId, appState.zIndex);
+                }
+            });
+        });
     };
 
     public setScenePath(): void {
@@ -375,6 +385,7 @@ export class AppProxy extends Base {
         this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
         this.manager.refresher?.remove(this.id);
+        this.manager.refresher?.remove(this.stateKey);
     }
 
     public close(): Promise<void> {
