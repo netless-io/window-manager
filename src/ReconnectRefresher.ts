@@ -1,8 +1,8 @@
-import { isFunction } from 'lodash';
-import { RoomPhase } from 'white-web-sdk';
+import { isFunction, debounce } from "lodash";
+import { log } from "./Utils/log";
+import { RoomPhase } from "white-web-sdk";
 import type { Room } from "white-web-sdk";
-import type { AppManager } from './AppManager';
-import { log } from './Utils/log';
+import type { AppManager } from "./AppManager";
 
 // 白板重连之后会刷新所有的对象，导致 listener 失效, 所以这里在重连之后重新对所有对象进行监听
 export class ReconnectRefresher {
@@ -22,9 +22,9 @@ export class ReconnectRefresher {
             this.onReconnected();
         }
         this.phase = phase;
-    }
+    };
 
-    private onReconnected = () => {
+    private onReconnected = debounce(() => {
         log("onReconnected refresh reactors");
         this.releaseDisposers();
         this.reactors.forEach((func, id) => {
@@ -33,14 +33,14 @@ export class ReconnectRefresher {
             }
         });
         this.manager.notifyReconnected();
-    }
+    }, 3000);
 
     private releaseDisposers() {
         this.disposers.forEach(disposer => {
             if (isFunction(disposer)) {
                 disposer();
             }
-        })
+        });
         this.disposers.clear();
     }
 
@@ -62,6 +62,10 @@ export class ReconnectRefresher {
             }
             this.disposers.delete(id);
         }
+    }
+
+    public hasReactor(id: string) {
+        return this.reactors.has(id);
     }
 
     public destroy() {

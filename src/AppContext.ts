@@ -29,19 +29,19 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
         listenDisposed,
         unlistenDisposed
     };
-    private boxManager: BoxManager;
+
     private store = this.manager.store;
     public readonly isAddApp: boolean;
     public readonly isReplay = this.manager.isReplay;
 
     constructor(
         private manager: AppManager,
+        private boxManager: BoxManager,
         public appId: string,
         private appProxy: AppProxy,
         private appOptions?: AppOptions | (() => AppOptions),
     ) {
         this.emitter = appProxy.appEmitter;
-        this.boxManager = this.manager.boxManager;
         this.isAddApp = appProxy.isAddApp;
     }
 

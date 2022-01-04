@@ -1,9 +1,9 @@
 import type { AppManager } from "../AppManager";
-import { AttributesDelegate } from "../AttributesDelegate";
+import { store } from "../AttributesDelegate";
 import { createContext } from "./Context";
 
 export class Base {
-    public store = new AttributesDelegate(this.manager);
+    public store = store;
     public context = createContext(this.manager);
 
     constructor(public manager: AppManager) {}

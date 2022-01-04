@@ -109,6 +109,7 @@ export type AppSyncAttributes = {
     state?: any;
     isDynamicPPT?: boolean;
     fullPath?: string;
+    createdAt?: number;
 };
 
 export type AppInitState = {
@@ -153,7 +154,7 @@ export type PublicEvent = {
 
 export type MountParams = {
     room: Room;
-    container: HTMLElement;
+    container?: HTMLElement;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
     /** 显示 PS 透明背景，默认 true */
@@ -176,12 +177,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static wrapper?: HTMLElement;
     public static playground?: HTMLElement;
     public static container?: HTMLElement;
-    private static collectorContainer?: HTMLElement;
     public static debug = false;
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.3.18";
+    public version = "0.4.0-canary.0";
 
     public appListeners?: AppListeners;
 
@@ -193,6 +193,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public isReplay = isPlayer(this.displayer);
 
     private boxManager?: BoxManager;
+    private static params?: MountParams;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -200,29 +201,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public static async mount(params: MountParams): Promise<WindowManager> {
-        let chessboard = true;
         const room = params.room;
         WindowManager.container = params.container;
-        this.collectorContainer = params.collectorContainer;
         const containerSizeRatio = params.containerSizeRatio;
-        const collectorStyles = params.collectorStyles;
         const debug = params.debug;
-        if (params.chessboard != null) {
-            chessboard = params.chessboard;
-        }
-        const overwriteStyles = params.overwriteStyles;
+
         const cursor = params.cursor;
-        const disableCameraTransform = Boolean(params?.disableCameraTransform);
-        const prefersColorScheme = params.prefersColorScheme;
+        WindowManager.params = params;
 
         this.checkVersion();
         if (isRoom(room)) {
             if (room.phase !== RoomPhase.Connected) {
                 throw new Error("[WindowManager]: Room only Connected can be mount");
             }
-        }
-        if (!WindowManager.container) {
-            throw new Error("[WindowManager]: Container must provide");
         }
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
@@ -256,23 +247,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
         await manager.ensureAttributes();
 
-        const mainViewElement = this.initContainer(
-            manager,
-            WindowManager.container,
-            chessboard,
-            overwriteStyles
-        );
-        const boxManager = createBoxManager(manager, callbacks, emitter, {
-            collectorContainer: this.collectorContainer,
-            collectorStyles: collectorStyles,
-            prefersColorScheme: prefersColorScheme,
-        });
-        manager.boxManager = boxManager;
-        manager.appManager = new AppManager(manager, boxManager);
-        manager.bindMainView(mainViewElement, disableCameraTransform);
+        manager.appManager = new AppManager(manager);
+
         if (cursor) {
             manager.cursorManager = new CursorManager(manager.appManager);
         }
+
+        if (params.container) {
+            manager.bindContainer(params.container, params.collectorContainer);
+        }
+
         replaceRoomFunction(room, manager);
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
@@ -336,6 +320,33 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return mainViewElement;
     }
 
+    public bindContainer(container: HTMLElement, collectorContainer?: HTMLElement) {
+        if (WindowManager.params) {
+            const params = WindowManager.params;
+            const mainViewElement = WindowManager.initContainer(
+                this,
+                container,
+                params.chessboard,
+                params.overwriteStyles
+            );
+            const boxManager = createBoxManager(this, callbacks, emitter, {
+                collectorContainer: collectorContainer,
+                collectorStyles: params.collectorStyles,
+                prefersColorScheme: params.prefersColorScheme,
+            });
+            this.boxManager = boxManager;
+            this.appManager?.setBoxManager(boxManager);
+            this.bindMainView(mainViewElement, params.disableCameraTransform);
+            this.boxManager.updateManagerRect();
+            this.appManager?.refresh();
+            this.appManager?.resetMaximized();
+            this.appManager?.resetMinimized();
+            if (WindowManager.wrapper) {
+                this.cursorManager?.setupWrapper(WindowManager.wrapper);
+            }
+        }
+    }
+
     /**
      * 注册插件
      */
@@ -359,7 +370,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.isCreated && manager) {
             manager.boxManager?.setCollectorContainer(container);
         } else {
-            this.collectorContainer = container;
+            if (this.params) {
+                this.params.collectorContainer = container;
+            }
         }
     }
 
@@ -465,7 +478,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setReadonly(readonly: boolean): void {
         if (this.room?.isWritable) {
             this.readonly = readonly;
-            this.appManager?.boxManager.setReadonly(readonly);
+            this.appManager?.boxManager?.setReadonly(readonly);
         }
     }
 
@@ -526,21 +539,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.store.apps();
     }
 
-    public get boxState(): TeleBoxState {
+    public get boxState(): TeleBoxState | undefined {
         if (this.appManager) {
-            return this.appManager.boxManager.boxState;
+            return this.appManager.boxManager?.boxState;
         } else {
             throw new AppManagerNotInitError();
         }
     }
 
     public get darkMode(): boolean {
-        return Boolean(this.appManager?.boxManager.darkMode);
+        return Boolean(this.appManager?.boxManager?.darkMode);
     }
 
-    public get prefersColorScheme(): TeleBoxColorScheme {
+    public get prefersColorScheme(): TeleBoxColorScheme | undefined {
         if (this.appManager) {
-            return this.appManager.boxManager.prefersColorScheme;
+            return this.appManager.boxManager?.prefersColorScheme;
         } else {
             throw new AppManagerNotInitError();
         }
@@ -608,7 +621,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (WindowManager.playground) {
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
         }
-        WindowManager.collectorContainer = undefined;
+        WindowManager.params = undefined;
         log("Destroyed");
     }
 
@@ -647,7 +660,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public setPrefersColorScheme(scheme: TeleBoxColorScheme): void {
-        this.appManager?.boxManager.setPrefersColorScheme(scheme);
+        this.appManager?.boxManager?.setPrefersColorScheme(scheme);
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {

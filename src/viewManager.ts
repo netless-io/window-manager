@@ -103,7 +103,7 @@ export class ViewManager extends Base {
             setViewMode(this.mainView, ViewVisionMode.Freedom);
         }
         if (!this.mainView.focusScenePath) {
-            this.store.setMainViewFocusPath();
+            this.store.setMainViewFocusPath(this.mainView);
         }
     }
 
@@ -116,7 +116,7 @@ export class ViewManager extends Base {
         this.appTimer = setTimeout(() => {
             const appProxy = this.manager.appProxies.get(id);
             if (appProxy) {
-                if (this.manager.boxManager.minimized) return;
+                if (this.manager.boxManager?.minimized) return;
                 appProxy.setScenePath();
                 appProxy.switchToWritable();
                 appProxy.focusBox();

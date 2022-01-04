@@ -27,11 +27,11 @@ export class Context {
     }
 
     public updateManagerRect() {
-        this.manager.boxManager.updateManagerRect();
+        this.manager.boxManager?.updateManagerRect();
     }
 
     public blurFocusBox() {
-        this.manager.boxManager.blurAllBox();
+        this.manager.boxManager?.blurAllBox();
     }
 
     public switchAppToWriter(id: string) {

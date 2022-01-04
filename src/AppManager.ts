@@ -1,10 +1,11 @@
 import pRetry from "p-retry";
+import { sortBy } from "lodash";
 import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
-import { AttributesDelegate } from "./AttributesDelegate";
+import { store } from "./AttributesDelegate";
 import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
-import { callbacks, emitter } from "./index";
+import { callbacks, emitter, WindowManager } from "./index";
 import { CameraStore } from "./Utils/CameraStore";
 import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";
@@ -14,28 +15,28 @@ import { ReconnectRefresher } from "./ReconnectRefresher";
 import { ViewManager } from "./ViewManager";
 import type { BoxManager } from "./BoxManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
-import type {
-    AddAppParams,
-    BaseInsertParams,
-    WindowManager,
-    TeleBoxRect,
-    EmitterEvent,
-} from "./index";
+import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
 export class AppManager {
     public displayer: Displayer;
     public cameraStore: CameraStore;
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
-    public store = new AttributesDelegate(this);
+    public store = store;
     public mainViewProxy: MainViewProxy;
     public refresher?: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
 
     private appListeners: AppListeners;
+    public boxManager?: BoxManager;
 
-    constructor(public windowManger: WindowManager, public boxManager: BoxManager) {
+    constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
+        this.store.setContext({
+            getAttributes: () => this.attributes,
+            safeSetAttributes: (attributes) => this.safeSetAttributes(attributes),
+            safeUpdateAttributes: (keys, val) => this.safeUpdateAttributes(keys, val),
+        });
         this.cameraStore = new CameraStore();
         this.mainViewProxy = new MainViewProxy(this);
         this.viewManager = new ViewManager(this);
@@ -60,7 +61,7 @@ export class AppManager {
 
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
-        this.boxManager.updateManagerRect();
+        this.boxManager?.updateManagerRect();
         emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
             return safeListenPropsUpdated(
@@ -78,20 +79,18 @@ export class AppManager {
         this.refresher?.add("maximized", () => {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
-                if (this.boxManager.maximized !== maximized) {
-                    this.boxManager.setMaximized(Boolean(maximized));
-                }
+                this.boxManager?.setMaximized(Boolean(maximized));
             });
         });
         this.refresher?.add("minimized", () => {
             return autorun(() => {
                 const minimized = this.attributes.minimized;
-                if (this.boxManager.minimized !== minimized) {
+                if (this.boxManager?.minimized !== minimized) {
                     if (minimized === true) {
-                        this.boxManager.blurAllBox();
+                        this.boxManager?.blurAllBox();
                     }
                     setTimeout(() => {
-                        this.boxManager.setMinimized(Boolean(minimized));
+                        this.boxManager?.setMinimized(Boolean(minimized));
                     }, 0);
                 }
             });
@@ -115,8 +114,15 @@ export class AppManager {
      * @memberof WindowManager
      */
     public async attributesUpdateCallback(apps: any) {
-        if (apps) {
-            for (const id in apps) {
+        if (apps && WindowManager.container) {
+            const appIds = Object.keys(apps);
+            const appsWithCreatedAt = appIds.map(appId =>  {
+                return {
+                    id: appId,
+                    createdAt: apps[appId].createdAt,
+                }
+            });
+            for (const { id } of sortBy(appsWithCreatedAt, "createdAt")) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
 
@@ -149,6 +155,22 @@ export class AppManager {
         }
     }
 
+    public refresh() {
+        this.attributesUpdateCallback(this.attributes.apps);
+    }
+
+    public setBoxManager(boxManager: BoxManager) {
+        this.boxManager = boxManager;
+    }
+
+    public resetMaximized() {
+        this.boxManager?.setMaximized(Boolean(this.store.getMaximized()));
+    }
+
+    public resetMinimized() {
+        this.boxManager?.setMinimized(Boolean(this.store.getMinimized()));
+    }
+
     private onAppDelete = (apps: any) => {
         const ids = Object.keys(apps);
         this.appProxies.forEach((appProxy, id) => {
@@ -163,7 +185,7 @@ export class AppManager {
         mainView.disableCameraTransform = disableCameraTransform;
         mainView.divElement = divElement;
         if (!mainView.focusScenePath) {
-            this.store.setMainViewFocusPath();
+            this.store.setMainViewFocusPath(mainView);
         }
         if (this.store.focus === undefined && mainView.mode !== ViewVisionMode.Writable) {
             this.viewManager.switchMainViewToWriter();
@@ -186,7 +208,7 @@ export class AppManager {
         const attrs = params.attributes ?? {};
         this.safeUpdateAttributes([appId], attrs);
         this.store.setupAppAttributes(params, appId, isDynamicPPT);
-        const needFocus = !this.boxManager.minimized;
+        const needFocus = !this.boxManager?.minimized;
         if (needFocus) {
             this.store.setAppFocus(appId, true);
         }
@@ -203,8 +225,8 @@ export class AppManager {
             });
             this.store.updateAppState(appProxy.id, AppAttributes.ZIndex, box.zIndex);
         }
-        if (this.boxManager.minimized) {
-            this.boxManager.setMinimized(false, false);
+        if (this.boxManager?.minimized) {
+            this.boxManager?.setMinimized(false, false);
         }
     }
 
@@ -262,9 +284,9 @@ export class AppManager {
         const isManualWritable =
             this.windowManger.readonly === undefined || this.windowManger.readonly === false;
         if (this.windowManger.readonly === undefined) {
-            this.boxManager.setReadonly(isReadonly);
+            this.boxManager?.setReadonly(isReadonly);
         } else {
-            this.boxManager.setReadonly(!(isWritable && isManualWritable));
+            this.boxManager?.setReadonly(!(isWritable && isManualWritable));
         }
         this.appProxies.forEach(appProxy => {
             appProxy.emitAppIsWritableChange();
@@ -331,7 +353,7 @@ export class AppManager {
         this.safeSetAttributes({ _mainScenePath: scenePath });
         await this.viewManager.switchMainViewToWriter();
         setScenePath(this.room, scenePath);
-        this.store.setMainViewFocusPath();
+        this.store.setMainViewFocusPath(this.mainView);
         this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
     }
 
@@ -342,7 +364,7 @@ export class AppManager {
             this.room.setSceneIndex(index);
             const nextScenePath = this.room.state.sceneState.scenePath;
             this.store.setMainViewScenePath(nextScenePath);
-            this.store.setMainViewFocusPath();
+            this.store.setMainViewFocusPath(this.mainView);
             this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath });
         }
     }
@@ -401,7 +423,7 @@ export class AppManager {
     };
 
     public focusByAttributes(apps: any) {
-        if (apps && Object.keys(apps).length === this.boxManager.boxSize) {
+        if (apps && Object.keys(apps).length === this.boxManager?.boxSize) {
             const focusAppId = this.store.focus;
             if (focusAppId) {
                 this.boxManager.focusBox({ appId: focusAppId });
@@ -442,7 +464,7 @@ export class AppManager {
             });
         }
         this.viewManager.destroy();
-        this.boxManager.destroy();
+        this.boxManager?.destroy();
         this.refresher?.destroy();
         this.mainViewProxy.destroy();
         callbacks.clearListeners();

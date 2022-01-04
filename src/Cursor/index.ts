@@ -31,15 +31,22 @@ export class CursorManager extends Base {
         this.roomMembers = this.appManager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
-            wrapper.addEventListener("mousemove", this.mouseMoveListener);
-            wrapper.addEventListener("touchstart", this.touchMoveListener);
-            wrapper.addEventListener("touchmove", this.touchMoveListener);
-            wrapper.addEventListener("mouseleave", this.mouseLeaveListener);
-            wrapper.addEventListener("touchend", this.mouseLeaveListener);
-            this.initCursorAttributes();
-            this.wrapperRect = wrapper.getBoundingClientRect();
-            this.startReaction(wrapper);
+          this.setupWrapper(wrapper);
         }
+    }
+
+    public setupWrapper(wrapper: HTMLElement) {
+        if (this.manager.refresher?.hasReactor("cursors")) {
+            this.destroy();
+        }
+        wrapper.addEventListener("mousemove", this.mouseMoveListener);
+        wrapper.addEventListener("touchstart", this.touchMoveListener);
+        wrapper.addEventListener("touchmove", this.touchMoveListener);
+        wrapper.addEventListener("mouseleave", this.mouseLeaveListener);
+        wrapper.addEventListener("touchend", this.mouseLeaveListener);
+        this.initCursorAttributes();
+        this.wrapperRect = wrapper.getBoundingClientRect();
+        this.startReaction(wrapper);
     }
 
     public setMainViewDivElement(div: HTMLDivElement) {

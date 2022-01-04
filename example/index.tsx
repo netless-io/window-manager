@@ -13,6 +13,9 @@ const createHelloWorld = () => {
         kind: "HelloWorld1",
         options: {
             scenePath: "/helloworld1"
+        },
+        attributes: {
+            a: 1
         }
     });
 }
@@ -271,7 +274,10 @@ const HelloWorldApp = async () => {
         setup: (context: AppContext<any, any>) => {
             console.log('helloworld options', context.getAppOptions());
             context.mountView(context.getBox().$content as any);
-            context.emitter.on("destroy",() => console.log("[HelloWorld]: destroy"))
+            context.emitter.on("destroy",() => console.log("[HelloWorld]: destroy"));
+            setTimeout(() => {
+                console.log(context.getAttributes());
+            }, 1000);
             return "Hello World Result";
         }
     }
@@ -304,7 +310,6 @@ const isWritable = url.get("isWritable");
 const mountManager = async (room, root) => {
     const manager = await WindowManager.mount({
         room,
-        container: root,
         // collectorStyles: { bottom: "100px", right: "30px" },
         containerSizeRatio: 9 / 16,
         chessboard: true,
@@ -325,6 +330,9 @@ const mountManager = async (room, root) => {
         console.log("boxState", state);
     });
     console.log("boxState", manager.boxState);
+    setTimeout(() => {
+        manager.bindContainer(root);
+    }, 2000)
 }
 const destroy = () => {
     anyWindow.manager.destroy();

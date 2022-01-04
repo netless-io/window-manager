@@ -2,8 +2,7 @@ import { AppAttributes } from "./constants";
 import { get, pick } from "lodash";
 import { setViewFocusScenePath } from "./Utils/Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
-import type { Camera, Size } from "white-web-sdk";
-import type { AppManager } from "./AppManager";
+import type { Camera, Size, View } from "white-web-sdk";
 import type { Cursor } from "./Cursor/Cursor";
 
 export enum Fields {
@@ -17,7 +16,7 @@ export enum Fields {
     Cursors = "cursors",
     Position = "position",
     CursorState = "cursorState",
-    FullPath = "fullPath"
+    FullPath = "fullPath",
 }
 
 export type Apps = {
@@ -33,15 +32,29 @@ export type Position = {
 
 export type PositionType = "main" | "app";
 
+export type StoreContext = {
+    getAttributes: () => any;
+    safeUpdateAttributes: (keys: string[], value: any) => void;
+    safeSetAttributes: (attributes: any) => void;
+}
 export class AttributesDelegate {
-    constructor(private manager: AppManager) {}
+
+    constructor(private context: StoreContext) {}
+
+    public setContext(context: StoreContext) {
+        this.context = context;
+    }
+
+    public get attributes() {
+        return this.context.getAttributes();
+    }
 
     public apps(): Apps {
-        return get(this.manager.attributes, [Fields.Apps]);
+        return get(this.attributes, [Fields.Apps]);
     }
 
     public get focus(): string | undefined {
-        return get(this.manager.attributes, [Fields.Focus]);
+        return get(this.attributes, [Fields.Focus]);
     }
 
     public getAppAttributes(id: string): AppSyncAttributes {
@@ -53,13 +66,17 @@ export class AttributesDelegate {
     }
 
     public getMaximized() {
-        return get(this.manager.attributes, ["maximized"])
+        return get(this.attributes, ["maximized"]);
+    }
+
+    public getMinimized() {
+        return get(this.attributes, ["minimized"]);
     }
 
     public setupAppAttributes(params: AddAppParams, id: string, isDynamicPPT: boolean) {
-        const attributes = this.manager.attributes;
+        const attributes = this.attributes;
         if (!attributes.apps) {
-            this.manager.safeSetAttributes({ apps: {} });
+            this.context.safeSetAttributes({ apps: {} });
         }
         const attrNames = ["scenePath", "title"];
         if (!isDynamicPPT) {
@@ -70,32 +87,32 @@ export class AttributesDelegate {
         if (typeof params.src === "string") {
             attrs.src = params.src;
         }
-        this.manager.safeUpdateAttributes([Fields.Apps, id], attrs);
-        this.manager.safeUpdateAttributes([Fields.Apps, id, Fields.State], {
+        attrs.createdAt = Date.now();
+        this.context.safeUpdateAttributes([Fields.Apps, id], attrs);
+        this.context.safeUpdateAttributes([Fields.Apps, id, Fields.State], {
             [AppAttributes.Size]: {},
             [AppAttributes.Position]: {},
             [AppAttributes.SceneIndex]: 0,
-            [AppAttributes.ZIndex]: 100,
         });
     }
 
     public updateAppState(appId: string, stateName: AppAttributes, state: any) {
-        if (get(this.manager.attributes, [Fields.Apps, appId, Fields.State])) {
-            this.manager.safeUpdateAttributes([Fields.Apps, appId, Fields.State, stateName], state);
+        if (get(this.attributes, [Fields.Apps, appId, Fields.State])) {
+            this.context.safeUpdateAttributes([Fields.Apps, appId, Fields.State, stateName], state);
         }
     }
 
     public cleanAppAttributes(id: string) {
-        this.manager.safeUpdateAttributes([Fields.Apps, id], undefined);
-        this.manager.safeSetAttributes({ [id]: undefined });
-        const focus = this.manager.attributes[Fields.Focus];
+        this.context.safeUpdateAttributes([Fields.Apps, id], undefined);
+        this.context.safeSetAttributes({ [id]: undefined });
+        const focus = this.attributes[Fields.Focus];
         if (focus === id) {
             this.cleanFocus();
         }
     }
 
     public cleanFocus() {
-        this.manager.safeSetAttributes({ [Fields.Focus]: undefined });
+        this.context.safeSetAttributes({ [Fields.Focus]: undefined });
     }
 
     public getAppSceneIndex(id: string) {
@@ -107,82 +124,79 @@ export class AttributesDelegate {
     }
 
     public getMainViewScenePath() {
-        return this.manager.attributes["_mainScenePath"];
+        return this.attributes["_mainScenePath"];
     }
 
     public getMainViewSceneIndex() {
-        return this.manager.attributes["_mainSceneIndex"];
+        return this.attributes["_mainSceneIndex"];
     }
 
     public getBoxState() {
-        return this.manager.attributes[Fields.BoxState];
+        return this.attributes[Fields.BoxState];
     }
 
     public setMainViewScenePath(scenePath: string) {
-        this.manager.safeSetAttributes({ _mainScenePath: scenePath });
+        this.context.safeSetAttributes({ _mainScenePath: scenePath });
     }
 
     public setMainViewSceneIndex(index: number) {
-        this.manager.safeSetAttributes({ _mainSceneIndex: index });
+        this.context.safeSetAttributes({ _mainSceneIndex: index });
     }
 
     public getMainViewCamera(): MainViewCamera {
-        return get(this.manager.attributes, [Fields.MainViewCamera]);
+        return get(this.attributes, [Fields.MainViewCamera]);
     }
 
     public getMainViewSize(): MainViewSize {
-        return get(this.manager.attributes, [Fields.MainViewSize]);
+        return get(this.attributes, [Fields.MainViewSize]);
     }
 
-    public setMainViewCamera(camera: Camera & { id: string } | undefined) {
-        this.manager.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
+    public setMainViewCamera(camera: (Camera & { id: string }) | undefined) {
+        this.context.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
 
-    public setMainViewSize(size: Size & { id: string } | undefined) {
-        this.manager.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
+    public setMainViewSize(size: (Size & { id: string }) | undefined) {
+        this.context.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 
     public setAppFocus(appId: string, focus: boolean) {
         if (focus) {
-            this.manager.safeSetAttributes({ [Fields.Focus]: appId });
+            this.context.safeSetAttributes({ [Fields.Focus]: appId });
         } else {
-            this.manager.safeSetAttributes({ [Fields.Focus]: undefined });
+            this.context.safeSetAttributes({ [Fields.Focus]: undefined });
         }
     }
 
     public updateCursor(uid: string, position: Position) {
-        if (!get(this.manager.attributes, [Fields.Cursors])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors], {});
+        if (!get(this.attributes, [Fields.Cursors])) {
+            this.context.safeUpdateAttributes([Fields.Cursors], {});
         }
-        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
+        if (!get(this.attributes, [Fields.Cursors, uid])) {
+            this.context.safeUpdateAttributes([Fields.Cursors, uid], {});
         }
-        this.manager.safeUpdateAttributes([Fields.Cursors, uid, Fields.Position], position);
+        this.context.safeUpdateAttributes([Fields.Cursors, uid, Fields.Position], position);
     }
 
     public updateCursorState(uid: string, cursorState: string | undefined) {
-        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
+        if (!get(this.attributes, [Fields.Cursors, uid])) {
+            this.context.safeUpdateAttributes([Fields.Cursors, uid], {});
         }
-        this.manager.safeUpdateAttributes(
-            [Fields.Cursors, uid, Fields.CursorState],
-            cursorState
-        );
+        this.context.safeUpdateAttributes([Fields.Cursors, uid, Fields.CursorState], cursorState);
     }
 
     public getCursorState(uid: string) {
-        return get(this.manager.attributes, [Fields.Cursors, uid, Fields.CursorState]);
+        return get(this.attributes, [Fields.Cursors, uid, Fields.CursorState]);
     }
 
     public cleanCursor(uid: string) {
-        this.manager.safeUpdateAttributes([Fields.Cursors, uid], undefined);
+        this.context.safeUpdateAttributes([Fields.Cursors, uid], undefined);
     }
 
     // TODO 状态中保存一个 SceneName 优化性能
-    public setMainViewFocusPath() {
+    public setMainViewFocusPath(mainView: View) {
         const scenePath = this.getMainViewScenePath();
         if (scenePath) {
-            setViewFocusScenePath(this.manager.mainView, scenePath);
+            setViewFocusScenePath(mainView, scenePath);
         }
     }
 }
@@ -191,15 +205,28 @@ export type MainViewSize = {
     id: string;
     width: number;
     height: number;
-}
+};
 
 export type MainViewCamera = {
     id: string;
     centerX: number;
     centerY: number;
     scale: number;
-}
+};
 
 export type Cursors = {
     [key: string]: Cursor;
-}
+};
+
+
+export const store = new AttributesDelegate({
+    getAttributes: () => {
+        throw new Error("getAttributes not implemented")
+    },
+    safeSetAttributes: () => {
+        throw new Error("safeSetAttributes not implemented")
+    },
+    safeUpdateAttributes: () => {
+        throw new Error("safeUpdateAttributes not implemented")
+    },
+});

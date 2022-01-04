@@ -7,9 +7,12 @@ import { setViewFocusScenePath } from './Utils/Common';
 
 export class AppListeners {
     private displayer = this.manager.displayer;
-    private boxManager = this.manager.boxManager;
 
     constructor(private manager: AppManager) {}
+
+    private get boxManager() {
+        return this.manager.boxManager;
+    }
 
     public addListeners() {
         this.displayer.addMagixEventListener(MagixEventName, this.mainMagixEventListener);
@@ -50,11 +53,11 @@ export class AppListeners {
     };
 
     private appMoveHandler = (payload: any) => {
-        this.boxManager.moveBox(payload);
+        this.boxManager?.moveBox(payload);
     };
 
     private appResizeHandler = (payload: any) => {
-        this.boxManager.resizeBox(Object.assign(payload, { skipUpdate: true }));
+        this.boxManager?.resizeBox(Object.assign(payload, { skipUpdate: true }));
         this.manager.room?.refreshViewSize();
     };
 

@@ -1,3 +1,4 @@
+
 export class AppCreateError extends Error {
     override message = "[WindowManager]: app duplicate exists and cannot be created again";
 }
@@ -28,4 +29,8 @@ export class BoxNotCreatedError extends Error {
 
 export class InvalidScenePath extends Error {
     override message = `[WindowManager]: ScenePath should start with "/"`;
+}
+
+export class BoxManagerNotFoundError extends Error {
+    override message = "[WindowManager]: boxManager not found";
 }

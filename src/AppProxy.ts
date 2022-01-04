@@ -25,6 +25,7 @@ import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import { Base } from "./Base";
+import { BoxManagerNotFoundError } from "./Utils/error";
 
 export class AppProxy extends Base {
     public id: string;
@@ -41,6 +42,8 @@ export class AppProxy extends Base {
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
     private stateKey: string;
+    private setupResult?: any;
+    private appContext?: AppContext<any, any>;
 
     constructor(
         private params: BaseInsertParams,
@@ -131,15 +134,15 @@ export class AppProxy extends Base {
     private focusApp() {
         this.focusBox();
         this.context.switchAppToWriter(this.id);
-        this.store.setMainViewFocusPath();
+        this.store.setMainViewFocusPath(this.manager.mainView);
     }
 
     public get box(): ReadonlyTeleBox | undefined {
-        return this.boxManager.getBox(this.id);
+        return this.boxManager?.getBox(this.id);
     }
 
     public focusBox() {
-        this.boxManager.focusBox({ appId: this.id });
+        this.boxManager?.focusBox({ appId: this.id });
     }
 
     private async setupApp(
@@ -150,13 +153,17 @@ export class AppProxy extends Base {
         appOptions?: any
     ) {
         log("setupApp", appId, app, options);
-        const context = new AppContext(this.manager, appId, this, appOptions);
+        if (!this.boxManager) {
+            throw new BoxManagerNotFoundError();
+        }
+        const context = new AppContext(this.manager, this.boxManager, appId, this, appOptions);
+        this.appContext = context;
         try {
             emitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
                 let boxInitState: AppInitState | undefined;
                 if (!skipUpdate) {
                     boxInitState = this.getAppInitState(appId);
-                    this.boxManager.updateBoxState(boxInitState);
+                    this.boxManager?.updateBoxState(boxInitState);
                 }
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
@@ -164,12 +171,13 @@ export class AppProxy extends Base {
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
                     const result = await app.setup(context);
+                    this.setupResult = result;
                     appRegister.notifyApp(app.kind, "created", { appId, result });
                     this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
                 }, 50);
             });
-            this.boxManager.createBox({
+            this.boxManager?.createBox({
                 appId: appId,
                 app,
                 options,
@@ -184,9 +192,9 @@ export class AppProxy extends Base {
 
     // 兼容移动端创建时会出现 PPT 不适配的问题
     private fixMobileSize() {
-        const box = this.boxManager.getBox(this.id);
+        const box = this.boxManager?.getBox(this.id);
         if (box) {
-            this.boxManager.resizeBox({
+            this.boxManager?.resizeBox({
                 appId: this.id,
                 width: box.intrinsicWidth + 0.001,
                 height: box.intrinsicHeight + 0.001,
@@ -201,7 +209,7 @@ export class AppProxy extends Base {
                 this.context.switchAppToWriter(this.id);
             }
             if (!boxInitState?.x || !boxInitState.y) {
-                this.boxManager.setBoxInitState(this.id);
+                this.boxManager?.setBoxInitState(this.id);
             }
         }
     }
@@ -209,7 +217,7 @@ export class AppProxy extends Base {
     public onSeek(time: number) {
         this.appEmitter.emit("seek", time);
         const boxInitState = this.getAppInitState(this.id);
-        this.boxManager.updateBoxState(boxInitState);
+        this.boxManager?.updateBoxState(boxInitState);
     }
 
     public async onReconnected() {
@@ -219,7 +227,7 @@ export class AppProxy extends Base {
         const params = this.params;
         const appProxy = new AppProxy(params, this.manager, this.id, this.isAddApp);
         await appProxy.baseInsertApp(true, this.store.focus === this.id);
-        this.boxManager.updateBoxState(currentAppState);
+        this.boxManager?.updateBoxState(currentAppState);
     }
 
     public switchToWritable() {
@@ -229,7 +237,7 @@ export class AppProxy extends Base {
                 if (this.view.mode === ViewVisionMode.Writable) return;
                 try {
                     if (this.manager.mainView.mode === ViewVisionMode.Writable) {
-                        this.store.setMainViewFocusPath();
+                        this.store.setMainViewFocusPath(this.manager.mainView);
                         notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
                         setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
                     }
@@ -280,7 +288,7 @@ export class AppProxy extends Base {
             if (!this.manager.canOperate) return;
             switch (eventName) {
                 case "setBoxSize": {
-                    this.boxManager.resizeBox({
+                    this.boxManager?.resizeBox({
                         appId,
                         width: data.width,
                         height: data.height,
@@ -289,7 +297,7 @@ export class AppProxy extends Base {
                     break;
                 }
                 case "setBoxMinSize": {
-                    this.boxManager.setBoxMinSize({
+                    this.boxManager?.setBoxMinSize({
                         appId,
                         minWidth: data.minwidth,
                         minHeight: data.minheight,
@@ -297,7 +305,7 @@ export class AppProxy extends Base {
                     break;
                 }
                 case "setBoxTitle": {
-                    this.boxManager.setBoxTitle({ appId, title: data.title });
+                    this.boxManager?.setBoxTitle({ appId, title: data.title });
                     break;
                 }
                 case AppEvents.destroy: {
@@ -309,7 +317,7 @@ export class AppProxy extends Base {
                     break;
                 }
                 case "focus": {
-                    this.boxManager.focusBox({ appId: this.id });
+                    this.boxManager?.focusBox({ appId: this.id });
                     emitter.emit("focus", { appId: this.id });
                     break;
                 }
@@ -331,9 +339,9 @@ export class AppProxy extends Base {
         });
         this.manager.refresher?.add(this.stateKey,() => {
             return autorun(() => {
-                const appState = this.appAttributes.state;
-                if (appState?.zIndex && appState.zIndex !== this.box?.zIndex) {
-                    this.boxManager.setZIndex(appId, appState.zIndex);
+                const appState = this.appAttributes?.state;
+                if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
+                    this.boxManager?.setZIndex(appId, appState.zIndex);
                 }
             });
         });
@@ -374,7 +382,7 @@ export class AppProxy extends Base {
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}` as any, { error });
         if (needCloseBox) {
-            this.boxManager.closeBox(this.id, skipUpdate);
+            this.boxManager?.closeBox(this.id, skipUpdate);
         }
         if (cleanAttrs) {
             this.store.cleanAppAttributes(this.id);
