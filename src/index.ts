@@ -6,7 +6,7 @@ import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
-import { DEFAULT_CONTAINER_RATIO, REQUIRE_VERSION } from "./constants";
+import { DEFAULT_CONTAINER_RATIO, Events, REQUIRE_VERSION } from "./constants";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { isNull, isObject } from "lodash";
@@ -592,6 +592,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }>
     ): void {
         this.mainView.moveCameraToContain(rectangle);
+        this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
+        setTimeout(() => {
+            this.appManager?.mainViewProxy.setCameraAndSize();
+        }, 1000);
     }
 
     public convertToPointInWorld(point: Point): Point {
