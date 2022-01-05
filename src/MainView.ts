@@ -5,6 +5,7 @@ import { createView } from "./ViewManager";
 import { debounce, isEmpty, isEqual } from "lodash";
 import { Fields } from "./AttributesDelegate";
 import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from "./Utils/Common";
+import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
@@ -15,6 +16,8 @@ export class MainViewProxy extends Base {
     private mainViewIsAddListener = false;
     private mainView: View;
     private viewId = "mainView";
+
+    private sideEffectManager = new SideEffectManager();
 
     constructor(manager: AppManager) {
         super(manager);
@@ -29,8 +32,12 @@ export class MainViewProxy extends Base {
                 }
             }, 200); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
         });
-        emitter.on("playgroundSizeChange", () => {
+        const playgroundSizeChangeListener = () => {
             this.sizeChangeHandler(this.mainViewSize);
+        }
+        this.sideEffectManager.add(() => {
+            emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
+            return () => emitter.off("playgroundSizeChange", playgroundSizeChangeListener);
         });
     }
 
@@ -75,7 +82,7 @@ export class MainViewProxy extends Base {
         );
     };
 
-    private sizeChangeHandler =  debounce((size: Size) => {
+    private sizeChangeHandler = debounce((size: Size) => {
         if (size) {
             this.moveCameraToContian(size);
             this.moveCamera(this.mainViewCamera);
@@ -104,7 +111,7 @@ export class MainViewProxy extends Base {
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
         this.store.setMainViewCamera({ ...camera, id: this.context.uid });
-        if (!isEqual(this.mainViewSize, {...this.mainView.size, id: this.context.uid})) {
+        if (!isEqual(this.mainViewSize, { ...this.mainView.size, id: this.context.uid })) {
             this.setMainViewSize(this.view.size);
         }
     };
@@ -204,5 +211,6 @@ export class MainViewProxy extends Base {
     public destroy() {
         this.stop();
         this.cameraStore.unregister(this.viewId, this.mainView);
+        this.sideEffectManager.flushAll();
     }
 }

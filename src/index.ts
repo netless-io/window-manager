@@ -317,34 +317,42 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             playground.appendChild(style);
         }
         manager.observePlaygroundSize(playground, sizer, wrapper);
+        WindowManager.wrapper = wrapper;
         return mainViewElement;
     }
 
     public bindContainer(container: HTMLElement, collectorContainer?: HTMLElement) {
-        if (WindowManager.params) {
-            const params = WindowManager.params;
-            const mainViewElement = WindowManager.initContainer(
-                this,
-                container,
-                params.chessboard,
-                params.overwriteStyles
-            );
-            const boxManager = createBoxManager(this, callbacks, emitter, {
-                collectorContainer: collectorContainer,
-                collectorStyles: params.collectorStyles,
-                prefersColorScheme: params.prefersColorScheme,
-            });
-            this.boxManager = boxManager;
-            this.appManager?.setBoxManager(boxManager);
-            this.bindMainView(mainViewElement, params.disableCameraTransform);
-            this.boxManager.updateManagerRect();
-            this.appManager?.refresh();
-            this.appManager?.resetMaximized();
-            this.appManager?.resetMinimized();
-            if (WindowManager.wrapper) {
-                this.cursorManager?.setupWrapper(WindowManager.wrapper);
+        if (WindowManager.isCreated && WindowManager.container) {
+            if (WindowManager.container.firstChild) {
+                container.appendChild(WindowManager.container.firstChild);
+            }
+        } else {
+            if (WindowManager.params) {
+                const params = WindowManager.params;
+                const mainViewElement = WindowManager.initContainer(
+                    this,
+                    container,
+                    params.chessboard,
+                    params.overwriteStyles
+                );
+                const boxManager = createBoxManager(this, callbacks, emitter, {
+                    collectorContainer: collectorContainer,
+                    collectorStyles: params.collectorStyles,
+                    prefersColorScheme: params.prefersColorScheme,
+                });
+                this.boxManager = boxManager;
+                this.appManager?.setBoxManager(boxManager);
+                this.bindMainView(mainViewElement, params.disableCameraTransform);
+                if (WindowManager.wrapper) {
+                    this.cursorManager?.setupWrapper(WindowManager.wrapper);
+                }
             }
         }
+        this.boxManager?.updateManagerRect();
+        this.appManager?.refresh();
+        this.appManager?.resetMaximized();
+        this.appManager?.resetMinimized();
+        WindowManager.container = container;
     }
 
     /**
@@ -354,15 +362,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         params: RegisterParams<AppOptions, SetupResult, Attributes>
     ): Promise<void> {
         return appRegister.register(params);
-    }
-
-    public static setContainer(container: HTMLElement) {
-        if (this.isCreated && WindowManager.container) {
-            if (WindowManager.container.firstChild) {
-                container.appendChild(WindowManager.container.firstChild);
-            }
-        }
-        WindowManager.container = container;
     }
 
     public static setCollectorContainer(container: HTMLElement) {

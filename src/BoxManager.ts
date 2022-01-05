@@ -143,7 +143,6 @@ export class BoxManager {
             callbacks.emit("prefersColorSchemeChange", colorScheme);
         });
         this.teleBoxManager.events.on("z_index", box => {
-            console.log("on z_index", box.id, box.zIndex);
             this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
         });
     }

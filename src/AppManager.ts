@@ -34,7 +34,7 @@ export class AppManager {
         this.displayer = windowManger.displayer;
         this.store.setContext({
             getAttributes: () => this.attributes,
-            safeSetAttributes: (attributes) => this.safeSetAttributes(attributes),
+            safeSetAttributes: attributes => this.safeSetAttributes(attributes),
             safeUpdateAttributes: (keys, val) => this.safeUpdateAttributes(keys, val),
         });
         this.cameraStore = new CameraStore();
@@ -44,7 +44,9 @@ export class AppManager {
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
 
-        this.refresher = new ReconnectRefresher(this.room, this);
+        this.refresher = new ReconnectRefresher(this.room, {
+            notifyReconnected: () => this.notifyReconnected(),
+        });
 
         emitter.once("onCreated").then(() => this.onCreated());
 
@@ -116,11 +118,11 @@ export class AppManager {
     public async attributesUpdateCallback(apps: any) {
         if (apps && WindowManager.container) {
             const appIds = Object.keys(apps);
-            const appsWithCreatedAt = appIds.map(appId =>  {
+            const appsWithCreatedAt = appIds.map(appId => {
                 return {
                     id: appId,
                     createdAt: apps[appId].createdAt,
-                }
+                };
             });
             for (const { id } of sortBy(appsWithCreatedAt, "createdAt")) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {

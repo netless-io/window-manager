@@ -42,7 +42,7 @@ export class AppProxy extends Base {
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
     private stateKey: string;
-    private setupResult?: any;
+    private appResult?: NetlessApp<any>;
     private appContext?: AppContext<any, any>;
 
     constructor(
@@ -171,7 +171,7 @@ export class AppProxy extends Base {
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
                     const result = await app.setup(context);
-                    this.setupResult = result;
+                    this.appResult = result;
                     appRegister.notifyApp(app.kind, "created", { appId, result });
                     this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
