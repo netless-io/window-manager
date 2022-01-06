@@ -1,11 +1,13 @@
-import { isFunction, debounce } from "lodash";
+import { debounce, isFunction } from "lodash";
+import { emitter } from "./index";
 import { log } from "./Utils/log";
 import { RoomPhase } from "white-web-sdk";
 import type { Room } from "white-web-sdk";
+import type { EmitterType } from "./index";
 
 export type ReconnectRefresherContext = {
-    notifyReconnected: () => void;
-}
+    emitter: EmitterType;
+};
 
 // 白板重连之后会刷新所有的对象，导致 listener 失效, 所以这里在重连之后重新对所有对象进行监听
 export class ReconnectRefresher {
@@ -14,10 +16,17 @@ export class ReconnectRefresher {
     private reactors: Map<string, any> = new Map();
     private disposers: Map<string, any> = new Map();
 
-    constructor(room: Room | undefined, private ctx: ReconnectRefresherContext) {
+    constructor(private ctx: ReconnectRefresherContext) {}
+
+    public setRoom(room: Room | undefined) {
         this.room = room;
         this.phase = room?.phase;
+        room?.callbacks.off("onPhaseChanged", this.onPhaseChanged);
         room?.callbacks.on("onPhaseChanged", this.onPhaseChanged);
+    }
+
+    public setContext(ctx: ReconnectRefresherContext) {
+        this.ctx = ctx;
     }
 
     private onPhaseChanged = (phase: RoomPhase) => {
@@ -35,7 +44,7 @@ export class ReconnectRefresher {
                 this.disposers.set(id, func());
             }
         });
-        this.ctx.notifyReconnected();
+        this.ctx.emitter.emit("onReconnected", undefined);
     }, 3000);
 
     private releaseDisposers() {
@@ -76,3 +85,7 @@ export class ReconnectRefresher {
         this.releaseDisposers();
     }
 }
+
+export const reconnectRefresher = new ReconnectRefresher({
+    emitter: emitter,
+});

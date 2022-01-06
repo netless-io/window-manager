@@ -1,7 +1,6 @@
 import App from './Cursor.svelte';
-import pRetry from 'p-retry';
 import { ApplianceMap } from './icons';
-import { ApplianceNames, autorun } from 'white-web-sdk';
+import { ApplianceNames } from 'white-web-sdk';
 import { CursorState } from '../constants';
 import { Fields } from '../AttributesDelegate';
 import { get, omit } from 'lodash';
@@ -19,54 +18,44 @@ export type Payload = {
 
 export class Cursor extends Base {
     private member?: RoomMember;
-    private disposer: any;
     private timer?: number;
     private component?: SvelteComponent;
 
     constructor(
         manager: AppManager,
+        addCursorChangeListener: (uid: string, callback: (position: Position, state: CursorState) => void) => void,
         private cursors: any,
         private memberId: string,
         private cursorManager: CursorManager,
-        private wrapper?: HTMLElement
+        private wrapper?: HTMLElement,
     ) {
         super(manager);
         this.setMember();
         this.createCursor();
-        pRetry(() => {
-            this.disposer && this.disposer();
-            if (!this.cursorPosition) {
-                console.warn(`${memberId} not exist`);
-            }
-            this.startReaction();
-        }, { retries: 3 });
+        addCursorChangeListener(this.memberId, this.onCursorChange);
         this.autoHidden();
     }
 
-    private startReaction() {
-        this.disposer = autorun(() => {
-            const cursor = this.cursorPosition;
-            const state = this.cursorState;
-            if (!cursor) return;
-            if (cursor.type === "main") {
-                const rect = this.cursorManager.wrapperRect;
-                if (this.component && rect) {
-                    this.autoHidden();
-                    this.moveCursor(cursor, rect, this.manager.mainView);
-                }
-            } else {
-                const focusView = this.cursorManager.focusView;
-                const viewRect = focusView?.divElement?.getBoundingClientRect();
-                const viewCamera = focusView?.camera;
-                if (focusView && viewRect && viewCamera && this.component) {
-                    this.autoHidden();
-                    this.moveCursor(cursor, viewRect, focusView);
-                }
+    private onCursorChange = (position: Position, state: CursorState) => {
+        if (position.type === "main") {
+            const rect = this.cursorManager.wrapperRect;
+            if (this.component && rect) {
+                this.autoHidden();
+                this.moveCursor(position, rect, this.manager.mainView);
             }
-            if (state && state === CursorState.Leave) {
-                this.hide();
+        } else {
+            const focusView = this.cursorManager.focusView;
+            // TODO 可以存一个当前 focusView 的 Rect 这样只有 focus 切换的时候才调用 getBoundingClientRect
+            const viewRect = focusView?.divElement?.getBoundingClientRect();
+            const viewCamera = focusView?.camera;
+            if (focusView && viewRect && viewCamera && this.component) {
+                this.autoHidden();
+                this.moveCursor(position, viewRect, focusView);
             }
-        });
+        }
+        if (state && state === CursorState.Leave) {
+            this.hide();
+        }
     }
 
     private moveCursor(cursor: Position, rect: DOMRect, view: any) {
@@ -196,10 +185,10 @@ export class Cursor extends Base {
     }
 
     public destroy() {
-        this.disposer && this.disposer();
         if (this.component) {
             this.component.$destroy();
         }
+        this.manager.refresher?.remove(this.memberId);
         this.cursorManager.cursorInstances.delete(this.memberId);
     }
 

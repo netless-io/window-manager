@@ -1,9 +1,7 @@
 import pRetry from "p-retry";
-import { sortBy } from "lodash";
 import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
-import { store } from "./AttributesDelegate";
 import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
 import { callbacks, emitter, WindowManager } from "./index";
 import { CameraStore } from "./Utils/CameraStore";
@@ -11,11 +9,15 @@ import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
-import { ReconnectRefresher } from "./ReconnectRefresher";
+import { reconnectRefresher } from "./ReconnectRefresher";
+import { sortBy } from "lodash";
+import { store } from "./AttributesDelegate";
 import { ViewManager } from "./ViewManager";
+import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
+
 export class AppManager {
     public displayer: Displayer;
     public cameraStore: CameraStore;
@@ -44,12 +46,12 @@ export class AppManager {
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
 
-        this.refresher = new ReconnectRefresher(this.room, {
-            notifyReconnected: () => this.notifyReconnected(),
-        });
+        this.refresher = reconnectRefresher;
+        this.refresher.setRoom(this.room);
+        this.refresher.setContext({ emitter });
 
         emitter.once("onCreated").then(() => this.onCreated());
-
+        emitter.on("onReconnected", () => this.onReconnected());
         if (isPlayer(this.displayer)) {
             emitter.on("seek", time => {
                 this.appProxies.forEach(appProxy => {
@@ -433,7 +435,7 @@ export class AppManager {
         }
     }
 
-    public async notifyReconnected() {
+    public async onReconnected() {
         const appProxies = Array.from(this.appProxies.values());
         const reconnected = appProxies.map(appProxy => {
             return appProxy.onReconnected();

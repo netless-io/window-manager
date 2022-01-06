@@ -81,14 +81,14 @@ export type AddAppOptions = {
 
 export type setAppOptions = AddAppOptions & { appOptions?: any };
 
-export type AddAppParams = {
+export type AddAppParams<TAttributes = any> = {
     kind: string;
     // app 地址(本地 app 不需要传)
     src?: string;
     // 窗口配置
     options?: AddAppOptions;
     // 初始化 attributes
-    attributes?: any;
+    attributes?: TAttributes;
 };
 
 export type BaseInsertParams = {
@@ -139,6 +139,7 @@ export type EmitterEvent = {
     observerIdChange: number;
     boxStateChange: string;
     playgroundSizeChange: DOMRect;
+    onReconnected: void;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;
@@ -378,7 +379,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 创建一个 app 至白板
      */
-    public async addApp(params: AddAppParams): Promise<string | undefined> {
+    public async addApp<T = any>(params: AddAppParams<T>): Promise<string | undefined> {
         if (this.appManager) {
             if (!params.kind || typeof params.kind !== "string") {
                 throw new ParamsInvalidError();

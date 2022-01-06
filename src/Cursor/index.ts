@@ -1,11 +1,13 @@
-import { Base } from '../Base';
-import { Cursor } from './Cursor';
-import { CursorState } from '../constants';
-import { compact, debounce, uniq } from 'lodash';
-import { Fields } from '../AttributesDelegate';
-import { onObjectInserted } from '../Utils/Reactive';
-import { WindowManager } from '../index';
-import type { PositionType } from "../AttributesDelegate";
+import { autorun } from "white-web-sdk";
+import { Base } from "../Base";
+import { compact, debounce, get, uniq } from "lodash";
+import { Cursor } from "./Cursor";
+import { CursorState } from "../constants";
+import { emitter, WindowManager } from "../index";
+import { Fields } from "../AttributesDelegate";
+import { onObjectInserted } from "../Utils/Reactive";
+import { SideEffectManager } from "side-effect-manager";
+import type { PositionType, Position } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 
@@ -18,32 +20,42 @@ export type MoveCursorParams = {
     uid: string;
     x: number;
     y: number;
-}
+};
 export class CursorManager extends Base {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
+    private sideEffectManager = new SideEffectManager();
 
     constructor(private appManager: AppManager) {
         super(appManager);
         this.roomMembers = this.appManager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
-          this.setupWrapper(wrapper);
+            this.setupWrapper(wrapper);
         }
+        emitter.on("onReconnected", () => {
+            this.onReconnect();
+        });
     }
 
     public setupWrapper(wrapper: HTMLElement) {
         if (this.manager.refresher?.hasReactor("cursors")) {
             this.destroy();
         }
-        wrapper.addEventListener("mousemove", this.mouseMoveListener);
-        wrapper.addEventListener("touchstart", this.touchMoveListener);
-        wrapper.addEventListener("touchmove", this.touchMoveListener);
-        wrapper.addEventListener("mouseleave", this.mouseLeaveListener);
-        wrapper.addEventListener("touchend", this.mouseLeaveListener);
+        this.sideEffectManager.add(() => {
+            wrapper.addEventListener("pointerenter", this.mouseMoveListener);
+            wrapper.addEventListener("pointermove", this.mouseMoveListener);
+            wrapper.addEventListener("pointerleave", this.mouseLeaveListener);
+            return () => {
+                wrapper.removeEventListener("pointerenter", this.mouseMoveListener);
+                wrapper.removeEventListener("pointermove", this.mouseMoveListener);
+                wrapper.removeEventListener("pointerleave", this.mouseLeaveListener);
+            };
+        });
+
         this.initCursorAttributes();
         this.wrapperRect = wrapper.getBoundingClientRect();
         this.startReaction(wrapper);
@@ -58,27 +70,25 @@ export class CursorManager extends Base {
             return onObjectInserted(this.cursors, () => {
                 this.handleRoomMembersChange(wrapper);
             });
-        })
+        });
     }
 
     private getUids = (members: readonly RoomMember[] | undefined) => {
         return compact(uniq(members?.map(member => member.payload?.uid)));
-    }
+    };
 
     private handleRoomMembersChange = debounce((wrapper: HTMLElement) => {
         const uids = this.getUids(this.roomMembers);
         const cursors = Object.keys(this.cursors);
         if (uids?.length) {
             cursors.map(uid => {
-                if (
-                    uids.includes(uid) &&
-                    !this.cursorInstances.has(uid)
-                ) {
+                if (uids.includes(uid) && !this.cursorInstances.has(uid)) {
                     if (uid === this.context.uid) {
                         return;
                     }
                     const component = new Cursor(
                         this.appManager,
+                        this.addCursorChangeListener,
                         this.cursors,
                         uid,
                         this,
@@ -86,7 +96,7 @@ export class CursorManager extends Base {
                     );
                     this.cursorInstances.set(uid, component);
                 }
-            })
+            });
         }
     }, 100);
 
@@ -106,13 +116,6 @@ export class CursorManager extends Base {
         this.updateCursor(this.getType(event), event.clientX, event.clientY);
     }, 5);
 
-    private touchMoveListener = debounce((event: TouchEvent) => {
-        if (event.touches.length === 1) {
-            const touchEvent = event.touches[0];
-            this.updateCursor(this.getType(touchEvent), touchEvent.clientX, touchEvent.clientY);
-        }
-    }, 5);
-
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
             const view = event.type === "main" ? this.appManager.mainView : this.focusView;
@@ -128,7 +131,11 @@ export class CursorManager extends Base {
         }
     }
 
-    private getPoint = (view: View | undefined, clientX: number, clientY: number): Point | undefined => {
+    private getPoint = (
+        view: View | undefined,
+        clientX: number,
+        clientY: number
+    ): Point | undefined => {
         const rect = view?.divElement?.getBoundingClientRect();
         if (rect) {
             const point = view?.convertToPointInWorld({
@@ -137,7 +144,7 @@ export class CursorManager extends Base {
             });
             return point;
         }
-    }
+    };
 
     /**
      *  因为窗口内框在不同分辨率下的大小不一样，所以这里通过来鼠标事件的 target 来判断是在主白板还是在 APP 中
@@ -147,7 +154,7 @@ export class CursorManager extends Base {
         const focusApp = this.appManager.focusApp;
         switch (target.parentElement) {
             case this.mainViewElement: {
-                return { type: "main" }; 
+                return { type: "main" };
             }
             case focusApp?.view?.divElement: {
                 return { type: "app" };
@@ -224,17 +231,39 @@ export class CursorManager extends Base {
         });
     }
 
-    public destroy() {
-        const wrapper = WindowManager.wrapper;
-        if (wrapper) {
-            wrapper.removeEventListener("mousemove", this.mouseMoveListener);
-            wrapper.removeEventListener("touchstart", this.touchMoveListener);
-            wrapper.removeEventListener("touchmove", this.touchMoveListener);
-            wrapper.removeEventListener("mouseleave", this.mouseLeaveListener);
-            wrapper.removeEventListener("touchend", this.mouseLeaveListener);
-        }
+    public onReconnect() {
         if (this.cursorInstances.size) {
             this.cursorInstances.forEach(cursor => cursor.destroy());
+            this.cursorInstances.clear();
+        }
+        this.roomMembers = this.appManager.room?.state.roomMembers;
+        if (WindowManager.wrapper) {
+            this.handleRoomMembersChange(WindowManager.wrapper);
+        }
+    }
+
+    public addCursorChangeListener = (
+        uid: string,
+        callback: (position: Position, state: CursorState) => void
+    ) => {
+        this.manager.refresher?.add(uid, () => {
+            const disposer = autorun(() => {
+                const position = get(this.cursors, [uid, Fields.Position]);
+                const state = get(this.cursors, [uid, Fields.CursorState]);
+                if (position) {
+                    callback(position, state);
+                }
+            });
+            return disposer;
+        });
+    };
+
+    public destroy() {
+        this.sideEffectManager.flushAll();
+        if (this.cursorInstances.size) {
+            this.cursorInstances.forEach(cursor => {
+                cursor.destroy();
+            });
             this.cursorInstances.clear();
         }
         this.manager.refresher?.remove("cursors");
