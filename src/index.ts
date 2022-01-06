@@ -255,7 +255,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
 
         if (params.container) {
-            manager.bindContainer(params.container, params.collectorContainer);
+            manager.bindContainer(params.container);
         }
 
         replaceRoomFunction(room, manager);
@@ -322,7 +322,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return mainViewElement;
     }
 
-    public bindContainer(container: HTMLElement, collectorContainer?: HTMLElement) {
+    public bindContainer(container: HTMLElement) {
         if (WindowManager.isCreated && WindowManager.container) {
             if (WindowManager.container.firstChild) {
                 container.appendChild(WindowManager.container.firstChild);
@@ -337,7 +337,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     params.overwriteStyles
                 );
                 const boxManager = createBoxManager(this, callbacks, emitter, {
-                    collectorContainer: collectorContainer,
+                    collectorContainer: params.collectorContainer,
                     collectorStyles: params.collectorStyles,
                     prefersColorScheme: params.prefersColorScheme,
                 });
@@ -356,6 +356,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         WindowManager.container = container;
     }
 
+    public bindCollectorContainer(container: HTMLElement) {
+        if (WindowManager.isCreated) {
+            this.boxManager?.setCollectorContainer(container);
+        } else {
+            if (WindowManager.params) {
+                WindowManager.params.collectorContainer = container;
+            }
+        }
+    }
+
     /**
      * 注册插件
      */
@@ -363,17 +373,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         params: RegisterParams<AppOptions, SetupResult, Attributes>
     ): Promise<void> {
         return appRegister.register(params);
-    }
-
-    public static setCollectorContainer(container: HTMLElement) {
-        const manager = this.displayer.getInvisiblePlugin(this.kind) as WindowManager;
-        if (this.isCreated && manager) {
-            manager.boxManager?.setCollectorContainer(container);
-        } else {
-            if (this.params) {
-                this.params.collectorContainer = container;
-            }
-        }
     }
 
     /**

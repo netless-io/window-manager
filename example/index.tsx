@@ -310,7 +310,7 @@ const isWritable = url.get("isWritable");
 const mountManager = async (room, root) => {
     const manager = await WindowManager.mount({
         room,
-        // collectorStyles: { bottom: "100px", right: "30px" },
+        // collectorStyles: { bottom: "100px", left: "30px" },
         containerSizeRatio: 9 / 16,
         chessboard: true,
         debug: true,
