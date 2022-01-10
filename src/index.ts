@@ -16,6 +16,7 @@ import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observe
 import { setupWrapper } from "./ViewManager";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
+import "@netless/app-docs-viewer/dist/style.css";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
