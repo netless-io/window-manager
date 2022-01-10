@@ -357,8 +357,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public bindCollectorContainer(container: HTMLElement) {
-        if (WindowManager.isCreated) {
-            this.boxManager?.setCollectorContainer(container);
+        if (WindowManager.isCreated && this.boxManager) {
+            this.boxManager.setCollectorContainer(container);
         } else {
             if (WindowManager.params) {
                 WindowManager.params.collectorContainer = container;
