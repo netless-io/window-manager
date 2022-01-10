@@ -272,6 +272,16 @@ const HelloWorldApp = async () => {
     console.log('HelloWorld Loaded')
     return {
         setup: (context: AppContext<any, any>) => {
+            const state = context.createStorage<{ a: number, b?: { c: number } }>("HelloWorldApp", { a: 1 });
+            state.onStateChanged.addListener((diff => {
+                if (diff.a) {
+                    console.log("diff", diff.a.newValue, diff.a.oldValue)
+                }
+                console.log("diff all", diff);
+            }))
+            const c = { c: 3 }
+            state.setState({ a: 2, b: c });
+            state.setState({ a: 2, b: c });
             console.log('helloworld options', context.getAppOptions());
             context.mountView(context.getBox().$content as any);
             context.emitter.on("destroy",() => console.log("[HelloWorld]: destroy"));

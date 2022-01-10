@@ -347,7 +347,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 });
                 this.boxManager = boxManager;
                 this.appManager?.setBoxManager(boxManager);
-                this.appManager?.displayerWritableListener(this.room?.isWritable);
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
                 if (WindowManager.wrapper) {
                     this.cursorManager?.setupWrapper(WindowManager.wrapper);
