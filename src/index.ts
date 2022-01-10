@@ -58,6 +58,7 @@ import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./AppProxy";
+import { ReconnectRefresher } from "./ReconnectRefresher";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
@@ -171,6 +172,8 @@ export type MountParams = {
 
 export type CallbacksType = Emittery<PublicEvent>;
 export const callbacks: CallbacksType = new Emittery();
+
+export const reconnectRefresher = new ReconnectRefresher({ emitter });
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind = "WindowManager";

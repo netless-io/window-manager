@@ -85,7 +85,3 @@ export class ReconnectRefresher {
         this.releaseDisposers();
     }
 }
-
-export const reconnectRefresher = new ReconnectRefresher({
-    emitter: emitter,
-});
