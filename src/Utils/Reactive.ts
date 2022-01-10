@@ -1,5 +1,6 @@
 import { listenUpdated, unlistenUpdated, reaction, UpdateEventKind } from "white-web-sdk";
 import type { AkkoObjectUpdatedProperty , AkkoObjectUpdatedListener } from "white-web-sdk";
+import { isObject } from "lodash";
 
 // 兼容 13 和 14 版本 SDK
 export const onObjectByEvent = (event: UpdateEventKind) => {
@@ -30,7 +31,8 @@ export const onObjectByEvent = (event: UpdateEventKind) => {
 
 export const safeListenPropsUpdated = <T>(
     getProps: () => T,
-    callback: AkkoObjectUpdatedListener<T>
+    callback: AkkoObjectUpdatedListener<T>,
+    onDestroyed?: (props: unknown) => void
   ) => {
     let disposeListenUpdated: (() => void) | null = null;
     const disposeReaction = reaction(
@@ -41,8 +43,12 @@ export const safeListenPropsUpdated = <T>(
           disposeListenUpdated = null;
         }
         const props = getProps();
-        disposeListenUpdated = () => unlistenUpdated(props, callback);
-        listenUpdated(props, callback);
+        if (isObject(props)) {
+          disposeListenUpdated = () => unlistenUpdated(props, callback);
+          listenUpdated(props, callback);
+        } else {
+          onDestroyed?.(props);
+        }
       },
       { fireImmediately: true }
     );
