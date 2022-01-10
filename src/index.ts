@@ -347,6 +347,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 });
                 this.boxManager = boxManager;
                 this.appManager?.setBoxManager(boxManager);
+                this.appManager?.displayerWritableListener(this.room?.isWritable);
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
                 if (WindowManager.wrapper) {
                     this.cursorManager?.setupWrapper(WindowManager.wrapper);
@@ -479,10 +480,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * 设置所有 app 的 readonly 模式
      */
     public setReadonly(readonly: boolean): void {
-        if (this.room?.isWritable) {
-            this.readonly = readonly;
-            this.appManager?.boxManager?.setReadonly(readonly);
-        }
+        this.readonly = readonly;
+        this.boxManager?.setReadonly(readonly);
     }
 
     /**

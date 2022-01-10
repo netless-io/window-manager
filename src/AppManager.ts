@@ -282,7 +282,7 @@ export class AppManager {
         emitter.emit("observerIdChange", this.displayer.observerId);
     };
 
-    private displayerWritableListener = (isReadonly: boolean) => {
+    public displayerWritableListener = (isReadonly: boolean) => {
         const isWritable = !isReadonly;
         const isManualWritable =
             this.windowManger.readonly === undefined || this.windowManger.readonly === false;
