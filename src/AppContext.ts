@@ -15,6 +15,7 @@ import type { BoxManager } from "./BoxManager";
 import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
 import type { AppProxy } from "./AppProxy";
+import { Storage } from './App/Storage';
 
 export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
@@ -119,5 +120,13 @@ export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
 
     public getAppOptions(): AppOptions | undefined {
         return typeof this.appOptions === 'function' ? (this.appOptions as () => AppOptions)() : this.appOptions
+    }
+
+    public createStorage<TState>(storeId: string, defaultState?: TState): Storage<TState> {
+        const storage = new Storage(this, storeId, defaultState);
+        this.emitter.on("destroy", () => {
+            storage.destroy();
+        });
+        return storage;
     }
 }
