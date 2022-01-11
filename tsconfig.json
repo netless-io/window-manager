@@ -1,7 +1,6 @@
 {
     "extends": "@tsconfig/svelte/tsconfig.json",
     "compilerOptions": {
-      "rootDir": "./src",
       "outDir": "dist",
       "strictNullChecks": true,
       "strict": true,
@@ -28,8 +27,9 @@
       "resolveJsonModule": true,
     },
     "include": [
-      "./src",
+      "src",
       "./src/shim.d.ts",
       "../node_modules/@types/**/index.d.ts",
+      "package.json"
     ]
   }
