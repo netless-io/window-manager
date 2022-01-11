@@ -36,6 +36,7 @@ export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
         room.scenePreview = (...args) => manager.mainView.scenePreview(...args);
         room.fillSceneSnapshot = (...args) => manager.mainView.fillSceneSnapshot(...args);
         room.generateScreenshot = (...args) => manager.mainView.generateScreenshot(...args);
+        room.setMemberState = (...args) => manager.mainView.setMemberState(...args);
     }
 
 };

@@ -17,7 +17,7 @@ import type { AppManager } from "./AppManager";
 import type { AppProxy } from "./AppProxy";
 import { Storage } from './App/Storage';
 
-export class AppContext<TAttrs extends Record<string, any>, AppOptions = any> {
+export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
     public readonly mobxUtils = {
         autorun,
