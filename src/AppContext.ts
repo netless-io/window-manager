@@ -6,7 +6,7 @@ import {
     unlistenDisposed,
     unlistenUpdated,
     toJS
-    } from 'white-web-sdk';
+} from 'white-web-sdk';
 import { BoxNotCreatedError } from './Utils/error';
 import type { Room, SceneDefinition, View } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
@@ -16,6 +16,7 @@ import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
 import type { AppProxy } from "./AppProxy";
 import { Storage } from './App/Storage';
+import { createMagixEvent } from './App/MagixEvent';
 
 export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
@@ -46,15 +47,15 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         this.isAddApp = appProxy.isAddApp;
     }
 
-    public getDisplayer() {
+    public getDisplayer = () => {
         return this.manager.displayer;
     }
 
-    public getAttributes(): TAttrs | undefined {
+    public getAttributes = (): TAttrs | undefined => {
         return this.appProxy.attributes;
     }
 
-    public getScenes(): SceneDefinition[] | undefined {
+    public getScenes = (): SceneDefinition[] | undefined => {
         const appAttr = this.store.getAppAttributes(this.appId);
         if (appAttr?.isDynamicPPT) {
             const appProxy = this.manager.appProxies.get(this.appId);
@@ -66,19 +67,19 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         }
     }
 
-    public getView(): View | undefined {
+    public getView = (): View | undefined => {
         return this.appProxy.view;
     }
 
-    public getInitScenePath() {
+    public getInitScenePath = () => {
         return this.manager.getAppInitPath(this.appId);
     }
 
-    public getIsWritable(): boolean {
+    public getIsWritable = (): boolean => {
         return this.manager.canOperate;
     }
 
-    public getBox(): ReadonlyTeleBox {
+    public getBox = (): ReadonlyTeleBox => {
         const box = this.boxManager.getBox(this.appId);
         if (box) {
             return box;
@@ -87,26 +88,26 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         }
     }
 
-    public getRoom(): Room | undefined {
+    public getRoom = (): Room | undefined => {
         return this.manager.room;
     }
 
-    public setAttributes(attributes: TAttrs) {
+    public setAttributes = (attributes: TAttrs) => {
         this.manager.safeSetAttributes({ [this.appId]: attributes });
     }
 
-    public updateAttributes(keys: string[], value: any) {
+    public updateAttributes = (keys: string[], value: any) => {
         if (this.manager.attributes[this.appId]) {
             this.manager.safeUpdateAttributes([this.appId, ...keys], value);
         }
     }
 
-    public async setScenePath(scenePath: string): Promise<void> {
+    public setScenePath = async (scenePath: string): Promise<void> => {
         if (!this.appProxy.box) return;
         this.appProxy.setFullPath(scenePath);
     }
 
-    public mountView(dom: HTMLDivElement): void {
+    public mountView = (dom: HTMLDivElement): void => {
         const view = this.getView();
         if (view) {
             view.divElement = dom;
@@ -117,15 +118,17 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         }
     }
 
-    public getAppOptions(): AppOptions | undefined {
+    public getAppOptions = (): AppOptions | undefined => {
         return typeof this.appOptions === 'function' ? (this.appOptions as () => AppOptions)() : this.appOptions
     }
 
-    public createStorage<TState>(storeId: string, defaultState?: TState): Storage<TState> {
+    public createStorage = <TState>(storeId: string, defaultState?: TState): Storage<TState> => {
         const storage = new Storage(this, storeId, defaultState);
         this.emitter.on("destroy", () => {
             storage.destroy();
         });
         return storage;
     }
+    
+    public createMagixEvent = <TPayloads = any>() => createMagixEvent<TPayloads>(this.manager)
 }

@@ -267,6 +267,15 @@ const onRef = (ref) => {
     })
 }
 
+interface HelloWorldMagixEventPayloads {
+    event1: {
+        count: number;
+    },
+    event2: {
+        disabled: boolean;
+    }
+}
+
 const HelloWorldApp = async () => {
     console.log('start loading HelloWorld...')
     // await new Promise(resolve => setTimeout(resolve, 2000))
@@ -284,6 +293,12 @@ const HelloWorldApp = async () => {
             state.setState({ a: 2, b: c });
             state.setState({ a: 2, b: c });
             console.log('helloworld options', context.getAppOptions());
+            
+            const magixEvent = context.createMagixEvent<HelloWorldMagixEventPayloads>()
+            magixEvent.addListener(('event1'), (message) => {
+                console.log('MagixEvent', message);
+            });
+            magixEvent.dispatch("event1", { count: 1 });
             context.mountView(context.getBox().$content as any);
             context.emitter.on("destroy",() => console.log("[HelloWorld]: destroy"));
             setTimeout(() => {
