@@ -1,17 +1,16 @@
-import { AnimationMode, reaction, ViewVisionMode } from "white-web-sdk";
-import { Base } from "./Base";
-import { callbacks, emitter } from "./index";
+import { AnimationMode, reaction } from "white-web-sdk";
+import { Base } from "../Base";
+import { callbacks, emitter } from "../index";
 import { createView } from "./ViewManager";
 import { debounce, isEmpty, isEqual } from "lodash";
-import { Fields } from "./AttributesDelegate";
-import { notifyMainViewModeChange, setViewFocusScenePath, setViewMode } from "./Utils/Common";
+import { Fields } from "../AttributesDelegate";
+import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
-import type { AppManager } from "./AppManager";
+import type { AppManager } from "../AppManager";
 
 export class MainViewProxy extends Base {
     private scale?: number;
-    private cameraStore = this.manager.cameraStore;
     private started = false;
     private mainViewIsAddListener = false;
     private mainView: View;
@@ -23,7 +22,6 @@ export class MainViewProxy extends Base {
         super(manager);
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
-        this.cameraStore.register(this.viewId, this.mainView);
         emitter.once("mainViewMounted").then(() => {
             setTimeout(() => {
                 this.start();
@@ -34,7 +32,7 @@ export class MainViewProxy extends Base {
         });
         const playgroundSizeChangeListener = () => {
             this.sizeChangeHandler(this.mainViewSize);
-        }
+        };
         this.sideEffectManager.add(() => {
             emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
             return () => emitter.off("playgroundSizeChange", playgroundSizeChangeListener);
@@ -103,9 +101,6 @@ export class MainViewProxy extends Base {
         if (mainViewScenePath) {
             setViewFocusScenePath(mainView, mainViewScenePath);
         }
-        if (!this.store.focus) {
-            this.switchViewModeToWriter();
-        }
         return mainView;
     }
 
@@ -138,7 +133,6 @@ export class MainViewProxy extends Base {
 
     public async mainViewClickHandler(): Promise<void> {
         if (!this.manager.canOperate) return;
-        if (this.view.mode === ViewVisionMode.Writable) return;
         this.store.cleanFocus();
         this.context.blurFocusBox();
     }
@@ -162,17 +156,6 @@ export class MainViewProxy extends Base {
     private onCameraOrSizeUpdated = () => {
         callbacks.emit("cameraStateChange", this.cameraState);
     };
-
-    public switchViewModeToWriter(): void {
-        if (!this.manager.canOperate) return;
-        if (this.view) {
-            if (this.view.mode === ViewVisionMode.Writable) return;
-            this.cameraStore.switchView(this.viewId, this.mainView, () => {
-                notifyMainViewModeChange(callbacks, ViewVisionMode.Writable);
-                setViewMode(this.view, ViewVisionMode.Writable);
-            });
-        }
-    }
 
     public moveCameraToContian(size: Size): void {
         if (!isEmpty(size)) {
@@ -210,7 +193,6 @@ export class MainViewProxy extends Base {
 
     public destroy() {
         this.stop();
-        this.cameraStore.unregister(this.viewId, this.mainView);
         this.sideEffectManager.flushAll();
     }
 }

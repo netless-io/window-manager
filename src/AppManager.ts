@@ -2,16 +2,15 @@ import pRetry from "p-retry";
 import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
-import { autorun, isPlayer, isRoom, ScenePathType, ViewVisionMode } from "white-web-sdk";
+import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks, emitter, WindowManager, reconnectRefresher } from "./index";
-import { CameraStore } from "./Utils/CameraStore";
-import { genAppId, makeValidScenePath, setScenePath } from "./Utils/Common";
+import { genAppId, makeValidScenePath, setScenePath, setViewFocusScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";
-import { MainViewProxy } from "./MainView";
+import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
 import { sortBy } from "lodash";
 import { store } from "./AttributesDelegate";
-import { ViewManager } from "./ViewManager";
+import { ViewManager } from "./View/ViewManager";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
@@ -19,7 +18,6 @@ import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "
 
 export class AppManager {
     public displayer: Displayer;
-    public cameraStore: CameraStore;
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
@@ -38,9 +36,8 @@ export class AppManager {
             safeSetAttributes: attributes => this.safeSetAttributes(attributes),
             safeUpdateAttributes: (keys, val) => this.safeUpdateAttributes(keys, val),
         });
-        this.cameraStore = new CameraStore();
         this.mainViewProxy = new MainViewProxy(this);
-        this.viewManager = new ViewManager(this);
+        this.viewManager = new ViewManager(this.displayer);
         this.appListeners = new AppListeners(this);
         this.displayer.callbacks.on(this.eventName, this.displayerStateListener);
         this.appListeners.addListeners();
@@ -188,13 +185,16 @@ export class AppManager {
         mainView.disableCameraTransform = disableCameraTransform;
         mainView.divElement = divElement;
         if (!mainView.focusScenePath) {
-            this.store.setMainViewFocusPath(mainView);
+            this.setMainViewFocusPath();
         }
-        if (this.store.focus === undefined && mainView.mode !== ViewVisionMode.Writable) {
-            this.viewManager.switchMainViewToWriter();
-        }
-        this.mainViewProxy.addMainViewListener();
         emitter.emit("mainViewMounted");
+    }
+
+    public setMainViewFocusPath() {
+        const scenePath = this.store.getMainViewScenePath();
+        if (scenePath) {
+            setViewFocusScenePath(this.mainView, scenePath);
+        }
     }
 
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
@@ -295,9 +295,6 @@ export class AppManager {
             appProxy.emitAppIsWritableChange();
         });
         if (isWritable === true) {
-            if (!this.store.focus) {
-                this.mainViewProxy.switchViewModeToWriter();
-            }
             this.mainView.disableCameraTransform = false;
         } else {
             this.mainView.disableCameraTransform = true;
@@ -347,15 +344,16 @@ export class AppManager {
                 await this._setMainViewScenePath(scenePath);
             } else if (scenePathType === ScenePathType.Dir) {
                 const validScenePath = makeValidScenePath(this.displayer, scenePath);
-                await this._setMainViewScenePath(validScenePath);
+                if (validScenePath) {
+                    await this._setMainViewScenePath(validScenePath);
+                }
             }
         }
     }
 
     private async _setMainViewScenePath(scenePath: string) {
         this.safeSetAttributes({ _mainScenePath: scenePath });
-        await this.viewManager.switchMainViewToWriter();
-        setScenePath(this.room, scenePath);
+        this.setMainViewFocusPath();
         this.store.setMainViewFocusPath(this.mainView);
         this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
     }
@@ -363,12 +361,20 @@ export class AppManager {
     public async setMainViewSceneIndex(index: number) {
         if (this.room) {
             this.safeSetAttributes({ _mainSceneIndex: index });
-            await this.viewManager.switchMainViewToWriter();
-            this.room.setSceneIndex(index);
-            const nextScenePath = this.room.state.sceneState.scenePath;
-            this.store.setMainViewScenePath(nextScenePath);
-            this.store.setMainViewFocusPath(this.mainView);
-            this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath });
+            const mainViewScenePath = this.store.getMainViewScenePath() as string;
+            if (mainViewScenePath) {
+                const sceneList = mainViewScenePath.split("/");
+                sceneList.pop();
+                let sceneDir = sceneList.join("/");
+                if (sceneDir === "") {
+                    sceneDir = "/";
+                }
+                const scenePath = makeValidScenePath(this.displayer, sceneDir, index);
+                if (scenePath) {
+                    this.store.setMainViewScenePath(scenePath);
+                    this.setMainViewFocusPath();
+                }
+            }   
         }
     }
 

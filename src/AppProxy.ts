@@ -2,16 +2,15 @@ import Emittery from "emittery";
 import { AppAttributes, AppEvents, Events } from "./constants";
 import { AppContext } from "./AppContext";
 import { appRegister } from "./Register";
-import { autorun, ViewVisionMode } from "white-web-sdk";
-import { callbacks, emitter } from "./index";
+import { autorun } from "white-web-sdk";
+import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
 import { get } from "lodash";
 import { log } from "./Utils/log";
 import {
-    notifyMainViewModeChange,
     setScenePath,
     setViewFocusScenePath,
-    setViewMode,
+    getScenePath
 } from "./Utils/Common";
 import type {
     AppEmitterEvent,
@@ -37,7 +36,6 @@ export class AppProxy extends Base {
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
-    private cameraStore = this.manager.cameraStore;
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
@@ -98,8 +96,17 @@ export class AppProxy extends Base {
 
     public getFullScenePath(): string | undefined {
         if (this.scenePath) {
-            return get(this.appAttributes, [Fields.FullPath], this.scenePath);
+            return get(this.appAttributes, [Fields.FullPath], this.getFullScenePathFromScenes());
         }
+    }
+
+    private getFullScenePathFromScenes() {
+        const sceneIndex = get(this.appAttributes, ["state", "SceneIndex"], 0);
+        const fullPath = getScenePath(this.manager.room, this.scenePath, sceneIndex);
+        if (fullPath) {
+            this.setFullPath(fullPath);
+        }
+        return fullPath;
     }
 
     public setFullPath(path: string) {
@@ -108,7 +115,6 @@ export class AppProxy extends Base {
 
     public async baseInsertApp(
         skipUpdate = false,
-        focus?: boolean
     ): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (!params.kind) {
@@ -122,9 +128,6 @@ export class AppProxy extends Base {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
         this.context.updateManagerRect();
-        if (focus) {
-            this.focusApp();
-        }
         return {
             appId: this.id,
             app: appImpl,
@@ -133,7 +136,6 @@ export class AppProxy extends Base {
 
     private focusApp() {
         this.focusBox();
-        this.context.switchAppToWriter(this.id);
         this.store.setMainViewFocusPath(this.manager.mainView);
     }
 
@@ -205,9 +207,6 @@ export class AppProxy extends Base {
 
     private afterSetupApp(boxInitState: AppInitState | undefined): void {
         if (boxInitState) {
-            if (boxInitState.focus && this.scenePath) {
-                this.context.switchAppToWriter(this.id);
-            }
             if (!boxInitState?.x || !boxInitState.y) {
                 this.boxManager?.setBoxInitState(this.id);
             }
@@ -226,27 +225,8 @@ export class AppProxy extends Base {
         await this.destroy(true, false, true);
         const params = this.params;
         const appProxy = new AppProxy(params, this.manager, this.id, this.isAddApp);
-        await appProxy.baseInsertApp(true, this.store.focus === this.id);
+        await appProxy.baseInsertApp(true);
         this.boxManager?.updateBoxState(currentAppState);
-    }
-
-    public switchToWritable() {
-        appRegister.notifyApp(this.kind, "focus", { appId: this.id });
-        this.cameraStore.switchView(this.id, this.view, () => {
-            if (this.view) {
-                if (this.view.mode === ViewVisionMode.Writable) return;
-                try {
-                    if (this.manager.mainView.mode === ViewVisionMode.Writable) {
-                        this.store.setMainViewFocusPath(this.manager.mainView);
-                        notifyMainViewModeChange(callbacks, ViewVisionMode.Freedom);
-                        setViewMode(this.manager.mainView, ViewVisionMode.Freedom);
-                    }
-                    setViewMode(this.view, ViewVisionMode.Writable);
-                } catch (error) {
-                    log("switch view failed", error);
-                }
-            }
-        });
     }
 
     public getAppInitState = (id: string) => {
@@ -364,7 +344,6 @@ export class AppProxy extends Base {
 
     private async createView(): Promise<View> {
         const view = await this.viewManager.createView(this.id);
-        this.cameraStore.register(this.id, view);
         this.setViewFocusScenePath();
         return view;
     }
@@ -388,7 +367,6 @@ export class AppProxy extends Base {
             this.store.cleanAppAttributes(this.id);
         }
         this.appProxies.delete(this.id);
-        this.cameraStore.unregister(this.id, this.view);
 
         this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);

@@ -4,6 +4,7 @@ import Emittery from "emittery";
 import pRetry from "p-retry";
 import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
+import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
 import { DEFAULT_CONTAINER_RATIO, Events, REQUIRE_VERSION } from "./constants";
@@ -11,9 +12,9 @@ import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { isNull, isObject } from "lodash";
 import { log } from "./Utils/log";
+import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
-import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
-import { setupWrapper } from "./ViewManager";
+import { setupWrapper } from "./Helper";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
 import "@netless/app-docs-viewer/dist/style.css";
@@ -59,9 +60,6 @@ import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./AppProxy";
-import { ReconnectRefresher } from "./ReconnectRefresher";
-
-const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -200,6 +198,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private boxManager?: BoxManager;
     private static params?: MountParams;
 
+    private containerResizeObserver?: ContainerResizeObserver;
+
     constructor(context: InvisiblePluginContext) {
         super(context);
         WindowManager.displayer = context.displayer;
@@ -321,7 +321,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             style.textContent = overwriteStyles;
             playground.appendChild(style);
         }
-        manager.observePlaygroundSize(playground, sizer, wrapper);
+        manager.containerResizeObserver = ContainerResizeObserver.create(
+            playground,
+            sizer,
+            wrapper,
+            emitter
+        );
         WindowManager.wrapper = wrapper;
         return mainViewElement;
     }
@@ -698,46 +703,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (!this.attributes["_mainSceneIndex"]) {
                 this.safeSetAttributes({ _mainSceneIndex: sceneState.index });
             }
-        }
-    }
-
-    private containerResizeObserver?: ResizeObserver;
-
-    private observePlaygroundSize(
-        container: HTMLElement,
-        sizer: HTMLElement,
-        wrapper: HTMLDivElement
-    ) {
-        this.updateSizer(container.getBoundingClientRect(), sizer, wrapper);
-
-        this.containerResizeObserver = new ResizeObserver(entries => {
-            const containerRect = entries[0]?.contentRect;
-            if (containerRect) {
-                this.updateSizer(containerRect, sizer, wrapper);
-                this.cursorManager?.updateContainerRect();
-                this.boxManager?.updateManagerRect();
-                emitter.emit("playgroundSizeChange", containerRect);
-            }
-        });
-
-        this.containerResizeObserver.observe(container);
-    }
-
-    private updateSizer(
-        { width, height }: DOMRectReadOnly,
-        sizer: HTMLElement,
-        wrapper: HTMLDivElement
-    ) {
-        if (width && height) {
-            if (height / width > WindowManager.containerSizeRatio) {
-                height = width * WindowManager.containerSizeRatio;
-                sizer.classList.toggle("netless-window-manager-sizer-horizontal", true);
-            } else {
-                width = height / WindowManager.containerSizeRatio;
-                sizer.classList.toggle("netless-window-manager-sizer-horizontal", false);
-            }
-            wrapper.style.width = `${width}px`;
-            wrapper.style.height = `${height}px`;
         }
     }
 }

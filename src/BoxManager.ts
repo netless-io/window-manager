@@ -1,4 +1,4 @@
-import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
+import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { debounce, maxBy } from "lodash";
 import {
     TELE_BOX_MANAGER_EVENT,
@@ -6,7 +6,7 @@ import {
     TeleBoxCollector,
     TeleBoxManager,
 } from "@netless/telebox-insider";
-import { WindowManager } from "./index";
+import { emitter, WindowManager } from "./index";
 import type { AddAppOptions, AppInitState, EmitterType, CallbacksType } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
@@ -145,6 +145,11 @@ export class BoxManager {
         this.teleBoxManager.events.on("z_index", box => {
             this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
         });
+        emitter.on("playgroundSizeChange", this.playgroundSizeChangeListener);
+    }
+
+    private playgroundSizeChangeListener = () => {
+        this.updateManagerRect();
     }
 
     private get mainView() {
@@ -251,12 +256,8 @@ export class BoxManager {
     }
 
     public setCollectorContainer(container: HTMLElement) {
-        const styles = {
-            ...DEFAULT_COLLECTOR_STYLE,
-            ...this.createTeleBoxManagerConfig?.collectorStyles,
-        };
         const collector = new TeleBoxCollector({
-            styles
+            styles: this.createTeleBoxManagerConfig?.collectorStyles,
         }).mount(container);
         this.teleBoxManager.setCollector(collector);
     }
@@ -391,6 +392,7 @@ export class BoxManager {
     }
 
     public destroy() {
+        emitter.off("playgroundSizeChange", this.playgroundSizeChangeListener);
         this.teleBoxManager.destroy();
     }
 }

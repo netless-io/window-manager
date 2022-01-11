@@ -33,10 +33,6 @@ export class Context {
     public blurFocusBox() {
         this.manager.boxManager?.blurAllBox();
     }
-
-    public switchAppToWriter(id: string) {
-        this.manager.viewManager.switchAppToWriter(id);
-    }
 }
 
 let context: Context;
