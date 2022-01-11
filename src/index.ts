@@ -14,7 +14,6 @@ import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
 import { setupBuiltin } from "./BuiltinApps";
 import { setupWrapper } from "./Helper";
-import { version } from "../package.json";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
 import {
@@ -183,7 +182,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = version;
+    public version = __APP_VERSION__;
 
     public appListeners?: AppListeners;
 

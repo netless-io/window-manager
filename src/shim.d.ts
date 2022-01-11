@@ -4,3 +4,7 @@ declare module "*.svelte" {
     const app: SvelteComponent;
     export default app;
 }
+
+declare global {
+    const __APP_VERSION__: string;
+  }
