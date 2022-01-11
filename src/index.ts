@@ -149,6 +149,8 @@ export type PublicEvent = {
     darkModeChange: boolean;
     prefersColorSchemeChange: TeleBoxColorScheme;
     cameraStateChange: CameraState;
+    mainViewScenePathChange: string;
+    mainViewSceneIndexChange: number;
 };
 
 export type MountParams = {
@@ -674,7 +676,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     private static checkVersion() {
-
         const version = getVersionNumber(WhiteVersion);
         if (version < getVersionNumber(REQUIRE_VERSION)) {
             throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);

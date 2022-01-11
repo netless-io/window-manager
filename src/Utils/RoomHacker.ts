@@ -29,6 +29,18 @@ export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
             },
         });
 
+        Object.defineProperty(room, "canUndoSteps", {
+            get() {
+                return manager.mainView.canUndoSteps;
+            }
+        });
+
+        Object.defineProperty(room, "canRedoSteps", {
+            get() {
+                return manager.mainView.canRedoSteps;
+            }
+        });
+
         room.moveCamera = (camera: Camera) => manager.mainView.moveCamera(camera);
         room.moveCameraToContain = (...args) => manager.moveCameraToContain(...args);
         room.convertToPointInWorld = (...args) => manager.mainView.convertToPointInWorld(...args);
@@ -37,6 +49,8 @@ export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
         room.fillSceneSnapshot = (...args) => manager.mainView.fillSceneSnapshot(...args);
         room.generateScreenshot = (...args) => manager.mainView.generateScreenshot(...args);
         room.setMemberState = (...args) => manager.mainView.setMemberState(...args);
+        room.redo = () => manager.mainView.redo();
+        room.undo = () => manager.mainView.undo();
     }
 
 };

@@ -67,6 +67,7 @@ export class AppListeners {
 
     private setMainViewScenePathHandler = ({ nextScenePath }: { nextScenePath: string }) => {
         setViewFocusScenePath(this.manager.mainView, nextScenePath);
+        callbacks.emit("mainViewScenePathChange", nextScenePath);
     }
 
     private moveCameraToContainHandler = (payload: any) => {

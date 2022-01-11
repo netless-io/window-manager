@@ -3,6 +3,7 @@ import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import type { AppContext} from "../dist";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
+import type { WindowManager as WindowManagerType } from "../dist";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
@@ -295,7 +296,7 @@ const HelloWorldApp = async () => {
 
 WindowManager.register({
     kind: "HelloWorld1",
-    src: HelloWorldApp,
+    src: HelloWorldApp as any,
     appOptions: () => 'AppOptions',
     addHooks: (emitter) => {
         emitter.on('created', result => {
@@ -325,7 +326,7 @@ const mountManager = async (room, root) => {
         chessboard: true,
         debug: true,
         cursor: true,
-    });
+    }) as WindowManagerType;
 
     (window as any).manager = manager;
     (window as any).manager.onAppDestroy(BuiltinApps.DocsViewer, (error) => {
@@ -343,6 +344,9 @@ const mountManager = async (room, root) => {
     setTimeout(() => {
         manager.bindContainer(root);
     }, 2000)
+    manager.emitter.on("mainViewSceneIndexChange", index => {
+        console.log("mainViewSceneIndexChange", index);
+    });
 }
 const destroy = () => {
     anyWindow.manager.destroy();

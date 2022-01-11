@@ -8,7 +8,7 @@ import { genAppId, makeValidScenePath, setScenePath, setViewFocusScenePath } fro
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
-import { sortBy } from "lodash";
+import { get, sortBy } from "lodash";
 import { store } from "./AttributesDelegate";
 import { ViewManager } from "./View/ViewManager";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
@@ -28,6 +28,8 @@ export class AppManager {
 
     private appListeners: AppListeners;
     public boxManager?: BoxManager;
+
+    private _prevSceneIndex: number | undefined;
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
@@ -92,6 +94,15 @@ export class AppManager {
                     setTimeout(() => {
                         this.boxManager?.setMinimized(Boolean(minimized));
                     }, 0);
+                }
+            });
+        });
+        this.refresher?.add("mainViewIndex", () => {
+            return autorun(() => {
+                const mainSceneIndex = get(this.attributes, "_mainSceneIndex");
+                if (mainSceneIndex !== undefined && this._prevSceneIndex !== mainSceneIndex) {
+                    callbacks.emit("mainViewSceneIndexChange", mainSceneIndex);
+                    this._prevSceneIndex = mainSceneIndex;
                 }
             });
         });
@@ -374,7 +385,7 @@ export class AppManager {
                     this.store.setMainViewScenePath(scenePath);
                     this.setMainViewFocusPath();
                 }
-            }   
+            }
         }
     }
 
@@ -477,5 +488,6 @@ export class AppManager {
         this.refresher?.destroy();
         this.mainViewProxy.destroy();
         callbacks.clearListeners();
+        this._prevSceneIndex = undefined;
     }
 }
