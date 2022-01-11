@@ -4,7 +4,7 @@ import { SideEffectManager } from "side-effect-manager";
 import type { AppContext } from "../../AppContext";
 import { safeListenPropsUpdated } from "../../Utils/Reactive";
 import { isRef, makeRef, plainObjectKeys } from "./utils";
-import type { Diff, MaybeRefValue, RefValue } from "./typings";
+import type { Diff, MaybeRefValue, RefValue, StorageStateChangedEvent } from "./typings";
 import { StorageEvent } from "./StorageEvent";
 
 export * from './typings';
@@ -87,7 +87,7 @@ export class Storage<TState = any> implements Storage<TState> {
     return this._state;
   }
 
-  readonly onStateChanged = new StorageEvent<Diff<TState>>();
+  readonly onStateChanged = new StorageEvent<StorageStateChangedEvent<TState>>();
 
   ensureState(state: Partial<TState>): void {
     return this.setState(
