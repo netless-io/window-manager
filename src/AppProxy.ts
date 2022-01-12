@@ -327,7 +327,7 @@ export class AppProxy extends Base {
         });
         this.manager.refresher?.add(`${appId}-fullPath`, () => {
             return autorun(() => {
-                const fullPath = this.appAttributes.fullPath;
+                const fullPath = this.appAttributes?.fullPath;
                 this.setFocusScenePathHandler(fullPath);
             });
         });
