@@ -30,6 +30,7 @@ export class AppManager {
     public boxManager?: BoxManager;
 
     private _prevSceneIndex: number | undefined;
+    private _prevFocused: string | undefined;
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
@@ -106,6 +107,15 @@ export class AppManager {
                 }
             });
         });
+        this.refresher?.add("focusedChange", () => {
+            return autorun(() => {
+                const focused = get(this.attributes, "focus");
+                if (this._prevFocused !== focused) {
+                    callbacks.emit("focusedChange", focused);
+                    this._prevFocused = focused;
+                }
+            });
+        })
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
             const mainScenePath = this.store.getMainViewScenePath();
             if (!mainScenePath) return;
@@ -116,6 +126,7 @@ export class AppManager {
         }
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
+        this._prevFocused = this.attributes.focus;
     }
 
     /**

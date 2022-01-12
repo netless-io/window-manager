@@ -151,6 +151,7 @@ export type PublicEvent = {
     cameraStateChange: CameraState;
     mainViewScenePathChange: string;
     mainViewSceneIndexChange: number;
+    focusedChange: string | undefined;
 };
 
 export type MountParams = {
