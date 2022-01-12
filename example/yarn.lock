@@ -988,6 +988,11 @@
     cssnano-preset-default "^4.0.0"
     postcss "^7.0.0"
 
+"@netless/app-slide@^0.0.55":
+  version "0.0.55"
+  resolved "https://registry.npmjs.org/@netless/app-slide/-/app-slide-0.0.55.tgz#1b6b725234d336921f10074924d090116ad7c09d"
+  integrity sha512-HhPZ+WdtxnQLZFoM8wfBwLCXkL0gJV3B1jelTzecEnWnyCbEhngVb9BIIHnRfn31wq82pudeMsZvs9Tu1PfLiQ==
+
 "@netless/video-js-plugin@^0.3.7":
   version "0.3.7"
   resolved "https://registry.npmjs.org/@netless/video-js-plugin/-/video-js-plugin-0.3.7.tgz#6c1f174f20e8a93634e1770e7e535c1302bdf22b"

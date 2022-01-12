@@ -5,13 +5,9 @@ import { appRegister } from "./Register";
 import { autorun } from "white-web-sdk";
 import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
-import { get } from "lodash";
+import { debounce, get } from "lodash";
 import { log } from "./Utils/log";
-import {
-    setScenePath,
-    setViewFocusScenePath,
-    getScenePath
-} from "./Utils/Common";
+import { setScenePath, setViewFocusScenePath, getScenePath } from "./Utils/Common";
 import type {
     AppEmitterEvent,
     AppInitState,
@@ -113,9 +109,7 @@ export class AppProxy extends Base {
         this.manager.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
     }
 
-    public async baseInsertApp(
-        skipUpdate = false,
-    ): Promise<{ appId: string; app: NetlessApp }> {
+    public async baseInsertApp(skipUpdate = false): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (!params.kind) {
             throw new Error("[WindowManager]: kind require");
@@ -123,7 +117,13 @@ export class AppProxy extends Base {
         const appImpl = await appRegister.appClasses.get(params.kind)?.();
         const appParams = appRegister.registered.get(params.kind);
         if (appImpl) {
-            await this.setupApp(this.id, skipUpdate, appImpl, params.options, appParams?.appOptions);
+            await this.setupApp(
+                this.id,
+                skipUpdate,
+                appImpl,
+                params.options,
+                appParams?.appOptions
+            );
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
@@ -317,7 +317,7 @@ export class AppProxy extends Base {
                 }
             });
         });
-        this.manager.refresher?.add(this.stateKey,() => {
+        this.manager.refresher?.add(this.stateKey, () => {
             return autorun(() => {
                 const appState = this.appAttributes?.state;
                 if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
@@ -325,7 +325,19 @@ export class AppProxy extends Base {
                 }
             });
         });
+        this.manager.refresher?.add(`${appId}-fullPath`, () => {
+            return autorun(() => {
+                const fullPath = this.appAttributes.fullPath;
+                this.setFocusScenePathHandler(fullPath);
+            });
+        });
     };
+
+    private setFocusScenePathHandler = debounce((fullPath: string | undefined) => {
+        if (this.view && fullPath && fullPath !== this.view?.focusScenePath) {
+            setViewFocusScenePath(this.view, fullPath);
+        }
+    }, 50);
 
     public setScenePath(): void {
         if (!this.manager.canOperate) return;
@@ -372,6 +384,7 @@ export class AppProxy extends Base {
         this.manager.appStatus.delete(this.id);
         this.manager.refresher?.remove(this.id);
         this.manager.refresher?.remove(this.stateKey);
+        this.manager.refresher?.remove(`${this.id}-fullPath`);
     }
 
     public close(): Promise<void> {

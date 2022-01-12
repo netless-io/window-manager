@@ -220,7 +220,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (room.phase !== RoomPhase.Connected) {
                 throw new Error("[WindowManager]: Room only Connected can be mount");
             }
-            if (room.phase === RoomPhase.Connected) {
+            if (room.phase === RoomPhase.Connected && room.isWritable) {
                 // redo undo 需要设置这个属性
                 room.disableSerialization = false;
             }

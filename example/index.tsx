@@ -4,9 +4,22 @@ import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import type { AppContext } from "../dist";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
 import type { WindowManager as WindowManagerType } from "../dist";
-import { createDocs1, createDocs2, createHelloWorld, createVideo } from "./apps";
+import { createDocs1, createDocs2, createHelloWorld, createVideo, createSlide } from "./apps";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
+
+
+WindowManager.register({
+    kind: "Slide",
+    appOptions: {
+      // turn on to show debug controller
+      debug: false,
+    },
+    src: (async () => {
+      const app = await import("@netless/app-slide");
+      return app.default ?? app;
+    }) as any,
+});
 
 const anyWindow = window as any;
 
@@ -214,6 +227,9 @@ const App = () => {
                 </button>
                 <button style={{ display: "block", margin: "1em 0" }} onClick={() => createDocs2(anyWindow.manager)}>
                     课件2
+                </button>
+                <button style={{ display: "block", margin: "1em 0" }} onClick={() => createSlide(anyWindow.manager)}>
+                    Slide
                 </button>
                 <button style={{ display: "block", margin: "1em 0" }} onClick={() => createVideo(anyWindow.manager)}>
                     视频

@@ -221,3 +221,17 @@ export const createVideo = (manager: WindowManager) => {
         },
     });
 };
+
+export const createSlide = (manager: WindowManager) => {
+    manager.addApp({
+        kind: "Slide",
+        options: {
+          scenePath: `/ppt/9340e8e067bc11ec8f582b1b98453394`, // [1]
+          title: "a.pptx",
+        },
+        attributes: {
+          taskId: "9340e8e067bc11ec8f582b1b98453394", // [2]
+          url: "https://convertcdn.netless.link/dynamicConvert", // [3]
+        },
+    })
+}

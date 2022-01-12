@@ -19,7 +19,7 @@
   "license": "ISC",
   "peerDependencies": {
     "video.js": ">=7",
-    "white-web-sdk": "^2.13.16"
+    "white-web-sdk": "^2.16.0"
   },
   "dependencies": {
     "@juggle/resize-observer": "^3.3.1",

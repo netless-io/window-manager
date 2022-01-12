@@ -318,6 +318,9 @@ export class AppManager {
         });
         if (isWritable === true) {
             this.mainView.disableCameraTransform = false;
+            if (this.room && this.room.disableSerialization === true) {
+                this.room.disableSerialization = false;
+            }
         } else {
             this.mainView.disableCameraTransform = true;
         }

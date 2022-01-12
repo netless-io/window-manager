@@ -110,6 +110,8 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public setScenePath = async (scenePath: string): Promise<void> => {
         if (!this.appProxy.box) return;
         this.appProxy.setFullPath(scenePath);
+        // 兼容 15 版本 SDK 的切页
+        this.getRoom()?.setScenePath(scenePath);
     }
 
     public mountView = (dom: HTMLDivElement): void => {
