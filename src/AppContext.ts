@@ -8,7 +8,7 @@ import {
     toJS
 } from 'white-web-sdk';
 import { BoxNotCreatedError } from './Utils/error';
-import type { Room, SceneDefinition, View } from "white-web-sdk";
+import type { Room, SceneDefinition, View, EventListener as WhiteEventListener } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { BoxManager } from "./BoxManager";
@@ -158,7 +158,10 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public dispatchMagixEvent: MagixEventDispatcher<TMagixEventPayloads> = (this.manager.displayer as Room).dispatchMagixEvent.bind(this.manager.displayer)
 
     /** Listen to events from others clients (and self messages). */
-    public addMagixEventListener: MagixEventAddListener<TMagixEventPayloads> = this.manager.displayer.addMagixEventListener.bind(this.manager.displayer)
+    public addMagixEventListener: MagixEventAddListener<TMagixEventPayloads> = (event, handler, options) => {
+        this.manager.displayer.addMagixEventListener(event, handler as WhiteEventListener, options);
+        return () => this.manager.displayer.removeMagixEventListener(event, handler as WhiteEventListener);
+    }
 
     /** Remove a Magix event listener. */
     public removeMagixEventListener = this.manager.displayer.removeMagixEventListener.bind(this.manager.displayer) as MagixEventRemoveListener<TMagixEventPayloads>

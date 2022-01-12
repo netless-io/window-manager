@@ -50,13 +50,15 @@ export type MagixEventHandler<
   TEvent extends MagixEventTypes<TPayloads> = MagixEventTypes<TPayloads>
 > = (message: MagixEventMessage<TPayloads, TEvent>) => void;
 
+export type MagixEventListenerDisposer = () => void
+
 export type MagixEventAddListener<TPayloads = any> = <
   TEvent extends MagixEventTypes<TPayloads> = MagixEventTypes<TPayloads>
 >(
   event: TEvent,
   handler: MagixEventHandler<TPayloads, TEvent>,
   options?: MagixEventListenerOptions | undefined
-) => void;
+) => MagixEventListenerDisposer;
 
 export type MagixEventRemoveListener<TPayloads = any> = <
   TEvent extends MagixEventTypes<TPayloads> = MagixEventTypes<TPayloads>
