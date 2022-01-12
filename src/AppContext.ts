@@ -121,6 +121,15 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public getAppOptions = (): TAppOptions | undefined => {
         return typeof this.appOptions === 'function' ? (this.appOptions as () => TAppOptions)() : this.appOptions
     }
+    
+    
+    private _storage?: Storage<TAttributes>
+    public get storage(): Storage<TAttributes> {
+        if (!this._storage) {
+            this._storage = new Storage(this);
+        }
+        return this._storage;
+    }
 
     public createStorage = <TState>(storeId: string, defaultState?: TState): Storage<TState> => {
         const storage = new Storage(this, storeId, defaultState);

@@ -267,6 +267,10 @@ const onRef = (ref) => {
     })
 }
 
+interface HelloWorldAttributes {
+    a?: number,
+    b?: { c: number }
+}
 interface HelloWorldMagixEventPayloads {
     event1: {
         count: number;
@@ -281,17 +285,17 @@ const HelloWorldApp = async () => {
     // await new Promise(resolve => setTimeout(resolve, 2000))
     console.log('HelloWorld Loaded')
     return {
-        setup: (context: AppContext<any, HelloWorldMagixEventPayloads, any>) => {
-            const state = context.createStorage<{ a: number, b?: { c: number } }>("HelloWorldApp", { a: 1 });
-            state.onStateChanged.addListener((diff => {
+        setup: (context: AppContext<HelloWorldAttributes, HelloWorldMagixEventPayloads, any>) => {
+            // const state = context.createStorage<>("HelloWorldApp", { a: 1 });
+            context.storage.onStateChanged.addListener((diff => {
                 if (diff.a) {
                     console.log("diff", diff.a.newValue, diff.a.oldValue)
                 }
                 console.log("diff all", diff);
             }))
             const c = { c: 3 }
-            state.setState({ a: 2, b: c });
-            state.setState({ a: 2, b: c });
+            context.storage.setState({ a: 2, b: c });
+            context.storage.setState({ a: 2, b: c });
             console.log('helloworld options', context.getAppOptions());
             
             context.addMagixEventListener(('event1'), (message) => {

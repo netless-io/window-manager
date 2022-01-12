@@ -1,5 +1,5 @@
 import type { AkkoObjectUpdatedProperty } from "white-web-sdk";
-import { get, has, isObject } from "lodash";
+import { get, has, mapValues, isObject, size, noop } from "lodash";
 import { SideEffectManager } from "side-effect-manager";
 import type { AppContext } from "../../AppContext";
 import { safeListenPropsUpdated } from "../../Utils/Reactive";
@@ -9,12 +9,12 @@ import { StorageEvent } from "./StorageEvent";
 
 export * from './typings';
 
-const STORAGE_NS = "_WM-STORAGE_";
+export const STORAGE_NS = "_WM-STORAGE_";
 
-export class Storage<TState = any> implements Storage<TState> {
-  readonly id: string;
+export class Storage<TState extends Record<string, any> = any> implements Storage<TState> {
+  readonly id: string | null;
 
-  private readonly _context: AppContext<{ [STORAGE_NS]: TState }>;
+  private readonly _context: AppContext;
   private readonly _sideEffect = new SideEffectManager();
   private _state: TState;
   private _destroyed = false;
@@ -26,54 +26,58 @@ export class Storage<TState = any> implements Storage<TState> {
    */
   private _lastValue = new Map<string | number | symbol, TState[Extract<keyof TState, string>]>();
 
-  constructor(context: AppContext<any>, id: string, defaultState?: TState) {
-    if (id == null) {
-      throw new Error("Cannot create Storage with empty id.");
-    }
-
+  /**
+   * 
+   * @param context AppContext
+   * @param id Storage ID
+   * @param defaultState Only keys that do not exist on Stoage state
+   */
+  constructor(context: AppContext, id?: string, defaultState?: TState) {
     if (defaultState && !isObject(defaultState)) {
       throw new Error(`Default state for Storage ${id} is not an object.`);
     }
 
     this._context = context;
-    this.id = id;
+    this.id = id || null;
 
-    const attrs = context.getAttributes();
     this._state = {} as TState;
-    const rawState = get<TState>(attrs, [STORAGE_NS, id], this._state);
+    const rawState = this._getRawState(this._state);
 
-    if (this._context.getIsWritable()) {
-      if (!isObject(rawState) || rawState === this._state) {
-        if (!attrs[STORAGE_NS]) {
+    if (this.id !== null && this._context.getIsWritable()) {
+      if (rawState === this._state || !isObject(rawState)) {
+        if (!get(this._context.getAttributes(), [STORAGE_NS])) {
           this._context.updateAttributes([STORAGE_NS], {});
         }
         this._context.updateAttributes([STORAGE_NS, this.id], this._state);
-        if (defaultState) {
-          this.setState(defaultState);
-        }
-      } else {
-        // strip mobx
-        plainObjectKeys(rawState).forEach(key => {
-          try {
-            const rawValue = isObject(rawState[key]) ? JSON.parse(JSON.stringify(rawState[key])) : rawState[key];
-            if (isRef<TState[Extract<keyof TState, string>]>(rawValue)) {
-              this._state[key] = rawValue.v;
-              if (isObject(rawValue.v)) {
-                this._refMap.set(rawValue.v, rawValue);
-              }
-            } else {
-              this._state[key] = rawValue;
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        });
+      }
+      if (defaultState) {
+        this.setState(defaultState);
       }
     }
 
+    // strip mobx
+    plainObjectKeys(rawState).forEach(key => {
+      if (this.id === null && key === STORAGE_NS) {
+        return;
+      }
+      try {
+        const rawValue = isObject(rawState[key]) ? JSON.parse(JSON.stringify(rawState[key])) : rawState[key];
+        if (isRef<TState[Extract<keyof TState, string>]>(rawValue)) {
+          this._state[key] = rawValue.v;
+          if (isObject(rawValue.v)) {
+            this._refMap.set(rawValue.v, rawValue);
+          }
+        } else {
+          this._state[key] = rawValue;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
     this._sideEffect.addDisposer(
       safeListenPropsUpdated(
-        () => get(context.getAttributes(), [STORAGE_NS, this.id]),
+        () => this.id === null ? context.getAttributes() : get(context.getAttributes(), [STORAGE_NS, this.id]),
         this._updateProperties.bind(this),
         this.destroy.bind(this)
       )
@@ -122,7 +126,7 @@ export class Storage<TState = any> implements Storage<TState> {
         if (value === void 0) {
           this._lastValue.set(key, this._state[key]);
           delete this._state[key];
-          this._context.updateAttributes([STORAGE_NS, this.id, key], value);
+          this._setRawState(key, value);
         } else {
           this._lastValue.set(key, this._state[key]);
           this._state[key] = value as TState[Extract<keyof TState, string>];
@@ -137,13 +141,20 @@ export class Storage<TState = any> implements Storage<TState> {
             payload = refValue;
           }
 
-          this._context.updateAttributes([STORAGE_NS, this.id, key], payload);
+          this._setRawState(key, payload)
         }
       });
     }
   }
 
-  emptyStore(): void {
+  /**
+   * Empty storage data.
+   */
+  emptyStorage(): void {
+    if (size(this._state) <= 0) {
+      return;
+    }
+
     if (this._destroyed) {
       console.error(new Error(`Cannot empty destroyed Storage "${this.id}".`));
       return;
@@ -154,10 +165,17 @@ export class Storage<TState = any> implements Storage<TState> {
       return;
     }
 
-    this._context.updateAttributes([STORAGE_NS, this.id], {});
+    this.setState(mapValues(this._state, noop as () => undefined));
   }
 
-  deleteStore(): void {
+  /**
+   * Delete storage index with all of its data and destroy the Storage instance.
+   */
+  deleteStorage(): void {
+    if (this.id === null) {
+      throw new Error(`Cannot delete main Storage`);
+    }
+
     if (!this._context.getIsWritable()) {
       console.error(new Error(`Cannot delete Storage "${this.id}" without writable access.`));
       return;
@@ -172,9 +190,33 @@ export class Storage<TState = any> implements Storage<TState> {
     return this._destroyed;
   }
 
+  /**
+   * Destroy the Storage instance. The data will be kept.
+   */
   destroy() {
     this._destroyed = true;
     this._sideEffect.flushAll();
+  }
+
+  private _getRawState(): TState | undefined
+  private _getRawState(defaultValue: TState): TState
+  private _getRawState(defaultValue?: TState): TState | undefined {
+    if (this.id === null) {
+      return get(this._context.getAttributes(), [], defaultValue);
+    } else {
+      return get(this._context.getAttributes(), [STORAGE_NS, this.id], defaultValue);
+    }
+  }
+
+  private _setRawState(key: string, value: any): void {
+    if (this.id === null) {
+      if (key === STORAGE_NS) {
+        throw new Error(`Cannot set attribute internal filed "${STORAGE_NS}"`)
+      }
+      return this._context.updateAttributes([key], value);
+    } else {
+      return this._context.updateAttributes([STORAGE_NS, this.id, key], value);
+    }
   }
 
   private _updateProperties(actions: ReadonlyArray<AkkoObjectUpdatedProperty<TState, string>>): void {
@@ -190,6 +232,11 @@ export class Storage<TState = any> implements Storage<TState> {
         try {
           const action = actions[i]
           const key = action.key as Extract<keyof TState, string>;
+
+          if (this.id === null && key === STORAGE_NS) {
+            continue
+          }
+
           const value = isObject(action.value) ? JSON.parse(JSON.stringify(action.value)) : action.value;
           let oldValue: TState[Extract<keyof TState, string>] | undefined;
           if (this._lastValue.has(key)) {
