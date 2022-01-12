@@ -51,6 +51,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.manager.displayer;
     }
 
+    /** @deprecated Use context.storage.state instead. */
     public getAttributes = (): TAttributes | undefined => {
         return this.appProxy.attributes;
     }
@@ -75,10 +76,12 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.manager.getAppInitPath(this.appId);
     }
 
+    /** Get App writable status. */
     public getIsWritable = (): boolean => {
         return this.manager.canOperate;
     }
 
+    /** Get the App Window UI box. */
     public getBox = (): ReadonlyTeleBox => {
         const box = this.boxManager.getBox(this.appId);
         if (box) {
@@ -92,10 +95,12 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.manager.room;
     }
 
+    /** @deprecated Use context.storage.setState instead. */
     public setAttributes = (attributes: TAttributes) => {
         this.manager.safeSetAttributes({ [this.appId]: attributes });
     }
 
+    /** @deprecated Use context.storage.setState instead. */
     public updateAttributes = (keys: string[], value: any) => {
         if (this.manager.attributes[this.appId]) {
             this.manager.safeUpdateAttributes([this.appId, ...keys], value);
@@ -118,12 +123,14 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
     }
 
+    /** Get the local App options. */
     public getAppOptions = (): TAppOptions | undefined => {
         return typeof this.appOptions === 'function' ? (this.appOptions as () => TAppOptions)() : this.appOptions
     }
-    
-    
+
     private _storage?: Storage<TAttributes>
+
+    /** Main Storage for attributes. */
     public get storage(): Storage<TAttributes> {
         if (!this._storage) {
             this._storage = new Storage(this);
@@ -131,6 +138,12 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this._storage;
     }
 
+    /**
+     * Create separated storages for flexible state management.
+     * @param storeId Namespace for the storage. Storages of the same namespace share the same data.
+     * @param defaultState Default state for initial storage creation.
+     * @returns 
+     */
     public createStorage = <TState>(storeId: string, defaultState?: TState): Storage<TState> => {
         const storage = new Storage(this, storeId, defaultState);
         this.emitter.on("destroy", () => {
@@ -138,10 +151,13 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         });
         return storage;
     }
-    
+
+    /** Dispatch events to other clients (and self). */
     public dispatchMagixEvent: MagixEventDispatcher<TMagixEventPayloads> = (this.manager.displayer as Room).dispatchMagixEvent.bind(this.manager.displayer)
-    
+
+    /** Listen to events from others clients (and self messages). */
     public addMagixEventListener: MagixEventAddListener<TMagixEventPayloads> = this.manager.displayer.addMagixEventListener.bind(this.manager.displayer)
-    
+
+    /** Remove a Magix event listener. */
     public removeMagixEventListener = this.manager.displayer.removeMagixEventListener.bind(this.manager.displayer) as MagixEventRemoveListener<TMagixEventPayloads>
 }

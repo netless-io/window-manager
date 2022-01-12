@@ -26,12 +26,6 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
    */
   private _lastValue = new Map<string | number | symbol, TState[Extract<keyof TState, string>]>();
 
-  /**
-   * 
-   * @param context AppContext
-   * @param id Storage ID
-   * @param defaultState Only keys that do not exist on Stoage state
-   */
   constructor(context: AppContext, id?: string, defaultState?: TState) {
     if (defaultState && !isObject(defaultState)) {
       throw new Error(`Default state for Storage ${id} is not an object.`);
