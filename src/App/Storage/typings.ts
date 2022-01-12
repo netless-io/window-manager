@@ -16,6 +16,8 @@ export type StorageOnSetStatePayload<TState = unknown> = {
   [K in keyof TState]?: MaybeRefValue<TState[K]>;
 };
 
-export type StorageStateChangedEvent<TState = any> = Diff<TState>
+export type StorageStateChangedEvent<TState = any> = Diff<TState>;
 
-export type StorageStateChangedListener<TState = any> = StorageEventListener<StorageStateChangedEvent<TState>>
+export type StorageStateChangedListener<TState = any> = StorageEventListener<StorageStateChangedEvent<TState>>;
+
+export type StorageStateChangedListenerDisposer = () => void;

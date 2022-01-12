@@ -4,7 +4,7 @@ import { SideEffectManager } from "side-effect-manager";
 import type { AppContext } from "../../AppContext";
 import { safeListenPropsUpdated } from "../../Utils/Reactive";
 import { isRef, makeRef, plainObjectKeys } from "./utils";
-import type { Diff, MaybeRefValue, RefValue, StorageStateChangedEvent } from "./typings";
+import type { Diff, MaybeRefValue, RefValue, StorageStateChangedEvent, StorageStateChangedListener, StorageStateChangedListenerDisposer } from "./typings";
 import { StorageEvent } from "./StorageEvent";
 
 export * from './typings';
@@ -86,6 +86,11 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
   }
 
   readonly onStateChanged = new StorageEvent<StorageStateChangedEvent<TState>>();
+  
+  addStateChangedListener(handler: StorageStateChangedListener<TState>): StorageStateChangedListenerDisposer {
+    this.onStateChanged.addListener(handler);
+    return () => this.onStateChanged.removeListener(handler);
+  }
 
   ensureState(state: Partial<TState>): void {
     return this.setState(
