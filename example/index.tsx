@@ -281,7 +281,7 @@ const HelloWorldApp = async () => {
     // await new Promise(resolve => setTimeout(resolve, 2000))
     console.log('HelloWorld Loaded')
     return {
-        setup: (context: AppContext<any, any>) => {
+        setup: (context: AppContext<any, HelloWorldMagixEventPayloads, any>) => {
             const state = context.createStorage<{ a: number, b?: { c: number } }>("HelloWorldApp", { a: 1 });
             state.onStateChanged.addListener((diff => {
                 if (diff.a) {
@@ -294,11 +294,10 @@ const HelloWorldApp = async () => {
             state.setState({ a: 2, b: c });
             console.log('helloworld options', context.getAppOptions());
             
-            const magixEvent = context.createMagixEvent<HelloWorldMagixEventPayloads>()
-            magixEvent.addListener(('event1'), (message) => {
+            context.addMagixEventListener(('event1'), (message) => {
                 console.log('MagixEvent', message);
             });
-            magixEvent.dispatch("event1", { count: 1 });
+            context.dispatchMagixEvent("event1", { count: 1 });
             context.mountView(context.getBox().$content as any);
             context.emitter.on("destroy",() => console.log("[HelloWorld]: destroy"));
             setTimeout(() => {

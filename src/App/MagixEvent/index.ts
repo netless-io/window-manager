@@ -1,11 +1,9 @@
 import type {
-  Room,
   MagixEventListenerOptions as WhiteMagixListenerOptions,
   Event as WhiteEvent,
   EventPhase as WhiteEventPhase,
   Scope as WhiteScope,
 } from "white-web-sdk";
-import type { AppManager } from "../../AppManager";
 
 export interface MagixEventListenerOptions extends WhiteMagixListenerOptions {
   /**
@@ -66,15 +64,3 @@ export type MagixEventRemoveListener<TPayloads = any> = <
   event: TEvent,
   handler?: MagixEventHandler<TPayloads, TEvent>
 ) => void;
-
-export interface MagixEvent<TPayloads = any> {
-  readonly dispatch: MagixEventDispatcher<TPayloads>;
-  readonly addListener: MagixEventAddListener<TPayloads>;
-  readonly removeListener: MagixEventRemoveListener<TPayloads>;
-}
-
-export const createMagixEvent = <TPayloads = any>(manager: AppManager): MagixEvent<TPayloads> => ({
-  dispatch: (manager.displayer as Room).dispatchMagixEvent.bind(manager.displayer),
-  addListener: manager.displayer.addMagixEventListener.bind(manager.displayer),
-  removeListener: manager.displayer.removeMagixEventListener.bind(manager.displayer) as MagixEventRemoveListener<TPayloads>,
-});

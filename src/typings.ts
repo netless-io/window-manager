@@ -12,7 +12,7 @@ import type {
 import type { AppContext } from "./AppContext";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 
-export interface NetlessApp<Attributes = any, SetupResult = any, AppOptions = any> {
+export interface NetlessApp<Attributes = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
@@ -28,7 +28,7 @@ export interface NetlessApp<Attributes = any, SetupResult = any, AppOptions = an
         /** App only single instance. */
         singleton?: boolean;
     };
-    setup: (context: AppContext<Attributes, AppOptions>) => SetupResult;
+    setup: (context: AppContext<Attributes, MagixEventPayloads, AppOptions>) => SetupResult;
 }
 
 export type AppEmitterEvent<T = any> = {

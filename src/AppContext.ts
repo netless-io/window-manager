@@ -16,10 +16,10 @@ import type { AppEmitterEvent } from "./index";
 import type { AppManager } from "./AppManager";
 import type { AppProxy } from "./AppProxy";
 import { Storage } from './App/Storage';
-import { createMagixEvent } from './App/MagixEvent';
+import type { MagixEventAddListener, MagixEventDispatcher, MagixEventRemoveListener } from './App/MagixEvent';
 
-export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = any> {
-    public readonly emitter: Emittery<AppEmitterEvent<TAttrs>>;
+export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any> {
+    public readonly emitter: Emittery<AppEmitterEvent<TAttributes>>;
     public readonly mobxUtils = {
         autorun,
         reaction,
@@ -41,7 +41,7 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         private boxManager: BoxManager,
         public appId: string,
         private appProxy: AppProxy,
-        private appOptions?: AppOptions | (() => AppOptions),
+        private appOptions?: TAppOptions | (() => TAppOptions),
     ) {
         this.emitter = appProxy.appEmitter;
         this.isAddApp = appProxy.isAddApp;
@@ -51,7 +51,7 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         return this.manager.displayer;
     }
 
-    public getAttributes = (): TAttrs | undefined => {
+    public getAttributes = (): TAttributes | undefined => {
         return this.appProxy.attributes;
     }
 
@@ -92,7 +92,7 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         return this.manager.room;
     }
 
-    public setAttributes = (attributes: TAttrs) => {
+    public setAttributes = (attributes: TAttributes) => {
         this.manager.safeSetAttributes({ [this.appId]: attributes });
     }
 
@@ -118,8 +118,8 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         }
     }
 
-    public getAppOptions = (): AppOptions | undefined => {
-        return typeof this.appOptions === 'function' ? (this.appOptions as () => AppOptions)() : this.appOptions
+    public getAppOptions = (): TAppOptions | undefined => {
+        return typeof this.appOptions === 'function' ? (this.appOptions as () => TAppOptions)() : this.appOptions
     }
 
     public createStorage = <TState>(storeId: string, defaultState?: TState): Storage<TState> => {
@@ -130,5 +130,9 @@ export class AppContext<TAttrs extends Record<string, any> = any, AppOptions = a
         return storage;
     }
     
-    public createMagixEvent = <TPayloads = any>() => createMagixEvent<TPayloads>(this.manager)
+    public dispatchMagixEvent: MagixEventDispatcher<TMagixEventPayloads> = (this.manager.displayer as Room).dispatchMagixEvent.bind(this.manager.displayer)
+    
+    public addMagixEventListener: MagixEventAddListener<TMagixEventPayloads> = this.manager.displayer.addMagixEventListener.bind(this.manager.displayer)
+    
+    public removeMagixEventListener = this.manager.displayer.removeMagixEventListener.bind(this.manager.displayer) as MagixEventRemoveListener<TMagixEventPayloads>
 }
