@@ -219,6 +219,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (room.phase !== RoomPhase.Connected) {
                 throw new Error("[WindowManager]: Room only Connected can be mount");
             }
+            if (room.phase === RoomPhase.Connected) {
+                // redo undo 需要设置这个属性
+                room.disableSerialization = false;
+            }
         }
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
@@ -560,6 +564,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         } else {
             throw new AppManagerNotInitError();
         }
+    }
+
+    public get focused(): string | undefined {
+        return this.attributes.focus;
     }
 
     /**

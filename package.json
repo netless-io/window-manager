@@ -1,10 +1,11 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.4.0-canary.9",
+  "version": "0.4.0-canary.10",
   "description": "",
   "main": "dist/index.es.js",
   "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
+  "repository": "netless-io/window-manager",
   "scripts": {
     "prettier": "prettier --write .",
     "build": "vite build && yarn type-gen",

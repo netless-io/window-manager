@@ -23,6 +23,7 @@ export class MainViewProxy extends Base {
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
         emitter.once("mainViewMounted").then(() => {
+            this.addMainViewListener();
             setTimeout(() => {
                 this.start();
                 if (!this.mainViewCamera || !this.mainViewSize) {
@@ -185,6 +186,7 @@ export class MainViewProxy extends Base {
     }
 
     public stop() {
+        this.removeMainViewListener();
         this.removeCameraListener();
         this.manager.refresher?.remove(Fields.MainViewCamera);
         this.manager.refresher?.remove(Fields.MainViewSize);
