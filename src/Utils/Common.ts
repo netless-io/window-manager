@@ -3,7 +3,7 @@ import { debounce } from "lodash";
 import { emitter } from "../index";
 import { v4 } from "uuid";
 import type { PublicEvent } from "../index";
-import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
+import { Displayer, ViewVisionMode, Room, View, ScenePathType } from "white-web-sdk";
 import type Emittery from "emittery";
 
 export const genAppId = async (kind: string) => {
@@ -49,6 +49,15 @@ export const getScenePath = (
         }
     }
 };
+
+export const removeScenes = (room: Room | undefined, scenePath: string) => {
+    if (room) {
+        const type = room.scenePathType(scenePath);
+        if (type !== ScenePathType.None) {
+            room.removeScenes(scenePath);
+        }
+    }
+}
 
 export const setViewMode = (view: View, mode: ViewVisionMode) => {
     if (!(view as any).didRelease && view.mode !== mode) {

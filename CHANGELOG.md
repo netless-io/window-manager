@@ -2,7 +2,7 @@
 
 1. 废弃 `WindowManager.mount` 的多参数类型
 2. 添加 `bindContainer` 接口，`mount` 时 `container` 参数不再是必选
-
+3. 关闭 `App` 会移除相关的 `Scene`
 
 ## 0.3.18
 

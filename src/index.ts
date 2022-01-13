@@ -428,6 +428,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                     const appScenePath = appManager.store.getAppScenePath(appId);
                     if (appScenePath && appScenePath === scenePath) {
                         console.warn(`[WindowManager]: ScenePath ${scenePath} Already opened`);
+                        if (this.boxManager) {
+                            const topBox = this.boxManager.getTopBox();
+                            if (topBox) {
+                                this.boxManager.setZIndex(appId, topBox.zIndex + 1, false);
+                            }
+                        }
                         return;
                     }
                 }

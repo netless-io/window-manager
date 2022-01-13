@@ -5,6 +5,7 @@ import {
     TELE_BOX_STATE,
     TeleBoxCollector,
     TeleBoxManager,
+    TeleBoxConfig,
 } from "@netless/telebox-insider";
 import { emitter, WindowManager } from "./index";
 import type { AddAppOptions, AppInitState, EmitterType, CallbacksType } from "./index";
@@ -377,6 +378,10 @@ export class BoxManager {
                 this.focusBox({ appId: box.id }, false);
             }
         }
+    }
+
+    public updateBox(id: string, payload: TeleBoxConfig, skipUpdate = true): void {
+        this.teleBoxManager.update(id, payload, skipUpdate);
     }
 
     public setReadonly(readonly: boolean) {

@@ -7,7 +7,7 @@ import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
 import { debounce, get } from "lodash";
 import { log } from "./Utils/log";
-import { setScenePath, setViewFocusScenePath, getScenePath } from "./Utils/Common";
+import { setScenePath, setViewFocusScenePath, getScenePath, removeScenes } from "./Utils/Common";
 import type {
     AppEmitterEvent,
     AppInitState,
@@ -377,6 +377,9 @@ export class AppProxy extends Base {
         }
         if (cleanAttrs) {
             this.store.cleanAppAttributes(this.id);
+            if (this.scenePath) {
+                removeScenes(this.manager.room, this.scenePath);
+            }
         }
         this.appProxies.delete(this.id);
 

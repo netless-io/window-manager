@@ -59,10 +59,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public getScenes = (): SceneDefinition[] | undefined => {
         const appAttr = this.store.getAppAttributes(this.appId);
         if (appAttr?.isDynamicPPT) {
-            const appProxy = this.manager.appProxies.get(this.appId);
-            if (appProxy) {
-                return appProxy.scenes;
-            }
+            return this.appProxy.scenes;
         } else {
             return appAttr?.options["scenes"];
         }

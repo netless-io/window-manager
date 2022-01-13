@@ -8,21 +8,19 @@ import { createDocs1, createDocs2, createHelloWorld, createVideo, createSlide } 
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
 
-
 WindowManager.register({
     kind: "Slide",
     appOptions: {
-      // turn on to show debug controller
-      debug: false,
+        // turn on to show debug controller
+        debug: false,
     },
     src: (async () => {
-      const app = await import("@netless/app-slide");
-      return app.default ?? app;
+        const app = await import("@netless/app-slide");
+        return app.default ?? app;
     }) as any,
 });
 
 const anyWindow = window as any;
-
 
 let firstPlay = false;
 
@@ -80,8 +78,8 @@ const onRef = ref => {
 };
 
 interface HelloWorldAttributes {
-    a?: number,
-    b?: { c: number }
+    a?: number;
+    b?: { c: number };
 }
 interface HelloWorldMagixEventPayloads {
     event1: {
@@ -99,21 +97,24 @@ const HelloWorldApp = async () => {
     return {
         setup: (context: AppContext<HelloWorldAttributes, HelloWorldMagixEventPayloads, any>) => {
             // const state = context.createStorage<>("HelloWorldApp", { a: 1 });
-            context.storage.onStateChanged.addListener((diff => {
+            context.storage.onStateChanged.addListener(diff => {
                 if (diff.a) {
                     console.log("diff", diff.a.newValue, diff.a.oldValue);
                 }
                 console.log("diff all", diff);
-            }))
-            const c = { c: 3 }
-            context.storage.setState({ a: 2, b: c });
-            context.storage.setState({ a: 2, b: c });
-            console.log('helloworld options', context.getAppOptions());
-            
-            context.addMagixEventListener(('event1'), (message) => {
-                console.log('MagixEvent', message);
             });
-            context.dispatchMagixEvent("event1", { count: 1 });
+            const c = { c: 3 };
+            if (context.getIsWritable()) {
+                context.storage.setState({ a: 2, b: c });
+                context.storage.setState({ a: 2, b: c });
+            }
+
+            console.log("helloworld options", context.getAppOptions());
+
+            context.addMagixEventListener("event1", message => {
+                console.log("MagixEvent", message);
+            });
+            // context.dispatchMagixEvent("event1", { count: 1 });
             context.mountView(context.getBox().$content as any);
             context.emitter.on("destroy", () => console.log("[HelloWorld]: destroy"));
             setTimeout(() => {
@@ -191,11 +192,11 @@ anyWindow.destroy = destroy;
 
 const prevPage = (manager: WindowManager) => {
     manager.setMainViewSceneIndex(manager.mainViewSceneIndex - 1).catch(console.log);
-}
+};
 
 const nextPage = (manager: WindowManager) => {
     manager.setMainViewSceneIndex(manager.mainViewSceneIndex + 1).catch(console.log);
-}
+};
 
 const App = () => {
     return (
@@ -217,8 +218,7 @@ const App = () => {
                     height: "calc(100vh - 32px)",
                     border: "1px solid",
                 }}
-            >
-            </div>
+            ></div>
             <div
                 style={{
                     flexShrink: 0,
@@ -228,28 +228,49 @@ const App = () => {
                     userSelect: "none",
                 }}
             >
-                <button style={{ display: "block", margin: "1em 0" }} onClick={() => createHelloWorld(anyWindow.manager)}>
+                <button
+                    style={{ display: "block", margin: "1em 0" }}
+                    onClick={() => createHelloWorld(anyWindow.manager)}
+                >
                     Hello World
                 </button>
-                <button style={{ display: "block", margin: "1em 0" }} onClick={() => createDocs1(anyWindow.manager)}>
+                <button
+                    style={{ display: "block", margin: "1em 0" }}
+                    onClick={() => createDocs1(anyWindow.manager)}
+                >
                     课件1
                 </button>
-                <button style={{ display: "block", margin: "1em 0" }} onClick={() => createDocs2(anyWindow.manager)}>
+                <button
+                    style={{ display: "block", margin: "1em 0" }}
+                    onClick={() => createDocs2(anyWindow.manager)}
+                >
                     课件2
                 </button>
-                <button style={{ display: "block", margin: "1em 0" }} onClick={() => createSlide(anyWindow.manager)}>
+                <button
+                    style={{ display: "block", margin: "1em 0" }}
+                    onClick={() => createSlide(anyWindow.manager)}
+                >
                     Slide
                 </button>
-                <button style={{ display: "block", margin: "1em 0" }} onClick={() => createVideo(anyWindow.manager)}>
+                <button
+                    style={{ display: "block", margin: "1em 0" }}
+                    onClick={() => createVideo(anyWindow.manager)}
+                >
                     视频
                 </button>
                 <button style={{ display: "block", margin: "1em 0" }} onClick={replay}>
                     回放
                 </button>
-                <button style={{ display: "block", margin: "1em 0" }} onClick={() => prevPage(anyWindow.manager)}>
+                <button
+                    style={{ display: "block", margin: "1em 0" }}
+                    onClick={() => prevPage(anyWindow.manager)}
+                >
                     上一页
                 </button>
-                <button style={{ display: "block", margin: "1em 0" }} onClick={() => nextPage(anyWindow.manager)}>
+                <button
+                    style={{ display: "block", margin: "1em 0" }}
+                    onClick={() => nextPage(anyWindow.manager)}
+                >
                     下一页
                 </button>
             </div>
