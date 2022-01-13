@@ -107,12 +107,13 @@ manager.closeApp(appId)
 
 <h2 id="prototypes">实例属性</h2>
 
-| name               | type    | default | desc   |
-| ------------------ | ------- | ------- | ------ |
-| mainView           | View    |         | 主白板    |
-| boxState           | string  |         | 当前窗口状态 |
-| darkMode           | boolean |         | 黑夜模式   |
-| prefersColorScheme | string  |         | 颜色主题   |
+| name               | type    | default | desc              |
+| ------------------ | ------- | ------- | ----------------- |
+| mainView           | View    |         | 主白板               |
+| mainViewSceneIndex | number  |         | 当前主白板的 SceneIndex |
+| boxState           | string  |         | 当前窗口状态            |
+| darkMode           | boolean |         | 黑夜模式              |
+| prefersColorScheme | string  |         | 颜色主题              |
 
 
 <h2 id="events">事件回调</h2>
@@ -124,6 +125,7 @@ manager.callbacks.on(events, listener)
 | name                     | type           | default | desc                       |
 | ------------------------ | -------------- | ------- | -------------------------- |
 | mainViewModeChange       | ViewVisionMode |         |                            |
+| mainViewSceneIndexChange | index: number  |         |                            |
 | boxStateChange           | string         |         | normal,minimized,maximized |
 | darkModeChange           | boolean        |         |                            |
 | prefersColorSchemeChange | string         |         | auto,light,dark            |

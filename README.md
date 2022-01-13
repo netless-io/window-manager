@@ -1,6 +1,7 @@
 # WindowManager
 
 - 目录
+  - [概念](docs/concept.md)
   - [references](docs/api.md)
   - [从白板迁移](docs/migrate.md)
 ## MainView

@@ -4,11 +4,11 @@ import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks, emitter, WindowManager, reconnectRefresher } from "./index";
-import { genAppId, makeValidScenePath, setScenePath, setViewFocusScenePath } from "./Utils/Common";
+import { entireScenes, genAppId, makeValidScenePath, parseSceneDir, setScenePath, setViewFocusScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
-import { get, sortBy } from "lodash";
+import { get, isInteger, sortBy } from "lodash";
 import { store } from "./AttributesDelegate";
 import { ViewManager } from "./View/ViewManager";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
@@ -212,10 +212,11 @@ export class AppManager {
         emitter.emit("mainViewMounted");
     }
 
-    public setMainViewFocusPath() {
-        const scenePath = this.store.getMainViewScenePath();
-        if (scenePath) {
-            setViewFocusScenePath(this.mainView, scenePath);
+    public setMainViewFocusPath(scenePath?: string) {
+        const focusScenePath = scenePath || this.store.getMainViewScenePath();
+        if (focusScenePath) {
+            const view = setViewFocusScenePath(this.mainView, focusScenePath);
+            return view?.focusScenePath === focusScenePath;
         }
     }
 
@@ -377,27 +378,44 @@ export class AppManager {
     }
 
     private async _setMainViewScenePath(scenePath: string) {
-        this.safeSetAttributes({ _mainScenePath: scenePath });
-        this.setMainViewFocusPath();
-        this.store.setMainViewFocusPath(this.mainView);
-        this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
+        const success = this.setMainViewFocusPath(scenePath);
+        if (success) {
+            this.safeSetAttributes({ _mainScenePath: scenePath });
+            this.store.setMainViewFocusPath(this.mainView);
+            this.updateSceneIndex();
+            this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
+        }
+    }
+
+    private updateSceneIndex = () => {
+        const scenePath = this.store.getMainViewScenePath() as string;
+        const sceneDir = parseSceneDir(scenePath);
+        const scenes = entireScenes(this.displayer)[sceneDir];
+        if (scenes.length) {
+            // "/ppt3/1" -> "1"
+            const pageName = scenePath.replace(sceneDir, "").replace("/", "");
+            const index = scenes.findIndex(scene => scene.name === pageName);
+            if (isInteger(index) && index >= 0) {
+                this.safeSetAttributes({ _mainSceneIndex: index });
+            }
+        }
     }
 
     public async setMainViewSceneIndex(index: number) {
         if (this.room) {
-            this.safeSetAttributes({ _mainSceneIndex: index });
+            if (this.store.getMainViewSceneIndex() === index) return;
             const mainViewScenePath = this.store.getMainViewScenePath() as string;
             if (mainViewScenePath) {
-                const sceneList = mainViewScenePath.split("/");
-                sceneList.pop();
-                let sceneDir = sceneList.join("/");
-                if (sceneDir === "") {
-                    sceneDir = "/";
-                }
+                const sceneDir = parseSceneDir(mainViewScenePath);
                 const scenePath = makeValidScenePath(this.displayer, sceneDir, index);
                 if (scenePath) {
-                    this.store.setMainViewScenePath(scenePath);
-                    this.setMainViewFocusPath();
+                    const success = this.setMainViewFocusPath(scenePath);
+                    if (success) {
+                        this.store.setMainViewScenePath(scenePath);
+                        this.safeSetAttributes({ _mainSceneIndex: index });
+                    }
+                } else {
+                    throw new Error(`[WindowManager]: ${sceneDir}: ${index} not valid index`);
                 }
             }
         }

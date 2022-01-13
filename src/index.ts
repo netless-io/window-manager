@@ -21,6 +21,7 @@ import {
     ensureValidScenePath,
     getVersionNumber,
     isValidScenePath,
+    parseSceneDir,
     wait,
 } from "./Utils/Common";
 import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
@@ -574,6 +575,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public get mainViewSceneIndex(): number {
         return this.appManager?.store.getMainViewSceneIndex();
     }
+
+    public get mainViewSceneDir(): string {
+        const scenePath = this.appManager?.store.getMainViewScenePath();
+        if (scenePath) {
+            return parseSceneDir(scenePath);
+        } else {
+            throw new Error("[WindowManager]: mainViewSceneDir not found");
+        }
+    }  
 
     /**
      * 查询所有的 App

@@ -189,6 +189,14 @@ const destroy = () => {
 anyWindow.mountManager = mountManager;
 anyWindow.destroy = destroy;
 
+const prevPage = (manager: WindowManager) => {
+    manager.setMainViewSceneIndex(manager.mainViewSceneIndex - 1).catch(console.log);
+}
+
+const nextPage = (manager: WindowManager) => {
+    manager.setMainViewSceneIndex(manager.mainViewSceneIndex + 1).catch(console.log);
+}
+
 const App = () => {
     return (
         <div
@@ -209,7 +217,8 @@ const App = () => {
                     height: "calc(100vh - 32px)",
                     border: "1px solid",
                 }}
-            ></div>
+            >
+            </div>
             <div
                 style={{
                     flexShrink: 0,
@@ -236,6 +245,12 @@ const App = () => {
                 </button>
                 <button style={{ display: "block", margin: "1em 0" }} onClick={replay}>
                     回放
+                </button>
+                <button style={{ display: "block", margin: "1em 0" }} onClick={() => prevPage(anyWindow.manager)}>
+                    上一页
+                </button>
+                <button style={{ display: "block", margin: "1em 0" }} onClick={() => nextPage(anyWindow.manager)}>
+                    下一页
                 </button>
             </div>
         </div>

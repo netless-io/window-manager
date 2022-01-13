@@ -17,8 +17,16 @@ export const genAppId = async (kind: string) => {
 export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
     if (view.focusScenePath !== focusScenePath) {
         view.focusScenePath = focusScenePath;
+        return view;
     }
 };
+
+export const setViewSceneIndex = (view: View, index: number) => {
+    if (view.focusSceneIndex !== index) {
+        view.focusSceneIndex = index;
+        return view;
+    }
+}
 
 export const setScenePath = (room: Room | undefined, scenePath: string) => {
     if (room && room.isWritable) {
@@ -70,7 +78,9 @@ export const notifyMainViewModeChange = debounce(
 export const makeValidScenePath = (displayer: Displayer, scenePath: string, index = 0) => {
     const scenes = entireScenes(displayer)[scenePath];
     if (!scenes) return;
-    const firstSceneName = scenes[index].name;
+    const scene = scenes[index];
+    if (!scene) return;
+    const firstSceneName = scene.name;
     if (scenePath === "/") {
         return `/${firstSceneName}`;
     } else {
@@ -85,6 +95,17 @@ export const entireScenes = (displayer: Displayer) => {
 export const isValidScenePath = (scenePath: string) => {
     return scenePath.startsWith("/");
 };
+
+export const parseSceneDir = (scenePath: string) => {
+    const sceneList = scenePath.split("/");
+    sceneList.pop();
+    let sceneDir = sceneList.join("/");
+    // "/page1" 的 dir 为 "/"
+    if (sceneDir === "") {
+        sceneDir = "/";
+    }
+    return sceneDir;
+} 
 
 export const ensureValidScenePath = (scenePath: string) => {
     if (scenePath.endsWith("/")) {
