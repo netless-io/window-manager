@@ -1,9 +1,10 @@
 import { appRegister } from "../Register";
 import { debounce } from "lodash";
 import { emitter } from "../index";
+import { ScenePathType } from "white-web-sdk";
 import { v4 } from "uuid";
 import type { PublicEvent } from "../index";
-import { Displayer, ViewVisionMode, Room, View, ScenePathType } from "white-web-sdk";
+import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
 import type Emittery from "emittery";
 
 export const genAppId = async (kind: string) => {
@@ -26,7 +27,7 @@ export const setViewSceneIndex = (view: View, index: number) => {
         view.focusSceneIndex = index;
         return view;
     }
-}
+};
 
 export const setScenePath = (room: Room | undefined, scenePath: string) => {
     if (room && room.isWritable) {
@@ -57,7 +58,7 @@ export const removeScenes = (room: Room | undefined, scenePath: string) => {
             room.removeScenes(scenePath);
         }
     }
-}
+};
 
 export const setViewMode = (view: View, mode: ViewVisionMode) => {
     if (!(view as any).didRelease && view.mode !== mode) {
@@ -114,7 +115,7 @@ export const parseSceneDir = (scenePath: string) => {
         sceneDir = "/";
     }
     return sceneDir;
-} 
+};
 
 export const ensureValidScenePath = (scenePath: string) => {
     if (scenePath.endsWith("/")) {
