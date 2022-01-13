@@ -1,6 +1,6 @@
 import { callbacks, emitter, WindowManager } from "./index";
 import { debounce, maxBy } from "lodash";
-import { AppAttributes, DEFAULT_COLLECTOR_STYLE, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
+import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
@@ -194,12 +194,8 @@ export class BoxManager {
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
         };
         const container = createTeleBoxManagerConfig?.collectorContainer || WindowManager.wrapper;
-        const styles = {
-            ...DEFAULT_COLLECTOR_STYLE,
-            ...createTeleBoxManagerConfig?.collectorStyles,
-        };
         const teleBoxCollector = new TeleBoxCollector({
-            styles: styles,
+            styles: createTeleBoxManagerConfig?.collectorStyles,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         }).mount(container!);
         initManagerState.collector = teleBoxCollector;
