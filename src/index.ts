@@ -571,6 +571,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.attributes.focus;
     }
 
+    public get mainViewSceneIndex(): number {
+        return this.appManager?.store.getMainViewSceneIndex();
+    }
+
     /**
      * 查询所有的 App
      */

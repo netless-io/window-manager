@@ -1,4 +1,4 @@
-import type { View , Displayer} from "white-web-sdk";
+import type { View, Displayer } from "white-web-sdk";
 
 export class ViewManager {
     public views: Map<string, View> = new Map();
@@ -37,7 +37,6 @@ export class ViewManager {
         this.views.clear();
     }
 }
-
 
 export const createView = (displayer: Displayer): View => {
     const view = displayer.views.createView();
