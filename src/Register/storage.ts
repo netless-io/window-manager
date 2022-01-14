@@ -3,6 +3,11 @@ const DatabaseName = "__WindowManagerAppCache";
 let db: IDBDatabase;
 let store: IDBObjectStore;
 
+export type Item = {
+    kind: string;
+    sourceCode: string;
+}
+
 export const initDb = async () => {
     db = await createDb();
 }
@@ -12,7 +17,7 @@ export const setItem = (key: string, val: any) => {
     return addRecord(db, { kind: key, sourceCode: val })
 };
 
-export const getItem = async (key: string): Promise<string | null> => {
+export const getItem = async (key: string): Promise<Item | null> => {
     if (!db) return null;
     return await query(db, key);
 };

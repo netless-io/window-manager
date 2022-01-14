@@ -8,7 +8,7 @@ const TIMEOUT = 10000; // 10 秒超时
 export const getScript = async (url: string): Promise<string> => {
     const item = await getItem(url);
     if (item) {
-        return item;
+        return item.sourceCode;
     } else {
         const result = await fetchWithTimeout(url, { timeout: TIMEOUT });
         const text = await result.text();

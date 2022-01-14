@@ -10,34 +10,39 @@ class AppRegister {
 
     public async register(params: RegisterParams): Promise<void> {
         this.registered.set(params.kind, params);
-        
-        const srcOrAppOrFunction = params.src
-        let downloadApp: () => Promise<NetlessApp>
-        
+
+        const srcOrAppOrFunction = params.src;
+        let downloadApp: () => Promise<NetlessApp>;
+
         if (typeof srcOrAppOrFunction === "string") {
             downloadApp = async () => {
-                const appClass = await loadApp(srcOrAppOrFunction, params.kind);
+                let appClass = (await loadApp(srcOrAppOrFunction, params.kind)) as any;
                 if (appClass) {
-                    return appClass
+                    if (appClass.__esModule) {
+                        appClass = appClass.default;
+                    }
+                    return appClass;
                 } else {
-                    throw new Error(`[WindowManager]: load remote script failed, ${srcOrAppOrFunction}`);
+                    throw new Error(
+                        `[WindowManager]: load remote script failed, ${srcOrAppOrFunction}`
+                    );
                 }
-            }
+            };
         } else if (typeof srcOrAppOrFunction === "function") {
-            downloadApp = srcOrAppOrFunction
+            downloadApp = srcOrAppOrFunction;
         } else {
-            downloadApp = async () => srcOrAppOrFunction
+            downloadApp = async () => srcOrAppOrFunction;
         }
 
         this.appClasses.set(params.kind, async () => {
-            let app = this.appClassesCache.get(params.kind)
+            let app = this.appClassesCache.get(params.kind);
             if (!app) {
-                app = downloadApp()
-                this.appClassesCache.set(params.kind, app)
+                app = downloadApp();
+                this.appClassesCache.set(params.kind, app);
             }
-            return app
+            return app;
         });
-        
+
         if (params.addHooks) {
             const emitter = this.createKindEmitter(params.kind);
             if (emitter) {
@@ -46,7 +51,11 @@ class AppRegister {
         }
     }
 
-    public async notifyApp<T extends keyof RegisterEvents>(kind: string, event: T, payload: RegisterEvents[T]) {
+    public async notifyApp<T extends keyof RegisterEvents>(
+        kind: string,
+        event: T,
+        payload: RegisterEvents[T]
+    ) {
         const emitter = this.kindEmitters.get(kind);
         await emitter?.emit(event, payload);
     }
