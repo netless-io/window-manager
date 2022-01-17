@@ -177,7 +177,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.3.20";
+    public version = __APP_VERSION__;
+    public dependencies = __APP_DEPENDENCIES__;
 
     public appListeners?: AppListeners;
 
@@ -190,6 +191,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     constructor(context: InvisiblePluginContext) {
         super(context);
+        (window as any).NETLESS_DEPS = __APP_DEPENDENCIES__;
     }
 
     /**

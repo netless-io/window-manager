@@ -125,6 +125,7 @@
     transition: transform 0.05s;
     transform-origin: 0 0;
     user-select: none;
+    pointer-events: none;
 }
 
 .netless-window-manager-cursor-pencil-offset {
