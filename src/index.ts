@@ -139,6 +139,7 @@ export type EmitterEvent = {
     boxStateChange: string;
     playgroundSizeChange: DOMRect;
     onReconnected: void;
+    removeScenes: string;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;
@@ -187,6 +188,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private static isCreated = false;
 
     public version = __APP_VERSION__;
+    public dependencies = __APP_DEPENDENCIES__;
 
     public appListeners?: AppListeners;
 
@@ -205,6 +207,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     constructor(context: InvisiblePluginContext) {
         super(context);
         WindowManager.displayer = context.displayer;
+        (window as any).NETLESS_DEPS = __APP_DEPENDENCIES__;
     }
 
     public static async mount(params: MountParams): Promise<WindowManager> {
@@ -478,7 +481,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     /**
      * 返回 mainView 的 ScenePath
      */
-    public getMainViewScenePath(): string {
+    public getMainViewScenePath(): string | undefined {
         return this.appManager?.store.getMainViewScenePath();
     }
 
@@ -589,7 +592,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         } else {
             throw new Error("[WindowManager]: mainViewSceneDir not found");
         }
-    }  
+    }
+
+    public get topApp(): string | undefined {
+        return this.boxManager?.getTopBox()?.id;
+    }
 
     /**
      * 查询所有的 App
@@ -731,6 +738,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
     }
+
+    private _removeScenes = (scenePath: string) => {
+        this.room.removeScenes(scenePath);
+    };
 }
 
 setupBuiltin();

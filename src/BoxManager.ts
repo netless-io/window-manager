@@ -1,13 +1,12 @@
 import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
-import { debounce, maxBy } from "lodash";
+import { debounce } from "lodash";
+import { emitter, WindowManager } from "./index";
 import {
     TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
     TeleBoxCollector,
     TeleBoxManager,
-    TeleBoxConfig,
 } from "@netless/telebox-insider";
-import { emitter, WindowManager } from "./index";
 import type { AddAppOptions, AppInitState, EmitterType, CallbacksType } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
@@ -16,6 +15,7 @@ import type {
     TeleBoxManagerConfig,
     TeleBoxColorScheme,
     TeleBoxRect,
+    TeleBoxConfig,
 } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { NetlessApp } from "./typings";
@@ -58,6 +58,7 @@ export type BoxManagerContext = {
     canOperate: () => boolean;
     notifyContainerRectUpdate: (rect: TeleBoxRect) => void;
     cleanFocus: () => void;
+    setAppFocus: (appId: string) => void;
 };
 
 export const createBoxManager = (
@@ -75,6 +76,7 @@ export const createBoxManager = (
             notifyContainerRectUpdate: (rect: TeleBoxRect) =>
                 manager.appManager?.notifyContainerRectUpdate(rect),
             cleanFocus: () => manager.appManager?.store.cleanFocus(),
+            setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             callbacks,
             emitter,
         },
@@ -102,6 +104,12 @@ export class BoxManager {
             if (minimized) {
                 this.context.cleanFocus();
                 this.blurAllBox();
+            } else {
+                const topBox = this.getTopBox();
+                if (topBox) {
+                    this.context.setAppFocus(topBox.id);
+                    this.focusBox({ appId: topBox.id }, false);
+                }
             }
         });
         this.teleBoxManager.events.on("maximized", maximized => {
@@ -151,7 +159,7 @@ export class BoxManager {
 
     private playgroundSizeChangeListener = () => {
         this.updateManagerRect();
-    }
+    };
 
     private get mainView() {
         return this.context.getMainView();
@@ -282,8 +290,7 @@ export class BoxManager {
     }
 
     public getTopBox(): ReadonlyTeleBox | undefined {
-        const boxes = this.teleBoxManager.query();
-        return maxBy(boxes, "zIndex");
+        return this.teleBoxManager.topBox;
     }
 
     public updateBoxState(state?: AppInitState): void {

@@ -1,22 +1,13 @@
 import { emitter } from "../index";
 import { isPlayer } from "white-web-sdk";
-import type { WindowManager } from '../index';
-import type { Camera, Room , Player , PlayerSeekingResult } from "white-web-sdk";
+import type { WindowManager } from "../index";
+import type { Camera, Room, Player, PlayerSeekingResult } from "white-web-sdk";
 
 // 修改多窗口状态下一些失效的方法实现到 manager 的 mainview 上, 降低迁移成本
 export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
     if (isPlayer(room)) {
         const player = room as unknown as Player;
-        const originSeek = player.seekToProgressTime;
-        // eslint-disable-next-line no-inner-declarations
-        async function newSeek(time: number): Promise<PlayerSeekingResult> {
-            const seekResult = await originSeek.call(player, time);
-            if (seekResult === "success") {
-                emitter.emit("seek", time);
-            }
-            return seekResult;
-        }
-        player.seekToProgressTime = newSeek;
+        delegateSeekToProgressTime(player);
     } else {
         const descriptor = Object.getOwnPropertyDescriptor(room, "disableCameraTransform");
         if (descriptor) return;
@@ -32,13 +23,13 @@ export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
         Object.defineProperty(room, "canUndoSteps", {
             get() {
                 return manager.mainView.canUndoSteps;
-            }
+            },
         });
 
         Object.defineProperty(room, "canRedoSteps", {
             get() {
                 return manager.mainView.canRedoSteps;
-            }
+            },
         });
 
         room.moveCamera = (camera: Camera) => manager.mainView.moveCamera(camera);
@@ -52,6 +43,28 @@ export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
         room.redo = () => manager.mainView.redo();
         room.undo = () => manager.mainView.undo();
         room.cleanCurrentScene = () => manager.mainView.cleanCurrentScene();
+        delegateRemoveScenes(room);
     }
+};
 
+const delegateRemoveScenes = (room: Room) => {
+    const originRemoveScenes = room.removeScenes;
+    room.removeScenes = (scenePath: string) => {
+        const result = originRemoveScenes.call(room, scenePath);
+        emitter.emit("removeScenes", scenePath);
+        return result;
+    };
+};
+
+const delegateSeekToProgressTime = (player: Player) => {
+    const originSeek = player.seekToProgressTime;
+    // eslint-disable-next-line no-inner-declarations
+    async function newSeek(time: number): Promise<PlayerSeekingResult> {
+        const seekResult = await originSeek.call(player, time);
+        if (seekResult === "success") {
+            emitter.emit("seek", time);
+        }
+        return seekResult;
+    }
+    player.seekToProgressTime = newSeek;
 };

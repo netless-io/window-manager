@@ -1,7 +1,6 @@
 import AppDocsViewer from "@netless/app-docs-viewer";
 import AppMediaPlayer, { setOptions } from "@netless/app-media-player";
 import { WindowManager } from "./index";
-import "@netless/app-docs-viewer/dist/style.css";
 
 export const setupBuiltin = () => {
     if (WindowManager.debug) {

@@ -2,7 +2,14 @@
 
 1. 废弃 `WindowManager.mount` 的多参数类型
 2. 添加 `bindContainer` 接口，`mount` 时 `container` 参数不再是必选
-3. 关闭 `App` 会移除相关的 `Scene`
+3. 关闭 `App` 会移除相关的 `Scenes`
+4. 添加 `ScenePath` 相同的 `App` 会把这个 `App` 置为最上层
+5. 代理 `room.putScenes` 和 `room.removeScenes`
+
+## 0.3.19-0.3.21
+
+1. 更新 `@netless/app-docs-viewer`
+2. 修复 box zIndex 同步的问题
 
 ## 0.3.18
 

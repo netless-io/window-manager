@@ -123,7 +123,7 @@ export class AttributesDelegate {
         return this.getAppAttributes(id)?.options?.scenePath;
     }
 
-    public getMainViewScenePath() {
+    public getMainViewScenePath(): string | undefined {
         return this.attributes["_mainScenePath"];
     }
 
@@ -159,7 +159,7 @@ export class AttributesDelegate {
         this.context.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 
-    public setAppFocus(appId: string, focus: boolean) {
+    public setAppFocus = (appId: string, focus: boolean) => {
         if (focus) {
             this.context.safeSetAttributes({ [Fields.Focus]: appId });
         } else {

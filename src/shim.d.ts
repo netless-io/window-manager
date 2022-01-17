@@ -7,4 +7,5 @@ declare module "*.svelte" {
 
 declare global {
     const __APP_VERSION__: string;
-  }
+    const __APP_DEPENDENCIES__: Record<string, string>;
+}

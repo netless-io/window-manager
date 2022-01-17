@@ -4,7 +4,14 @@ import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks, emitter, WindowManager, reconnectRefresher } from "./index";
-import { entireScenes, genAppId, makeValidScenePath, parseSceneDir, setScenePath, setViewFocusScenePath } from "./Utils/Common";
+import {
+    entireScenes,
+    genAppId,
+    makeValidScenePath,
+    parseSceneDir,
+    setScenePath,
+    setViewFocusScenePath,
+} from "./Utils/Common";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
@@ -60,6 +67,23 @@ export class AppManager {
                 this.onAppDelete(this.attributes.apps);
             });
         }
+        emitter.on("removeScenes", scenePath => {
+            const mainViewScenePath = this.store.getMainViewScenePath();
+            if (this.room && mainViewScenePath) {
+                const scenePathType = this.room.scenePathType(scenePath);
+                if (scenePathType === ScenePathType.Page) {
+                    if (mainViewScenePath === scenePath) {
+                        this.setMainViewScenePath("/");
+                    }
+                } else if (scenePathType === ScenePathType.Dir) {
+                    const mainViewSceneDir = parseSceneDir(mainViewScenePath);
+                    const removedSceneDir = parseSceneDir(scenePath);
+                    if (mainViewSceneDir === removedSceneDir) {
+                        this.setMainViewScenePath("/");
+                    }
+                }
+            }
+        });
     }
 
     private async onCreated() {
@@ -115,7 +139,7 @@ export class AppManager {
                     this._prevFocused = focused;
                 }
             });
-        })
+        });
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
             const mainScenePath = this.store.getMainViewScenePath();
             if (!mainScenePath) return;
@@ -399,7 +423,7 @@ export class AppManager {
                 this.safeSetAttributes({ _mainSceneIndex: index });
             }
         }
-    }
+    };
 
     public async setMainViewSceneIndex(index: number) {
         if (this.room) {
