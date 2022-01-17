@@ -40,6 +40,7 @@ export class AppProxy extends Base {
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
+    private stateKey: string;
 
     constructor(
         private params: BaseInsertParams,
@@ -50,6 +51,7 @@ export class AppProxy extends Base {
         super(manager);
         this.kind = params.kind;
         this.id = appId;
+        this.stateKey = `${this.id}_state`;
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
         this.appListener = this.makeAppEventListener(this.id);
@@ -324,6 +326,14 @@ export class AppProxy extends Base {
                 const attrs = this.manager.attributes[appId];
                 if (attrs) {
                     this.appEmitter.emit("attributesUpdate", attrs);
+                }
+            });
+        });
+        this.manager.refresher?.add(this.stateKey, () => {
+            return autorun(() => {
+                const appState = this.appAttributes?.state;
+                if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
+                    this.boxManager?.setZIndex(appId, appState.zIndex);
                 }
             });
         });

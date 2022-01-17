@@ -69,6 +69,11 @@ export class BoxManager {
             if (minimized) {
                 this.manager.store.cleanFocus();
                 this.blurAllBox();
+            } else {
+                if (this.teleBoxManager.topBox) {
+                    this.manager.store.setAppFocus(this.teleBoxManager.topBox.id, true);
+                    this.teleBoxManager.focusBox(this.teleBoxManager.topBox.id);
+                }
             }
         });
         this.teleBoxManager.events.on("maximized", maximized => {
@@ -328,6 +333,10 @@ export class BoxManager {
 
     public setPrefersColorScheme(colorScheme: TeleBoxColorScheme) {
         this.teleBoxManager.setPrefersColorScheme(colorScheme);
+    }
+
+    public setZIndex(id: string, zIndex: number, skipUpdate = true) {
+        this.teleBoxManager.update(id, { zIndex }, skipUpdate);
     }
 
     public destroy() {
