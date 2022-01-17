@@ -177,7 +177,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
 
-    public version = "0.3.19";
+    public version = "0.3.20";
 
     public appListeners?: AppListeners;
 
