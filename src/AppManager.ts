@@ -413,6 +413,7 @@ export class AppManager {
                     if (success) {
                         this.store.setMainViewScenePath(scenePath);
                         this.safeSetAttributes({ _mainSceneIndex: index });
+                        this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
                     }
                 } else {
                     throw new Error(`[WindowManager]: ${sceneDir}: ${index} not valid index`);

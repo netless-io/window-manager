@@ -122,10 +122,10 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@0.2.19":
-  version "0.2.19"
-  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.19.tgz#f5b06129a2aa789c9008f4c4e14a4167509da386"
-  integrity sha512-nb39pYGU+ltk5IMXPx7zGjA2rzkeu4r2EaBfrD/8h1QMov8or+T7tE5lJ3CNd6Bg/chVPjdfvOc8MleLztpjyg==
+"@netless/telebox-insider@0.2.20":
+  version "0.2.20"
+  resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.20.tgz#ce12f2c87c012e29470265414cf904f5d67ba571"
+  integrity sha512-XRgrvjfoRXji+O44afKzwr0q+FTyijDYaJ5/4cNY1OuAfhPssAJKg8HnPnNylamUbDwGeFumnWOIQ/2jg3gxbA==
   dependencies:
     "@types/shallowequal" "^1.1.1"
     eventemitter3 "^4.0.7"
