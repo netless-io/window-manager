@@ -2,7 +2,6 @@ import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { debounce } from "lodash";
 import { emitter, WindowManager } from "./index";
 import {
-    TELE_BOX_MANAGER_EVENT,
     TELE_BOX_STATE,
     TeleBoxCollector,
     TeleBoxManager,
@@ -93,12 +92,21 @@ export class BoxManager {
     ) {
         const { emitter, callbacks } = context;
         this.teleBoxManager = this.setupBoxManager(createTeleBoxManagerConfig);
-        this.teleBoxManager.events.on(TELE_BOX_MANAGER_EVENT.State, state => {
-            if (state) {
-                this.context.callbacks.emit("boxStateChange", state);
-                this.context.emitter.emit("boxStateChange", state);
-            }
+
+        // 使用 _xxx$.reaction 订阅修改的值, 不管有没有 skipUpdate, 修改值都会触发回调
+        this.teleBoxManager._state$.reaction(state => {
+            callbacks.emit("boxStateChange", state);
+            emitter.emit("boxStateChange", state);
         });
+
+        this.teleBoxManager._darkMode$.reaction(darkMode => {
+            callbacks.emit("darkModeChange", darkMode);
+        });
+        this.teleBoxManager._prefersColorScheme$.reaction(colorScheme => {
+            callbacks.emit("prefersColorSchemeChange", colorScheme);
+        });
+
+        // events.on 的值则会根据 skipUpdate 来决定是否触发回调
         this.teleBoxManager.events.on("minimized", minimized => {
             this.context.safeSetAttributes({ minimized });
             if (minimized) {
@@ -144,12 +152,6 @@ export class BoxManager {
                     this.teleBoxManager.blurBox(box.id);
                 }
             }
-        });
-        this.teleBoxManager.events.on("dark_mode", darkMode => {
-            callbacks.emit("darkModeChange", darkMode);
-        });
-        this.teleBoxManager.events.on("prefers_color_scheme", colorScheme => {
-            callbacks.emit("prefersColorSchemeChange", colorScheme);
         });
         this.teleBoxManager.events.on("z_index", box => {
             this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
