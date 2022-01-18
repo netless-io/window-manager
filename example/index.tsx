@@ -152,12 +152,15 @@ const isWritable = url.get("isWritable");
 const mountManager = async (room, root) => {
     const manager = (await WindowManager.mount({
         room,
+        container: root,
         // collectorStyles: { bottom: "100px", left: "30px" },
         containerSizeRatio: 9 / 16,
         chessboard: true,
         debug: true,
         cursor: true,
     })) as WindowManagerType;
+
+    console.log("manager mounted boxState:", manager.boxState);
 
     (window as any).manager = manager;
     (window as any).manager.onAppDestroy(BuiltinApps.DocsViewer, error => {
@@ -169,12 +172,9 @@ const mountManager = async (room, root) => {
     });
 
     manager.emitter.on("boxStateChange", state => {
-        console.log("boxState", state);
+        console.log("boxStateChange:", state);
     });
-    console.log("boxState", manager.boxState);
-    setTimeout(() => {
-        manager.bindContainer(root);
-    }, 2000);
+
     manager.emitter.on("mainViewSceneIndexChange", index => {
         console.log("mainViewSceneIndexChange", index);
     });

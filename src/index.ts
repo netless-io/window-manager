@@ -529,6 +529,35 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.viewMode = mode;
     }
 
+    public setBoxState(boxState: TeleBoxState): void {
+        if (!this.canOperate) return;
+        switch (boxState) {
+            case "normal":
+                this.setMaximized(false);
+                this.setMinimized(false);
+                break;
+            case "maximized":
+                this.setMaximized(true);
+                this.setMinimized(false);
+                break;
+            case "minimized":
+                this.setMinimized(true);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public setMaximized(maximized: boolean): void {
+        if (!this.canOperate) return;
+        this.boxManager?.setMaximized(maximized, false);
+    }
+
+    public setMinimized(minimized: boolean): void {
+        if (!this.canOperate) return;
+        this.boxManager?.setMinimized(minimized, false);
+    }
+
     public get mainView(): View {
         if (this.appManager) {
             return this.appManager.mainViewProxy.view;

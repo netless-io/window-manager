@@ -68,19 +68,14 @@ export class AppManager {
             });
         }
         emitter.on("removeScenes", scenePath => {
+            if (scenePath === "/") {
+                this.setMainViewScenePath("/");
+                return;
+            }
             const mainViewScenePath = this.store.getMainViewScenePath();
             if (this.room && mainViewScenePath) {
-                const scenePathType = this.room.scenePathType(scenePath);
-                if (scenePathType === ScenePathType.Page) {
-                    if (mainViewScenePath === scenePath) {
-                        this.setMainViewScenePath("/");
-                    }
-                } else if (scenePathType === ScenePathType.Dir) {
-                    const mainViewSceneDir = parseSceneDir(mainViewScenePath);
-                    const removedSceneDir = parseSceneDir(scenePath);
-                    if (mainViewSceneDir === removedSceneDir) {
-                        this.setMainViewScenePath("/");
-                    }
+                if (mainViewScenePath === scenePath) {
+                    this.setMainViewScenePath("/");
                 }
             }
         });
@@ -412,6 +407,7 @@ export class AppManager {
     }
 
     private updateSceneIndex = () => {
+        console.log("updateSceneIndex")
         const scenePath = this.store.getMainViewScenePath() as string;
         const sceneDir = parseSceneDir(scenePath);
         const scenes = entireScenes(this.displayer)[sceneDir];
