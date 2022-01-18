@@ -126,7 +126,7 @@ const HelloWorldApp = async () => {
 };
 
 WindowManager.register({
-    kind: "HelloWorld1",
+    kind: "HelloWorld",
     src: HelloWorldApp as any,
     appOptions: () => "AppOptions",
     addHooks: emitter => {

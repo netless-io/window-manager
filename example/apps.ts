@@ -3,12 +3,9 @@ import { BuiltinApps } from "../dist/index.es"
 
 export const createHelloWorld = (manager: WindowManager) => {
     manager.addApp({
-        kind: "HelloWorld1",
+        kind: "HelloWorld",
         options: {
             scenePath: "/helloworld1",
-        },
-        attributes: {
-            a: 1,
         },
     });
 };

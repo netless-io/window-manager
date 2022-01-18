@@ -27,17 +27,16 @@ describe("光标", () => {
             expect(manager).to.be.a("object");
             expect(room.isWritable).to.be.true;
             cy.get(".netless-whiteboard").should("have.length", 1);
-            expect(room.state.roomMembers.length).to.be.equal(2);
+            expect(room.state.roomMembers.length).to.be.gte(2);
         });
     });
 
 
     it("光标 dom 存在", () => {
         cy.window().then((window: any) => {
-            // const manager = window.manager;
             const room = window.room as Room;
             cy.get(".netless-window-manager-cursor-mid").should("have.length", 1);
-            expect(room.state.roomMembers.length).to.be.equal(2);
+            expect(room.state.roomMembers.length).to.be.gte(2);
         });
     })
 });
