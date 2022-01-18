@@ -311,8 +311,8 @@ export class BoxManager {
         this.teleBoxManager.updateAll(config);
     }
 
-    public setMaximized(maximized: boolean) {
-        this.teleBoxManager.setMaximized(maximized, true);
+    public setMaximized(maximized: boolean, skipUpdate = true): void {
+        this.teleBoxManager.setMaximized(maximized, skipUpdate);
     }
 
     public setMinimized(minimized: boolean, skipUpdate = true) {
