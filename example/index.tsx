@@ -310,6 +310,7 @@ const mountManager = async (room, root) => {
         debug: true,
         cursor: true,
     });
+    console.log("manager mounted boxState:", manager.boxState);
 
     (window as any).manager = manager;
     (window as any).manager.onAppDestroy(BuiltinApps.DocsViewer, (error) => {
