@@ -6,6 +6,15 @@
 4. 添加 `ScenePath` 相同的 `App` 会把这个 `App` 置为最上层
 5. 代理 `room.putScenes` 和 `room.removeScenes`
 
+
+## 0.3.23
+
+1. 修复 ios 上 boxState 没有正确回调的问题
+2. 添加了 `setBoxState` `setMaximized` `setMinimized` 接口
+## 0.3.22
+
+1. 升级 @netless/app-docs-viewer 优化移动端显存占用
+2. 升级 @netless/telebox-insider 优化移动端显存占用
 ## 0.3.19-0.3.21
 
 1. 更新 `@netless/app-docs-viewer`
