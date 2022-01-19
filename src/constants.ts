@@ -10,6 +10,7 @@ export enum Events {
     SetMainViewScenePath = "SetMainViewScenePath",
     SetMainViewSceneIndex = "SetMainViewSceneIndex",
     SwitchViewsToFreedom = "SwitchViewsToFreedom",
+    CursorMove = "CursorMove",
 }
 
 export const MagixEventName = "__WindowManger";

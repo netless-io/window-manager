@@ -255,10 +255,7 @@ export class AppManager {
                 }
             });
         }
-        if (state.roomMembers) {
-            this.windowManger.cursorManager?.setRoomMembers(state.roomMembers);
-            this.windowManger.cursorManager?.cleanMemberAttributes(state.roomMembers);
-        }
+
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
@@ -423,6 +420,7 @@ export class AppManager {
             return appProxy.onReconnected();
         });
         await Promise.all(reconnected);
+        emitter.emit("onReconnected");
     }
 
     public notifyContainerRectUpdate(rect: TeleBoxRect) {

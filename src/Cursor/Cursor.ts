@@ -1,31 +1,25 @@
-import App from './Cursor.svelte';
-import pRetry from 'p-retry';
-import { ApplianceMap } from './icons';
-import { ApplianceNames, autorun } from 'white-web-sdk';
-import { CursorState } from '../constants';
-import { Fields } from '../AttributesDelegate';
-import { get, omit } from 'lodash';
-import type { Position } from '../AttributesDelegate';
+import App from "./Cursor.svelte";
+import { ApplianceMap } from "./icons";
+import { ApplianceNames } from "white-web-sdk";
+import { Base } from "../Base";
+import { omit } from "lodash";
+import type { Position } from "../AttributesDelegate";
 import type { RoomMember } from "white-web-sdk";
 import type { CursorManager } from "./index";
 import type { SvelteComponent } from "svelte";
-import { Base } from '../Base';
-import type { AppManager } from '../AppManager';
+import type { AppManager } from "../AppManager";
 
 export type Payload = {
-    [key: string]: any
-}
-
+    [key: string]: any;
+};
 
 export class Cursor extends Base {
     private member?: RoomMember;
-    private disposer: any;
     private timer?: number;
     private component?: SvelteComponent;
 
     constructor(
         manager: AppManager,
-        private cursors: any,
         private memberId: string,
         private cursorManager: CursorManager,
         private wrapper?: HTMLElement
@@ -33,41 +27,30 @@ export class Cursor extends Base {
         super(manager);
         this.setMember();
         this.createCursor();
-        pRetry(() => {
-            this.disposer && this.disposer();
-            if (!this.cursorPosition) {
-                console.warn(`${memberId} not exist`);
-            }
-            this.startReaction();
-        }, { retries: 3 });
         this.autoHidden();
     }
 
-    private startReaction() {
-        this.disposer = autorun(() => {
-            const cursor = this.cursorPosition;
-            const state = this.cursorState;
-            if (!cursor) return;
-            if (cursor.type === "main") {
-                const rect = this.cursorManager.wrapperRect;
-                if (this.component && rect) {
-                    this.autoHidden();
-                    this.moveCursor(cursor, rect, this.manager.mainView);
-                }
-            } else {
-                const focusView = this.cursorManager.focusView;
-                const viewRect = focusView?.divElement?.getBoundingClientRect();
-                const viewCamera = focusView?.camera;
-                if (focusView && viewRect && viewCamera && this.component) {
-                    this.autoHidden();
-                    this.moveCursor(cursor, viewRect, focusView);
-                }
+    public move = (position: Position) => {
+        if (position.type === "main") {
+            const rect = this.cursorManager.wrapperRect;
+            if (this.component && rect) {
+                this.autoHidden();
+                this.moveCursor(position, rect, this.manager.mainView);
             }
-            if (state && state === CursorState.Leave) {
-                this.hide();
+        } else {
+            const focusView = this.cursorManager.focusView;
+            const viewRect = focusView?.divElement?.getBoundingClientRect();
+            const viewCamera = focusView?.camera;
+            if (focusView && viewRect && viewCamera && this.component) {
+                this.autoHidden();
+                this.moveCursor(position, viewRect, focusView);
             }
-        });
-    }
+        }
+    };
+
+    public leave = () => {
+        this.hide();
+    };
 
     private moveCursor(cursor: Position, rect: DOMRect, view: any) {
         const { x, y } = cursor;
@@ -128,21 +111,12 @@ export class Cursor extends Base {
         }
     }
 
-    public get cursorState(): CursorState | undefined {
-        return get(this.cursors, [this.memberId, Fields.CursorState]);
-    }
-
-    public get cursorPosition(): Position | undefined {
-        return get(this.cursors, [this.memberId, Fields.Position]);
-    }
-
     private autoHidden() {
         if (this.timer) {
             clearTimeout(this.timer);
         }
         this.timer = window.setTimeout(() => {
             this.hide();
-            this.store.updateCursorState(this.memberId, CursorState.Leave);
         }, 1000 * 10); // 10 秒钟自动隐藏
     }
 
@@ -189,16 +163,19 @@ export class Cursor extends Base {
     }
 
     public destroy() {
-        this.disposer && this.disposer();
         if (this.component) {
             this.component.$destroy();
         }
         this.cursorManager.cursorInstances.delete(this.memberId);
+        if (this.timer) {
+            clearTimeout(this.timer);
+        }
     }
 
     public hide() {
         if (this.component) {
             this.component.$set({ visible: false });
+            this.destroy();
         }
     }
 }

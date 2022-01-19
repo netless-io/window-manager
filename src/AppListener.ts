@@ -1,4 +1,4 @@
-import { callbacks } from './index';
+import { callbacks, emitter } from './index';
 import { Events, MagixEventName } from './constants';
 import type { Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
@@ -43,6 +43,10 @@ export class AppListeners {
                     this.setMainViewScenePathHandler(data.payload);
                     break;
                 }
+                case Events.CursorMove: {
+                    this.cursorMoveHandler(data.payload);
+                    break;
+                }
                 default:
                     break;
             }
@@ -68,5 +72,9 @@ export class AppListeners {
 
     private setMainViewScenePathHandler = ({ nextScenePath }: { nextScenePath: string }) => {
         setViewFocusScenePath(this.manager.mainView, nextScenePath);
+    }
+
+    private cursorMoveHandler = (payload: any) => {
+        emitter.emit("cursorMove", payload);
     }
 }

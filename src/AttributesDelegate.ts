@@ -150,34 +150,6 @@ export class AttributesDelegate {
         }
     }
 
-    public updateCursor(uid: string, position: Position) {
-        if (!get(this.manager.attributes, [Fields.Cursors])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors], {});
-        }
-        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
-        }
-        this.manager.safeUpdateAttributes([Fields.Cursors, uid, Fields.Position], position);
-    }
-
-    public updateCursorState(uid: string, cursorState: string | undefined) {
-        if (!get(this.manager.attributes, [Fields.Cursors, uid])) {
-            this.manager.safeUpdateAttributes([Fields.Cursors, uid], {});
-        }
-        this.manager.safeUpdateAttributes(
-            [Fields.Cursors, uid, Fields.CursorState],
-            cursorState
-        );
-    }
-
-    public getCursorState(uid: string) {
-        return get(this.manager.attributes, [Fields.Cursors, uid, Fields.CursorState]);
-    }
-
-    public cleanCursor(uid: string) {
-        this.manager.safeUpdateAttributes([Fields.Cursors, uid], undefined);
-    }
-
     // TODO 状态中保存一个 SceneName 优化性能
     public setMainViewFocusPath() {
         const scenePath = this.getMainViewScenePath();
