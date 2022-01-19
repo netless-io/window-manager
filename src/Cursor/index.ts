@@ -63,7 +63,7 @@ export class CursorManager extends Base {
 
     private mouseMoveListener = throttle((event: MouseEvent) => {
         this.updateCursor(this.getType(event), event.clientX, event.clientY);
-    }, 32);
+    }, 16);
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
