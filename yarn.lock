@@ -122,7 +122,7 @@
   resolved "https://registry.npmjs.org/@netless/canvas-polyfill/-/canvas-polyfill-0.0.4.tgz#b5f28eefeb9c1e8ff8253fa1b044ccb1dc1b7c9c"
   integrity sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==
 
-"@netless/telebox-insider@^0.2.21":
+"@netless/telebox-insider@0.2.21":
   version "0.2.21"
   resolved "https://registry.npmjs.org/@netless/telebox-insider/-/telebox-insider-0.2.21.tgz#671864588caa5a252c07bb90389b7a4341adbdad"
   integrity sha512-rHkplhSCPuOSRKPbyjqT+dw7ENSBu3GNeS4iYgFdwIjiyet5Jp3WbG+kZuOMQcK9WRJDFjS89gikB8/JDx5Kig==
@@ -4113,7 +4113,7 @@ which@^2.0.1:
   dependencies:
     isexe "^2.0.0"
 
-white-web-sdk@^2.16.0:
+white-web-sdk@2.16.0:
   version "2.16.0"
   resolved "https://registry.npmjs.org/white-web-sdk/-/white-web-sdk-2.16.0.tgz#fc47bd5c3bebd9093540b5ca62e56d8b1fb7e9b4"
   integrity sha512-feapSTCSuh7U8gMI/crNE4vemvAiFWs0fQft8er2NGneN3IUw58dx3awiM3sROJDEpafHgngXK9zqwWhGvNjCA==
