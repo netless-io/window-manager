@@ -1,4 +1,4 @@
-## 0.4.0
+## 0.4.0（canary）
 
 1. 废弃 `WindowManager.mount` 的多参数类型
 2. 添加 `bindContainer` 接口，`mount` 时 `container` 参数不再是必选
@@ -7,18 +7,25 @@
 5. 代理 `room.putScenes` 和 `room.removeScenes`
 
 
+## 0.3.24
+
+1. 修复重连之后光标不见的问题
+2. 修改打包方式, 内部依赖会默认打包
+
 ## 0.3.23
 
-1. 修复 ios 上 boxState 没有正确回调的问题
+1. 修复 ios 上 `boxState` 没有正确回调的问题
 2. 添加了 `setBoxState` `setMaximized` `setMinimized` 接口
+
 ## 0.3.22
 
-1. 升级 @netless/app-docs-viewer 优化移动端显存占用
-2. 升级 @netless/telebox-insider 优化移动端显存占用
+1. 升级 `@netless/app-docs-viewer` 优化移动端显存占用
+2. 升级 `@netless/telebox-insider` 优化移动端显存占用
+
 ## 0.3.19-0.3.21
 
 1. 更新 `@netless/app-docs-viewer`
-2. 修复 box zIndex 同步的问题
+2. 修复 box `zIndex` 同步的问题
 
 ## 0.3.18
 
