@@ -9,8 +9,12 @@
   - [实例方法](#instance-methods)
     - [`addApp`](#addApp)
     - [`closeApp`](#closeApp)
+    - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
+    - [`setBoxState`](#setBoxState)
   - [实例属性](#prototypes)
   - [事件回调](#events)
+
+<br>
 
 <h2 id="static-methods">静态方法</h2>
 
@@ -41,6 +45,7 @@ const manager = await WindowManager.mount(
 | disableCameraTransform | [optional] boolean                      |         | 禁用主白板的相机移动                   |
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | 打印日志信息   
+
 
 <h3 id="register">WindowManager.register</h3>
 
@@ -81,6 +86,8 @@ WindowManager.setContainer(document.getElementById("container"));
 WindowManager.setCollectorContainer(document.getElementById("collector-container"));
 ```
 
+<br>
+
 <h2 id="instance-methods">实例方法</h2>
 
 <h3 id="addApp">addApp</h3>
@@ -105,6 +112,24 @@ const appId = await manager.addApp({
 manager.closeApp(appId)
 ```
 
+<h3 id="setMainViewSceneIndex">setMainViewSceneIndex</h3>
+
+> 设置主白板的 `SceneIndex`
+
+```ts
+manager.setMainViewSceneIndex(1)
+```
+
+<h3 id="setBoxState">setBoxState</h3>
+
+> 设置当前的 `boxState`
+
+```ts
+manager.setBoxState("normal") // boxState: normal | maximized | minimized
+```
+
+<br>
+
 <h2 id="prototypes">实例属性</h2>
 
 | name               | type    | default | desc              |
@@ -114,7 +139,9 @@ manager.closeApp(appId)
 | boxState           | string  |         | 当前窗口状态            |
 | darkMode           | boolean |         | 黑夜模式              |
 | prefersColorScheme | string  |         | 颜色主题              |
+| focused            | string |         | focus 的 app      |
 
+<br>
 
 <h2 id="events">事件回调</h2>
 
@@ -130,3 +157,4 @@ manager.callbacks.on(events, listener)
 | darkModeChange           | boolean        |         |                            |
 | prefersColorSchemeChange | string         |         | auto,light,dark            |
 | cameraStateChange        | CameraState    |         |                            |
+| focusedChange            | string, undefined |     | 当前 focus 的 appId，主白板时为 undefined  |
