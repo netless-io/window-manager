@@ -1,11 +1,7 @@
-import { callbacks, emitter, WindowManager } from "./index";
-import { debounce, maxBy } from "lodash";
 import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
-import {
-    TELE_BOX_STATE,
-    TeleBoxCollector,
-    TeleBoxManager,
-} from "@netless/telebox-insider";
+import { callbacks, emitter, WindowManager } from "./index";
+import { debounce } from "lodash";
+import { TELE_BOX_STATE, TeleBoxCollector, TeleBoxManager } from "@netless/telebox-insider";
 import type { AddAppOptions, AppInitState } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
