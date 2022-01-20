@@ -1,7 +1,6 @@
 import App from "./Cursor.svelte";
 import { ApplianceMap } from "./icons";
 import { ApplianceNames } from "white-web-sdk";
-import { Base } from "../Base";
 import { omit } from "lodash";
 import type { Position } from "../AttributesDelegate";
 import type { RoomMember } from "white-web-sdk";
@@ -13,18 +12,17 @@ export type Payload = {
     [key: string]: any;
 };
 
-export class Cursor extends Base {
+export class Cursor {
     private member?: RoomMember;
     private timer?: number;
     private component?: SvelteComponent;
 
     constructor(
-        manager: AppManager,
+        private manager: AppManager,
         private memberId: string,
         private cursorManager: CursorManager,
         private wrapper?: HTMLElement
     ) {
-        super(manager);
         this.setMember();
         this.createCursor();
         this.autoHidden();
@@ -154,7 +152,7 @@ export class Cursor extends Base {
     }
 
     public setMember() {
-        this.member = this.context.findMemberByUid(this.memberId);
+        this.member = this.manager.findMemberByUid(this.memberId);
         this.updateComponent();
     }
 

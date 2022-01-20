@@ -310,6 +310,15 @@ export class AppManager {
         }
     }
 
+    public get uid() {
+        return this.room?.uid || "";
+    }
+
+    public findMemberByUid = (uid: string) => {
+        const roomMembers = this.room?.state.roomMembers;
+        return roomMembers?.find(member => member.payload?.uid === uid);
+    }
+
     public safeSetAttributes(attributes: any) {
         this.windowManger.safeSetAttributes(attributes);
     }

@@ -30,7 +30,7 @@ import {
     ParamsInvalidError,
     WhiteWebSDKInvalidError,
 } from "./Utils/error";
-import type { Apps , Position } from "./AttributesDelegate";
+import type { Apps, Position } from "./AttributesDelegate";
 import {
     InvisiblePlugin,
     isPlayer,
@@ -124,7 +124,7 @@ export type AppInitState = {
     zIndex?: number;
 };
 
-export type CursorMovePayload = { uid: string, state?: "leave", position: Position };
+export type CursorMovePayload = { uid: string; state?: "leave"; position: Position };
 
 export type EmitterEvent = {
     onCreated: undefined;
@@ -276,65 +276,70 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
-        let manager = await this.initManager(room);
-        this.debug = Boolean(debug);
-        if (this.debug) {
-            setOptions({ verbose: true });
-        }
-        log("Already insert room", manager);
-
-        if (isRoom(this.displayer)) {
-            if (!manager) {
-                throw new Error("[WindowManager]: init InvisiblePlugin failed");
-            }
-        } else {
-            await pRetry(
-                async count => {
-                    manager = await this.initManager(room);
-                    if (!manager) {
-                        log(`manager is empty. retrying ${count}`);
-                        throw new Error();
-                    }
-                },
-                { retries: 10 }
-            );
-        }
-
-        if (containerSizeRatio) {
-            WindowManager.containerSizeRatio = containerSizeRatio;
-        }
-        WindowManager.container = container;
-        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
-        WindowManager.playground = playground;
-        if (chessboard) {
-            sizer.classList.add("netless-window-manager-chess-sizer");
-        }
-        if (overwriteStyles) {
-            const style = document.createElement("style");
-            style.textContent = overwriteStyles;
-            playground.appendChild(style);
-        }
-        await manager.ensureAttributes();
-        manager.appManager = new AppManager(manager, {
-            collectorContainer: collectorContainer,
-            collectorStyles: collectorStyles,
-            prefersColorScheme: prefersColorScheme,
-        });
-        manager.observePlaygroundSize(playground, sizer, wrapper);
-        if (cursor) {
-            manager.cursorManager = new CursorManager(manager.appManager);
-        }
-        manager.bindMainView(mainViewElement, disableCameraTransform);
-        replaceRoomFunction(room, manager.appManager);
-        emitter.emit("onCreated");
         WindowManager.isCreated = true;
         try {
-            await initDb();
+            let manager = await this.initManager(room);
+            this.debug = Boolean(debug);
+            if (this.debug) {
+                setOptions({ verbose: true });
+            }
+            log("Already insert room", manager);
+
+            if (isRoom(this.displayer)) {
+                if (!manager) {
+                    throw new Error("[WindowManager]: init InvisiblePlugin failed");
+                }
+            } else {
+                await pRetry(
+                    async count => {
+                        manager = await this.initManager(room);
+                        if (!manager) {
+                            log(`manager is empty. retrying ${count}`);
+                            throw new Error();
+                        }
+                    },
+                    { retries: 10 }
+                );
+            }
+
+            if (containerSizeRatio) {
+                WindowManager.containerSizeRatio = containerSizeRatio;
+            }
+            WindowManager.container = container;
+            const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
+            WindowManager.playground = playground;
+            if (chessboard) {
+                sizer.classList.add("netless-window-manager-chess-sizer");
+            }
+            if (overwriteStyles) {
+                const style = document.createElement("style");
+                style.textContent = overwriteStyles;
+                playground.appendChild(style);
+            }
+            await manager.ensureAttributes();
+            manager.appManager = new AppManager(manager, {
+                collectorContainer: collectorContainer,
+                collectorStyles: collectorStyles,
+                prefersColorScheme: prefersColorScheme,
+            });
+            manager.observePlaygroundSize(playground, sizer, wrapper);
+            if (cursor) {
+                manager.cursorManager = new CursorManager(manager.appManager);
+            }
+            manager.bindMainView(mainViewElement, disableCameraTransform);
+            replaceRoomFunction(room, manager.appManager);
+            emitter.emit("onCreated");
+            try {
+                await initDb();
+            } catch (error) {
+                console.warn("[WindowManager]: indexedDB open failed");
+                console.log(error);
+            }
+            return manager;
         } catch (error) {
-            console.warn("[WindowManager]: indexedDB open failed");
-            console.log(error);
+            WindowManager.isCreated = false;
+            throw error;
         }
-        return manager;
     }
 
     private static async initManager(room: Room): Promise<WindowManager> {

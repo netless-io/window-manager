@@ -1,4 +1,3 @@
-import { Base } from "../Base";
 import { Cursor } from "./Cursor";
 import { CursorState, Events } from "../constants";
 import { emitter, WindowManager } from "../index";
@@ -18,16 +17,16 @@ export type MoveCursorParams = {
     x: number;
     y: number;
 };
-export class CursorManager extends Base {
+export class CursorManager {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
+    private store = this.manager.store;
 
-    constructor(private appManager: AppManager) {
-        super(appManager);
-        this.roomMembers = this.appManager.room?.state.roomMembers;
+    constructor(private manager: AppManager) {
+        this.roomMembers = this.manager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
             wrapper.addEventListener("pointerenter", this.mouseMoveListener);
@@ -38,7 +37,7 @@ export class CursorManager extends Base {
         emitter.on("cursorMove", payload => {
             let cursorInstance = this.cursorInstances.get(payload.uid);
             if (!cursorInstance) {
-                cursorInstance = new Cursor(this.appManager, payload.uid, this, wrapper);
+                cursorInstance = new Cursor(this.manager, payload.uid, this, wrapper);
                 this.cursorInstances.set(payload.uid, cursorInstance);
             }
             if (payload.state === CursorState.Leave) {
@@ -58,7 +57,7 @@ export class CursorManager extends Base {
     }
 
     public get focusView() {
-        return this.appManager.focusApp?.view;
+        return this.manager.focusApp?.view;
     }
 
     private mouseMoveListener = throttle((event: MouseEvent) => {
@@ -67,11 +66,11 @@ export class CursorManager extends Base {
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
-            const view = event.type === "main" ? this.appManager.mainView : this.focusView;
+            const view = event.type === "main" ? this.manager.mainView : this.focusView;
             const point = this.getPoint(view, clientX, clientY);
             if (point) {
                 this.manager.dispatchInternalEvent(Events.CursorMove, {
-                    uid: this.context.uid,
+                    uid: this.manager.uid,
                     position: {
                         x: point.x,
                         y: point.y,
@@ -102,7 +101,7 @@ export class CursorManager extends Base {
      */
     private getType = (event: MouseEvent | Touch): EventType => {
         const target = event.target as HTMLElement;
-        const focusApp = this.appManager.focusApp;
+        const focusApp = this.manager.focusApp;
         switch (target.parentElement) {
             case this.mainViewElement: {
                 return { type: "main" };
@@ -117,9 +116,9 @@ export class CursorManager extends Base {
     };
 
     private mouseLeaveListener = () => {
-        this.hideCursor(this.context.uid);
+        this.hideCursor(this.manager.uid);
         this.manager.dispatchInternalEvent(Events.CursorMove, {
-            uid: this.context.uid,
+            uid: this.manager.uid,
             state: CursorState.Leave,
         } as CursorMovePayload);
     };

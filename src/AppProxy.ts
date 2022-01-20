@@ -24,9 +24,8 @@ import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
-import { Base } from "./Base";
 
-export class AppProxy extends Base {
+export class AppProxy {
     public id: string;
     public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
@@ -37,6 +36,7 @@ export class AppProxy extends Base {
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
     private cameraStore = this.manager.cameraStore;
+    private store = this.manager.store;
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
@@ -44,11 +44,10 @@ export class AppProxy extends Base {
 
     constructor(
         private params: BaseInsertParams,
-        manager: AppManager,
+        private manager: AppManager,
         appId: string,
         isAddApp: boolean
     ) {
-        super(manager);
         this.kind = params.kind;
         this.id = appId;
         this.stateKey = `${this.id}_state`;
@@ -118,7 +117,7 @@ export class AppProxy extends Base {
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
-        this.context.updateManagerRect();
+        this.boxManager.updateManagerRect();
         if (focus) {
             this.focusApp();
         }
@@ -130,7 +129,7 @@ export class AppProxy extends Base {
 
     private focusApp() {
         this.focusBox();
-        this.context.switchAppToWriter(this.id);
+        this.viewManager.switchAppToWriter(this.id);
         this.store.setMainViewFocusPath();
     }
 
@@ -198,7 +197,7 @@ export class AppProxy extends Base {
     private afterSetupApp(boxInitState: AppInitState | undefined): void {
         if (boxInitState) {
             if (boxInitState.focus && this.scenePath) {
-                this.context.switchAppToWriter(this.id);
+                this.viewManager.switchAppToWriter(this.id);
             }
             if (!boxInitState?.x || !boxInitState.y) {
                 this.boxManager.setBoxInitState(this.id);

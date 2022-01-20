@@ -1,4 +1,3 @@
-import { Base } from "./Base";
 import { callbacks, WindowManager } from "./index";
 import { reaction, ViewVisionMode } from "white-web-sdk";
 import { SET_SCENEPATH_DELAY } from "./constants";
@@ -6,16 +5,16 @@ import { notifyMainViewModeChange, setScenePath, setViewMode } from "./Utils/Com
 import type { View, Displayer } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 
-export class ViewManager extends Base {
+export class ViewManager {
     private views: Map<string, View> = new Map();
     private timer?: number;
     private appTimer?: number;
 
     private mainViewProxy = this.manager.mainViewProxy;
     private displayer = this.manager.displayer;
+    private store = this.manager.store;
 
-    constructor(manager: AppManager) {
-        super(manager);
+    constructor(private manager: AppManager) {
         setTimeout(() => {
             // 延迟初始化 focus 的 reaction
             this.manager.refresher?.add("focus", () => {
@@ -26,7 +25,7 @@ export class ViewManager extends Base {
                             this.switchAppToWriter(focus);
                         } else {
                             this.switchMainViewToWriter();
-                            this.context.blurFocusBox();
+                            this.manager.boxManager.blurAllBox();
                         }
                     },
                     { fireImmediately: true }
