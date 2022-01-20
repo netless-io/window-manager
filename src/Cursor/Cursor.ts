@@ -8,7 +8,6 @@ import type { Position } from '../AttributesDelegate';
 import type { RoomMember } from "white-web-sdk";
 import type { CursorManager } from "./index";
 import type { SvelteComponent } from "svelte";
-import { Base } from '../Base';
 import type { AppManager } from '../AppManager';
 
 export type Payload = {
@@ -16,20 +15,20 @@ export type Payload = {
 }
 
 
-export class Cursor extends Base {
+export class Cursor {
     private member?: RoomMember;
     private timer?: number;
     private component?: SvelteComponent;
+    private store = this.manager.store;
 
     constructor(
-        manager: AppManager,
+        private manager: AppManager,
         addCursorChangeListener: (uid: string, callback: (position: Position, state: CursorState) => void) => void,
         private cursors: any,
         private memberId: string,
         private cursorManager: CursorManager,
         private wrapper?: HTMLElement,
     ) {
-        super(manager);
         this.setMember();
         this.createCursor();
         addCursorChangeListener(this.memberId, this.onCursorChange);
@@ -176,7 +175,7 @@ export class Cursor extends Base {
     }
 
     public setMember() {
-        this.member = this.context.findMemberByUid(this.memberId);
+        this.member = this.manager.findMemberByUid(this.memberId);
         this.updateComponent();
     }
 

@@ -1,5 +1,4 @@
 import { autorun } from "white-web-sdk";
-import { Base } from "../Base";
 import { compact, debounce, get, uniq } from "lodash";
 import { Cursor } from "./Cursor";
 import { CursorState } from "../constants";
@@ -21,17 +20,17 @@ export type MoveCursorParams = {
     x: number;
     y: number;
 };
-export class CursorManager extends Base {
+export class CursorManager {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
     private sideEffectManager = new SideEffectManager();
+    private store = this.manager.store;
 
-    constructor(private appManager: AppManager) {
-        super(appManager);
-        this.roomMembers = this.appManager.room?.state.roomMembers;
+    constructor(private manager: AppManager) {
+        this.roomMembers = this.manager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
             this.setupWrapper(wrapper);
@@ -83,11 +82,11 @@ export class CursorManager extends Base {
         if (uids?.length) {
             cursors.map(uid => {
                 if (uids.includes(uid) && !this.cursorInstances.has(uid)) {
-                    if (uid === this.context.uid) {
+                    if (uid === this.manager.uid) {
                         return;
                     }
                     const component = new Cursor(
-                        this.appManager,
+                        this.manager,
                         this.addCursorChangeListener,
                         this.cursors,
                         uid,
@@ -109,7 +108,7 @@ export class CursorManager extends Base {
     }
 
     public get focusView() {
-        return this.appManager.focusApp?.view;
+        return this.manager.focusApp?.view;
     }
 
     private mouseMoveListener = debounce((event: MouseEvent) => {
@@ -118,11 +117,11 @@ export class CursorManager extends Base {
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
-            const view = event.type === "main" ? this.appManager.mainView : this.focusView;
+            const view = event.type === "main" ? this.manager.mainView : this.focusView;
             const point = this.getPoint(view, clientX, clientY);
             if (point) {
                 this.setNormalCursorState();
-                this.store.updateCursor(this.context.uid, {
+                this.store.updateCursor(this.manager.uid, {
                     x: point.x,
                     y: point.y,
                     ...event,
@@ -151,7 +150,7 @@ export class CursorManager extends Base {
      */
     private getType = (event: MouseEvent | Touch): EventType => {
         const target = event.target as HTMLElement;
-        const focusApp = this.appManager.focusApp;
+        const focusApp = this.manager.focusApp;
         switch (target.parentElement) {
             case this.mainViewElement: {
                 return { type: "main" };
@@ -166,24 +165,24 @@ export class CursorManager extends Base {
     };
 
     private initCursorAttributes() {
-        this.store.updateCursor(this.context.uid, {
+        this.store.updateCursor(this.manager.uid, {
             x: 0,
             y: 0,
             type: "main",
         });
-        this.store.updateCursorState(this.context.uid, CursorState.Leave);
+        this.store.updateCursorState(this.manager.uid, CursorState.Leave);
     }
 
     private setNormalCursorState() {
-        const cursorState = this.store.getCursorState(this.context.uid);
+        const cursorState = this.store.getCursorState(this.manager.uid);
         if (cursorState !== CursorState.Normal) {
-            this.store.updateCursorState(this.context.uid, CursorState.Normal);
+            this.store.updateCursorState(this.manager.uid, CursorState.Normal);
         }
     }
 
     private mouseLeaveListener = () => {
-        this.hideCursor(this.context.uid);
-        this.store.updateCursorState(this.context.uid, CursorState.Leave);
+        this.hideCursor(this.manager.uid);
+        this.store.updateCursorState(this.manager.uid, CursorState.Leave);
     };
 
     public updateContainerRect() {
@@ -236,7 +235,7 @@ export class CursorManager extends Base {
             this.cursorInstances.forEach(cursor => cursor.destroy());
             this.cursorInstances.clear();
         }
-        this.roomMembers = this.appManager.room?.state.roomMembers;
+        this.roomMembers = this.manager.room?.state.roomMembers;
         if (WindowManager.wrapper) {
             this.handleRoomMembersChange(WindowManager.wrapper);
         }

@@ -81,6 +81,36 @@ export class AppManager {
         });
     }
 
+    private get eventName() {
+        return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
+    }
+
+    public get attributes() {
+        return this.windowManger.attributes;
+    }
+
+    public get canOperate() {
+        return this.windowManger.canOperate;
+    }
+
+    public get room() {
+        return isRoom(this.displayer) ? (this.displayer as Room) : undefined;
+    }
+
+    public get mainView() {
+        return this.mainViewProxy.view;
+    }
+
+    public get focusApp() {
+        if (this.store.focus) {
+            return this.appProxies.get(this.store.focus);
+        }
+    }
+
+    public get uid() {
+        return this.room?.uid || "";
+    }
+
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
         this.boxManager?.updateManagerRect();
@@ -346,32 +376,6 @@ export class AppManager {
         }
     };
 
-    private get eventName() {
-        return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
-    }
-
-    public get attributes() {
-        return this.windowManger.attributes;
-    }
-
-    public get canOperate() {
-        return this.windowManger.canOperate;
-    }
-
-    public get room() {
-        return isRoom(this.displayer) ? (this.displayer as Room) : undefined;
-    }
-
-    public get mainView() {
-        return this.mainViewProxy.view;
-    }
-
-    public get focusApp() {
-        if (this.store.focus) {
-            return this.appProxies.get(this.store.focus);
-        }
-    }
-
     public safeSetAttributes(attributes: any) {
         this.windowManger.safeSetAttributes(attributes);
     }
@@ -407,7 +411,6 @@ export class AppManager {
     }
 
     private updateSceneIndex = () => {
-        console.log("updateSceneIndex")
         const scenePath = this.store.getMainViewScenePath() as string;
         const sceneDir = parseSceneDir(scenePath);
         const scenes = entireScenes(this.displayer)[sceneDir];
@@ -433,7 +436,9 @@ export class AppManager {
                     if (success) {
                         this.store.setMainViewScenePath(scenePath);
                         this.safeSetAttributes({ _mainSceneIndex: index });
-                        this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
+                        this.dispatchInternalEvent(Events.SetMainViewScenePath, {
+                            nextScenePath: scenePath,
+                        });
                     }
                 } else {
                     throw new Error(`[WindowManager]: ${sceneDir}: ${index} not valid index`);
@@ -524,6 +529,11 @@ export class AppManager {
             payload: payload,
         });
     }
+
+    public findMemberByUid = (uid: string) => {
+        const roomMembers = this.room?.state.roomMembers;
+        return roomMembers?.find(member => member.payload?.uid === uid);
+    };
 
     public destroy() {
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
