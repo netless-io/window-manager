@@ -185,6 +185,9 @@ export class AppProxy {
                 canOperate: this.manager.canOperate,
                 smartPosition: this.isAddApp,
             });
+            if (this.isAddApp && this.box) {
+                this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
+            }
         } catch (error: any) {
             console.error(error);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
