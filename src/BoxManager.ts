@@ -233,8 +233,7 @@ export class BoxManager {
     }
 
     public getTopBox(): ReadonlyTeleBox | undefined {
-        const boxes = this.teleBoxManager.query();
-        return maxBy(boxes, "zIndex");
+        return this.teleBoxManager.topBox;
     }
 
     public updateBoxState(state?: AppInitState): void {
