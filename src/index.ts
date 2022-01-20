@@ -32,7 +32,7 @@ import {
     ParamsInvalidError,
     WhiteWebSDKInvalidError,
 } from "./Utils/error";
-import type { Apps } from "./AttributesDelegate";
+import type { Apps, Position } from "./AttributesDelegate";
 import {
     InvisiblePlugin,
     isPlayer,
@@ -125,6 +125,8 @@ export type AppInitState = {
     zIndex?: number;
 };
 
+export type CursorMovePayload = { uid: string; state?: "leave"; position: Position };
+
 export type EmitterEvent = {
     onCreated: undefined;
     InitReplay: AppInitState;
@@ -140,6 +142,7 @@ export type EmitterEvent = {
     playgroundSizeChange: DOMRect;
     onReconnected: void;
     removeScenes: string;
+    cursorMove: CursorMovePayload;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

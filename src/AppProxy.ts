@@ -3,11 +3,12 @@ import { AppAttributes, AppEvents, Events } from "./constants";
 import { AppContext } from "./AppContext";
 import { appRegister } from "./Register";
 import { autorun } from "white-web-sdk";
+import { BoxManagerNotFoundError } from "./Utils/error";
+import { debounce, get } from "lodash";
 import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
-import { debounce, get } from "lodash";
+import { getScenePath, removeScenes, setScenePath, setViewFocusScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";
-import { setScenePath, setViewFocusScenePath, getScenePath, removeScenes } from "./Utils/Common";
 import type {
     AppEmitterEvent,
     AppInitState,
@@ -19,10 +20,8 @@ import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
-import { Base } from "./Base";
-import { BoxManagerNotFoundError } from "./Utils/error";
 
-export class AppProxy extends Base {
+export class AppProxy {
     public id: string;
     public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
@@ -32,6 +31,7 @@ export class AppProxy extends Base {
     private boxManager = this.manager.boxManager;
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
+    private store = this.manager.store;
     private kind: string;
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
@@ -41,11 +41,10 @@ export class AppProxy extends Base {
 
     constructor(
         private params: BaseInsertParams,
-        manager: AppManager,
+        private manager: AppManager,
         appId: string,
         isAddApp: boolean
     ) {
-        super(manager);
         this.kind = params.kind;
         this.id = appId;
         this.stateKey = `${this.id}_state`;
@@ -127,7 +126,7 @@ export class AppProxy extends Base {
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
-        this.context.updateManagerRect();
+        this.boxManager?.updateManagerRect();
         return {
             appId: this.id,
             app: appImpl,

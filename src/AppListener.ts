@@ -1,9 +1,9 @@
-import { callbacks } from './index';
-import { Events, MagixEventName } from './constants';
+import { callbacks, emitter } from "./index";
+import { Events, MagixEventName } from "./constants";
+import { setViewFocusScenePath } from "./Utils/Common";
 import type { Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
-import { setViewFocusScenePath } from './Utils/Common';
 
 export class AppListeners {
     private displayer = this.manager.displayer;
@@ -46,6 +46,10 @@ export class AppListeners {
                     this.moveCameraToContainHandler(data.payload);
                     break;
                 }
+                case Events.CursorMove: {
+                    this.cursorMoveHandler(data.payload);
+                    break;
+                }
                 default:
                     break;
             }
@@ -63,14 +67,18 @@ export class AppListeners {
 
     private boxStateChangeHandler = (state: TeleBoxState) => {
         callbacks.emit("boxStateChange", state);
-    }
+    };
 
     private setMainViewScenePathHandler = ({ nextScenePath }: { nextScenePath: string }) => {
         setViewFocusScenePath(this.manager.mainView, nextScenePath);
         callbacks.emit("mainViewScenePathChange", nextScenePath);
-    }
+    };
 
     private moveCameraToContainHandler = (payload: any) => {
         this.manager.mainView.moveCameraToContain(payload);
-    }
+    };
+
+    private cursorMoveHandler = (payload: any) => {
+        emitter.emit("cursorMove", payload);
+    };
 }

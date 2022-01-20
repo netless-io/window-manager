@@ -1,5 +1,4 @@
 import { AnimationMode, reaction } from "white-web-sdk";
-import { Base } from "../Base";
 import { callbacks, emitter } from "../index";
 import { createView } from "./ViewManager";
 import { debounce, isEmpty, isEqual } from "lodash";
@@ -9,17 +8,17 @@ import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 
-export class MainViewProxy extends Base {
+export class MainViewProxy {
     private scale?: number;
     private started = false;
     private mainViewIsAddListener = false;
     private mainView: View;
     private viewId = "mainView";
+    private store = this.manager.store;
 
     private sideEffectManager = new SideEffectManager();
 
-    constructor(manager: AppManager) {
-        super(manager);
+    constructor(private manager: AppManager) {
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
         emitter.once("mainViewMounted").then(() => {
@@ -62,15 +61,15 @@ export class MainViewProxy extends Base {
     }
 
     public setCameraAndSize(): void {
-        this.store.setMainViewCamera({ ...this.mainView.camera, id: this.context.uid });
-        this.store.setMainViewSize({ ...this.mainView.size, id: this.context.uid });
+        this.store.setMainViewCamera({ ...this.mainView.camera, id: this.manager.uid });
+        this.store.setMainViewSize({ ...this.mainView.size, id: this.manager.uid });
     }
 
     private cameraReaction = () => {
         return reaction(
             () => this.mainViewCamera,
             camera => {
-                if (camera && camera.id !== this.context.uid) {
+                if (camera && camera.id !== this.manager.uid) {
                     this.moveCameraToContian(this.mainViewSize);
                     this.moveCamera(camera);
                 }
@@ -106,8 +105,8 @@ export class MainViewProxy extends Base {
     }
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
-        this.store.setMainViewCamera({ ...camera, id: this.context.uid });
-        if (!isEqual(this.mainViewSize, { ...this.mainView.size, id: this.context.uid })) {
+        this.store.setMainViewCamera({ ...camera, id: this.manager.uid });
+        if (!isEqual(this.mainViewSize, { ...this.mainView.size, id: this.manager.uid })) {
             this.setMainViewSize(this.view.size);
         }
     };
@@ -135,11 +134,11 @@ export class MainViewProxy extends Base {
     public async mainViewClickHandler(): Promise<void> {
         if (!this.manager.canOperate) return;
         this.store.cleanFocus();
-        this.context.blurFocusBox();
+        this.manager.boxManager?.blurAllBox();
     }
 
     public setMainViewSize = debounce(size => {
-        this.store.setMainViewSize({ ...size, id: this.context.uid });
+        this.store.setMainViewSize({ ...size, id: this.manager.uid });
     }, 50);
 
     private addCameraListener() {

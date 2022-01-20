@@ -160,6 +160,7 @@ export class AppManager {
             return autorun(() => {
                 const focused = get(this.attributes, "focus");
                 if (this._prevFocused !== focused) {
+                    this.boxManager?.focusBox({ appId: focused });
                     callbacks.emit("focusedChange", focused);
                     this._prevFocused = focused;
                 }
@@ -343,10 +344,6 @@ export class AppManager {
                     appProxy.setFullPath(scenePath);
                 }
             });
-        }
-        if (state.roomMembers) {
-            this.windowManger.cursorManager?.setRoomMembers(state.roomMembers);
-            this.windowManger.cursorManager?.cleanMemberAttributes(state.roomMembers);
         }
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);

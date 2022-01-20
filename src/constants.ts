@@ -10,7 +10,8 @@ export enum Events {
     SetMainViewScenePath = "SetMainViewScenePath",
     SetMainViewSceneIndex = "SetMainViewSceneIndex",
     SwitchViewsToFreedom = "SwitchViewsToFreedom",
-    MoveCameraToContain = "MoveCameraToContain"
+    MoveCameraToContain = "MoveCameraToContain",
+    CursorMove = "CursorMove",
 }
 
 export const MagixEventName = "__WindowManger";
