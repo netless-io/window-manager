@@ -187,6 +187,8 @@ export class AppProxy {
             });
             if (this.isAddApp && this.box) {
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
+                this.store.setAppFocus(appId, true);
+                this.focusBox();
             }
         } catch (error: any) {
             console.error(error);
