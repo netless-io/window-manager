@@ -8,6 +8,7 @@
   "scripts": {
     "prettier": "prettier --write .",
     "build": "vite build && yarn type-gen",
+    "build:dev": "vite build --mode development && yarn type-gen",
     "type-gen": "tsc --emitDeclarationOnly",
     "predev": "yarn type-gen",
     "build:lib:types": "tsc --emitDeclarationOnly",
