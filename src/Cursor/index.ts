@@ -45,6 +45,12 @@ export class CursorManager {
                 cursorInstance.move(payload.position);
             }
         });
+        this.sideEffectManager.add(() => {
+            const unsubscribe = emitter.on("playgroundSizeChange", () => {
+                this.updateContainerRect();
+            });
+            return unsubscribe;
+        })
     }
 
     public setupWrapper(wrapper: HTMLElement) {
