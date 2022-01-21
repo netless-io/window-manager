@@ -1,7 +1,7 @@
 import path from "path";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { dependencies, peerDependencies, version } from "./package.json"
+import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
 
 
 export default defineConfig(({ mode }) => {
@@ -10,7 +10,9 @@ export default defineConfig(({ mode }) => {
     return {
         define: {
             __APP_VERSION__: JSON.stringify(version),
-            __APP_DEPENDENCIES__: JSON.stringify(dependencies),
+            __APP_DEPENDENCIES__: JSON.stringify({
+                dependencies, peerDependencies, devDependencies
+            }),
         },
         plugins: [
             svelte({

@@ -38,7 +38,7 @@ export enum CursorState {
     Normal = "normal",
 }
 
-export const REQUIRE_VERSION = "2.16.0";
+export const REQUIRE_VERSION = "2.16.1";
 
 export const MIN_WIDTH = 340 / 720;
 export const MIN_HEIGHT = 340 / 720;
