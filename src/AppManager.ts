@@ -511,6 +511,7 @@ export class AppManager {
         const reconnected = appProxies.map(appProxy => {
             return appProxy.onReconnected();
         });
+        this.mainViewProxy.onReconnect();
         await Promise.all(reconnected);
     }
 

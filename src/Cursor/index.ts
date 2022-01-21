@@ -1,4 +1,4 @@
-import { compact, throttle, uniq } from "lodash";
+import { throttle } from "lodash";
 import { Cursor } from "./Cursor";
 import { CursorState, Events } from "../constants";
 import { emitter, WindowManager } from "../index";
@@ -65,10 +65,6 @@ export class CursorManager {
     public setMainViewDivElement(div: HTMLDivElement) {
         this.mainViewElement = div;
     }
-
-    private getUids = (members: readonly RoomMember[] | undefined) => {
-        return compact(uniq(members?.map(member => member.payload?.uid)));
-    };
 
     public get boxState() {
         return this.store.getBoxState();

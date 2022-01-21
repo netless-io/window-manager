@@ -13,7 +13,6 @@ export class MainViewProxy {
     private started = false;
     private mainViewIsAddListener = false;
     private mainView: View;
-    private viewId = "mainView";
     private store = this.manager.store;
 
     private sideEffectManager = new SideEffectManager();
@@ -102,6 +101,13 @@ export class MainViewProxy {
             setViewFocusScenePath(mainView, mainViewScenePath);
         }
         return mainView;
+    }
+
+    public onReconnect(): void {
+        const mainViewScenePath = this.store.getMainViewScenePath();
+        if (mainViewScenePath) {
+            setViewFocusScenePath(this.view, mainViewScenePath);
+        }
     }
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
