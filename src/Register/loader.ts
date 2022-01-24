@@ -18,7 +18,7 @@ export const getScript = async (url: string): Promise<string> => {
 };
 
 export const executeScript = (text: string, appName: string): NetlessApp => {
-    let result = Function(text + `;return ${appName}`)();
+    let result = Function(text + `\n;return ${appName}`)();
     if (typeof result === "undefined") {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
