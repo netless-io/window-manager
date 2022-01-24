@@ -54,6 +54,9 @@ const mountManager = async (room, root) => {
     manager.emitter.on("focusedChange", focus => {
         console.log("focusedChange", focus);
     });
+    manager.emitter.on("mainViewScenesLengthChange", length => {
+        console.log("mainViewScenesLengthChange", length);
+    });
 };
 
 const replay = () => {
