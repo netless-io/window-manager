@@ -134,17 +134,8 @@ export class AppProxy {
         };
     }
 
-    private focusApp() {
-        this.focusBox();
-        this.store.setMainViewFocusPath(this.manager.mainView);
-    }
-
     public get box(): ReadonlyTeleBox | undefined {
         return this.boxManager?.getBox(this.id);
-    }
-
-    public focusBox() {
-        this.boxManager?.focusBox({ appId: this.id });
     }
 
     private async setupApp(
