@@ -22,6 +22,7 @@ import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
 import type { Displayer, DisplayerState, Room } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
+import { appRegister } from "./Register";
 
 export class AppManager {
     public displayer: Displayer;
@@ -469,6 +470,10 @@ export class AppManager {
             }
             case "focus": {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
+                const appProxy = this.appProxies.get(payload.appId);
+                if (appProxy) {
+                    appRegister.notifyApp(appProxy.kind, "focus", { appId: payload.appId });
+                }
                 break;
             }
             case "resize": {

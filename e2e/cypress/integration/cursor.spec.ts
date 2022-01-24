@@ -31,14 +31,14 @@ describe("光标", () => {
         });
     });
 
-
-    it("光标 dom 存在", () => {
-        cy.window().then((window: any) => {
-            const room = window.room as Room;
-            cy.get(".netless-window-manager-cursor-mid").should("have.length", 1);
-            expect(room.state.roomMembers.length).to.be.gte(2);
-        });
-    })
+    // 光标实现方式修改, 不再有默认的 dom
+    // it("光标 dom 存在", () => {
+    //     cy.window().then((window: any) => {
+    //         const room = window.room as Room;
+    //         cy.get(".netless-window-manager-cursor-mid").should("have.length", 1);
+    //         expect(room.state.roomMembers.length).to.be.gte(2);
+    //     });
+    // })
 });
 
 export {};

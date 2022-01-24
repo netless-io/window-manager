@@ -22,6 +22,7 @@ import type { NetlessApp } from "./typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 
 export class AppProxy {
+    public kind: string;
     public id: string;
     public scenePath?: string;
     public appEmitter: Emittery<AppEmitterEvent>;
@@ -32,7 +33,7 @@ export class AppProxy {
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
     private store = this.manager.store;
-    private kind: string;
+
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
     private stateKey: string;
