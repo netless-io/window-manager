@@ -1,150 +1,24 @@
 import React from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
-import type { AppContext } from "../dist";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
 import type { WindowManager as WindowManagerType } from "../dist";
 import { createDocs1, createDocs2, createHelloWorld, createVideo, createSlide } from "./apps";
 import "../dist/style.css";
 import "video.js/dist/video-js.css";
+import "./register";
 
-WindowManager.register({
-    kind: "Slide",
-    appOptions: {
-        // turn on to show debug controller
-        debug: false,
-    },
-    src: (async () => {
-        const app = await import("@netless/app-slide");
-        return app.default ?? app;
-    }) as any,
+const sdk = new WhiteWebSdk({
+    appIdentifier: import.meta.env.VITE_APPID,
+    useMobXState: true,
 });
 
 const anyWindow = window as any;
 
+(window as any).WindowManager = WindowManager;
+
 let firstPlay = false;
 
-const replay = () => {
-    sdk.replayRoom({
-        room: process.env.ROOM_UUID,
-        roomToken: process.env.ROOM_TOKEN,
-        invisiblePlugins: [WindowManager as any],
-        useMultiViews: true,
-    }).then(async player => {
-        await anyWindow.manager.destroy();
-        anyWindow.room.disconnect();
-        setTimeout(async () => {
-            anyWindow.player = player;
-            // player.bindHtmlElement(document.getElementById("container") as any)
-            player.play();
-        }, 500);
-        player.callbacks.on("onPhaseChanged", phase => {
-            if (phase === PlayerPhase.Playing) {
-                if (firstPlay) return;
-                setTimeout(() => {
-                    mountManager(player, document.getElementById("container"));
-                }, 1000);
-                firstPlay = true;
-            }
-        });
-    });
-};
-
-const onRef = ref => {
-    const uid = Math.random().toString().substr(3, 8);
-    sdk.joinRoom({
-        uuid: process.env.ROOM_UUID,
-        roomToken: process.env.ROOM_TOKEN,
-        invisiblePlugins: [WindowManager as any],
-        useMultiViews: true,
-        userPayload: {
-            userId: "111",
-            cursorName: uid,
-            avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
-        },
-        isWritable: !(isWritable === "false"),
-        cursorAdapter: undefined,
-        uid: uid,
-        disableMagixEventDispatchLimit: true,
-        disableNewPencil: false,
-    }).then(async room => {
-        if (room.isWritable) {
-            // room.setMemberState({ strokeColor: [0, 0, 1] });
-        }
-
-        (window as any).room = room;
-        await mountManager(room, ref);
-    });
-};
-
-interface HelloWorldAttributes {
-    a?: number;
-    b?: { c: number };
-}
-interface HelloWorldMagixEventPayloads {
-    event1: {
-        count: number;
-    };
-    event2: {
-        disabled: boolean;
-    };
-}
-
-const HelloWorldApp = async () => {
-    console.log("start loading HelloWorld...");
-    // await new Promise(resolve => setTimeout(resolve, 2000))
-    console.log("HelloWorld Loaded");
-    return {
-        setup: (context: AppContext<HelloWorldAttributes, HelloWorldMagixEventPayloads, any>) => {
-            // const state = context.createStorage<>("HelloWorldApp", { a: 1 });
-            context.storage.onStateChanged.addListener(diff => {
-                if (diff.a) {
-                    console.log("diff", diff.a.newValue, diff.a.oldValue);
-                }
-                console.log("diff all", diff);
-            });
-            const c = { c: 3 };
-            if (context.getIsWritable()) {
-                context.storage.setState({ a: 2, b: c });
-                context.storage.setState({ a: 2, b: c });
-            }
-
-            console.log("helloworld options", context.getAppOptions());
-
-            context.addMagixEventListener("event1", message => {
-                console.log("MagixEvent", message);
-            });
-            // context.dispatchMagixEvent("event1", { count: 1 });
-            context.mountView(context.getBox().$content as any);
-            context.emitter.on("destroy", () => console.log("[HelloWorld]: destroy"));
-            setTimeout(() => {
-                console.log(context.getAttributes());
-            }, 1000);
-            return "Hello World Result";
-        },
-    };
-};
-
-WindowManager.register({
-    kind: "HelloWorld",
-    src: HelloWorldApp as any,
-    appOptions: () => "AppOptions",
-    addHooks: emitter => {
-        emitter.on("created", result => {
-            console.log("HelloWordResult", result);
-        });
-        emitter.on("focus", result => {
-            console.log("HelloWorld focus", result);
-        });
-    },
-});
-
-const sdk = new WhiteWebSdk({
-    appIdentifier: process.env.APPID,
-    useMobXState: true,
-});
-
-(window as any).WindowManager = WindowManager;
 const search = window.location.search;
 const url = new URLSearchParams(search);
 const isWritable = url.get("isWritable");
@@ -181,6 +55,59 @@ const mountManager = async (room, root) => {
         console.log("focusedChange", focus);
     });
 };
+
+const replay = () => {
+    sdk.replayRoom({
+        room: import.meta.env.VITE_ROOM_UUID,
+        roomToken: import.meta.env.VITE_ROOM_TOKEN,
+        invisiblePlugins: [WindowManager as any],
+        useMultiViews: true,
+    }).then(async player => {
+        await anyWindow.manager.destroy();
+        anyWindow.room.disconnect();
+        setTimeout(async () => {
+            anyWindow.player = player;
+            // player.bindHtmlElement(document.getElementById("container") as any)
+            player.play();
+        }, 500);
+        player.callbacks.on("onPhaseChanged", phase => {
+            if (phase === PlayerPhase.Playing) {
+                if (firstPlay) return;
+                setTimeout(() => {
+                    mountManager(player, document.getElementById("container"));
+                }, 1000);
+                firstPlay = true;
+            }
+        });
+    });
+};
+
+const onRef = ref => {
+    const uid = Math.random().toString().substr(3, 8);
+    sdk.joinRoom({
+        uuid: import.meta.env.VITE_ROOM_UUID,
+        roomToken: import.meta.env.VITE_ROOM_TOKEN,
+        invisiblePlugins: [WindowManager as any],
+        useMultiViews: true,
+        userPayload: {
+            userId: "111",
+            cursorName: uid,
+            avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
+        },
+        isWritable: !(isWritable === "false"),
+        cursorAdapter: undefined,
+        uid: uid,
+        disableMagixEventDispatchLimit: true,
+        disableNewPencil: false,
+    }).then(async room => {
+        if (room.isWritable) {
+            // room.setMemberState({ strokeColor: [0, 0, 1] });
+        }
+        (window as any).room = room;
+        await mountManager(room, ref);
+    });
+};
+
 const destroy = () => {
     anyWindow.manager.destroy();
     anyWindow.manager = undefined;

@@ -6,6 +6,7 @@
         "jsx": "react",
         "moduleResolution": "node",
         "allowJs": false,
+        "types": ["vite/client"]
     },
     "exclude": [
        "*.js"

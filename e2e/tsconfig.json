@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-      "rootDir": "./",
+      "rootDirs": ["./", "../dist"],
       "outDir": "dist",
       "strictNullChecks": true,
       "strict": true,
@@ -26,6 +26,7 @@
       "isolatedModules": true
     },
     "include": [
-      "../node_modules/@types/**/index.d.ts", "cypress/integration"
+      "../node_modules/@types/**/index.d.ts", "cypress/integration",
+      "../dist"
     ],
   }
