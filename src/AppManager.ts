@@ -1,5 +1,5 @@
 import pRetry from "p-retry";
-import { AppAttributes, AppStatus, Events, MagixEventName } from "./constants";
+import { AppAttributes, AppStatus, Events, MagixEventName, ROOT_DIR } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
@@ -20,7 +20,7 @@ import { store } from "./AttributesDelegate";
 import { ViewManager } from "./View/ViewManager";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
-import type { Displayer, DisplayerState, Room } from "white-web-sdk";
+import type { Displayer, DisplayerState, Room , ScenesCallbacksNode } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
 import { appRegister } from "./Register";
 
@@ -33,12 +33,14 @@ export class AppManager {
     public mainViewProxy: MainViewProxy;
     public refresher?: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
+    public mainViewScenesLength = 0;
 
     private appListeners: AppListeners;
     public boxManager?: BoxManager;
 
     private _prevSceneIndex: number | undefined;
     private _prevFocused: string | undefined;
+    private callbacksNode: ScenesCallbacksNode | null;
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
@@ -69,17 +71,30 @@ export class AppManager {
             });
         }
         emitter.on("removeScenes", scenePath => {
-            if (scenePath === "/") {
-                this.setMainViewScenePath("/");
+            if (scenePath === ROOT_DIR) {
+                this.setMainViewScenePath(ROOT_DIR);
                 return;
             }
             const mainViewScenePath = this.store.getMainViewScenePath();
             if (this.room && mainViewScenePath) {
                 if (mainViewScenePath === scenePath) {
-                    this.setMainViewScenePath("/");
+                    this.setMainViewScenePath(ROOT_DIR);
                 }
             }
         });
+        this.callbacksNode = this.displayer.createScenesCallback(ROOT_DIR, {
+            onAddScene: (scenesCallback) => {
+                this.mainViewScenesLength = scenesCallback.scenes.length;
+                callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
+            },
+            onRemoveScene: (scenesCallback) => {
+                this.mainViewScenesLength = scenesCallback.scenes.length;
+                callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
+            },
+        });
+        if (this.callbacksNode) {
+            this.mainViewScenesLength = this.callbacksNode.scenes.length;
+        }
     }
 
     private get eventName() {
@@ -110,6 +125,15 @@ export class AppManager {
 
     public get uid() {
         return this.room?.uid || "";
+    }
+    
+    public getMainViewSceneDir() {
+        const scenePath = this.store.getMainViewScenePath();
+        if (scenePath) {
+            return parseSceneDir(scenePath);
+        } else {
+            throw new Error("[WindowManager]: mainViewSceneDir not found");
+        }
     }
 
     private async onCreated() {
@@ -385,6 +409,10 @@ export class AppManager {
     public async setMainViewScenePath(scenePath: string) {
         if (this.room) {
             const scenePathType = this.displayer.scenePathType(scenePath);
+            const sceneDir = parseSceneDir(scenePath);
+            if (sceneDir !== ROOT_DIR) {
+                throw new Error(`[WindowManager]: main view scenePath must in root dir "/"`);
+            }
             if (scenePathType === ScenePathType.None) {
                 throw new Error(`[WindowManager]: ${scenePath} not valid scene`);
             } else if (scenePathType === ScenePathType.Page) {
@@ -554,6 +582,7 @@ export class AppManager {
         this.refresher?.destroy();
         this.mainViewProxy.destroy();
         callbacks.clearListeners();
+        this.callbacksNode?.dispose();
         this._prevSceneIndex = undefined;
     }
 }

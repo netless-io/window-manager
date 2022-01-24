@@ -19,9 +19,9 @@ import "@netless/telebox-insider/dist/style.css";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
+    entireScenes,
     getVersionNumber,
     isValidScenePath,
-    parseSceneDir,
     wait,
 } from "./Utils/Common";
 import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
@@ -157,6 +157,7 @@ export type PublicEvent = {
     mainViewScenePathChange: string;
     mainViewSceneIndexChange: number;
     focusedChange: string | undefined;
+    mainViewScenesLengthChange: number;
 };
 
 export type MountParams = {
@@ -447,11 +448,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (scenePath && scenes && scenes.length > 0) {
                 if (this.isDynamicPPT(scenes)) {
                     isDynamicPPT = true;
-                    if (!this.displayer.entireScenes()[scenePath]) {
+                    if (!entireScenes(this.displayer)[scenePath]) {
                         this.room?.putScenes(scenePath, scenes);
                     }
                 } else {
-                    if (!this.displayer.entireScenes()[scenePath]) {
+                    if (!entireScenes(this.displayer)[scenePath]) {
                         this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
                     }
                 }
@@ -618,16 +619,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public get mainViewSceneDir(): string {
-        const scenePath = this.appManager?.store.getMainViewScenePath();
-        if (scenePath) {
-            return parseSceneDir(scenePath);
+        if (this.appManager) {
+            return this.appManager?.getMainViewSceneDir();
         } else {
-            throw new Error("[WindowManager]: mainViewSceneDir not found");
+            throw new AppManagerNotInitError();
         }
     }
 
     public get topApp(): string | undefined {
         return this.boxManager?.getTopBox()?.id;
+    }
+
+    public get mainViewScenesLength(): number {
+        return this.appManager?.mainViewScenesLength || 0;
     }
 
     /**

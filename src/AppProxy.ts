@@ -7,7 +7,7 @@ import { BoxManagerNotFoundError } from "./Utils/error";
 import { debounce, get } from "lodash";
 import { emitter } from "./index";
 import { Fields } from "./AttributesDelegate";
-import { getScenePath, removeScenes, setScenePath, setViewFocusScenePath } from "./Utils/Common";
+import { entireScenes, getScenePath, removeScenes, setScenePath, setViewFocusScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";
 import type {
     AppEmitterEvent,
@@ -67,7 +67,7 @@ export class AppProxy {
         if (options) {
             this.scenePath = options.scenePath;
             if (this.appAttributes?.isDynamicPPT && this.scenePath) {
-                this.scenes = this.manager.displayer.entireScenes()[this.scenePath];
+                this.scenes = entireScenes(this.manager.displayer)[this.scenePath];
             } else {
                 this.scenes = options.scenes;
             }

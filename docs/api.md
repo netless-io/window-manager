@@ -136,6 +136,7 @@ manager.setBoxState("normal") // boxState: normal | maximized | minimized
 | ------------------ | ------- | ------- | ----------------- |
 | mainView           | View    |         | 主白板               |
 | mainViewSceneIndex | number  |         | 当前主白板的 SceneIndex |
+| mainViewScenesLength | number |        | mainView 的 scenes 长度 |
 | boxState           | string  |         | 当前窗口状态            |
 | darkMode           | boolean |         | 黑夜模式              |
 | prefersColorScheme | string  |         | 颜色主题              |
@@ -158,3 +159,4 @@ manager.callbacks.on(events, listener)
 | prefersColorSchemeChange | string         |         | auto,light,dark            |
 | cameraStateChange        | CameraState    |         |                            |
 | focusedChange            | string, undefined |     | 当前 focus 的 appId，主白板时为 undefined  |
+| mainViewScenesLengthChange | number      |         | mainView scenes 添加或删除时触发 |
