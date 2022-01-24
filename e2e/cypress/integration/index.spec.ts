@@ -32,6 +32,7 @@ describe("正常流程", () => {
             cy.wait(1000).then(() => {
                 expect(appId).to.be.string;
                 cy.get(".telebox-box").should("have.length", 1);
+                expect(manager.focused).to.be.equal(appId);
                 expect(manager.queryAll().length).to.be.equal(1);
             });
         });
@@ -46,6 +47,7 @@ describe("正常流程", () => {
             }
             expect(manager.queryAll().length).to.be.equal(0);
             cy.get(".telebox-box").should("have.length", 0);
+            expect(manager.focused).to.be.undefined;
         });
     });
 });
