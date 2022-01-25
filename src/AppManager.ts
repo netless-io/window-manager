@@ -185,13 +185,18 @@ export class AppManager {
             return autorun(() => {
                 const focused = get(this.attributes, "focus");
                 if (this._prevFocused !== focused) {
-                    this.boxManager?.focusBox({ appId: focused });
-                    const appProxy = this.appProxies.get(focused);
-                    if (appProxy) {
-                        appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
-                    }
                     callbacks.emit("focusedChange", focused);
                     this._prevFocused = focused;
+                    if (focused !== undefined) {
+                        this.boxManager?.focusBox({ appId: focused });
+                        // 确保 focus 修改的时候, appProxy 已经创建
+                        setTimeout(() => {
+                            const appProxy = this.appProxies.get(focused);
+                            if (appProxy) {
+                                appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
+                            }
+                        }, 0);
+                    }
                 }
             });
         });

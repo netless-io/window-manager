@@ -165,7 +165,7 @@ export class AppProxy {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
                     const result = await app.setup(context);
                     this.appResult = result;
-                    appRegister.notifyApp(app.kind, "created", { appId, result });
+                    appRegister.notifyApp(this.kind, "created", { appId, result });
                     this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
                 }, 50);

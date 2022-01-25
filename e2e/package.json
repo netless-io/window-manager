@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "cypress": "^8.7.0"
+    "@types/sinon": "^10.0.8",
+    "cypress": "^8.7.0",
+    "sinon": "^12.0.1"
   }
 }
