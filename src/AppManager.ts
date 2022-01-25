@@ -20,7 +20,7 @@ import { store } from "./AttributesDelegate";
 import { ViewManager } from "./View/ViewManager";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
-import type { Displayer, DisplayerState, Room , ScenesCallbacksNode } from "white-web-sdk";
+import type { Displayer, DisplayerState, Room, ScenesCallbacksNode } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
 import { appRegister } from "./Register";
 
@@ -83,11 +83,11 @@ export class AppManager {
             }
         });
         this.callbacksNode = this.displayer.createScenesCallback(ROOT_DIR, {
-            onAddScene: (scenesCallback) => {
+            onAddScene: scenesCallback => {
                 this.mainViewScenesLength = scenesCallback.scenes.length;
                 callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
             },
-            onRemoveScene: (scenesCallback) => {
+            onRemoveScene: scenesCallback => {
                 this.mainViewScenesLength = scenesCallback.scenes.length;
                 callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
             },
@@ -126,7 +126,7 @@ export class AppManager {
     public get uid() {
         return this.room?.uid || "";
     }
-    
+
     public getMainViewSceneDir() {
         const scenePath = this.store.getMainViewScenePath();
         if (scenePath) {
@@ -186,6 +186,10 @@ export class AppManager {
                 const focused = get(this.attributes, "focus");
                 if (this._prevFocused !== focused) {
                     this.boxManager?.focusBox({ appId: focused });
+                    const appProxy = this.appProxies.get(focused);
+                    if (appProxy) {
+                        appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
+                    }
                     callbacks.emit("focusedChange", focused);
                     this._prevFocused = focused;
                 }
@@ -498,10 +502,6 @@ export class AppManager {
             }
             case "focus": {
                 this.windowManger.safeSetAttributes({ focus: payload.appId });
-                const appProxy = this.appProxies.get(payload.appId);
-                if (appProxy) {
-                    appRegister.notifyApp(appProxy.kind, "focus", { appId: payload.appId });
-                }
                 break;
             }
             case "resize": {

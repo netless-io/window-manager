@@ -774,10 +774,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
         }
     }
-
-    private _removeScenes = (scenePath: string) => {
-        this.room.removeScenes(scenePath);
-    };
 }
 
 setupBuiltin();

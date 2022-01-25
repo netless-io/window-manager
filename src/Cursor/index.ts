@@ -42,6 +42,7 @@ export class CursorManager {
             if (payload.state === CursorState.Leave) {
                 cursorInstance.leave();
             } else {
+                cursorInstance.setMember();
                 cursorInstance.move(payload.position);
             }
         });
