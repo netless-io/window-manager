@@ -33,7 +33,9 @@ describe("正常流程", () => {
                 expect(appId).to.be.string;
                 cy.get(".telebox-box").should("have.length", 1);
                 expect(manager.focused).to.be.equal(appId);
-                expect(manager.queryAll().length).to.be.equal(1);
+                const app = manager.queryOne(appId);
+                expect(app).to.be.a("object");
+                expect(app.view.focusScenePath).to.be.match(/helloworld1/);
             });
         });
     });
