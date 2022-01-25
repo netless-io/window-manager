@@ -1,12 +1,11 @@
 import { appRegister } from "../Register";
-import { debounce, memoize } from "lodash";
+import { debounce } from "lodash";
 import { emitter } from "../index";
 import { ScenePathType } from "white-web-sdk";
 import { v4 } from "uuid";
 import type { PublicEvent } from "../index";
 import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
 import type Emittery from "emittery";
-import { log } from "./log";
 import { ROOT_DIR } from "../constants";
 
 export const genAppId = async (kind: string) => {
@@ -101,15 +100,9 @@ export const makeValidScenePath = (displayer: Displayer, scenePath: string, inde
 };
 
 export const entireScenes = (displayer: Displayer) => {
-    // 缓存 entireScenes 结果, 避免频繁调用
-    const cacheKey = Math.round(Date.now() / 1000);
-    return invokeEntireScenes(cacheKey, displayer);
+    return displayer.entireScenes();
 };
 
-const invokeEntireScenes = memoize((cacheKey: number, displayer: Displayer) => {
-    log("invokeEntireScenes", cacheKey);
-    return displayer.entireScenes();
-});
 
 export const isValidScenePath = (scenePath: string) => {
     return scenePath.startsWith("/");
