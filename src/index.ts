@@ -749,6 +749,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.appManager?.boxManager?.setPrefersColorScheme(scheme);
     }
 
+    public cleanCurrentScene(): void {
+        const focused = this.focused;
+        if (focused) {
+            this.appManager?.focusApp?.view?.cleanCurrentScene();
+        } else {
+            this.mainView.cleanCurrentScene();
+        }
+    }
+
     private isDynamicPPT(scenes: SceneDefinition[]) {
         const sceneSrc = scenes[0]?.ppt?.src;
         return sceneSrc?.startsWith("pptx://");
