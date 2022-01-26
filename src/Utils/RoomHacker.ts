@@ -4,11 +4,12 @@ import type { WindowManager } from "../index";
 import type { Camera, Room, Player, PlayerSeekingResult } from "white-web-sdk";
 
 // 修改多窗口状态下一些失效的方法实现到 manager 的 mainview 上, 降低迁移成本
-export const replaceRoomFunction = (room: Room, manager: WindowManager) => {
+export const replaceRoomFunction = (room: Room | Player, manager: WindowManager) => {
     if (isPlayer(room)) {
         const player = room as unknown as Player;
         delegateSeekToProgressTime(player);
     } else {
+        room = room as unknown as Room;
         const descriptor = Object.getOwnPropertyDescriptor(room, "disableCameraTransform");
         if (descriptor) return;
         Object.defineProperty(room, "disableCameraTransform", {

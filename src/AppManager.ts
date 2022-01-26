@@ -1,9 +1,15 @@
-import pRetry from "p-retry";
 import { AppAttributes, AppStatus, Events, MagixEventName, ROOT_DIR } from "./constants";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
+import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
-import { callbacks, emitter, WindowManager, reconnectRefresher } from "./index";
+import { callbacks, emitter, reconnectRefresher, WindowManager } from "./index";
+import { get, isInteger, orderBy } from "lodash";
+import { log } from "./Utils/log";
+import { MainViewProxy } from "./View/MainView";
+import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
+import { store } from "./AttributesDelegate";
+import { ViewManager } from "./View/ViewManager";
 import {
     entireScenes,
     genAppId,
@@ -12,17 +18,11 @@ import {
     setScenePath,
     setViewFocusScenePath,
 } from "./Utils/Common";
-import { log } from "./Utils/log";
-import { MainViewProxy } from "./View/MainView";
-import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
-import { get, isInteger, sortBy } from "lodash";
-import { store } from "./AttributesDelegate";
-import { ViewManager } from "./View/ViewManager";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
 import type { Displayer, DisplayerState, Room, ScenesCallbacksNode } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
-import { appRegister } from "./Register";
+import { AppCreateQueue } from "./Utils/AppCreateQueue";
 
 export class AppManager {
     public displayer: Displayer;
@@ -41,6 +41,7 @@ export class AppManager {
     private _prevSceneIndex: number | undefined;
     private _prevFocused: string | undefined;
     private callbacksNode: ScenesCallbacksNode | null;
+    private appCreateQueue = new AppCreateQueue();
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
@@ -228,19 +229,18 @@ export class AppManager {
                     createdAt: apps[appId].createdAt,
                 };
             });
-            for (const { id } of sortBy(appsWithCreatedAt, "createdAt")) {
+            for (const { id } of orderBy(appsWithCreatedAt, "createdAt", "asc")) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
 
-                    pRetry(
-                        async () => {
-                            this.appStatus.set(id, AppStatus.StartCreate);
-                            // 防御 appAttributes 有可能为 undefined 的情况，这里做一个重试
-                            const appAttributes = this.attributes[id];
-                            if (!appAttributes) {
-                                throw new Error("appAttributes is undefined");
-                            }
-                            await this.baseInsertApp(
+                    this.appStatus.set(id, AppStatus.StartCreate);
+                    try {
+                        const appAttributes = this.attributes[id];
+                        if (!appAttributes) {
+                            throw new Error("appAttributes is undefined");
+                        }
+                        this.appCreateQueue.push(() => {
+                            return this.baseInsertApp(
                                 {
                                     kind: app.kind,
                                     options: app.options,
@@ -249,13 +249,11 @@ export class AppManager {
                                 id,
                                 false
                             );
-                            this.focusByAttributes(apps);
-                        },
-                        { retries: 3 }
-                    ).catch(err => {
-                        console.warn(`[WindowManager]: Insert App Error`, err);
-                        this.appStatus.delete(id);
-                    });
+                        });
+                        this.focusByAttributes(apps);
+                    } catch (error) {
+                        console.warn(`[WindowManager]: Insert App Error`, error);
+                    }
                 }
             }
         }
@@ -588,6 +586,7 @@ export class AppManager {
         this.mainViewProxy.destroy();
         callbacks.clearListeners();
         this.callbacksNode?.dispose();
+        this.appCreateQueue.destroy();
         this._prevSceneIndex = undefined;
     }
 }

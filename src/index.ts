@@ -54,6 +54,7 @@ import type {
     Rectangle,
     ViewVisionMode,
     CameraState,
+    Player,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
@@ -161,7 +162,7 @@ export type PublicEvent = {
 };
 
 export type MountParams = {
-    room: Room;
+    room: Room | Player;
     container?: HTMLElement;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
@@ -224,6 +225,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         WindowManager.params = params;
 
         this.checkVersion();
+        let manager: WindowManager | undefined = undefined;
         if (isRoom(room)) {
             if (room.phase !== RoomPhase.Connected) {
                 throw new Error("[WindowManager]: Room only Connected can be mount");
@@ -232,11 +234,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 // redo undo 需要设置这个属性
                 room.disableSerialization = false;
             }
+            manager = await this.initManager(room);
         }
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
-        let manager = await this.initManager(room);
+
         this.debug = Boolean(debug);
         log("Already insert room", manager);
 
@@ -247,7 +250,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         } else {
             await pRetry(
                 async count => {
-                    manager = await this.initManager(room);
+                    manager = (await room.getInvisiblePlugin(WindowManager.kind)) as WindowManager;
                     if (!manager) {
                         log(`manager is empty. retrying ${count}`);
                         throw new Error();
@@ -255,6 +258,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 },
                 { retries: 10 }
             );
+        }
+
+        if (!manager) {
+            throw new Error("[WindowManager]: create manager failed");
         }
 
         if (containerSizeRatio) {

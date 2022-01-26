@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@netless/app-slide": "^0.0.55",
+    "@netless/app-slide": "^0.0.56",
     "@netless/video-js-plugin": "^0.3.7",
     "normalize.css": "^8.0.1",
     "p-queue": "^7.1.0",
