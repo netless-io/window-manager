@@ -1,3 +1,7 @@
+import { getVersionNumber } from "./Utils/Common";
+import { REQUIRE_VERSION } from "./constants";
+import { WhiteVersion } from "white-web-sdk";
+import { WhiteWebSDKInvalidError } from "./Utils/error";
 import { WindowManager } from "./index";
 
 export const setupWrapper = (
@@ -27,4 +31,11 @@ export const setupWrapper = (
     WindowManager.wrapper = wrapper;
 
     return { playground, wrapper, sizer, mainViewElement };
+};
+
+export const checkVersion = () => {
+    const version = getVersionNumber(WhiteVersion);
+    if (version < getVersionNumber(REQUIRE_VERSION)) {
+        throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);
+    }
 };

@@ -11,6 +11,7 @@
     - [`closeApp`](#closeApp)
     - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
     - [`setBoxState`](#setBoxState)
+    - [`cleanCurrentScene`](#cleanCurrentScene)
   - [实例属性](#prototypes)
   - [事件回调](#events)
 
@@ -126,6 +127,14 @@ manager.setMainViewSceneIndex(1)
 
 ```ts
 manager.setBoxState("normal") // boxState: normal | maximized | minimized
+```
+
+<h3 id="cleanCurrentScene">cleanCurrentScene</h3>
+
+> 清除当前 focus 的 view 的笔迹
+
+```ts
+manager.cleanCurrentScene()
 ```
 
 <br>

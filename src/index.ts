@@ -2,25 +2,25 @@ import Emittery from "emittery";
 import pRetry from "p-retry";
 import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
+import { checkVersion, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
-import { DEFAULT_CONTAINER_RATIO, Events, REQUIRE_VERSION } from "./constants";
+import { DEFAULT_CONTAINER_RATIO, Events } from "./constants";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
+import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
 import { isNull, isObject } from "lodash";
 import { log } from "./Utils/log";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
 import { setupBuiltin } from "./BuiltinApps";
-import { setupWrapper } from "./Helper";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
     entireScenes,
-    getVersionNumber,
     isValidScenePath,
     wait,
 } from "./Utils/Common";
@@ -30,17 +30,8 @@ import {
     AppManagerNotInitError,
     InvalidScenePath,
     ParamsInvalidError,
-    WhiteWebSDKInvalidError,
 } from "./Utils/error";
 import type { Apps, Position } from "./AttributesDelegate";
-import {
-    InvisiblePlugin,
-    isPlayer,
-    isRoom,
-    RoomPhase,
-    ViewMode,
-    WhiteVersion,
-} from "white-web-sdk";
 import type {
     Displayer,
     SceneDefinition,
@@ -224,7 +215,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         const cursor = params.cursor;
         WindowManager.params = params;
 
-        this.checkVersion();
+        checkVersion();
         let manager: WindowManager | undefined = undefined;
         if (isRoom(room)) {
             if (room.phase !== RoomPhase.Connected) {
@@ -761,13 +752,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private isDynamicPPT(scenes: SceneDefinition[]) {
         const sceneSrc = scenes[0]?.ppt?.src;
         return sceneSrc?.startsWith("pptx://");
-    }
-
-    private static checkVersion() {
-        const version = getVersionNumber(WhiteVersion);
-        if (version < getVersionNumber(REQUIRE_VERSION)) {
-            throw new WhiteWebSDKInvalidError(REQUIRE_VERSION);
-        }
     }
 
     private async ensureAttributes() {
