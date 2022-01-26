@@ -439,7 +439,7 @@ export class AppManager {
             this.safeSetAttributes({ _mainScenePath: scenePath });
             this.store.setMainViewFocusPath(this.mainView);
             this.updateSceneIndex();
-            this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
+            this.dispatchSetMainViewScenePath(scenePath);
         }
     }
 
@@ -469,15 +469,19 @@ export class AppManager {
                     if (success) {
                         this.store.setMainViewScenePath(scenePath);
                         this.safeSetAttributes({ _mainSceneIndex: index });
-                        this.dispatchInternalEvent(Events.SetMainViewScenePath, {
-                            nextScenePath: scenePath,
-                        });
+                        this.dispatchSetMainViewScenePath(scenePath);
                     }
                 } else {
                     throw new Error(`[WindowManager]: ${sceneDir}: ${index} not valid index`);
                 }
             }
         }
+    }
+
+    private dispatchSetMainViewScenePath(scenePath: string): void {
+        this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
+        // 兼容 15 的 SDK, 需要 room 的当前 ScenePath
+        setScenePath(this.room, scenePath);
     }
 
     public getAppInitPath(appId: string): string | undefined {
