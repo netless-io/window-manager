@@ -152,7 +152,10 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     }
 
     /** Dispatch events to other clients (and self). */
-    public dispatchMagixEvent: MagixEventDispatcher<TMagixEventPayloads> = (this.manager.displayer as Room).dispatchMagixEvent.bind(this.manager.displayer)
+    public dispatchMagixEvent: MagixEventDispatcher<TMagixEventPayloads> = (...args) => {
+        // can't dispatch events on replay mode
+        return this.manager.room?.dispatchMagixEvent(...args);
+    }
 
     /** Listen to events from others clients (and self messages). */
     public addMagixEventListener: MagixEventAddListener<TMagixEventPayloads> = (event, handler, options) => {
