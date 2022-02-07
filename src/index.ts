@@ -261,10 +261,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         await manager.ensureAttributes();
 
         manager.appManager = new AppManager(manager);
-
-        if (cursor) {
-            manager.cursorManager = new CursorManager(manager.appManager);
-        }
+        manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor));
 
         if (params.container) {
             manager.bindContainer(params.container);

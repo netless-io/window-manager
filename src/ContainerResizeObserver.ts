@@ -1,6 +1,6 @@
 import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
 import { WindowManager } from "./index";
-import type { EmitterType} from "./index";
+import type { EmitterType } from "./index";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
@@ -13,7 +13,7 @@ export class ContainerResizeObserver {
         container: HTMLElement,
         sizer: HTMLElement,
         wrapper: HTMLDivElement,
-        emitter: EmitterType,
+        emitter: EmitterType
     ) {
         const containerResizeObserver = new ContainerResizeObserver(emitter);
         containerResizeObserver.observePlaygroundSize(container, sizer, wrapper);
@@ -31,7 +31,7 @@ export class ContainerResizeObserver {
             const containerRect = entries[0]?.contentRect;
             if (containerRect) {
                 this.updateSizer(containerRect, sizer, wrapper);
-                this.emitter.emit("playgroundSizeChange", containerRect)
+                this.emitter.emit("playgroundSizeChange", containerRect);
             }
         });
 

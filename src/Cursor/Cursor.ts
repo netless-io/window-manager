@@ -23,7 +23,7 @@ export class Cursor {
         private cursorManager: CursorManager,
         private wrapper?: HTMLElement
     ) {
-        this.setMember();
+        this.updateMember();
         this.createCursor();
         this.autoHidden();
     }
@@ -158,9 +158,10 @@ export class Cursor {
         }
     }
 
-    public setMember() {
+    public updateMember() {
         this.member = this.manager.findMemberByUid(this.memberId);
         this.updateComponent();
+        return this.member;
     }
 
     private updateComponent() {

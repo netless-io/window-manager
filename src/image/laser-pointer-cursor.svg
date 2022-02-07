@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="28px" height="28px" viewBox="0 0 28 28" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.1 (78136) - https://sketchapp.com -->
+    <title>编组 2</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <filter x="-120.0%" y="-120.0%" width="340.0%" height="340.0%" filterUnits="objectBoundingBox" id="filter-1">
+            <feGaussianBlur stdDeviation="4" in="SourceGraphic"></feGaussianBlur>
+        </filter>
+    </defs>
+    <g id="页面1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="编组-2" transform="translate(9.000000, 9.000000)" fill="#FF0100">
+            <circle id="椭圆形" filter="url(#filter-1)" cx="5" cy="5" r="5"></circle>
+            <path d="M5,8 C6.65685425,8 8,6.65685425 8,5 C8,3.34314575 6.65685425,2 5,2 C3.34314575,2 2,3.34314575 2,5 C2,6.65685425 3.34314575,8 5,8 Z M5,6.28571429 C4.28991961,6.28571429 3.71428571,5.71008039 3.71428571,5 C3.71428571,4.28991961 4.28991961,3.71428571 5,3.71428571 C5.71008039,3.71428571 6.28571429,4.28991961 6.28571429,5 C6.28571429,5.71008039 5.71008039,6.28571429 5,6.28571429 Z" id="椭圆形" fill-rule="nonzero"></path>
+        </g>
+    </g>
+</svg>

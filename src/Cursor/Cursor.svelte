@@ -1,5 +1,6 @@
 <script lang="ts">
     import { isEmpty } from "lodash";
+    import { ApplianceNames } from "white-web-sdk";
 
     export let cursorName: string;
     export let tagName: string;
@@ -19,6 +20,7 @@
     $: hasTagName = !isEmpty(tagName);
     $: hasAvatar = !isEmpty(avatar);
     $: display = visible ? "initial" : "none";
+    $: isLaserPointer = appliance === ApplianceNames.laserPointer;
 
     const computedAvatarStyle = () => {
         return Object.entries({
@@ -36,28 +38,30 @@
 <div
     class="netless-window-manager-cursor-mid"
     style="transform: translateX({x}px) translateY({y}px);display: {display}"
->
-    <div class="netless-window-manager-cursor-name">
-        <div
-            class={theme}
-            style="background-color: {backgroundColor};color: {color};opacity: {opacity}"
-        >
-            {#if hasAvatar}
-                <img
-                    class="netless-window-manager-cursor-selector-avatar"
-                    style={computedAvatarStyle()}
-                    src={avatar}
-                    alt="avatar"
-                />
-            {/if}
-            <span style="overflow: hidden;white-space: nowrap;text-overflow: ellipsis;max-width: 80px">{cursorName}</span>
-            {#if hasTagName}
-                <span class="netless-window-manager-cursor-tag-name" style="background-color: {cursorTagBackgroundColor}">
-                    {tagName}
-                </span>
-            {/if}
+>   
+    {#if !isLaserPointer}
+        <div class="netless-window-manager-cursor-name">
+            <div
+                class={theme}
+                style="background-color: {backgroundColor};color: {color};opacity: {opacity}"
+            >
+                {#if hasAvatar}
+                    <img
+                        class="netless-window-manager-cursor-selector-avatar"
+                        style={computedAvatarStyle()}
+                        src={avatar}
+                        alt="avatar"
+                    />
+                {/if}
+                <span style="overflow: hidden;white-space: nowrap;text-overflow: ellipsis;max-width: 80px">{cursorName}</span>
+                {#if hasTagName}
+                    <span class="netless-window-manager-cursor-tag-name" style="background-color: {cursorTagBackgroundColor}">
+                        {tagName}
+                    </span>
+                {/if}
+            </div>
         </div>
-    </div>
+    {/if}
     <div class="cursor-image-wrapper">
         <img class="netless-window-manager-cursor-{appliance}-image" {src} alt={appliance} />
     </div>

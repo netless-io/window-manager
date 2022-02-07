@@ -1,8 +1,9 @@
-import { throttle } from "lodash";
+import { ApplianceNames } from "white-web-sdk";
 import { Cursor } from "./Cursor";
 import { CursorState, Events } from "../constants";
 import { emitter, WindowManager } from "../index";
 import { SideEffectManager } from "side-effect-manager";
+import { throttle } from "lodash";
 import type { CursorMovePayload } from "../index";
 import type { PositionType } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
@@ -27,7 +28,7 @@ export class CursorManager {
     private sideEffectManager = new SideEffectManager();
     private store = this.manager.store;
 
-    constructor(private manager: AppManager) {
+    constructor(private manager: AppManager, private enableCursor: boolean) {
         this.roomMembers = this.manager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
@@ -42,8 +43,12 @@ export class CursorManager {
             if (payload.state === CursorState.Leave) {
                 cursorInstance.leave();
             } else {
-                cursorInstance.setMember();
-                cursorInstance.move(payload.position);
+                const member = cursorInstance.updateMember();
+                const isLaserPointer =
+                    member?.memberState.currentApplianceName === ApplianceNames.laserPointer;
+                if (this.enableCursor || isLaserPointer) {
+                    cursorInstance.move(payload.position);
+                }
             }
         });
         this.sideEffectManager.add(() => {
@@ -51,7 +56,7 @@ export class CursorManager {
                 this.updateContainerRect();
             });
             return unsubscribe;
-        })
+        });
     }
 
     public setupWrapper(wrapper: HTMLElement) {

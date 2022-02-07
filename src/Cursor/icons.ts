@@ -4,6 +4,7 @@ import selector from "../image/selector-cursor.png";
 import eraser from "../image/eraser-cursor.png";
 import shape from "../image/shape-cursor.svg";
 import text from "../image/text-cursor.svg";
+import laser from "../image/laser-pointer-cursor.svg";
 
 export const ApplianceMap: {
     [key: string]: string;
@@ -13,4 +14,5 @@ export const ApplianceMap: {
     [ApplianceNames.eraser]: eraser,
     [ApplianceNames.shape]: shape,
     [ApplianceNames.text]: text,
+    [ApplianceNames.laserPointer]: laser,
 };
