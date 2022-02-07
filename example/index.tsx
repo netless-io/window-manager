@@ -57,6 +57,12 @@ const mountManager = async (room, root) => {
     manager.emitter.on("mainViewScenesLengthChange", length => {
         console.log("mainViewScenesLengthChange", length);
     });
+    manager.emitter.on("canRedoStepsChange", steps => {
+        console.log("canRedoStepsChange", steps);
+    });
+    manager.emitter.on("canUndoStepsChange", steps => {
+        console.log("canUndoStepsChange", steps);
+    });
 };
 
 const replay = () => {

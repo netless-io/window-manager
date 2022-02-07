@@ -12,6 +12,8 @@
     - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
     - [`setBoxState`](#setBoxState)
     - [`cleanCurrentScene`](#cleanCurrentScene)
+    - [`redo`](#redo)
+    - [`undo`](#undo)
   - [实例属性](#prototypes)
   - [事件回调](#events)
 
@@ -137,19 +139,37 @@ manager.setBoxState("normal") // boxState: normal | maximized | minimized
 manager.cleanCurrentScene()
 ```
 
+<h3 id="redo">redo</h3>
+
+> 在当前 focus 的 view 上重做上一步操作
+
+```ts
+manager.redo()
+```
+
+<h3 id="undo">undo</h3>
+
+> 在当前 focus 的 view 上撤消上一步操作
+
+```ts
+manager.undo()
+```
+
 <br>
 
 <h2 id="prototypes">实例属性</h2>
 
-| name               | type    | default | desc              |
-| ------------------ | ------- | ------- | ----------------- |
-| mainView           | View    |         | 主白板               |
-| mainViewSceneIndex | number  |         | 当前主白板的 SceneIndex |
+| name               | type    | default | desc                   |
+| ------------------ | ------- | ------- | -----------------      |
+| mainView           | View    |         | 主白板                  |
+| mainViewSceneIndex | number  |         | 当前主白板的 SceneIndex  |
 | mainViewScenesLength | number |        | mainView 的 scenes 长度 |
-| boxState           | string  |         | 当前窗口状态            |
-| darkMode           | boolean |         | 黑夜模式              |
-| prefersColorScheme | string  |         | 颜色主题              |
-| focused            | string |         | focus 的 app      |
+| boxState           | string  |         | 当前窗口状态             |
+| darkMode           | boolean |         | 黑夜模式                 |
+| prefersColorScheme | string  |         | 颜色主题                 |
+| focused            | string |          | focus 的 app            |
+| canRedoSteps       | number  |         | 当前 focus 的 view 可以重做的步数 |
+| canRedoSteps       | number  |         | 当前 focus 的 view 可以撤销的步数 |
 
 <br>
 
@@ -169,3 +189,5 @@ manager.callbacks.on(events, listener)
 | cameraStateChange        | CameraState    |         |                            |
 | focusedChange            | string, undefined |     | 当前 focus 的 appId，主白板时为 undefined  |
 | mainViewScenesLengthChange | number      |         | mainView scenes 添加或删除时触发 |
+| canRedoStepsChange       | number         |         | 当前 focus 的 view 可重做步数改变 |
+| canUndoStepsChange       | number         |         | 当前 focus 的 view 可撤销步数改变 |

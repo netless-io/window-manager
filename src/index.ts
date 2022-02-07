@@ -150,6 +150,8 @@ export type PublicEvent = {
     mainViewSceneIndexChange: number;
     focusedChange: string | undefined;
     mainViewScenesLengthChange: number;
+    canRedoStepsChange: number;
+    canUndoStepsChange: number;
 };
 
 export type MountParams = {
@@ -629,6 +631,24 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.appManager?.mainViewScenesLength || 0;
     }
 
+    public get canRedoSteps(): number {
+        const focused = this.focused;
+        if (focused) {
+            return this.appManager?.focusApp?.view?.canRedoSteps || 0;
+        } else {
+            return this.mainView.canRedoSteps;
+        }
+    }
+
+    public get canUndoSteps(): number {
+        const focused = this.focused;
+        if (focused) {
+            return this.appManager?.focusApp?.view?.canUndoSteps || 0;
+        } else {
+            return this.mainView.canUndoSteps;
+        }
+    }
+
     /**
      * 查询所有的 App
      */
@@ -743,6 +763,24 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             this.appManager?.focusApp?.view?.cleanCurrentScene();
         } else {
             this.mainView.cleanCurrentScene();
+        }
+    }
+
+    public redo(): void {
+        const focused = this.focused;
+        if (focused) {
+            this.appManager?.focusApp?.view?.redo();
+        } else {
+            this.mainView.redo();
+        }
+    }
+
+    public undo(): void {
+        const focused = this.focused;
+        if (focused) {
+            this.appManager?.focusApp?.view?.undo();
+        } else {
+            this.mainView.undo();
         }
     }
 

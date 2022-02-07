@@ -1,4 +1,5 @@
 import { AppAttributes, AppStatus, Events, MagixEventName, ROOT_DIR } from "./constants";
+import { AppCreateQueue } from "./Utils/AppCreateQueue";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { appRegister } from "./Register";
@@ -20,9 +21,8 @@ import {
 } from "./Utils/Common";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
-import type { Displayer, DisplayerState, Room, ScenesCallbacksNode } from "white-web-sdk";
+import type { Displayer, DisplayerState, Room, ScenesCallbacksNode, View } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
-import { AppCreateQueue } from "./Utils/AppCreateQueue";
 
 export class AppManager {
     public displayer: Displayer;
@@ -187,6 +187,10 @@ export class AppManager {
                 const focused = get(this.attributes, "focus");
                 if (this._prevFocused !== focused) {
                     callbacks.emit("focusedChange", focused);
+                    this.disposePrevFocusViewRedoUndoListeners(this._prevFocused);
+                    setTimeout(() => {
+                        this.addRedoUndoListeners(focused);
+                    }, 0);
                     this._prevFocused = focused;
                     if (focused !== undefined) {
                         this.boxManager?.focusBox({ appId: focused });
@@ -212,7 +216,59 @@ export class AppManager {
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this._prevFocused = this.attributes.focus;
+        this.addRedoUndoListeners(this.attributes.focus);
     }
+
+    private disposePrevFocusViewRedoUndoListeners = (prevFocused: string | undefined) => {
+        if (prevFocused === undefined) {
+            this.mainView.callbacks.off("onCanRedoStepsUpdate", this.onCanRedoStepsUpdate);
+            this.mainView.callbacks.off("onCanUndoStepsUpdate", this.onCanRedoStepsUpdate);
+        } else {
+            const appProxy = this.appProxies.get(prevFocused);
+            if (appProxy) {
+                appProxy.view?.callbacks.off("onCanRedoStepsUpdate", this.onCanRedoStepsUpdate);
+                appProxy.view?.callbacks.off("onCanUndoStepsUpdate", this.onCanUndoStepsUpdate);
+            }
+        }
+    };
+
+    private addRedoUndoListeners = (focused: string | undefined) => {
+        if (focused === undefined) {
+            this.addViewCallbacks(
+                this.mainView,
+                this.onCanRedoStepsUpdate,
+                this.onCanUndoStepsUpdate
+            );
+        } else {
+            const focusApp = this.appProxies.get(focused);
+            if (focusApp && focusApp.view) {
+                this.addViewCallbacks(
+                    focusApp.view,
+                    this.onCanRedoStepsUpdate,
+                    this.onCanUndoStepsUpdate
+                );
+            }
+        }
+    };
+
+    private addViewCallbacks = (
+        view: View,
+        redoListener: (steps: number) => void,
+        undoListener: (steps: number) => void
+    ) => {
+        redoListener(view.canRedoSteps);
+        undoListener(view.canUndoSteps);
+        view.callbacks.on("onCanRedoStepsUpdate", redoListener);
+        view.callbacks.on("onCanUndoStepsUpdate", undoListener);
+    };
+
+    private onCanRedoStepsUpdate = (steps: number) => {
+        callbacks.emit("canRedoStepsChange", steps);
+    };
+
+    private onCanUndoStepsUpdate = (steps: number) => {
+        callbacks.emit("canUndoStepsChange", steps);
+    };
 
     /**
      * 插件更新 attributes 时的回调
@@ -591,6 +647,8 @@ export class AppManager {
         callbacks.clearListeners();
         this.callbacksNode?.dispose();
         this.appCreateQueue.destroy();
+        this.disposePrevFocusViewRedoUndoListeners(this._prevFocused);
+        this._prevFocused = undefined;
         this._prevSceneIndex = undefined;
     }
 }
