@@ -5,6 +5,9 @@
 3. 关闭 `App` 会移除相关的 `Scenes`
 4. 添加 `ScenePath` 相同的 `App` 会把这个 `App` 置为最上层
 5. 代理 `room.putScenes` 和 `room.removeScenes`
+6. 添加 `canRedoSteps` 和 `canUndoSteps` 属性
+7. 添加 `redo` 和 `undo` 方法
+8. 添加 `canRedoStepsChange` 和 `canUndoStepsChange` 事件回调
 
 
 ## 0.3.25
