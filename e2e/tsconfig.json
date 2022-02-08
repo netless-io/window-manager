@@ -23,7 +23,6 @@
       "types": ["cypress"],
       "noUnusedParameters": true,
       "noImplicitOverride": true,
-      "isolatedModules": true
     },
     "include": [
       "../node_modules/@types/**/index.d.ts", "cypress/integration",

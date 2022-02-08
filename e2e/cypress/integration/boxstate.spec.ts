@@ -2,14 +2,7 @@ import { TELE_BOX_STATE } from "@netless/telebox-insider";
 import type { WindowManager } from "../../../dist";
 import { HelloWorldApp } from "../../../example/helloworld-app";
 import sinon from "sinon";
-
-const resizeObserverLoopErrRe = /^ResizeObserver loop limit exceeded/;
-
-Cypress.on("uncaught:exception", err => {
-    if (resizeObserverLoopErrRe.test(err.message)) {
-        return false;
-    }
-});
+import "./common";
 
 describe("boxState", () => {
     before(() => {

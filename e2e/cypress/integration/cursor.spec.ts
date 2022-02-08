@@ -1,14 +1,6 @@
 import { RoomPhase } from "white-web-sdk";
 import type { Room } from "white-web-sdk";
 
-const resizeObserverLoopErrRe = /^ResizeObserver loop limit exceeded/;
-
-Cypress.on("uncaught:exception", err => {
-    if (resizeObserverLoopErrRe.test(err.message)) {
-        return false;
-    }
-});
-
 describe("光标", () => {
     before(() => {
         cy.visit("/");

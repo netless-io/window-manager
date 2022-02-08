@@ -1,13 +1,6 @@
 import type { Room } from "white-web-sdk";
 import type { WindowManager } from "../../../dist";
-
-const resizeObserverLoopErrRe = /^ResizeObserver loop limit exceeded/;
-
-Cypress.on("uncaught:exception", err => {
-    if (resizeObserverLoopErrRe.test(err.message)) {
-        return false;
-    }
-});
+import "./common";
 
 describe("切换 MainViewScene", () => {
     before(() => {
