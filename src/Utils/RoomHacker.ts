@@ -43,7 +43,7 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.setMemberState = (...args) => manager.mainView.setMemberState(...args);
         room.redo = () => manager.mainView.redo();
         room.undo = () => manager.mainView.undo();
-        room.cleanCurrentScene = () => manager.mainView.cleanCurrentScene();
+        room.cleanCurrentScene = () => manager.cleanCurrentScene();
         delegateRemoveScenes(room);
     }
 };
