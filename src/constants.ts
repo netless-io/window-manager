@@ -10,6 +10,7 @@ export enum Events {
     SetMainViewScenePath = "SetMainViewScenePath",
     SetMainViewSceneIndex = "SetMainViewSceneIndex",
     SwitchViewsToFreedom = "SwitchViewsToFreedom",
+    MoveCamera = "MoveCamera",
     MoveCameraToContain = "MoveCameraToContain",
     CursorMove = "CursorMove",
 }

@@ -42,6 +42,10 @@ export class AppListeners {
                     this.setMainViewScenePathHandler(data.payload);
                     break;
                 }
+                case Events.MoveCamera: {
+                    this.moveCameraHandler(data.payload);
+                    break;
+                }
                 case Events.MoveCameraToContain: {
                     this.moveCameraToContainHandler(data.payload);
                     break;
@@ -73,6 +77,10 @@ export class AppListeners {
         setViewFocusScenePath(this.manager.mainView, nextScenePath);
         callbacks.emit("mainViewScenePathChange", nextScenePath);
     };
+
+    private moveCameraHandler = (payload: any) => {
+        this.manager.mainView.moveCamera(payload);
+    }
 
     private moveCameraToContainHandler = (payload: any) => {
         this.manager.mainView.moveCameraToContain(payload);
