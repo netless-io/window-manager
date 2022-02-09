@@ -22,8 +22,6 @@ describe("redo undo 切换", () => {
             expect(manager.canUndoSteps).to.be.equal(0);
         });
     });
-
-
 });
 
 export {}

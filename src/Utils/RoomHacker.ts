@@ -41,8 +41,8 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.fillSceneSnapshot = (...args) => manager.mainView.fillSceneSnapshot(...args);
         room.generateScreenshot = (...args) => manager.mainView.generateScreenshot(...args);
         room.setMemberState = (...args) => manager.mainView.setMemberState(...args);
-        room.redo = () => manager.mainView.redo();
-        room.undo = () => manager.mainView.undo();
+        room.redo = () => manager.redo();
+        room.undo = () => manager.undo();
         room.cleanCurrentScene = () => manager.cleanCurrentScene();
         delegateRemoveScenes(room);
     }

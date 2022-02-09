@@ -766,21 +766,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
-    public redo(): void {
+    public redo(): number {
         const focused = this.focused;
         if (focused) {
-            this.appManager?.focusApp?.view?.redo();
+            return this.appManager?.focusApp?.view?.redo() || 0;
         } else {
-            this.mainView.redo();
+            return this.mainView.redo();
         }
     }
 
-    public undo(): void {
+    public undo(): number {
         const focused = this.focused;
         if (focused) {
-            this.appManager?.focusApp?.view?.undo();
+            return this.appManager?.focusApp?.view?.undo() || 0;
         } else {
-            this.mainView.undo();
+            return this.mainView.undo();
         }
     }
 
