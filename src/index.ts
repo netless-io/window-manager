@@ -10,7 +10,7 @@ import { DEFAULT_CONTAINER_RATIO, Events } from "./constants";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
-import { isNull, isObject } from "lodash";
+import { isEqual, isNull, isObject, omit } from "lodash";
 import { log } from "./Utils/log";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
@@ -674,6 +674,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public moveCamera(
         camera: Partial<Camera> & { animationMode?: AnimationMode | undefined }
     ): void {
+        const pureCamera = omit(camera, ["animationMode"]);
+        const mainViewCamera = { ...this.mainView.camera };
+        if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
         this.mainView.moveCamera(camera);
         this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
         setTimeout(() => {

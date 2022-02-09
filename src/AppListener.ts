@@ -1,10 +1,10 @@
 import { callbacks, emitter } from "./index";
 import { Events, MagixEventName } from "./constants";
+import { isEqual, omit } from "lodash";
 import { setViewFocusScenePath } from "./Utils/Common";
-import type { Event } from "white-web-sdk";
+import type { AnimationMode, Camera, Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
-
 export class AppListeners {
     private displayer = this.manager.displayer;
 
@@ -78,9 +78,12 @@ export class AppListeners {
         callbacks.emit("mainViewScenePathChange", nextScenePath);
     };
 
-    private moveCameraHandler = (payload: any) => {
+    private moveCameraHandler = (
+        payload: Camera & { animationMode?: AnimationMode | undefined }
+    ) => {
+        if (isEqual(omit(payload, ["animationMode"]), { ...this.manager.mainView.camera })) return;
         this.manager.mainView.moveCamera(payload);
-    }
+    };
 
     private moveCameraToContainHandler = (payload: any) => {
         this.manager.mainView.moveCameraToContain(payload);
