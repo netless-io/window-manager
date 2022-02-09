@@ -5,6 +5,7 @@
   - [references](docs/api.md)
   - [从白板迁移](docs/migrate.md)
   - [回放](docs/replay.md)
+  - [进阶使用](docs/advanced.md)
 ## MainView
 
 `MainView` 也就是主白板, 是垫在所有窗口下面的主白板

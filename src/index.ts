@@ -369,6 +369,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.appManager?.refresh();
         this.appManager?.resetMaximized();
         this.appManager?.resetMinimized();
+        this.appManager?.displayerWritableListener(!this.room.isWritable);
         WindowManager.container = container;
     }
 

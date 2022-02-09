@@ -26,13 +26,14 @@ const isWritable = url.get("isWritable");
 const mountManager = async (room, root) => {
     const manager = (await WindowManager.mount({
         room,
-        container: root,
         // collectorStyles: { bottom: "100px", left: "30px" },
         containerSizeRatio: 9 / 16,
         chessboard: true,
         debug: true,
         cursor: true,
     })) as WindowManagerType;
+
+    manager.bindContainer(root);
 
     console.log("manager mounted boxState:", manager.boxState);
     (window as any).manager = manager;
