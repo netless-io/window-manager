@@ -33,6 +33,7 @@ describe("切换 MainViewScene", () => {
             expect(room).to.be.a("object");
             expect(manager).to.be.a("object");
 
+            cy.wrap(null).then(() => room.putScenes("/", [{}]));
             cy.wrap(null).then(() => manager.setMainViewSceneIndex(1));
 
             cy.wait(1000).then(() => {

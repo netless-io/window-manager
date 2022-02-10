@@ -64,6 +64,9 @@ const mountManager = async (room, root) => {
     manager.emitter.on("canUndoStepsChange", steps => {
         console.log("canUndoStepsChange", steps);
     });
+    manager.emitter.on("cameraStateChange", state => {
+        // console.log("cameraStateChange", state);
+    });
 };
 
 const replay = () => {
