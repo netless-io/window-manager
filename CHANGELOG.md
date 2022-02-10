@@ -1,13 +1,19 @@
-## 0.4.0（canary）
+## 0.4.0
 
-1. 废弃 `WindowManager.mount` 的多参数类型
-2. 添加 `bindContainer` 接口，`mount` 时 `container` 参数不再是必选
-3. 关闭 `App` 会移除相关的 `Scenes`
-4. 添加 `ScenePath` 相同的 `App` 会把这个 `App` 置为最上层
-5. 代理 `room.putScenes` 和 `room.removeScenes`
-6. 添加 `canRedoSteps` 和 `canUndoSteps` 属性
-7. 添加 `redo` 和 `undo` 方法
-8. 添加 `canRedoStepsChange` 和 `canUndoStepsChange` 事件回调
+### 功能
+1. 在不同窗口中书写不再需要点击窗口进行切换
+2. 实现了激光笔教具
+3. 添加 `bindContainer` 接口，`mount` 时 `container` 参数不再是必选
+4. 添加 `bindCollector` 接口
+5. 关闭 `App` 会移除相关的 `Scenes`
+6. 添加 `ScenePath` 相同的 `App` 会把这个 `App` 置为最上层
+7. `manager.moveCamera` 和 `manager.moveCameraToContain` 会同步到所有端
+8. 代理 `room.redo()` `room.undo()` `room.canRedoSteps` `room.canUndoSteps` 以及添加 `canRedoStepsChange` `canUndoStepsChange` 事件
+9. 添加 `mainViewScenesLength` 属性和 `mainViewScenesLengthChange` 事件
+10. 添加 `manager.cleanCurrentScene()` 方法自动清除当前 `focus` 白板的笔迹
+
+### BreakChange
+1. 移除 `WindowManager.mount` 的多参数类型
 
 
 ## 0.3.25
