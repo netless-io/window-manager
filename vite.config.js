@@ -2,7 +2,7 @@ import path from "path";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
-
+import { omit } from "lodash";
 
 export default defineConfig(({ mode }) => {
     const isProd = mode === "production";
@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
             sourcemap: true,
             rollupOptions: {
                 external: Object.keys({
-                    ...dependencies,
+                    ...omit(dependencies, ["@netless/telebox-insider"]),
                     ...peerDependencies,
                 }),
             },

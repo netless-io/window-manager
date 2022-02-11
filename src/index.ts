@@ -683,7 +683,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
         setTimeout(() => {
             this.appManager?.mainViewProxy.setCameraAndSize();
-        }, 100);
+        }, 500);
     }
 
     public moveCameraToContain(
@@ -696,7 +696,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
         setTimeout(() => {
             this.appManager?.mainViewProxy.setCameraAndSize();
-        }, 100);
+        }, 500);
     }
 
     public convertToPointInWorld(point: Point): Point {
