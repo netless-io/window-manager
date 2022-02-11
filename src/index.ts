@@ -17,6 +17,7 @@ import { replaceRoomFunction } from "./Utils/RoomHacker";
 import { setupBuiltin } from "./BuiltinApps";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
+import type { LoadAppEvent } from "./Register";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
@@ -152,6 +153,7 @@ export type PublicEvent = {
     mainViewScenesLengthChange: number;
     canRedoStepsChange: number;
     canUndoStepsChange: number;
+    loadApp: LoadAppEvent;
 };
 
 export type MountParams = {

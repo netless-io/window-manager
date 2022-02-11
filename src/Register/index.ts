@@ -1,6 +1,12 @@
 import Emittery from "emittery";
-import type { NetlessApp, RegisterEvents, RegisterParams } from "../typings";
 import { loadApp } from "./loader";
+import type { NetlessApp, RegisterEvents, RegisterParams } from "../typings";
+
+export type LoadAppEvent = {
+    kind: string;
+    status: "start" | "success" | "failed";
+    reason?: string;
+};
 
 class AppRegister {
     public kindEmitters: Map<string, Emittery<RegisterEvents>> = new Map();

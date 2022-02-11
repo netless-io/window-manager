@@ -1,9 +1,10 @@
+import { callbacks } from "../index";
 import { getItem, setItem } from "./storage";
 import type { NetlessApp } from "../typings";
 
 const Prefix = "NetlessApp";
 
-const TIMEOUT = 10000; // 10 秒超时
+const TIMEOUT = 10000; // 下载 script 10 秒超时
 
 export const getScript = async (url: string): Promise<string> => {
     const item = await getItem(url);
@@ -33,19 +34,33 @@ export const loadApp = async (
     name?: string
 ): Promise<NetlessApp | undefined> => {
     const appName = name || Prefix + key;
-    const text = await getScript(url);
+    callbacks.emit("loadApp", { kind: key, status: "start" });
     try {
-        return executeScript(text, appName);
-    } catch (error: any) {
-        if (error.message.includes("Can only have one anonymous define call per script file")) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const define = window.define;
-            if ("function" == typeof define && define.amd) {
-                delete define.amd;
-            }
-            return executeScript(text, appName);
+        const text = await getScript(url);
+        if (!text || text.length === 0) {
+            callbacks.emit("loadApp", { kind: key, status: "failed", reason: "script is empty." });
+            return;
         }
+        try {
+            const result = executeScript(text, appName);
+            callbacks.emit("loadApp", { kind: key, status: "success" });
+            return result;
+        } catch (error: any) {
+            if (error.message.includes("Can only have one anonymous define call per script file")) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const define = window.define;
+                if ("function" == typeof define && define.amd) {
+                    delete define.amd;
+                }
+                const result = executeScript(text, appName);
+                callbacks.emit("loadApp", { kind: key, status: "success" });
+                return result;
+            }
+            callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
+        }
+    } catch (error: any) {
+        callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
     }
 };
 

@@ -1,14 +1,13 @@
 ## 进阶使用
 
 - 目录
-  - [撤销重做]
+  - [撤销重做](#redo-undo)
+  - [清屏](#clean-current-scene)
 
 
-
-<h3>撤销重做</h3>
+<h3 id="redo-undo">撤销重做</h3>
 
 > 以下事件和属性都会根据 `focus` 的窗口来进行自动切换应用对象
-
 
 #### 获取可以撤销/重做的步数
 
@@ -37,3 +36,18 @@ manager.undo() //撤销
 manager.redo() // 重做 
 ```
 
+<br>
+
+<h3 id="clean-current-scene">清屏</h3>
+
+因为在多窗口模式下有多个白板, 如果想要清除当前 `focus` 的白板只需要调用
+
+```ts
+manager.cleanCurrentScene()
+```
+
+只想清理主白板的笔迹则需要
+
+```ts
+manager.mainView.cleanCurrentScene()
+```

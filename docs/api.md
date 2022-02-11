@@ -191,3 +191,13 @@ manager.callbacks.on(events, listener)
 | mainViewScenesLengthChange | number      |         | mainView scenes 添加或删除时触发 |
 | canRedoStepsChange       | number         |         | 当前 focus 的 view 可重做步数改变 |
 | canUndoStepsChange       | number         |         | 当前 focus 的 view 可撤销步数改变 |
+| loadApp                  | LoadAppEvent   |         | 加载远程APP 事件                |
+
+
+```ts
+type LoadAppEvent = {
+    kind: string;
+    status: "start" | "success" | "failed";
+    reason?: string;
+}
+```
