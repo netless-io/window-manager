@@ -201,7 +201,7 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
   private _getRawState(defaultValue: TState): TState
   private _getRawState(defaultValue?: TState): TState | undefined {
     if (this.id === null) {
-      return get(this._context.getAttributes(), [], defaultValue);
+      return this._context.getAttributes() ?? defaultValue;
     } else {
       return get(this._context.getAttributes(), [STORAGE_NS, this.id], defaultValue);
     }
