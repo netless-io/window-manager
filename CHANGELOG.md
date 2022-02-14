@@ -1,3 +1,7 @@
+## 0.4.3
+
+1. 代理 `room` 的 `delete` `copy` `paste` `duplicate` 方法
+
 ## 0.4.1
 
 1. 添加 `loadApp` 事件

@@ -614,6 +614,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return this.attributes.focus;
     }
 
+    public get focusedView(): View | undefined {
+        return this.appManager?.focusApp?.view;
+    }
+
     public get mainViewSceneIndex(): number {
         return this.appManager?.store.getMainViewSceneIndex();
     }
@@ -770,7 +774,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public cleanCurrentScene(): void {
         const focused = this.focused;
         if (focused) {
-            this.appManager?.focusApp?.view?.cleanCurrentScene();
+            this.focusedView?.cleanCurrentScene();
         } else {
             this.mainView.cleanCurrentScene();
         }
@@ -779,7 +783,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public redo(): number {
         const focused = this.focused;
         if (focused) {
-            return this.appManager?.focusApp?.view?.redo() || 0;
+            return this.focusedView?.redo() || 0;
         } else {
             return this.mainView.redo();
         }
@@ -788,9 +792,45 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public undo(): number {
         const focused = this.focused;
         if (focused) {
-            return this.appManager?.focusApp?.view?.undo() || 0;
+            return this.focusedView?.undo() || 0;
         } else {
             return this.mainView.undo();
+        }
+    }
+
+    public delete(): void {
+        const focused = this.focused;
+        if (focused) {
+            this.focusedView?.delete();
+        } else {
+            this.mainView.delete();
+        }
+    }
+
+    public copy(): void {
+        const focused = this.focused;
+        if (focused) {
+            this.focusedView?.copy();
+        } else {
+            this.mainView.copy();
+        }
+    }
+
+    public paste(): void {
+        const focused = this.focused;
+        if (focused) {
+            this.focusedView?.paste();
+        } else {
+            this.mainView.paste();
+        }
+    }
+
+    public duplicate(): void {
+        const focused = this.focused;
+        if (focused) {
+            this.focusedView?.duplicate();
+        } else {
+            this.mainView.duplicate();
         }
     }
 

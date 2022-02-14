@@ -44,6 +44,10 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.redo = () => manager.redo();
         room.undo = () => manager.undo();
         room.cleanCurrentScene = () => manager.cleanCurrentScene();
+        room.delete = () => manager.delete();
+        room.copy = () => manager.copy();
+        room.paste = () => manager.paste();
+        room.duplicate = () => manager.duplicate();
         delegateRemoveScenes(room);
     }
 };
