@@ -1,3 +1,8 @@
+## 0.4.4
+
+1. 代理 `room` 的 `insertText` `insertImage` `completeImageUpload` `lockImage` `lockImages` 方法
+2. 修复回放时 view didRelease 的报错问题 
+
 ## 0.4.3
 
 1. 代理 `room` 的 `delete` `copy` `paste` `duplicate` 方法
