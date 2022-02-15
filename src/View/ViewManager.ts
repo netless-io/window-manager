@@ -18,7 +18,11 @@ export class ViewManager {
     public destroyView(id: string): void {
         const view = this.views.get(id);
         if (view) {
-            view.release();
+            try {
+                view.release();
+            } catch {
+                // ignore
+            }
             this.views.delete(id);
         }
     }
@@ -32,7 +36,11 @@ export class ViewManager {
 
     public destroy() {
         this.views.forEach(view => {
-            view.release();
+            try {
+                view.release();
+            } catch {
+                // ignore
+            }
         });
         this.views.clear();
     }

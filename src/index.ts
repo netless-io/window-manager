@@ -47,6 +47,7 @@ import type {
     ViewVisionMode,
     CameraState,
     Player,
+    ImageInformation,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
@@ -615,7 +616,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public get focusedView(): View | undefined {
-        return this.appManager?.focusApp?.view;
+        return this.appManager?.focusApp?.view || this.mainView;
     }
 
     public get mainViewSceneIndex(): number {
@@ -772,66 +773,51 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public cleanCurrentScene(): void {
-        const focused = this.focused;
-        if (focused) {
-            this.focusedView?.cleanCurrentScene();
-        } else {
-            this.mainView.cleanCurrentScene();
-        }
+        this.focusedView?.cleanCurrentScene();
     }
 
     public redo(): number {
-        const focused = this.focused;
-        if (focused) {
-            return this.focusedView?.redo() || 0;
-        } else {
-            return this.mainView.redo();
-        }
+        return this.focusedView?.redo() || 0;
     }
 
     public undo(): number {
-        const focused = this.focused;
-        if (focused) {
-            return this.focusedView?.undo() || 0;
-        } else {
-            return this.mainView.undo();
-        }
+        return this.focusedView?.undo() || 0;
     }
 
     public delete(): void {
-        const focused = this.focused;
-        if (focused) {
-            this.focusedView?.delete();
-        } else {
-            this.mainView.delete();
-        }
+        this.focusedView?.delete();
     }
 
     public copy(): void {
-        const focused = this.focused;
-        if (focused) {
-            this.focusedView?.copy();
-        } else {
-            this.mainView.copy();
-        }
+        this.focusedView?.copy();
     }
 
     public paste(): void {
-        const focused = this.focused;
-        if (focused) {
-            this.focusedView?.paste();
-        } else {
-            this.mainView.paste();
-        }
+        this.focusedView?.paste();
     }
 
     public duplicate(): void {
-        const focused = this.focused;
-        if (focused) {
-            this.focusedView?.duplicate();
-        } else {
-            this.mainView.duplicate();
-        }
+        this.focusedView?.duplicate();
+    }
+
+    public insertText(x: number, y: number, text: string): string {
+        return this.focusedView?.insertText(x, y, text) || "";
+    }
+
+    public insertImage(info: ImageInformation): void {
+        return this.focusedView?.insertImage(info);
+    }
+
+    public completeImageUpload(uuid: string, url: string): void {
+        return this.focusedView?.completeImageUpload(uuid, url);
+    }
+
+    public lockImage(uuid: string, locked: boolean): void {
+        return this.focusedView?.lockImage(uuid, locked);
+    }
+
+    public lockImages(locked: boolean): void {
+        return this.focusedView?.lockImages(locked);
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {
