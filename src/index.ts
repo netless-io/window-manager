@@ -219,7 +219,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
         const cursor = params.cursor;
         WindowManager.params = params;
-
+        WindowManager.displayer = params.room;
         checkVersion();
         let manager: WindowManager | undefined = undefined;
         if (isRoom(room)) {

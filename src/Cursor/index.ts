@@ -86,7 +86,10 @@ export class CursorManager {
         return this.manager.focusApp?.view;
     }
 
-    private mouseMoveListener = throttle((event: MouseEvent) => {
+    private mouseMoveListener = throttle((event: PointerEvent) => {
+        if (event.pointerType === "touch") {
+            if (!event.isPrimary) return;
+        }
         this.updateCursor(this.getType(event), event.clientX, event.clientY);
     }, 16);
 
