@@ -22,13 +22,13 @@
   },
   "dependencies": {
     "@juggle/resize-observer": "^3.3.1",
+    "@netless/telebox-insider": "0.2.23",
     "emittery": "^0.9.2",
     "lodash": "^4.17.21",
     "p-retry": "^4.6.1",
     "side-effect-manager": "^0.1.5",
     "uuid": "^7.0.3",
-    "video.js": ">=7",
-    "@netless/telebox-insider": "0.2.22"
+    "video.js": ">=7"
   },
   "devDependencies": {
     "@netless/app-docs-viewer": "^0.2.6",
