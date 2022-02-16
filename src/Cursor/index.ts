@@ -34,29 +34,40 @@ export class CursorManager {
         if (wrapper) {
             this.setupWrapper(wrapper);
         }
-        emitter.on("cursorMove", payload => {
-            let cursorInstance = this.cursorInstances.get(payload.uid);
-            if (!cursorInstance) {
-                cursorInstance = new Cursor(this.manager, payload.uid, this, WindowManager.wrapper);
-                this.cursorInstances.set(payload.uid, cursorInstance);
-            }
-            if (payload.state === CursorState.Leave) {
-                cursorInstance.leave();
-            } else {
-                const member = cursorInstance.updateMember();
-                const isLaserPointer =
-                    member?.memberState.currentApplianceName === ApplianceNames.laserPointer;
-                if (this.enableCursor || isLaserPointer) {
-                    cursorInstance.move(payload.position);
-                }
-            }
-        });
         this.sideEffectManager.add(() => {
-            const unsubscribe = emitter.on("playgroundSizeChange", () => {
-                this.updateContainerRect();
-            });
-            return unsubscribe;
+            return emitter.on("cursorMove", this.onCursorMove);
         });
+
+        this.sideEffectManager.add(() => {
+            return emitter.on("playgroundSizeChange", () => this.updateContainerRect());
+        });
+    }
+
+    private onCursorMove = (payload: CursorMovePayload) => {
+        const cursorInstance = this.initCursorInstance(payload.uid);
+        if (payload.state === CursorState.Leave) {
+            cursorInstance.leave();
+        } else {
+            const member = cursorInstance.updateMember();
+            if (this.canMoveCursor(member)) {
+                cursorInstance.move(payload.position);
+            }
+        }
+    };
+
+    private initCursorInstance = (uid: string) => {
+        let cursorInstance = this.cursorInstances.get(uid);
+        if (!cursorInstance) {
+            cursorInstance = new Cursor(this.manager, uid, this, WindowManager.wrapper);
+            this.cursorInstances.set(uid, cursorInstance);
+        }
+        return cursorInstance;
+    };
+
+    private canMoveCursor(member: RoomMember | undefined) {
+        const isLaserPointer = member?.memberState.currentApplianceName === ApplianceNames.laserPointer;
+        // 激光笔教具在不开启光标的情况下也要显示
+        return this.enableCursor || isLaserPointer;
     }
 
     public setupWrapper(wrapper: HTMLElement) {
