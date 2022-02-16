@@ -1,3 +1,8 @@
+## 0.4.5
+1. 修复 manager 的 `insertText` `insertImage` `completeImageUpload` `lockImage` `lockImages` 没有代理到 `room` 的问题
+2. 升级 `@netless/telebox-insider` 至 `0.2.23`
+3. 优化双指缩放时光标的位置
+
 ## 0.4.4
 
 1. 代理 `room` 的 `insertText` `insertImage` `completeImageUpload` `lockImage` `lockImages` 方法
