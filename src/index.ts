@@ -800,7 +800,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         this.focusedView?.duplicate();
     }
 
-    public insertText(x: number, y: number, text: string): string {
+    public insertText(x: number, y: number, text: string | undefined): string {
         return this.focusedView?.insertText(x, y, text) || "";
     }
 

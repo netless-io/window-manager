@@ -116,6 +116,10 @@ export class Cursor {
         }
     }
 
+    private get memberTagName(): string | undefined {
+        return this.payload?.cursorTagName;
+    }
+
     private autoHidden() {
         if (this.timer) {
             clearTimeout(this.timer);
@@ -138,7 +142,7 @@ export class Cursor {
         return {
             x: 0,
             y: 0,
-            appliance: this.memberApplianceName,
+            appliance: this.memberApplianceName as string,
             avatar: this.memberAvatar,
             src: this.getIcon(),
             visible: false,
@@ -148,6 +152,7 @@ export class Cursor {
             color: this.memberCursorTextColor,
             cursorTagBackgroundColor: this.memberCursorTagBackgroundColor,
             opacity: this.memberOpacity,
+            tagName: this.memberTagName,
         };
     }
 

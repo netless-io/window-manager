@@ -3,12 +3,12 @@
     import { ApplianceNames } from "white-web-sdk";
 
     export let cursorName: string;
-    export let tagName: string;
+    export let tagName: string | undefined;
     export let backgroundColor: string;
     export let appliance: string;
     export let x: number;
     export let y: number;
-    export let src: string;
+    export let src: string | undefined;
     export let visible: boolean;
     export let avatar: string;
     export let theme: string;

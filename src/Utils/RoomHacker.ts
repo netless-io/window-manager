@@ -48,6 +48,12 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.copy = () => manager.copy();
         room.paste = () => manager.paste();
         room.duplicate = () => manager.duplicate();
+        room.insertImage = (...args) => manager.insertImage(...args);
+        room.completeImageUpload = (...args) => manager.completeImageUpload(...args);
+        room.insertText = (...args) => manager.insertText(...args);
+        room.lockImage = (...args) => manager.lockImage(...args);
+        room.lockImages = (...args) => manager.lockImages(...args);
+
         delegateRemoveScenes(room);
     }
 };
