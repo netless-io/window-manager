@@ -5,7 +5,6 @@ import { BuiltinApps, WindowManager } from "../dist/index.es";
 import type { WindowManager as WindowManagerType } from "../dist";
 import { createDocs1, createDocs2, createHelloWorld, createVideo, createSlide } from "./apps";
 import "../dist/style.css";
-import "video.js/dist/video-js.css";
 import "./register";
 
 const sdk = new WhiteWebSdk({
@@ -64,9 +63,12 @@ const mountManager = async (room, root) => {
     manager.emitter.on("canUndoStepsChange", steps => {
         console.log("canUndoStepsChange", steps);
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     manager.emitter.on("cameraStateChange", state => {
         // console.log("cameraStateChange", state);
     });
+
     manager.emitter.on("loadApp", payload => {
         console.log("loadApp", payload);
     });

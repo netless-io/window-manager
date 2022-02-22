@@ -33,7 +33,7 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
             },
         });
 
-        room.moveCamera = (camera: Camera) => manager.mainView.moveCamera(camera);
+        room.moveCamera = (camera: Camera) => manager.moveCamera(camera);
         room.moveCameraToContain = (...args) => manager.moveCameraToContain(...args);
         room.convertToPointInWorld = (...args) => manager.mainView.convertToPointInWorld(...args);
         room.setCameraBound = (...args) => manager.mainView.setCameraBound(...args);
