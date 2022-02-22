@@ -6,7 +6,7 @@ import { checkVersion, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
-import { DEFAULT_CONTAINER_RATIO, Events } from "./constants";
+import { DEFAULT_CONTAINER_RATIO, Events, ROOT_DIR } from "./constants";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
@@ -178,6 +178,11 @@ export type CallbacksType = Emittery<PublicEvent>;
 export const callbacks: CallbacksType = new Emittery();
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
+
+export type AddPageParams = {
+    index?: number;
+    scene?: SceneDefinition;
+}
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind = "WindowManager";
@@ -509,6 +514,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             return true;
         } else {
             return false;
+        }
+    }
+
+    public async addPage(params?: AddPageParams): Promise<void> {
+        if (this.appManager) {
+            const index = params?.index;
+            if (Number.isSafeInteger(index)) {
+                this.room.putScenes(ROOT_DIR, [params?.scene || {}], index);
+            } else {
+                this.room.putScenes(ROOT_DIR, [params?.scene || {}]);
+            }
         }
     }
 

@@ -25,6 +25,7 @@
     - [`lockImages`](#lockImages)
     - [`nextPage`](#nextPage)
     - [`prevPage`](#prevPage)
+    - [`addPage`](#addPage)
   - [实例属性](#prototypes)
   - [事件回调](#events)
 
@@ -186,6 +187,16 @@ const success = await manager.prevPage()
 if (!success) {
     // 已经到了第一页
 }
+```
+
+<h3 id="addPage">addPage</h3>
+
+> 在主白板添加一页
+
+```ts
+manager.addPage() // 默认在最后添加一页
+manager.addPage({ index: 1 }) // 指定在某个 index 后添加
+manager.addPage({ index: 1， scene: { name: "page" } }) // 指定在某个 index 后添加并且添加 scene 信息
 ```
 
 
