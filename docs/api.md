@@ -23,6 +23,8 @@
     - [`completeImageUpload`](#completeImageUpload)
     - [`lockImage`](#lockImage)
     - [`lockImages`](#lockImages)
+    - [`nextPage`](#nextPage)
+    - [`prevPage`](#prevPage)
   - [实例属性](#prototypes)
   - [事件回调](#events)
 
@@ -163,6 +165,29 @@ manager.redo()
 ```ts
 manager.undo()
 ```
+
+<h3 id="nextPage">nextPage</h3>
+
+> 切换主白板至下一页
+
+```ts
+const success = await manager.nextPage()
+if (!success) {
+    // 已经到了最后一页
+}
+```
+
+<h3 id="prevPage">prevPage</h3>
+
+> 切换主白板至上一页
+
+```ts
+const success = await manager.prevPage()
+if (!success) {
+    // 已经到了第一页
+}
+```
+
 
 <br>
 

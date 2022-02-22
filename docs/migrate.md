@@ -40,3 +40,18 @@ manager.mainView.callbacks.on("onSizeUpdated", size => {
 });
 ```
 
+## `white-web-sdk` 从 `2.15.x` 迁移至 `2.16.x`
+
+### `room.setMemberState`
+
+此方法在开启多窗口时要等待 `WindowManager` 挂载完成后才可以直接调用。
+
+或者使用 `manager.mainView.setMemberState` 代替
+
+
+### `room.pptPreviousStep` `room.pptNextStep`
+
+多窗口下不推荐使用这两个 api 来进行对主白板进行翻上下页
+
+请使用 `manager.nextPage` 和 `manager.prevPage`
+

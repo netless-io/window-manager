@@ -484,6 +484,34 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         }
     }
 
+    public async nextPage(): Promise<boolean> {
+        if (this.appManager) {
+            const nextIndex = this.mainViewSceneIndex + 1;
+            if (nextIndex >= this.mainViewScenesLength)  {
+                console.warn(`[WindowManager]: current page is the last page`);
+                return false;
+            };
+            await this.appManager.setMainViewSceneIndex(nextIndex);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public async prevPage(): Promise<boolean> {
+        if (this.appManager) {
+            const prevIndex = this.mainViewSceneIndex - 1;
+            if (prevIndex < 0) {
+                console.warn(`[WindowManager]: current page is the first page`);
+                return false;
+            };
+            await this.appManager.setMainViewSceneIndex(prevIndex);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /**
      * 返回 mainView 的 ScenePath
      */
