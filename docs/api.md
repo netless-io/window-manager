@@ -195,8 +195,8 @@ if (!success) {
 
 ```ts
 manager.addPage() // 默认在最后添加一页
-manager.addPage({ index: 1 }) // 指定在某个 index 后添加
-manager.addPage({ index: 1， scene: { name: "page" } }) // 指定在某个 index 后添加并且添加 scene 信息
+manager.addPage({ after: true }) // 在当前页后添加一页
+manager.addPage({ scene: { name: "page2" } }) // 传入 page 信息
 ```
 
 

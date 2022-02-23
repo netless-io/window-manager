@@ -180,7 +180,7 @@ export const callbacks: CallbacksType = new Emittery();
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
 
 export type AddPageParams = {
-    index?: number;
+    after?: boolean;
     scene?: SceneDefinition;
 }
 
@@ -519,11 +519,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public async addPage(params?: AddPageParams): Promise<void> {
         if (this.appManager) {
-            const index = params?.index;
-            if (Number.isSafeInteger(index)) {
-                this.room.putScenes(ROOT_DIR, [params?.scene || {}], index);
+            const after = params?.after;
+            const scene = params?.scene;
+            if (after) {
+                const nextIndex = this.mainViewSceneIndex + 1;
+                this.room.putScenes(ROOT_DIR, [scene || {}], nextIndex);
             } else {
-                this.room.putScenes(ROOT_DIR, [params?.scene || {}]);
+                this.room.putScenes(ROOT_DIR, [scene || {}]);
             }
         }
     }

@@ -40,7 +40,7 @@ export class AppManager {
 
     private _prevSceneIndex: number | undefined;
     private _prevFocused: string | undefined;
-    private callbacksNode: ScenesCallbacksNode | null;
+    private callbacksNode: ScenesCallbacksNode | null = null;
     private appCreateQueue = new AppCreateQueue();
 
     constructor(public windowManger: WindowManager) {
@@ -74,6 +74,7 @@ export class AppManager {
         emitter.on("removeScenes", scenePath => {
             if (scenePath === ROOT_DIR) {
                 this.setMainViewScenePath(ROOT_DIR);
+                this.createRootDirScenesCallback();
                 return;
             }
             const mainViewScenePath = this.store.getMainViewScenePath();
@@ -83,6 +84,15 @@ export class AppManager {
                 }
             }
         });
+        this.createRootDirScenesCallback();
+    }
+
+    private createRootDirScenesCallback = () => {
+        let isRecreate = false;
+        if (this.callbacksNode) {
+            this.callbacksNode.dispose();
+            isRecreate = true;
+        }
         this.callbacksNode = this.displayer.createScenesCallback(ROOT_DIR, {
             onAddScene: scenesCallback => {
                 this.mainViewScenesLength = scenesCallback.scenes.length;
@@ -95,6 +105,9 @@ export class AppManager {
         });
         if (this.callbacksNode) {
             this.mainViewScenesLength = this.callbacksNode.scenes.length;
+            if (isRecreate) {
+                callbacks.emit("mainViewScenesLengthChange", this.callbacksNode.scenes.length);
+            }
         }
     }
 
