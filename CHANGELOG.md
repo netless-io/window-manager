@@ -1,3 +1,9 @@
+## 0.4.6
+
+1. 升级 `@netless/telebox-insider` 至 `0.2.24`
+2. 内置 `video.js` 的 css, 使用视频插件时不再需要手动引入
+3. 添加 `addPage` `nextPage` `prevPage`
+
 ## 0.4.5
 1. 修复 manager 的 `insertText` `insertImage` `completeImageUpload` `lockImage` `lockImages` 没有代理到 `room` 的问题
 2. 升级 `@netless/telebox-insider` 至 `0.2.23`
