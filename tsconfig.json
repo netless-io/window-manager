@@ -22,6 +22,7 @@
       "moduleResolution": "node",
       "allowJs": true,
       "types": ["svelte"],
+      "useUnknownInCatchVariables": false,
       "noUnusedParameters": true,
       "noImplicitOverride": true,
       "isolatedModules": true,

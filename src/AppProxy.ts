@@ -363,8 +363,12 @@ export class AppProxy {
     ) {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
-        await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
-        await this.appEmitter.emit("destroy", { error });
+        try {
+            await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
+            await this.appEmitter.emit("destroy", { error });
+        } catch (error) {
+            console.error("[WindowManager]: notifyApp error", error.message, error.stack);
+        }
         this.appEmitter.clearListeners();
         emitter.emit(`destroy-${this.id}` as any, { error });
         if (needCloseBox) {
