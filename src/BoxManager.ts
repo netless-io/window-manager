@@ -1,11 +1,7 @@
 import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { debounce } from "lodash";
-import { emitter, WindowManager } from "./index";
-import {
-    TELE_BOX_STATE,
-    TeleBoxCollector,
-    TeleBoxManager,
-} from "@netless/telebox-insider";
+import { TELE_BOX_STATE, TeleBoxCollector, TeleBoxManager } from "@netless/telebox-insider";
+import { WindowManager } from "./index";
 import type { AddAppOptions, AppInitState, EmitterType, CallbacksType } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
@@ -156,12 +152,9 @@ export class BoxManager {
         this.teleBoxManager.events.on("z_index", box => {
             this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
         });
-        emitter.on("playgroundSizeChange", this.playgroundSizeChangeListener);
+        emitter.on("playgroundSizeChange", () => this.updateManagerRect());
+        emitter.on("updateManagerRect", () => this.updateManagerRect());
     }
-
-    private playgroundSizeChangeListener = () => {
-        this.updateManagerRect();
-    };
 
     private get mainView() {
         return this.context.getMainView();
@@ -406,7 +399,6 @@ export class BoxManager {
     }
 
     public destroy() {
-        emitter.off("playgroundSizeChange", this.playgroundSizeChangeListener);
         this.teleBoxManager.destroy();
     }
 }

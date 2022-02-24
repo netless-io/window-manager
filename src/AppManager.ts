@@ -9,6 +9,8 @@ import { get, isInteger, orderBy } from "lodash";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
+import { RedoUndo } from "./RedoUndo";
+import { SideEffectManager } from "side-effect-manager";
 import { store } from "./AttributesDelegate";
 import { ViewManager } from "./View/ViewManager";
 import {
@@ -21,7 +23,7 @@ import {
 } from "./Utils/Common";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
-import type { Displayer, DisplayerState, Room, ScenesCallbacksNode, View } from "white-web-sdk";
+import type { Displayer, DisplayerState, Room, ScenesCallbacksNode } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
 
 export class AppManager {
@@ -43,6 +45,8 @@ export class AppManager {
     private callbacksNode: ScenesCallbacksNode | null = null;
     private appCreateQueue = new AppCreateQueue();
 
+    private sideEffectManager = new SideEffectManager();
+
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
         this.store.setContext({
@@ -50,6 +54,7 @@ export class AppManager {
             safeSetAttributes: attributes => this.safeSetAttributes(attributes),
             safeUpdateAttributes: (keys, val) => this.safeUpdateAttributes(keys, val),
         });
+
         this.mainViewProxy = new MainViewProxy(this);
         this.viewManager = new ViewManager(this.displayer);
         this.appListeners = new AppListeners(this);
@@ -59,6 +64,17 @@ export class AppManager {
         this.refresher = reconnectRefresher;
         this.refresher.setRoom(this.room);
         this.refresher.setContext({ emitter });
+
+        this.sideEffectManager.add(() => {
+            return () => {
+                this.appCreateQueue.destroy();
+                this.mainViewProxy.destroy();
+                this.refresher?.destroy();
+                this.viewManager.destroy();
+                this.boxManager?.destroy();
+                this.callbacksNode?.dispose();
+            };
+        });
 
         emitter.once("onCreated").then(() => this.onCreated());
         emitter.on("onReconnected", () => this.onReconnected());
@@ -75,6 +91,8 @@ export class AppManager {
             if (scenePath === ROOT_DIR) {
                 this.setMainViewScenePath(ROOT_DIR);
                 this.createRootDirScenesCallback();
+                this.onRootDirRemoved();
+                emitter.emit("rootDirRemoved");
                 return;
             }
             const mainViewScenePath = this.store.getMainViewScenePath();
@@ -85,6 +103,20 @@ export class AppManager {
             }
         });
         this.createRootDirScenesCallback();
+    }
+
+    /**
+     * 根目录被删除时所有的 scene 都会被删除.
+     * 所以需要关掉所有开启了 view 的 app
+     */
+    private onRootDirRemoved() {
+        this.appProxies.forEach(appProxy => {
+            if (appProxy.view) {
+                this.closeApp(appProxy.id);
+            }
+        });
+        // 删除了根目录的 scenes 之后 mainview 需要重新绑定, 否则主白板会不能渲染
+        this.mainViewProxy.rebind();
     }
 
     private createRootDirScenesCallback = () => {
@@ -109,7 +141,7 @@ export class AppManager {
                 callbacks.emit("mainViewScenesLengthChange", this.callbacksNode.scenes.length);
             }
         }
-    }
+    };
 
     private get eventName() {
         return isRoom(this.displayer) ? "onRoomStateChanged" : "onPlayerStateChanged";
@@ -152,7 +184,7 @@ export class AppManager {
 
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
-        this.boxManager?.updateManagerRect();
+        emitter.emit("updateManagerRect");
         emitter.onAny(this.boxEventListener);
         this.refresher?.add("apps", () => {
             return safeListenPropsUpdated(
@@ -200,10 +232,7 @@ export class AppManager {
                 const focused = get(this.attributes, "focus");
                 if (this._prevFocused !== focused) {
                     callbacks.emit("focusedChange", focused);
-                    this.disposePrevFocusViewRedoUndoListeners(this._prevFocused);
-                    setTimeout(() => {
-                        this.addRedoUndoListeners(focused);
-                    }, 0);
+                    emitter.emit("focusedChange", { focused, prev: this._prevFocused });
                     this._prevFocused = focused;
                     if (focused !== undefined) {
                         this.boxManager?.focusBox({ appId: focused });
@@ -229,59 +258,16 @@ export class AppManager {
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this._prevFocused = this.attributes.focus;
-        this.addRedoUndoListeners(this.attributes.focus);
+
+        this.sideEffectManager.add(() => {
+            const redoUndo = new RedoUndo({
+                mainView: () => this.mainViewProxy.view,
+                focus: () => this.attributes.focus,
+                getAppProxy: id => this.appProxies.get(id),
+            });
+            return () => redoUndo.destroy();
+        });
     }
-
-    private disposePrevFocusViewRedoUndoListeners = (prevFocused: string | undefined) => {
-        if (prevFocused === undefined) {
-            this.mainView.callbacks.off("onCanRedoStepsUpdate", this.onCanRedoStepsUpdate);
-            this.mainView.callbacks.off("onCanUndoStepsUpdate", this.onCanRedoStepsUpdate);
-        } else {
-            const appProxy = this.appProxies.get(prevFocused);
-            if (appProxy) {
-                appProxy.view?.callbacks.off("onCanRedoStepsUpdate", this.onCanRedoStepsUpdate);
-                appProxy.view?.callbacks.off("onCanUndoStepsUpdate", this.onCanUndoStepsUpdate);
-            }
-        }
-    };
-
-    private addRedoUndoListeners = (focused: string | undefined) => {
-        if (focused === undefined) {
-            this.addViewCallbacks(
-                this.mainView,
-                this.onCanRedoStepsUpdate,
-                this.onCanUndoStepsUpdate
-            );
-        } else {
-            const focusApp = this.appProxies.get(focused);
-            if (focusApp && focusApp.view) {
-                this.addViewCallbacks(
-                    focusApp.view,
-                    this.onCanRedoStepsUpdate,
-                    this.onCanUndoStepsUpdate
-                );
-            }
-        }
-    };
-
-    private addViewCallbacks = (
-        view: View,
-        redoListener: (steps: number) => void,
-        undoListener: (steps: number) => void
-    ) => {
-        redoListener(view.canRedoSteps);
-        undoListener(view.canUndoSteps);
-        view.callbacks.on("onCanRedoStepsUpdate", redoListener);
-        view.callbacks.on("onCanUndoStepsUpdate", undoListener);
-    };
-
-    private onCanRedoStepsUpdate = (steps: number) => {
-        callbacks.emit("canRedoStepsChange", steps);
-    };
-
-    private onCanUndoStepsUpdate = (steps: number) => {
-        callbacks.emit("canUndoStepsChange", steps);
-    };
 
     /**
      * 插件更新 attributes 时的回调
@@ -637,11 +623,6 @@ export class AppManager {
         });
     }
 
-    public findMemberByUid = (uid: string) => {
-        const roomMembers = this.room?.state.roomMembers;
-        return roomMembers?.find(member => member.payload?.uid === uid);
-    };
-
     public destroy() {
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
@@ -653,14 +634,8 @@ export class AppManager {
                 appProxy.destroy(true, false, true);
             });
         }
-        this.viewManager.destroy();
-        this.boxManager?.destroy();
-        this.refresher?.destroy();
-        this.mainViewProxy.destroy();
         callbacks.clearListeners();
-        this.callbacksNode?.dispose();
-        this.appCreateQueue.destroy();
-        this.disposePrevFocusViewRedoUndoListeners(this._prevFocused);
+        this.sideEffectManager.flushAll();
         this._prevFocused = undefined;
         this._prevSceneIndex = undefined;
     }

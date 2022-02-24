@@ -1,6 +1,7 @@
 import App from "./Cursor.svelte";
 import { ApplianceMap } from "./icons";
 import { ApplianceNames } from "white-web-sdk";
+import { findMemberByUid } from "../Helper";
 import { omit } from "lodash";
 import type { Position } from "../AttributesDelegate";
 import type { RoomMember } from "white-web-sdk";
@@ -164,7 +165,7 @@ export class Cursor {
     }
 
     public updateMember() {
-        this.member = this.manager.findMemberByUid(this.memberId);
+        this.member = findMemberByUid(this.manager.room, this.memberId);
         this.updateComponent();
         return this.member;
     }

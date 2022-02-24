@@ -110,6 +110,17 @@ export class MainViewProxy {
         }
     }
 
+    public rebind(): void {
+        const divElement = this.mainView.divElement;
+        const disableCameraTransform = this.mainView.disableCameraTransform;
+        this.stop();
+        this.mainView.release();
+        this.mainView = this.createMainView();
+        this.mainView.disableCameraTransform = disableCameraTransform;
+        this.mainView.divElement = divElement;
+        this.start();
+    }
+
     private onCameraUpdatedByDevice = (camera: Camera) => {
         this.store.setMainViewCamera({ ...camera, id: this.manager.uid });
         if (!isEqual(this.mainViewSize, { ...this.mainView.size, id: this.manager.uid })) {

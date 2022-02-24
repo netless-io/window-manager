@@ -127,7 +127,7 @@ export class AppProxy {
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
-        this.boxManager?.updateManagerRect();
+        emitter.emit("updateManagerRect")
         return {
             appId: this.id,
             app: appImpl,

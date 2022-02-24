@@ -138,6 +138,9 @@ export type EmitterEvent = {
     onReconnected: void;
     removeScenes: string;
     cursorMove: CursorMovePayload;
+    updateManagerRect: undefined;
+    focusedChange: { focused: string | undefined, prev: string | undefined };
+    rootDirRemoved: undefined;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;
@@ -374,7 +377,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 }
             }
         }
-        this.boxManager?.updateManagerRect();
+        emitter.emit("updateManagerRect");
         this.appManager?.refresh();
         this.appManager?.resetMaximized();
         this.appManager?.resetMinimized();
