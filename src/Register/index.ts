@@ -15,6 +15,7 @@ class AppRegister {
     public appClasses: Map<string, () => Promise<NetlessApp>> = new Map();
 
     public async register(params: RegisterParams): Promise<void> {
+        this.appClassesCache.delete(params.kind);
         this.registered.set(params.kind, params);
 
         const srcOrAppOrFunction = params.src;
