@@ -23,13 +23,13 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
 
         Object.defineProperty(room, "canUndoSteps", {
             get() {
-                return manager.mainView.canUndoSteps;
+                return manager.canUndoSteps;
             },
         });
 
         Object.defineProperty(room, "canRedoSteps", {
             get() {
-                return manager.mainView.canRedoSteps;
+                return manager.canRedoSteps;
             },
         });
 

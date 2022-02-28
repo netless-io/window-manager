@@ -690,21 +690,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public get canRedoSteps(): number {
-        const focused = this.focused;
-        if (focused) {
-            return this.appManager?.focusApp?.view?.canRedoSteps || 0;
-        } else {
-            return this.mainView.canRedoSteps;
-        }
+        return this.focusedView?.canRedoSteps || 0;
     }
 
     public get canUndoSteps(): number {
-        const focused = this.focused;
-        if (focused) {
-            return this.appManager?.focusApp?.view?.canUndoSteps || 0;
-        } else {
-            return this.mainView.canUndoSteps;
-        }
+        return this.focusedView?.canUndoSteps || 0;
     }
 
     /**
