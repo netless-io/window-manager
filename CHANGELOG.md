@@ -1,3 +1,7 @@
+## 0.4.8
+
+1. 升级 `@netless/telebox-insider` 至 `0.2.25`
+
 ## 0.4.7
 
 1. 修改 `addPage` 接口 
