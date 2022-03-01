@@ -141,6 +141,7 @@ export type EmitterEvent = {
     playgroundSizeChange: DOMRect;
     onReconnected: undefined;
     cursorMove: CursorMovePayload;
+    setReadonly: boolean;
 };
 
 export const emitter: Emittery<EmitterEvent> = new Emittery();
@@ -479,10 +480,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      * 设置所有 app 的 readonly 模式
      */
     public setReadonly(readonly: boolean): void {
-        if (this.room?.isWritable) {
-            this.readonly = readonly;
-            this.appManager?.boxManager.setReadonly(readonly);
-        }
+        this.readonly = readonly;
+        this.appManager?.boxManager.setReadonly(readonly);
+        emitter.emit("setReadonly", readonly);
     }
 
     /**

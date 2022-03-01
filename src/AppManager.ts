@@ -70,6 +70,11 @@ export class AppManager {
                 this.onAppDelete(this.attributes.apps);
             });
         }
+        emitter.on("setReadonly", () => {
+            this.appProxies.forEach(appProxy => {
+                appProxy.emitAppIsWritableChange();
+            });
+        });
     }
 
     private async onCreated() {
