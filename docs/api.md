@@ -252,6 +252,7 @@ manager.callbacks.on(events, listener)
 | canUndoStepsChange       | number         |         | 当前 focus 的 view 可撤销步数改变 |
 | loadApp                  | LoadAppEvent   |         | 加载远程APP 事件                |
 | ready                    | undefined      |         | 当所有 APP 创建完毕时触发      ｜
+| sceneStateChange         | SceneState     |         | 当 sceneState 修改时触发     |
 
 ```ts
 type LoadAppEvent = {

@@ -168,6 +168,7 @@ export class AppManager {
             }),
             sceneName: sceneName,
         };
+        callbacks.emit("sceneStateChange", this.sceneState);
     };
 
     private get eventName() {

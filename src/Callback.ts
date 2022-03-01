@@ -1,6 +1,6 @@
 import Emittery from "emittery";
 import type { TeleBoxColorScheme, TELE_BOX_STATE } from "@netless/telebox-insider";
-import type { CameraState, ViewVisionMode } from "white-web-sdk";
+import type { CameraState, SceneState, ViewVisionMode } from "white-web-sdk";
 import type { LoadAppEvent } from "./Register";
 
 export type PublicEvent = {
@@ -17,6 +17,7 @@ export type PublicEvent = {
     canUndoStepsChange: number;
     loadApp: LoadAppEvent;
     ready: undefined; // 所有 APP 创建完毕时触发
+    sceneStateChange: SceneState;
 };
 
 export type CallbacksType = Emittery<PublicEvent>;
