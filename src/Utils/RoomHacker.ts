@@ -1,4 +1,4 @@
-import { emitter } from "../index";
+import { emitter } from "../InternalEmitter";
 import { isPlayer } from "white-web-sdk";
 import type { WindowManager } from "../index";
 import type { Camera, Room, Player, PlayerSeekingResult } from "white-web-sdk";

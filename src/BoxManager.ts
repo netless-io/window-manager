@@ -2,7 +2,7 @@ import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { debounce } from "lodash";
 import { TELE_BOX_STATE, TeleBoxCollector, TeleBoxManager } from "@netless/telebox-insider";
 import { WindowManager } from "./index";
-import type { AddAppOptions, AppInitState, EmitterType, CallbacksType } from "./index";
+import type { AddAppOptions, AppInitState } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
     TeleBoxManagerCreateConfig,
@@ -15,6 +15,8 @@ import type {
 import type Emittery from "emittery";
 import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
+import type { CallbacksType } from "./callback";
+import type { EmitterType } from "./InternalEmitter";
 
 export { TELE_BOX_STATE };
 

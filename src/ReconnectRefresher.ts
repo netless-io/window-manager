@@ -2,7 +2,7 @@ import { debounce, isFunction } from "lodash";
 import { log } from "./Utils/log";
 import { RoomPhase } from "white-web-sdk";
 import type { Room } from "white-web-sdk";
-import type { EmitterType } from "./index";
+import type { EmitterType } from "./InternalEmitter";
 
 export type ReconnectRefresherContext = {
     emitter: EmitterType;

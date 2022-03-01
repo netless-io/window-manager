@@ -1,9 +1,10 @@
 import { ApplianceNames } from "white-web-sdk";
 import { Cursor } from "./Cursor";
 import { CursorState, Events } from "../constants";
-import { emitter, WindowManager } from "../index";
+import { emitter } from "../InternalEmitter";
 import { SideEffectManager } from "side-effect-manager";
 import { throttle } from "lodash";
+import { WindowManager } from "../index";
 import type { CursorMovePayload } from "../index";
 import type { PositionType } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
@@ -65,7 +66,8 @@ export class CursorManager {
     };
 
     private canMoveCursor(member: RoomMember | undefined) {
-        const isLaserPointer = member?.memberState.currentApplianceName === ApplianceNames.laserPointer;
+        const isLaserPointer =
+            member?.memberState.currentApplianceName === ApplianceNames.laserPointer;
         // 激光笔教具在不开启光标的情况下也要显示
         return this.enableCursor || isLaserPointer;
     }

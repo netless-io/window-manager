@@ -4,6 +4,7 @@
   - [静态方法](#static-methods)
     - [`mount`](#mount)
     - [`register`](#register)
+    - [`registered`](#registered)
     - [`setContainer`](#set-container)
     - [`setCollectorContainer`](#set-collector-container)
   - [实例方法](#instance-methods)
@@ -84,6 +85,18 @@ WindowManager.register({
     }
 })
 ```
+
+<br>
+
+<h3 id="registered">WindowManager.registered</h3>
+
+> 获取已经注册过的 `App`
+
+```ts
+WindowManager.registered
+```
+
+<br>
 
 <h3 id="set-container">setContainer</h3>
 
@@ -237,7 +250,7 @@ manager.callbacks.on(events, listener)
 | canRedoStepsChange       | number         |         | 当前 focus 的 view 可重做步数改变 |
 | canUndoStepsChange       | number         |         | 当前 focus 的 view 可撤销步数改变 |
 | loadApp                  | LoadAppEvent   |         | 加载远程APP 事件                |
-
+| ready                    | undefined      |         | 当所有 APP 创建完毕时触发      ｜
 
 ```ts
 type LoadAppEvent = {

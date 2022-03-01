@@ -1,6 +1,6 @@
 import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
 import { WindowManager } from "./index";
-import type { EmitterType } from "./index";
+import type { EmitterType } from "./InternalEmitter";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 

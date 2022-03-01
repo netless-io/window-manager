@@ -5,7 +5,7 @@ import { appRegister } from "./Register";
 import { autorun } from "white-web-sdk";
 import { BoxManagerNotFoundError } from "./Utils/error";
 import { debounce, get } from "lodash";
-import { emitter } from "./index";
+import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { entireScenes, getScenePath, removeScenes, setScenePath, setViewFocusScenePath } from "./Utils/Common";
 import { log } from "./Utils/log";

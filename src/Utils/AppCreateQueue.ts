@@ -1,3 +1,4 @@
+import { callbacks } from "../callback";
 import type { AppProxy } from "../AppProxy";
 
 export type Invoker = () => Promise<AppProxy | undefined>;
@@ -6,6 +7,7 @@ export class AppCreateQueue {
     private list: Invoker[] = [];
     private currentInvoker: Invoker | undefined;
     private timer: number | undefined;
+    public isEmit = false;
 
     private initInterval() {
         return setInterval(() => {
@@ -37,6 +39,7 @@ export class AppCreateQueue {
                     this.currentInvoker = undefined;
                     if (this.list.length === 0) {
                         clearInterval(this.timer);
+                        this.emitReady();
                     }
                 })
                 .catch(error => {
@@ -44,6 +47,13 @@ export class AppCreateQueue {
                     clearInterval(this.timer);
                 });
         }
+    }
+
+    public emitReady() {
+        if (!this.isEmit) {
+            callbacks.emit("ready");
+        }
+        this.isEmit = true;
     }
 
     public destroy() {

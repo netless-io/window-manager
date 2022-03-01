@@ -4,15 +4,18 @@ import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
 import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
-import { callbacks, emitter, reconnectRefresher, WindowManager } from "./index";
+import { callbacks } from "./callback";
+import { emitter } from "./InternalEmitter";
 import { get, isInteger, orderBy } from "lodash";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
+import { reconnectRefresher, WindowManager } from "./index";
 import { RedoUndo } from "./RedoUndo";
 import { SideEffectManager } from "side-effect-manager";
 import { store } from "./AttributesDelegate";
 import { ViewManager } from "./View/ViewManager";
+import type { EmitterEvent } from "./InternalEmitter";
 import {
     entireScenes,
     genAppId,
@@ -23,9 +26,14 @@ import {
 } from "./Utils/Common";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
-import type { Displayer, DisplayerState, Room, ScenesCallbacksNode } from "white-web-sdk";
-import type { AddAppParams, BaseInsertParams, TeleBoxRect, EmitterEvent } from "./index";
-
+import type {
+    Displayer,
+    DisplayerState,
+    Room,
+    ScenesCallbacksNode,
+    SceneState,
+} from "white-web-sdk";
+import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 export class AppManager {
     public displayer: Displayer;
     public viewManager: ViewManager;
@@ -46,6 +54,8 @@ export class AppManager {
     private appCreateQueue = new AppCreateQueue();
 
     private sideEffectManager = new SideEffectManager();
+
+    public sceneState: SceneState | null = null;
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
@@ -126,21 +136,38 @@ export class AppManager {
             isRecreate = true;
         }
         this.callbacksNode = this.displayer.createScenesCallback(ROOT_DIR, {
-            onAddScene: scenesCallback => {
-                this.mainViewScenesLength = scenesCallback.scenes.length;
-                callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
-            },
-            onRemoveScene: scenesCallback => {
-                this.mainViewScenesLength = scenesCallback.scenes.length;
-                callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
-            },
+            onAddScene: this.onSceneChange,
+            onRemoveScene: this.onSceneChange,
         });
         if (this.callbacksNode) {
+            this.updateSceneState(this.callbacksNode);
             this.mainViewScenesLength = this.callbacksNode.scenes.length;
             if (isRecreate) {
                 callbacks.emit("mainViewScenesLengthChange", this.callbacksNode.scenes.length);
             }
         }
+    };
+
+    private onSceneChange = (node: ScenesCallbacksNode) => {
+        this.mainViewScenesLength = node.scenes.length;
+        this.updateSceneState(node);
+        callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
+    };
+
+    private updateSceneState = (node: ScenesCallbacksNode) => {
+        const currentIndex = this.store.getMainViewSceneIndex() || 0;
+        const sceneName = node.scenes[currentIndex];
+        this.sceneState = {
+            scenePath: `${ROOT_DIR}${sceneName}`,
+            contextPath: node.path,
+            index: currentIndex,
+            scenes: node.scenes.map(scene => {
+                return {
+                    name: scene,
+                };
+            }),
+            sceneName: sceneName,
+        };
     };
 
     private get eventName() {
@@ -223,6 +250,9 @@ export class AppManager {
                 const mainSceneIndex = get(this.attributes, "_mainSceneIndex");
                 if (mainSceneIndex !== undefined && this._prevSceneIndex !== mainSceneIndex) {
                     callbacks.emit("mainViewSceneIndexChange", mainSceneIndex);
+                    if (this.callbacksNode) {
+                        this.updateSceneState(this.callbacksNode);
+                    }
                     this._prevSceneIndex = mainSceneIndex;
                 }
             });
@@ -278,6 +308,9 @@ export class AppManager {
     public async attributesUpdateCallback(apps: any) {
         if (apps && WindowManager.container) {
             const appIds = Object.keys(apps);
+            if (appIds.length === 0) {
+                this.appCreateQueue.emitReady();
+            }
             const appsWithCreatedAt = appIds.map(appId => {
                 return {
                     id: appId,

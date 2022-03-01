@@ -1,4 +1,4 @@
-import { callbacks } from "../index";
+import { callbacks } from "../callback";
 import { getItem, setItem } from "./storage";
 import type { NetlessApp } from "../typings";
 

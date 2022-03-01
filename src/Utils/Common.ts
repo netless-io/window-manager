@@ -1,9 +1,9 @@
 import { appRegister } from "../Register";
 import { debounce } from "lodash";
-import { emitter } from "../index";
+import { emitter } from "../InternalEmitter";
 import { ScenePathType } from "white-web-sdk";
 import { v4 } from "uuid";
-import type { PublicEvent } from "../index";
+import type { PublicEvent } from "../callback";
 import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
 import type Emittery from "emittery";
 import { ROOT_DIR } from "../constants";

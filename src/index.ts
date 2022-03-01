@@ -1,15 +1,16 @@
-import Emittery from "emittery";
 import pRetry from "p-retry";
 import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
+import { callbacks } from "./callback";
 import { checkVersion, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
 import { DEFAULT_CONTAINER_RATIO, Events, ROOT_DIR } from "./constants";
+import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
+import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, SceneState, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, omit } from "lodash";
 import { log } from "./Utils/log";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -18,7 +19,6 @@ import { setupBuiltin } from "./BuiltinApps";
 import "video.js/dist/video-js.css";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
-import type { LoadAppEvent } from "./Register";
 import {
     addEmitterOnceListener,
     ensureValidScenePath,
@@ -45,7 +45,6 @@ import type {
     CameraBound,
     Point,
     Rectangle,
-    ViewVisionMode,
     CameraState,
     Player,
     ImageInformation,
@@ -54,6 +53,8 @@ import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./AppProxy";
+import type { PublicEvent } from "./Callback";
+import type Emittery from "emittery";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -122,45 +123,6 @@ export type AppInitState = {
 
 export type CursorMovePayload = { uid: string; state?: "leave"; position: Position };
 
-export type EmitterEvent = {
-    onCreated: undefined;
-    InitReplay: AppInitState;
-    move: { appId: string; x: number; y: number };
-    focus: { appId: string };
-    close: { appId: string };
-    resize: { appId: string; width: number; height: number; x?: number; y?: number };
-    error: Error;
-    seek: number;
-    mainViewMounted: undefined;
-    observerIdChange: number;
-    boxStateChange: string;
-    playgroundSizeChange: DOMRect;
-    onReconnected: void;
-    removeScenes: string;
-    cursorMove: CursorMovePayload;
-    updateManagerRect: undefined;
-    focusedChange: { focused: string | undefined, prev: string | undefined };
-    rootDirRemoved: undefined;
-};
-
-export type EmitterType = Emittery<EmitterEvent>;
-export const emitter: EmitterType = new Emittery();
-
-export type PublicEvent = {
-    mainViewModeChange: ViewVisionMode;
-    boxStateChange: `${TELE_BOX_STATE}`;
-    darkModeChange: boolean;
-    prefersColorSchemeChange: TeleBoxColorScheme;
-    cameraStateChange: CameraState;
-    mainViewScenePathChange: string;
-    mainViewSceneIndexChange: number;
-    focusedChange: string | undefined;
-    mainViewScenesLengthChange: number;
-    canRedoStepsChange: number;
-    canUndoStepsChange: number;
-    loadApp: LoadAppEvent;
-};
-
 export type MountParams = {
     room: Room | Player;
     container?: HTMLElement;
@@ -177,15 +139,12 @@ export type MountParams = {
     prefersColorScheme?: TeleBoxColorScheme;
 };
 
-export type CallbacksType = Emittery<PublicEvent>;
-export const callbacks: CallbacksType = new Emittery();
-
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
 
 export type AddPageParams = {
     after?: boolean;
     scene?: SceneDefinition;
-}
+};
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public static kind = "WindowManager";
@@ -350,6 +309,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         return mainViewElement;
     }
 
+    public static get registered() {
+        return appRegister.registered;
+    }
+
     public bindContainer(container: HTMLElement) {
         if (WindowManager.isCreated && WindowManager.container) {
             if (WindowManager.container.firstChild) {
@@ -495,10 +458,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public async nextPage(): Promise<boolean> {
         if (this.appManager) {
             const nextIndex = this.mainViewSceneIndex + 1;
-            if (nextIndex >= this.mainViewScenesLength)  {
+            if (nextIndex >= this.mainViewScenesLength) {
                 console.warn(`[WindowManager]: current page is the last page`);
                 return false;
-            };
+            }
             await this.appManager.setMainViewSceneIndex(nextIndex);
             return true;
         } else {
@@ -512,7 +475,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (prevIndex < 0) {
                 console.warn(`[WindowManager]: current page is the first page`);
                 return false;
-            };
+            }
             await this.appManager.setMainViewSceneIndex(prevIndex);
             return true;
         } else {
@@ -695,6 +658,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
 
     public get canUndoSteps(): number {
         return this.focusedView?.canUndoSteps || 0;
+    }
+
+    public get sceneState(): SceneState {
+        if (this.appManager) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            return this.appManager.sceneState!;
+        } else {
+            throw new AppManagerNotInitError();
+        }
     }
 
     /**

@@ -1,4 +1,5 @@
-import { callbacks, emitter } from "./index";
+import { callbacks } from "./callback";
+import { emitter } from "./InternalEmitter";
 import type { View } from "white-web-sdk";
 import type { AppProxy } from "./AppProxy";
 

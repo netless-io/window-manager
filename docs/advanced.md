@@ -3,6 +3,7 @@
 - 目录
   - [撤销重做](#redo-undo)
   - [清屏](#clean-current-scene)
+  - [判断是否打开某种 APP](#has-kind)
 
 
 <h3 id="redo-undo">撤销重做</h3>
@@ -50,4 +51,16 @@ manager.cleanCurrentScene()
 
 ```ts
 manager.mainView.cleanCurrentScene()
+```
+
+
+<br>
+
+<h3 id="has-kind">判断是否打开某种 APP</h3>
+
+```ts
+manager.emitter.on("ready", () => { // ready 事件在所有 app 创建完成后触发
+    const apps = manager.queryAll(); //  获取所有已经打开的 App
+    const hasSlide = apps.some(app => app.kind === "Slide"); // 判断已经打开的 APP 中是否有 Slide
+});
 ```

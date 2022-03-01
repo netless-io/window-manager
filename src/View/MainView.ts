@@ -1,7 +1,8 @@
 import { AnimationMode, reaction } from "white-web-sdk";
-import { callbacks, emitter } from "../index";
+import { callbacks } from "../callback";
 import { createView } from "./ViewManager";
 import { debounce, isEmpty, isEqual } from "lodash";
+import { emitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";

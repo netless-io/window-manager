@@ -1,4 +1,5 @@
-import { callbacks, emitter } from "./index";
+import { callbacks } from "./callback";
+import { emitter } from "./InternalEmitter";
 import { Events, MagixEventName } from "./constants";
 import { isEqual, omit } from "lodash";
 import { setViewFocusScenePath } from "./Utils/Common";

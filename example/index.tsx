@@ -32,8 +32,12 @@ const mountManager = async (room, root) => {
         cursor: true,
     })) as WindowManagerType;
 
-    manager.bindContainer(root);
+    manager.emitter.on("ready", () => {
+        console.log("manager ready", manager.queryAll());
+    });
 
+    manager.bindContainer(root);
+    console.log("manager apps", manager.queryAll());
     console.log("manager mounted boxState:", manager.boxState);
     (window as any).manager = manager;
     (window as any).manager.onAppDestroy(BuiltinApps.DocsViewer, error => {
