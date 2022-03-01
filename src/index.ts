@@ -849,12 +849,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             if (!this.attributes[Fields.Cursors]) {
                 this.safeSetAttributes({ [Fields.Cursors]: {} });
             }
-            const sceneState = this.displayer.state.sceneState;
             if (!this.attributes["_mainScenePath"]) {
-                this.safeSetAttributes({ _mainScenePath: sceneState.scenePath });
+                this.safeSetAttributes({ _mainScenePath: ROOT_DIR });
             }
             if (!this.attributes["_mainSceneIndex"]) {
-                this.safeSetAttributes({ _mainSceneIndex: sceneState.index });
+                this.safeSetAttributes({ _mainSceneIndex: 0 });
             }
         }
     }

@@ -1,5 +1,6 @@
 import { WindowManager } from "../dist/index.es";
 import "./helloworld-app";
+import "./counter";
 
 WindowManager.register({
     kind: "Slide",
