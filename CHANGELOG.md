@@ -1,3 +1,8 @@
+## 0.4.9
+
+1. 添加 `sceneState` 属性和 `sceneStateChange` 事件
+2. 修复刷新后 `dynamic DocsViewer` 页数会切换错误的问题
+
 ## 0.4.8
 
 1. 升级 `@netless/telebox-insider` 至 `0.2.25`
