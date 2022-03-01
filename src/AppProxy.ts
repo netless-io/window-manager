@@ -92,7 +92,7 @@ export class AppProxy {
 
     public getFullScenePath(): string | undefined {
         if (this.scenePath) {
-            return get(this.appAttributes, [Fields.FullPath], this.getFullScenePathFromScenes());
+            return get(this.appAttributes, [Fields.FullPath]) || this.getFullScenePathFromScenes();
         }
     }
 
@@ -347,6 +347,7 @@ export class AppProxy {
         if (fullPath && this.view) {
             setViewFocusScenePath(this.view, fullPath);
         }
+        return fullPath;
     }
 
     private async createView(): Promise<View> {
