@@ -6,7 +6,9 @@
         "jsx": "react",
         "moduleResolution": "node",
         "allowJs": false,
-        "types": ["vite/client"]
+        "types": ["vite/client"],
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
     },
     "exclude": [
        "*.js"

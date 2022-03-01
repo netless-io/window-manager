@@ -3,9 +3,10 @@ import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
 import type { WindowManager as WindowManagerType } from "../dist";
-import { createDocs1, createDocs2, createHelloWorld, createVideo, createSlide } from "./apps";
+import { createStatic, createDynamic, createHelloWorld, createVideo, createSlide } from "./apps";
 import "../dist/style.css";
 import "./register";
+import "./index.css";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
@@ -22,8 +23,10 @@ const search = window.location.search;
 const url = new URLSearchParams(search);
 const isWritable = url.get("isWritable");
 
+let manager: WindowManagerType;
+
 const mountManager = async (room, root) => {
-    const manager = (await WindowManager.mount({
+    manager = (await WindowManager.mount({
         room,
         // collectorStyles: { bottom: "100px", left: "30px" },
         containerSizeRatio: 9 / 16,
@@ -89,7 +92,7 @@ const replay = () => {
         invisiblePlugins: [WindowManager as any],
         useMultiViews: true,
     }).then(async player => {
-        await anyWindow.manager.destroy();
+        await manager.destroy();
         anyWindow.room.disconnect();
         setTimeout(async () => {
             anyWindow.player = player;
@@ -136,33 +139,24 @@ const onRef = ref => {
 };
 
 const destroy = () => {
-    anyWindow.manager.destroy();
-    anyWindow.manager = undefined;
+    manager.destroy();
+    manager = undefined;
 };
 
 anyWindow.mountManager = mountManager;
 anyWindow.destroy = destroy;
 
 const prevPage = (manager: WindowManager) => {
-    manager.setMainViewSceneIndex(manager.mainViewSceneIndex - 1).catch(console.log);
+    manager.prevPage();
 };
 
 const nextPage = (manager: WindowManager) => {
-    manager.setMainViewSceneIndex(manager.mainViewSceneIndex + 1).catch(console.log);
+    manager.nextPage();
 };
 
 const App = () => {
     return (
-        <div
-            style={{
-                display: "flex",
-                width: "100vw",
-                height: "100vh",
-                padding: "16px 16px",
-                overflow: "hidden",
-                boxSizing: "border-box",
-            }}
-        >
+        <div className="app">
             <div
                 ref={onRef}
                 id="container"
@@ -172,58 +166,29 @@ const App = () => {
                     border: "1px solid",
                 }}
             ></div>
-            <div
-                style={{
-                    flexShrink: 0,
-                    padding: "16px",
-                    marginRight: "16px",
-                    textAlign: "center",
-                    userSelect: "none",
-                }}
-            >
-                <button
-                    style={{ display: "block", margin: "1em 0" }}
-                    onClick={() => createHelloWorld(anyWindow.manager)}
-                >
+            <div className="side">
+                <button className="side-button" onClick={() => createHelloWorld(manager)}>
                     Hello World
                 </button>
-                <button
-                    style={{ display: "block", margin: "1em 0" }}
-                    onClick={() => createDocs1(anyWindow.manager)}
-                >
-                    课件1
+                <button className="side-button" onClick={() => createStatic(manager)}>
+                    课件 static
                 </button>
-                <button
-                    style={{ display: "block", margin: "1em 0" }}
-                    onClick={() => createDocs2(anyWindow.manager)}
-                >
-                    课件2
+                <button className="side-button" onClick={() => createDynamic(manager)}>
+                    课件 dynamic
                 </button>
-                <button
-                    style={{ display: "block", margin: "1em 0" }}
-                    onClick={() => createSlide(anyWindow.manager)}
-                >
+                <button className="side-button" onClick={() => createSlide(manager)}>
                     Slide
                 </button>
-                <button
-                    style={{ display: "block", margin: "1em 0" }}
-                    onClick={() => createVideo(anyWindow.manager)}
-                >
+                <button className="side-button" onClick={() => createVideo(manager)}>
                     视频
                 </button>
-                <button style={{ display: "block", margin: "1em 0" }} onClick={replay}>
+                <button className="side-button" onClick={replay}>
                     回放
                 </button>
-                <button
-                    style={{ display: "block", margin: "1em 0" }}
-                    onClick={() => prevPage(anyWindow.manager)}
-                >
+                <button className="side-button" onClick={() => prevPage(manager)}>
                     上一页
                 </button>
-                <button
-                    style={{ display: "block", margin: "1em 0" }}
-                    onClick={() => nextPage(anyWindow.manager)}
-                >
+                <button className="side-button" onClick={() => nextPage(manager)}>
                     下一页
                 </button>
             </div>

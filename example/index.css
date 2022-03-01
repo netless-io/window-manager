@@ -1,0 +1,21 @@
+.app {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    padding: 16px 16px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.side {
+    flex-shrink: 0;
+    padding: 16px;
+    margin-right: 16px;
+    text-align: center;
+    user-select: none;
+}
+
+.side-button {
+    display: block;
+    margin: 1em 0;
+}
