@@ -25,7 +25,6 @@ export const HelloWorldApp = async () => {
                 if (diff.a) {
                     console.log("diff", diff.a.newValue, diff.a.oldValue);
                 }
-                console.log("diff all", diff);
             });
             const c = { c: 3 };
             if (context.getIsWritable()) {
@@ -38,8 +37,8 @@ export const HelloWorldApp = async () => {
             context.addMagixEventListener("event1", message => {
                 console.log("MagixEvent", message);
             });
-            // context.dispatchMagixEvent("event1", { count: 1 });
-            context.mountView(context.getBox().$content as any);
+            context.dispatchMagixEvent("event1", { count: 1 });
+            context.mountView(context.getBox().$content);
             context.emitter.on("destroy", () => console.log("[HelloWorld]: destroy"));
             setTimeout(() => {
                 console.log(context.getAttributes());
