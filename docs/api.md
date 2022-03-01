@@ -228,6 +228,7 @@ manager.addPage({ scene: { name: "page2" } }) // 传入 page 信息
 | focused            | string |          | focus 的 app            |
 | canRedoSteps       | number  |         | 当前 focus 的 view 可以重做的步数 |
 | canRedoSteps       | number  |         | 当前 focus 的 view 可以撤销的步数 |
+| sceneState         | SceneState |      | 兼容原本 SDK 的 sceneState 属性, 只对 mainView 生效 |
 
 <br>
 

@@ -10,7 +10,7 @@ import { DEFAULT_CONTAINER_RATIO, Events, ROOT_DIR } from "./constants";
 import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, SceneState, ViewMode } from "white-web-sdk";
+import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, omit } from "lodash";
 import { log } from "./Utils/log";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -48,6 +48,7 @@ import type {
     CameraState,
     Player,
     ImageInformation,
+    SceneState,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
