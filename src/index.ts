@@ -865,3 +865,4 @@ setupBuiltin();
 export * from "./typings";
 
 export { BuiltinApps } from "./BuiltinApps";
+export type { PublicEvent } from "./callback";
