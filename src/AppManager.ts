@@ -88,36 +88,31 @@ export class AppManager {
 
         emitter.once("onCreated").then(() => this.onCreated());
         emitter.on("onReconnected", () => this.onReconnected());
+
         if (isPlayer(this.displayer)) {
-            emitter.on("seek", time => {
-                this.appProxies.forEach(appProxy => {
-                    appProxy.onSeek(time);
-                });
-                this.attributesUpdateCallback(this.attributes.apps);
-                this.onAppDelete(this.attributes.apps);
-            });
+            emitter.on("seek", this.onPlayerSeek);
         }
-        emitter.on("removeScenes", scenePath => {
-            if (scenePath === ROOT_DIR) {
-                this.setMainViewScenePath(ROOT_DIR);
-                this.createRootDirScenesCallback();
-                this.onRootDirRemoved();
-                emitter.emit("rootDirRemoved");
-                return;
-            }
-            const mainViewScenePath = this.store.getMainViewScenePath();
-            if (this.room && mainViewScenePath) {
-                if (mainViewScenePath === scenePath) {
-                    this.setMainViewScenePath(ROOT_DIR);
-                }
-            }
-        });
+
+        emitter.on("removeScenes", this.onRemoveScenes);
+        emitter.on("setReadonly", this.onReadonlyChanged);
+
         this.createRootDirScenesCallback();
-        emitter.on("setReadonly", () => {
-            this.appProxies.forEach(appProxy => {
-                appProxy.emitAppIsWritableChange();
-            });
-        });
+    }
+
+    private onRemoveScenes = (scenePath: string) => {
+        if (scenePath === ROOT_DIR) {
+            this.setMainViewScenePath(ROOT_DIR);
+            this.createRootDirScenesCallback();
+            this.onRootDirRemoved();
+            emitter.emit("rootDirRemoved");
+            return;
+        }
+        const mainViewScenePath = this.store.getMainViewScenePath();
+        if (this.room && mainViewScenePath) {
+            if (mainViewScenePath === scenePath) {
+                this.setMainViewScenePath(ROOT_DIR);
+            }
+        }
     }
 
     /**
@@ -132,6 +127,20 @@ export class AppManager {
         });
         // 删除了根目录的 scenes 之后 mainview 需要重新绑定, 否则主白板会不能渲染
         this.mainViewProxy.rebind();
+    }
+
+    private onReadonlyChanged = () => {
+        this.appProxies.forEach(appProxy => {
+            appProxy.emitAppIsWritableChange();
+        });
+    }
+
+    private onPlayerSeek = (time: number) => {
+        this.appProxies.forEach(appProxy => {
+            appProxy.onSeek(time);
+        });
+        this.attributesUpdateCallback(this.attributes.apps);
+        this.onAppDelete(this.attributes.apps);
     }
 
     private createRootDirScenesCallback = () => {
