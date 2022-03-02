@@ -239,8 +239,8 @@ const replay = () => {
 const onRef = (ref) => {
     const uid = Math.random().toString().substr(3, 8)
     sdk.joinRoom({
-        uuid: process.env.ROOM_UUID,
-        roomToken: process.env.ROOM_TOKEN,
+        uuid: process.env.VITE_ROOM_UUID,
+        roomToken: process.env.VITE_ROOM_TOKEN,
         invisiblePlugins: [WindowManager as any],
         useMultiViews: true,
         userPayload: {
@@ -291,7 +291,7 @@ WindowManager.register({
 });
 
 const sdk = new WhiteWebSdk({
-    appIdentifier: process.env.APPID,
+    appIdentifier: process.env.VITE_APPID,
     useMobXState: true
 });
 
