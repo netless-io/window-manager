@@ -21,6 +21,7 @@ export type EmitterEvent = {
     updateManagerRect: undefined;
     focusedChange: { focused: string | undefined; prev: string | undefined };
     rootDirRemoved: undefined;
+    setReadonly: boolean;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

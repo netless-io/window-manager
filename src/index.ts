@@ -517,6 +517,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public setReadonly(readonly: boolean): void {
         this.readonly = readonly;
         this.boxManager?.setReadonly(readonly);
+        emitter.emit("setReadonly", readonly);
     }
 
     /**

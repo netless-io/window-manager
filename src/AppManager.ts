@@ -113,6 +113,11 @@ export class AppManager {
             }
         });
         this.createRootDirScenesCallback();
+        emitter.on("setReadonly", () => {
+            this.appProxies.forEach(appProxy => {
+                appProxy.emitAppIsWritableChange();
+            });
+        });
     }
 
     /**
