@@ -1,3 +1,11 @@
+## 0.4.10
+
+1. 修复 PublicEvent 类型没有导出的问题
+
+## 0.3.26
+
+1. 修复多次调用 setWritable 和 setReadonly 导致的状态错误
+
 ## 0.4.9
 
 1. 添加 `sceneState` 属性和 `sceneStateChange` 事件
