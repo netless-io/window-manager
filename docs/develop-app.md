@@ -69,9 +69,13 @@ const Counter: NetlessApp<{ count: number }> = {
         decButton.addEventListener("click", decButtonOnClick);
         $content.appendChild(decButton);
 
-        const event1Disposer = context.addMagixEventListener(`${context.appId}_event1`, msg => {
+            // 监听事件
+        const event1Disposer = context.addMagixEventListener("event1", msg => {
             console.log("event1", msg);
         });
+
+        // 向打开 app 的其他人发送消息
+        context.dispatchMagixEvent("event1", { count: 10 });
 
         // 应用销毁时, 注意清理掉监听器
         context.emitter.on("destroy", () => {
