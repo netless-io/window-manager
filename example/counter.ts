@@ -5,6 +5,7 @@ export const Counter: NetlessApp<{ count: number }> = {
     kind: "Counter",
     setup: context => {
         const storage = context.storage;
+        // 初始化值，只会在相应的 key 不存在 storage.state 的时候设置值
         storage.ensureState({ count: 0 });
 
         const box = context.getBox(); // box 为这个应用打开的窗口
@@ -14,6 +15,7 @@ export const Counter: NetlessApp<{ count: number }> = {
         countDom.innerText = storage.state.count.toString();
         $content.appendChild(countDom);
 
+        // 监听 state 的修改, 自己和其他人的修改都会触发这个回调
         storage.addStateChangedListener(diff => {
             if (diff.count) {
                 countDom.innerText = diff.count.newValue.toString();
@@ -23,6 +25,7 @@ export const Counter: NetlessApp<{ count: number }> = {
         const incButton = document.createElement("button");
         incButton.innerText = "Inc";
         const incButtonOnClick = () => {
+            // 直接设值合并到 state，类似 React.setState
             storage.setState({ count: storage.state.count + 1 });
         };
         incButton.addEventListener("click", incButtonOnClick);
@@ -37,9 +40,13 @@ export const Counter: NetlessApp<{ count: number }> = {
 
         $content.appendChild(decButton);
 
-        const event1Disposer = context.addMagixEventListener(`${context.appId}_event1`, msg => {
+        // 监听事件
+        const event1Disposer = context.addMagixEventListener("event1", msg => {
             console.log("event1", msg);
         });
+
+        // 向打开 app 的其他人发送消息
+        context.dispatchMagixEvent("event1", { count: 10 });
 
         // 应用销毁时, 注意清理掉监听器
         context.emitter.on("destroy", () => {

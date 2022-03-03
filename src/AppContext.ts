@@ -165,7 +165,8 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     /** Dispatch events to other clients (and self). */
     public dispatchMagixEvent: MagixEventDispatcher<TMagixEventPayloads> = (...args) => {
         // can't dispatch events on replay mode
-        return this.manager.room?.dispatchMagixEvent(...args);
+        const appScopeEvent = `${this.appId}:${args[0]}`;
+        return this.manager.room?.dispatchMagixEvent(appScopeEvent, args[1]);
     };
 
     /** Listen to events from others clients (and self messages). */
@@ -174,9 +175,17 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         handler,
         options
     ) => {
-        this.manager.displayer.addMagixEventListener(event, handler as WhiteEventListener, options);
+        const appScopeEvent = `${this.appId}:${event}`;
+        this.manager.displayer.addMagixEventListener(
+            appScopeEvent,
+            handler as WhiteEventListener,
+            options
+        );
         return () =>
-            this.manager.displayer.removeMagixEventListener(event, handler as WhiteEventListener);
+            this.manager.displayer.removeMagixEventListener(
+                appScopeEvent,
+                handler as WhiteEventListener
+            );
     };
 
     /** Remove a Magix event listener. */
