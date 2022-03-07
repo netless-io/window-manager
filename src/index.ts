@@ -369,6 +369,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     /**
+     * 注销插件
+     */
+    public static unregister(kind: string) {
+        return appRegister.unregister(kind);
+    }
+
+    /**
      * 创建一个 app 至白板
      */
     public async addApp<T = any>(params: AddAppParams<T>): Promise<string | undefined> {
@@ -855,6 +862,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
             }
             if (!this.attributes["_mainSceneIndex"]) {
                 this.safeSetAttributes({ _mainSceneIndex: 0 });
+            }
+            if (!this.attributes[Fields.Registered]) {
+                this.safeSetAttributes({ [Fields.Registered]: {} });
             }
         }
     }

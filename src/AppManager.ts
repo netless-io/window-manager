@@ -6,6 +6,7 @@ import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks } from "./callback";
 import { emitter } from "./InternalEmitter";
+import { Fields, store } from "./AttributesDelegate";
 import { get, isInteger, orderBy } from "lodash";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
@@ -13,8 +14,8 @@ import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
 import { reconnectRefresher, WindowManager } from "./index";
 import { RedoUndo } from "./RedoUndo";
 import { SideEffectManager } from "side-effect-manager";
-import { store } from "./AttributesDelegate";
 import { ViewManager } from "./View/ViewManager";
+import type { SyncRegisterAppPayload } from "./Register";
 import type { EmitterEvent } from "./InternalEmitter";
 import {
     entireScenes,
@@ -34,6 +35,7 @@ import type {
     SceneState,
 } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
+
 export class AppManager {
     public displayer: Displayer;
     public viewManager: ViewManager;
@@ -97,6 +99,10 @@ export class AppManager {
         emitter.on("setReadonly", this.onReadonlyChanged);
 
         this.createRootDirScenesCallback();
+
+        appRegister.setSyncRegisterApp(payload => {
+            this.safeUpdateAttributes([Fields.Registered, payload.kind], payload);
+        });
     }
 
     private onRemoveScenes = (scenePath: string) => {
@@ -113,7 +119,7 @@ export class AppManager {
                 this.setMainViewScenePath(ROOT_DIR);
             }
         }
-    }
+    };
 
     /**
      * 根目录被删除时所有的 scene 都会被删除.
@@ -133,7 +139,7 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.emitAppIsWritableChange();
         });
-    }
+    };
 
     private onPlayerSeek = (time: number) => {
         this.appProxies.forEach(appProxy => {
@@ -141,7 +147,7 @@ export class AppManager {
         });
         this.attributesUpdateCallback(this.attributes.apps);
         this.onAppDelete(this.attributes.apps);
-    }
+    };
 
     private createRootDirScenesCallback = () => {
         let isRecreate = false;
@@ -250,14 +256,7 @@ export class AppManager {
         this.refresher?.add("minimized", () => {
             return autorun(() => {
                 const minimized = this.attributes.minimized;
-                if (this.boxManager?.minimized !== minimized) {
-                    if (minimized === true) {
-                        this.boxManager?.blurAllBox();
-                    }
-                    setTimeout(() => {
-                        this.boxManager?.setMinimized(Boolean(minimized));
-                    }, 0);
-                }
+                this.onMinimized(minimized);
             });
         });
         this.refresher?.add("mainViewIndex", () => {
@@ -290,6 +289,12 @@ export class AppManager {
                         }, 0);
                     }
                 }
+            });
+        });
+        this.refresher?.add("registeredChange", () => {
+            return autorun(() => {
+                const registered = get(this.attributes, Fields.Registered);
+                this.onRegisteredChange(registered);
             });
         });
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
@@ -359,6 +364,30 @@ export class AppManager {
                     }
                 }
             }
+        }
+    }
+
+    private onRegisteredChange = (registered: Record<string, SyncRegisterAppPayload>) => {
+        if (!registered) return;
+        Object.entries(registered).forEach(([kind, payload]) => {
+            if (!appRegister.appClasses.has(kind)) {
+                appRegister.register({
+                    kind,
+                    src: payload.src,
+                    name: payload.name,
+                });
+            }
+        });
+    };
+
+    private onMinimized = (minimized: boolean | undefined) => {
+        if (this.boxManager?.minimized !== minimized) {
+            if (minimized === true) {
+                this.boxManager?.blurAllBox();
+            }
+            setTimeout(() => {
+                this.boxManager?.setMinimized(Boolean(minimized));
+            }, 0);
         }
     }
 
