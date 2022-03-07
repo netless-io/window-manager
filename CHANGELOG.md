@@ -1,10 +1,15 @@
+## 0.4.11
+
+1. 升级 `@netless/app-docs-viewer` 到 `0.2.8`
+2. 同步注册的 url 的 src 到远端
+
 ## 0.4.10
 
-1. 修复 PublicEvent 类型没有导出的问题
+1. 修复 `PublicEvent` 类型没有导出的问题
 
 ## 0.3.26
 
-1. 修复多次调用 setWritable 和 setReadonly 导致的状态错误
+1. 修复多次调用 `setWritable` 和 `setReadonly` 导致的状态错误
 
 ## 0.4.9
 
