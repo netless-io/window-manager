@@ -31,7 +31,7 @@
     "video.js": ">=7"
   },
   "devDependencies": {
-    "@netless/app-docs-viewer": "^0.2.6",
+    "@netless/app-docs-viewer": "^0.2.8",
     "@netless/app-media-player": "0.1.0-beta.5",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
