@@ -4,6 +4,7 @@
   - [撤销重做](#redo-undo)
   - [清屏](#clean-current-scene)
   - [判断是否打开某种 APP](#has-kind)
+  - [页面控制器](#page-control)
 
 
 <h3 id="redo-undo">撤销重做</h3>
@@ -63,4 +64,27 @@ manager.emitter.on("ready", () => { // ready 事件在所有 app 创建完成后
     const apps = manager.queryAll(); //  获取所有已经打开的 App
     const hasSlide = apps.some(app => app.kind === "Slide"); // 判断已经打开的 APP 中是否有 Slide
 });
+```
+
+<br>
+
+<h3 id="page-control">页面控制器</h3>
+
+`manager` 提供了一个 `pageState` 来获取当前的 index 和总页数
+
+```ts
+manager.pageState.index // 当前的 index
+manager.pageState.length // 总页数
+
+manager.emitter.on("pageStateChange", state => {
+    // 当前 index 变化和总页数变化会触发此事件
+});
+```
+
+上一页/下一页/添加一页
+
+```ts
+manager.nextPage()
+manager.prevPage()
+manager.addPage()
 ```

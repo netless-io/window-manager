@@ -83,6 +83,10 @@ const mountManager = async (room, root) => {
     manager.emitter.on("loadApp", payload => {
         console.log("loadApp", payload);
     });
+
+    manager.emitter.on("pageStateChange", state => {
+        console.log("pageStateChange", state);
+    });
 };
 
 const replay = () => {

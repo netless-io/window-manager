@@ -254,11 +254,19 @@ manager.callbacks.on(events, listener)
 | loadApp                  | LoadAppEvent   |         | 加载远程APP 事件                |
 | ready                    | undefined      |         | 当所有 APP 创建完毕时触发      ｜
 | sceneStateChange         | SceneState     |         | 当 sceneState 修改时触发     |
+| pageStateChange          | PageState      |         |                            ｜
 
 ```ts
 type LoadAppEvent = {
     kind: string;
     status: "start" | "success" | "failed";
     reason?: string;
+}
+```
+
+```ts
+type PageState = {
+    index: number;
+    length: number;
 }
 ```
