@@ -33,7 +33,8 @@ export const setViewSceneIndex = (view: View, index: number) => {
 export const setScenePath = (room: Room | undefined, scenePath: string) => {
     if (room && room.isWritable) {
         if (room.state.sceneState.scenePath !== scenePath) {
-            room.setScenePath(scenePath);
+            const nextScenePath = scenePath === "/" ? "" : scenePath;
+            room.setScenePath(nextScenePath);
         }
     }
 };

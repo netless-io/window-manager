@@ -13,6 +13,7 @@ import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, omit } from "lodash";
 import { log } from "./Utils/log";
+import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
 import { setupBuiltin } from "./BuiltinApps";
@@ -56,6 +57,7 @@ import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider"
 import type { AppProxy } from "./AppProxy";
 import type { PublicEvent } from "./Callback";
 import type Emittery from "emittery";
+import type { PageState } from "./PageState";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -168,6 +170,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     public cursorManager?: CursorManager;
     public viewMode = ViewMode.Broadcaster;
     public isReplay = isPlayer(this.displayer);
+    private _pageState?: PageStateImpl;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
@@ -235,6 +238,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         await manager.ensureAttributes();
 
         manager.appManager = new AppManager(manager);
+        manager._pageState = new PageStateImpl(manager.appManager);
         manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor));
 
         if (params.container) {
@@ -673,6 +677,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         if (this.appManager) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             return this.appManager.sceneState!;
+        } else {
+            throw new AppManagerNotInitError();
+        }
+    }
+
+    public get pageState(): PageState {
+        if (this._pageState) {
+            return this._pageState.toObject();
         } else {
             throw new AppManagerNotInitError();
         }

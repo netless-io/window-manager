@@ -22,6 +22,7 @@ export type EmitterEvent = {
     focusedChange: { focused: string | undefined; prev: string | undefined };
     rootDirRemoved: undefined;
     setReadonly: boolean;
+    changePageState: undefined;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

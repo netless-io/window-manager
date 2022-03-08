@@ -107,7 +107,7 @@ export class AppManager {
 
     private onRemoveScenes = (scenePath: string) => {
         if (scenePath === ROOT_DIR) {
-            this.setMainViewScenePath(ROOT_DIR);
+            this.setMainViewScenePath("");
             this.createRootDirScenesCallback();
             this.onRootDirRemoved();
             emitter.emit("rootDirRemoved");
@@ -116,7 +116,7 @@ export class AppManager {
         const mainViewScenePath = this.store.getMainViewScenePath();
         if (this.room && mainViewScenePath) {
             if (mainViewScenePath === scenePath) {
-                this.setMainViewScenePath(ROOT_DIR);
+                this.setMainViewScenePath("");
             }
         }
     };
@@ -163,7 +163,7 @@ export class AppManager {
             this.updateSceneState(this.callbacksNode);
             this.mainViewScenesLength = this.callbacksNode.scenes.length;
             if (isRecreate) {
-                callbacks.emit("mainViewScenesLengthChange", this.callbacksNode.scenes.length);
+                this.emitMainViewScenesChange(this.callbacksNode.scenes.length);
             }
         }
     };
@@ -171,7 +171,12 @@ export class AppManager {
     private onSceneChange = (node: ScenesCallbacksNode) => {
         this.mainViewScenesLength = node.scenes.length;
         this.updateSceneState(node);
-        callbacks.emit("mainViewScenesLengthChange", this.mainViewScenesLength);
+        this.emitMainViewScenesChange(this.mainViewScenesLength);
+    };
+
+    private emitMainViewScenesChange = (length: number) => {
+        callbacks.emit("mainViewScenesLengthChange", length);
+        emitter.emit("changePageState");
     };
 
     private updateSceneState = (node: ScenesCallbacksNode) => {
@@ -264,6 +269,7 @@ export class AppManager {
                 const mainSceneIndex = get(this.attributes, "_mainSceneIndex");
                 if (mainSceneIndex !== undefined && this._prevSceneIndex !== mainSceneIndex) {
                     callbacks.emit("mainViewSceneIndexChange", mainSceneIndex);
+                    emitter.emit("changePageState");
                     if (this.callbacksNode) {
                         this.updateSceneState(this.callbacksNode);
                     }
@@ -300,10 +306,7 @@ export class AppManager {
         if (!this.attributes.apps || Object.keys(this.attributes.apps).length === 0) {
             const mainScenePath = this.store.getMainViewScenePath();
             if (!mainScenePath) return;
-            const sceneState = this.displayer.state.sceneState;
-            if (sceneState.scenePath !== mainScenePath) {
-                setScenePath(this.room, mainScenePath);
-            }
+            this.resetScenePath(mainScenePath);
         }
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
@@ -389,7 +392,7 @@ export class AppManager {
                 this.boxManager?.setMinimized(Boolean(minimized));
             }, 0);
         }
-    }
+    };
 
     public refresh() {
         this.attributesUpdateCallback(this.attributes.apps);
@@ -431,6 +434,13 @@ export class AppManager {
         if (focusScenePath) {
             const view = setViewFocusScenePath(this.mainView, focusScenePath);
             return view?.focusScenePath === focusScenePath;
+        }
+    }
+
+    private resetScenePath(scenePath: string) {
+        const sceneState = this.displayer.state.sceneState;
+        if (sceneState.scenePath !== scenePath) {
+            setScenePath(this.room, scenePath);
         }
     }
 
