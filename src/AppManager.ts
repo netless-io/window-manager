@@ -1,4 +1,4 @@
-import { AppAttributes, AppStatus, Events, MagixEventName, ROOT_DIR } from "./constants";
+import { AppAttributes, AppStatus, Events, INIT_DIR, MagixEventName, ROOT_DIR } from "./constants";
 import { AppCreateQueue } from "./Utils/AppCreateQueue";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./AppProxy";
@@ -106,17 +106,20 @@ export class AppManager {
     }
 
     private onRemoveScenes = (scenePath: string) => {
+        // 如果移除根目录就把 scenePath 设置为初始值
         if (scenePath === ROOT_DIR) {
-            this.setMainViewScenePath("");
+            this.setMainViewScenePath(INIT_DIR);
             this.createRootDirScenesCallback();
             this.onRootDirRemoved();
             emitter.emit("rootDirRemoved");
             return;
         }
+        // 如果移除的 path 跟 MainViewScenePath 相同就取当前目录的当前 index
         const mainViewScenePath = this.store.getMainViewScenePath();
         if (this.room && mainViewScenePath) {
             if (mainViewScenePath === scenePath) {
-                this.setMainViewScenePath("");
+                const nextPath = this.callbacksNode?.scenes[this.store.getMainViewSceneIndex()];
+                this.setMainViewScenePath(`/${nextPath}` || INIT_DIR);
             }
         }
     };

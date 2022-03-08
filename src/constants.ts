@@ -49,3 +49,4 @@ export const SET_SCENEPATH_DELAY = 100; // 设置 scenePath 的延迟事件
 export const DEFAULT_CONTAINER_RATIO = 9 / 16;
 
 export const ROOT_DIR = "/";
+export const INIT_DIR = "/init";

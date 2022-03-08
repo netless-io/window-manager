@@ -6,7 +6,7 @@ import { checkVersion, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
-import { DEFAULT_CONTAINER_RATIO, Events, ROOT_DIR } from "./constants";
+import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants";
 import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
@@ -870,7 +870,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 this.safeSetAttributes({ [Fields.Cursors]: {} });
             }
             if (!this.attributes["_mainScenePath"]) {
-                this.safeSetAttributes({ _mainScenePath: ROOT_DIR });
+                this.safeSetAttributes({ _mainScenePath: INIT_DIR });
             }
             if (!this.attributes["_mainSceneIndex"]) {
                 this.safeSetAttributes({ _mainSceneIndex: 0 });
