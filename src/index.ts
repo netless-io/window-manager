@@ -646,7 +646,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public get mainViewSceneIndex(): number {
-        return this.appManager?.store.getMainViewSceneIndex();
+        return this._pageState?.index || 0;
     }
 
     public get mainViewSceneDir(): string {
@@ -662,7 +662,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     }
 
     public get mainViewScenesLength(): number {
-        return this.appManager?.mainViewScenesLength || 0;
+        return this._pageState?.length || 0;
     }
 
     public get canRedoSteps(): number {

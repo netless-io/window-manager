@@ -5,14 +5,14 @@ import { emitter } from "./InternalEmitter";
 export type PageState = {
     index: number;
     length: number;
-}
+};
 
 export class PageStateImpl {
     constructor(private manager: AppManager) {
         emitter.on("changePageState", () => {
-            callbacks.emit("pageStateChange", this.toObject())
+            callbacks.emit("pageStateChange", this.toObject());
         });
-    };
+    }
 
     public get index(): number {
         return this.manager?.store.getMainViewSceneIndex() || 0;
@@ -25,7 +25,7 @@ export class PageStateImpl {
     public toObject(): PageState {
         return {
             index: this.index,
-            length: this.length
-        }
+            length: this.length,
+        };
     }
 }
