@@ -176,6 +176,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
     private static params?: MountParams;
 
     private containerResizeObserver?: ContainerResizeObserver;
+    public containerSizeRatio = WindowManager.containerSizeRatio;
 
     constructor(context: InvisiblePluginContext) {
         super(context);
@@ -240,6 +241,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
         manager.appManager = new AppManager(manager);
         manager._pageState = new PageStateImpl(manager.appManager);
         manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor));
+        if (containerSizeRatio) {
+            manager.containerSizeRatio = containerSizeRatio;
+        }
 
         if (params.container) {
             manager.bindContainer(params.container);
