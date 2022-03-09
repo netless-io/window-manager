@@ -1,11 +1,14 @@
-## 0.3.27
-
-1. 修复在同时调用多次 `addApp`  时, 先添加的课件不显示的问题
-
-## 0.4.11 (canary)
+## 0.4.11
 
 1. 升级 `@netless/app-docs-viewer` 到 `0.2.8`
 2. 同步注册的 url 的 src 到远端
+3. 添加 `pageState` 和 `pageStateChange` 事件
+4. 修复 manager 设置初始化 scenePath 错误的问题
+5. 添加 `containerSizeRatio` 到 `manager` 实例
+
+## 0.3.27
+
+1. 修复在同时调用多次 `addApp`  时, 先添加的课件不显示的问题
 
 ## 0.4.10
 
