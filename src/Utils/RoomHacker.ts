@@ -71,10 +71,10 @@ const delegateSeekToProgressTime = (player: Player) => {
     const originSeek = player.seekToProgressTime;
     // eslint-disable-next-line no-inner-declarations
     async function newSeek(time: number): Promise<PlayerSeekingResult> {
+        // seek 时需要先关闭所有的 app 防止内部使用的 mobx 出现错误
+        await emitter.emit("seekStart");
         const seekResult = await originSeek.call(player, time);
-        if (seekResult === "success") {
-            emitter.emit("seek", time);
-        }
+        emitter.emit("seek", time); 
         return seekResult;
     }
     player.seekToProgressTime = newSeek;

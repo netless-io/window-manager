@@ -36,17 +36,26 @@ export class AppCreateQueue {
             this.currentInvoker = item;
             item()
                 .then(() => {
-                    this.currentInvoker = undefined;
-                    if (this.list.length === 0) {
-                        clearInterval(this.timer);
-                        this.emitReady();
-                    }
+                    this.invoked();
                 })
                 .catch(error => {
                     console.error(`[WindowManager]: create app error: ${error.message}`);
-                    clearInterval(this.timer);
+                    this.invoked();
                 });
         }
+    }
+
+    private invoked = () => {
+        this.currentInvoker = undefined;
+        if (this.list.length === 0) {
+            this.clear();
+            this.emitReady();
+        }
+    }
+
+    private clear = () => {
+        clearInterval(this.timer);
+        this.timer = undefined;
     }
 
     public emitReady() {
@@ -58,7 +67,7 @@ export class AppCreateQueue {
 
     public destroy() {
         if (this.timer) {
-            clearInterval(this.timer);
+            this.clear();
         }
     }
 }

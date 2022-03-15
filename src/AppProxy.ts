@@ -208,8 +208,10 @@ export class AppProxy {
         }
     }
 
-    public onSeek(time: number) {
-        this.appEmitter.emit("seek", time);
+    public async onSeek(time: number) {
+        this.appEmitter.emit("seek", time).catch(err => {
+            console.log(`[WindowManager]: emit seek error: ${err.message}`)
+        });
         const boxInitState = this.getAppInitState(this.id);
         this.boxManager?.updateBoxState(boxInitState);
     }

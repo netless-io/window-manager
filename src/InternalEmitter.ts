@@ -10,6 +10,7 @@ export type EmitterEvent = {
     close: { appId: string };
     resize: { appId: string; width: number; height: number; x?: number; y?: number };
     error: Error;
+    seekStart: undefined;
     seek: number;
     mainViewMounted: undefined;
     observerIdChange: number;

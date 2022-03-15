@@ -92,7 +92,8 @@ export class AppManager {
         emitter.on("onReconnected", () => this.onReconnected());
 
         if (isPlayer(this.displayer)) {
-            emitter.on("seek", this.onPlayerSeek);
+            emitter.on("seekStart", this.onPlayerSeekStart);
+            emitter.on("seek", this.onPlayerSeekDone);
         }
 
         emitter.on("removeScenes", this.onRemoveScenes);
@@ -144,12 +145,15 @@ export class AppManager {
         });
     };
 
-    private onPlayerSeek = (time: number) => {
+    private onPlayerSeekStart = async () => {
+        await this.closeAll();
+    };
+
+    private onPlayerSeekDone = async (time: number) => {
+        await this.attributesUpdateCallback(this.attributes.apps);
         this.appProxies.forEach(appProxy => {
             appProxy.onSeek(time);
         });
-        this.attributesUpdateCallback(this.attributes.apps);
-        this.onAppDelete(this.attributes.apps);
     };
 
     private createRootDirScenesCallback = () => {
@@ -413,13 +417,20 @@ export class AppManager {
         this.boxManager?.setMinimized(Boolean(this.store.getMinimized()));
     }
 
-    private onAppDelete = (apps: any) => {
+    private onAppDelete = async (apps: any) => {
         const ids = Object.keys(apps);
-        this.appProxies.forEach((appProxy, id) => {
+        for (const [id, appProxy] of this.appProxies.entries()) {
             if (!ids.includes(id)) {
-                appProxy.destroy(true, false, true);
+                await appProxy.destroy(true, false, true);
             }
-        });
+        }
+    };
+
+    private closeAll = async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for (const [_, appProxy] of this.appProxies.entries()) {
+            await appProxy.destroy(true, false, true);
+        }
     };
 
     public bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {

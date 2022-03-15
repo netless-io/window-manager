@@ -22,6 +22,7 @@ let firstPlay = false;
 const search = window.location.search;
 const url = new URLSearchParams(search);
 const isWritable = url.get("isWritable");
+const isReplay = url.get("isReplay");
 
 let manager: WindowManagerType;
 
@@ -34,6 +35,8 @@ const mountManager = async (room, root) => {
         debug: true,
         cursor: true,
     })) as WindowManagerType;
+
+    console.log("pageState", manager.pageState);
 
     manager.emitter.on("ready", () => {
         console.log("manager ready", manager.queryAll());
@@ -96,8 +99,8 @@ const replay = () => {
         invisiblePlugins: [WindowManager as any],
         useMultiViews: true,
     }).then(async player => {
-        await manager.destroy();
-        anyWindow.room.disconnect();
+        await manager?.destroy();
+        anyWindow.room?.disconnect();
         setTimeout(async () => {
             anyWindow.player = player;
             // player.bindHtmlElement(document.getElementById("container") as any)
@@ -117,29 +120,34 @@ const replay = () => {
 
 const onRef = ref => {
     const uid = Math.random().toString().substr(3, 8);
-    sdk.joinRoom({
-        uuid: import.meta.env.VITE_ROOM_UUID,
-        roomToken: import.meta.env.VITE_ROOM_TOKEN,
-        invisiblePlugins: [WindowManager as any],
-        useMultiViews: true,
-        userPayload: {
-            userId: "111",
-            cursorName: uid,
-            avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
-        },
-        isWritable: !(isWritable === "false"),
-        cursorAdapter: undefined,
-        uid: uid,
-        disableMagixEventDispatchLimit: true,
-        disableNewPencil: false,
-        floatBar: true,
-    }).then(async room => {
-        if (room.isWritable) {
-            // room.setMemberState({ strokeColor: [0, 0, 1] });
-        }
-        (window as any).room = room;
-        await mountManager(room, ref);
-    });
+    if (isReplay) {
+        replay();
+    } else {
+        sdk.joinRoom({
+            uuid: import.meta.env.VITE_ROOM_UUID,
+            roomToken: import.meta.env.VITE_ROOM_TOKEN,
+            invisiblePlugins: [WindowManager as any],
+            useMultiViews: true,
+            userPayload: {
+                userId: "111",
+                cursorName: uid,
+                avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
+            },
+            isWritable: !(isWritable === "false"),
+            cursorAdapter: undefined,
+            uid: uid,
+            disableMagixEventDispatchLimit: true,
+            disableNewPencil: false,
+            floatBar: true,
+        }).then(async room => {
+            if (room.isWritable) {
+                // room.setMemberState({ strokeColor: [0, 0, 1] });
+            }
+            (window as any).room = room;
+            await mountManager(room, ref);
+        });
+    }
+    
 };
 
 const destroy = () => {

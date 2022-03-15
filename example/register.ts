@@ -26,3 +26,8 @@ WindowManager.register({
       HTML5Codebase: "https://flat-storage-cn-hz.whiteboard.agora.io/GeoGebra/HTML5/5.0/web3d",
     },
 });
+
+WindowManager.register({
+    kind: "Countdown",
+    src: "https://netless-app.oss-cn-hangzhou.aliyuncs.com/@netless/app-countdown/0.0.2/dist/main.iife.js",
+});
