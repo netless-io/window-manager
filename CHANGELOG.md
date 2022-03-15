@@ -1,3 +1,8 @@
+## 0.4.12
+
+1. 升级 `@netless/telebox-insider` 到 `0.2.26`
+2. 修复回放时 `seek` app 状态错误的问题
+
 ## 0.4.11
 
 1. 升级 `@netless/app-docs-viewer` 到 `0.2.8`
