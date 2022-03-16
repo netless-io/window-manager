@@ -1,3 +1,7 @@
+## 0.4.13
+
+1. 在只读状态时 `viewMode` 可以从 `freedom` 切换回 `broadcaster` 跟随视角
+
 ## 0.4.12
 
 1. 升级 `@netless/telebox-insider` 到 `0.2.26`
