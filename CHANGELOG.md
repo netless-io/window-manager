@@ -1,6 +1,6 @@
 ## 0.4.13
 
-1. 在只读状态时 `viewMode` 可以从 `freedom` 切换回 `broadcaster` 跟随视角
+1. 在只读状态时可以切换 `viewMode`
 
 ## 0.4.12
 
