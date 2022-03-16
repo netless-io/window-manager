@@ -6,6 +6,7 @@
   - [从白板迁移](docs/migrate.md)
   - [回放](docs/replay.md)
   - [进阶使用](docs/advanced.md)
+    - [视角跟随](docs/advanced.md#view-mode)
   - [开发自定义 APP](docs/develop-app.md)
 ## MainView
 

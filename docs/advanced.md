@@ -5,6 +5,7 @@
   - [清屏](#clean-current-scene)
   - [判断是否打开某种 APP](#has-kind)
   - [页面控制器](#page-control)
+  - [视角](#view-mode)
 
 
 <h3 id="redo-undo">撤销重做</h3>
@@ -88,3 +89,15 @@ manager.nextPage()
 manager.prevPage()
 manager.addPage()
 ```
+
+<br>
+
+<h3 id="view-mode">视角跟随</h3>
+
+`ViewMode` 有 `broadcaster` `freedom` 两种模式
+
+可写权限默认进去为 `broadcaster` 并且互相操作并跟随视角
+
+当 `room` 设置 `Writable` 为 `false` 时此时只能跟随视角并不能广播视角
+
+在 `room` 的 `isWritable` 设置为 `false` 后想重新跟随视角可以通过设置为 `broadcaster` 跟随
