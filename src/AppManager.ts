@@ -274,34 +274,13 @@ export class AppManager {
         this.refresher?.add("mainViewIndex", () => {
             return autorun(() => {
                 const mainSceneIndex = get(this.attributes, "_mainSceneIndex");
-                if (mainSceneIndex !== undefined && this._prevSceneIndex !== mainSceneIndex) {
-                    callbacks.emit("mainViewSceneIndexChange", mainSceneIndex);
-                    emitter.emit("changePageState");
-                    if (this.callbacksNode) {
-                        this.updateSceneState(this.callbacksNode);
-                    }
-                    this._prevSceneIndex = mainSceneIndex;
-                }
+                this.onMainViewIndexChange(mainSceneIndex);
             });
         });
         this.refresher?.add("focusedChange", () => {
             return autorun(() => {
                 const focused = get(this.attributes, "focus");
-                if (this._prevFocused !== focused) {
-                    callbacks.emit("focusedChange", focused);
-                    emitter.emit("focusedChange", { focused, prev: this._prevFocused });
-                    this._prevFocused = focused;
-                    if (focused !== undefined) {
-                        this.boxManager?.focusBox({ appId: focused });
-                        // 确保 focus 修改的时候, appProxy 已经创建
-                        setTimeout(() => {
-                            const appProxy = this.appProxies.get(focused);
-                            if (appProxy) {
-                                appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
-                            }
-                        }, 0);
-                    }
-                }
+                this.onFocusChange(focused);
             });
         });
         this.refresher?.add("registeredChange", () => {
@@ -327,6 +306,35 @@ export class AppManager {
             });
             return () => redoUndo.destroy();
         });
+    }
+
+    private onMainViewIndexChange = (index: number) => {
+        if (index !== undefined && this._prevSceneIndex !== index) {
+            callbacks.emit("mainViewSceneIndexChange", index);
+            emitter.emit("changePageState");
+            if (this.callbacksNode) {
+                this.updateSceneState(this.callbacksNode);
+            }
+            this._prevSceneIndex = index;
+        }
+    }
+
+    private onFocusChange = (focused: string | undefined) => {
+        if (this._prevFocused !== focused) {
+            callbacks.emit("focusedChange", focused);
+            emitter.emit("focusedChange", { focused, prev: this._prevFocused });
+            this._prevFocused = focused;
+            if (focused !== undefined) {
+                this.boxManager?.focusBox({ appId: focused });
+                // 确保 focus 修改的时候, appProxy 已经创建
+                setTimeout(() => {
+                    const appProxy = this.appProxies.get(focused);
+                    if (appProxy) {
+                        appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
+                    }
+                }, 0);
+            }
+        }
     }
 
     /**
