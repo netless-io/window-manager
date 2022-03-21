@@ -55,6 +55,10 @@ export class AppListeners {
                     this.cursorMoveHandler(data.payload);
                     break;
                 }
+                case Events.RootDirRemoved: {
+                    this.rootDirRemovedHandler();
+                    break;
+                }
                 default:
                     break;
             }
@@ -92,5 +96,9 @@ export class AppListeners {
 
     private cursorMoveHandler = (payload: any) => {
         emitter.emit("cursorMove", payload);
+    };
+
+    private rootDirRemovedHandler = () => {
+        this.manager.onRootDirRemoved();
     };
 }

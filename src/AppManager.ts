@@ -109,10 +109,8 @@ export class AppManager {
     private onRemoveScenes = (scenePath: string) => {
         // 如果移除根目录就把 scenePath 设置为初始值
         if (scenePath === ROOT_DIR) {
-            this.setMainViewScenePath(INIT_DIR);
-            this.createRootDirScenesCallback();
             this.onRootDirRemoved();
-            emitter.emit("rootDirRemoved");
+            this.dispatchInternalEvent(Events.RootDirRemoved);
             return;
         }
         // 如果移除的 path 跟 MainViewScenePath 相同就取当前目录的当前 index
@@ -129,7 +127,10 @@ export class AppManager {
      * 根目录被删除时所有的 scene 都会被删除.
      * 所以需要关掉所有开启了 view 的 app
      */
-    private onRootDirRemoved() {
+    public onRootDirRemoved() {
+        this.setMainViewScenePath(INIT_DIR);
+        this.createRootDirScenesCallback();
+
         this.appProxies.forEach(appProxy => {
             if (appProxy.view) {
                 this.closeApp(appProxy.id);
@@ -137,6 +138,8 @@ export class AppManager {
         });
         // 删除了根目录的 scenes 之后 mainview 需要重新绑定, 否则主白板会不能渲染
         this.mainViewProxy.rebind();
+
+        emitter.emit("rootDirRemoved");
     }
 
     private onReadonlyChanged = () => {
@@ -725,7 +728,7 @@ export class AppManager {
         });
     }
 
-    public dispatchInternalEvent(event: Events, payload: any) {
+    public dispatchInternalEvent(event: Events, payload?: any) {
         this.safeDispatchMagixEvent(MagixEventName, {
             eventName: event,
             payload: payload,
