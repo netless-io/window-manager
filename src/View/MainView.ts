@@ -22,7 +22,6 @@ export class MainViewProxy {
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
         emitter.once("mainViewMounted").then(() => {
-            this.addMainViewListener();
             setTimeout(() => {
                 this.start();
                 if (!this.mainViewCamera || !this.mainViewSize) {
@@ -55,6 +54,7 @@ export class MainViewProxy {
     public start() {
         if (this.started) return;
         this.sizeChangeHandler(this.mainViewSize);
+        this.addMainViewListener();
         this.addCameraListener();
         this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
         this.started = true;
@@ -143,6 +143,7 @@ export class MainViewProxy {
             this.view.divElement.removeEventListener("click", this.mainViewClickListener);
             this.view.divElement.removeEventListener("touchend", this.mainViewClickListener);
         }
+        this.mainViewIsAddListener = false;
     }
 
     private mainViewClickListener = () => {
