@@ -1,6 +1,6 @@
 ## 0.4.15
 
-1. 修复 remove 根 scenes 时, mainView 重新绑定没有生效的问题 
+1. 修复 remove 根 scenes 时,  切换主白板和 app focus 失效的问题
 
 ## 0.4.14
 
