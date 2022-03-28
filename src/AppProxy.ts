@@ -346,7 +346,6 @@ export class AppProxy {
 
     public setViewFocusScenePath() {
         const fullPath = this.getFullScenePath();
-        console.log("setViewFocusScenePath", this.kind, this.id, fullPath)
         if (fullPath && this.view) {
             setViewFocusScenePath(this.view, fullPath);
         }
@@ -381,7 +380,6 @@ export class AppProxy {
         if (cleanAttrs) {
             this.store.cleanAppAttributes(this.id);
             if (this.scenePath) {
-                console.log("put closeApp", this.scenePath);
                 removeScenes(this.manager.room, this.scenePath);
             }
         }
