@@ -1,6 +1,10 @@
+## 0.4.16
+
+1. 修复 removeScenes 为 "/" 没有清理完成完成时添加 app 造成的状态错误
+
 ## 0.4.15
 
-1. 修复 remove 根 scenes 时,  切换主白板和 app focus 失效的问题
+1. 修复 removeScenes 为 "/" 时,  切换主白板和 app focus 失效的问题
 
 ## 0.4.14
 
