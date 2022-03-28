@@ -1,6 +1,10 @@
+## 0.4.17
+
+1. 修复 safari 浏览器下 removeScenes 为 "/" 没有清理完成完成时可以 addApp
+
 ## 0.4.16
 
-1. 修复 removeScenes 为 "/" 没有清理完成完成时添加 app 造成的状态错误
+1. 修复 removeScenes 为 "/" 没有清理完成完成时 addApp 造成的状态错误
 
 ## 0.4.15
 
