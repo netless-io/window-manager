@@ -35,11 +35,13 @@ const mountManager = async (room, root) => {
         debug: true,
         cursor: true,
     })) as WindowManagerType;
-
-    console.log("pageState", manager.pageState);
-
-    manager.emitter.on("ready", () => {
-        console.log("manager ready", manager.queryAll());
+    
+    manager.emitter.on("ready", async () => {
+        if (isWritable === "false") return;
+        // await room.removeScenes("/");
+        // await createStatic(manager);
+        // await createDynamic(manager);
+        // await createSlide(manager);
     });
 
     manager.bindContainer(root);

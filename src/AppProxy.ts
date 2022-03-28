@@ -1,5 +1,5 @@
 import Emittery from "emittery";
-import { AppAttributes, AppEvents, Events } from "./constants";
+import { AppAttributes, AppEvents, Events, SETUP_APP_DELAY } from "./constants";
 import { AppContext } from "./AppContext";
 import { appRegister } from "./Register";
 import { autorun } from "white-web-sdk";
@@ -168,7 +168,7 @@ export class AppProxy {
                     appRegister.notifyApp(this.kind, "created", { appId, result });
                     this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
-                }, 50);
+                }, SETUP_APP_DELAY);
             });
             this.boxManager?.createBox({
                 appId: appId,
@@ -346,6 +346,7 @@ export class AppProxy {
 
     public setViewFocusScenePath() {
         const fullPath = this.getFullScenePath();
+        console.log("setViewFocusScenePath", this.kind, this.id, fullPath)
         if (fullPath && this.view) {
             setViewFocusScenePath(this.view, fullPath);
         }
@@ -380,6 +381,7 @@ export class AppProxy {
         if (cleanAttrs) {
             this.store.cleanAppAttributes(this.id);
             if (this.scenePath) {
+                console.log("put closeApp", this.scenePath);
                 removeScenes(this.manager.room, this.scenePath);
             }
         }

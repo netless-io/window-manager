@@ -18,7 +18,7 @@ export const createCounter = (manager: WindowManager) => {
 };
 
 export const createStatic = (manager: WindowManager) => {
-    manager
+    return manager
         .addApp({
             kind: BuiltinApps.DocsViewer,
             options: {
@@ -27,10 +27,9 @@ export const createStatic = (manager: WindowManager) => {
                 scenes: docs.staticDocs,
             },
         })
-        .then(appId => console.log("appID", appId));
 };
 export const createDynamic = (manager: WindowManager) => {
-    manager.addApp({
+    return manager.addApp({
         kind: BuiltinApps.DocsViewer,
         options: {
             scenePath: "/ppt3",

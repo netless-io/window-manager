@@ -59,6 +59,8 @@ export class AppManager {
 
     public sceneState: SceneState | null = null;
 
+    public rootDirRemoving = false;
+
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
         this.store.setContext({
@@ -106,10 +108,10 @@ export class AppManager {
         });
     }
 
-    private onRemoveScenes = (scenePath: string) => {
+    private onRemoveScenes = async (scenePath: string) => {
         // 如果移除根目录就把 scenePath 设置为初始值
         if (scenePath === ROOT_DIR) {
-            this.onRootDirRemoved();
+            await this.onRootDirRemoved();
             this.dispatchInternalEvent(Events.RootDirRemoved);
             return;
         }
@@ -127,19 +129,22 @@ export class AppManager {
      * 根目录被删除时所有的 scene 都会被删除.
      * 所以需要关掉所有开启了 view 的 app
      */
-    public onRootDirRemoved() {
+    public async onRootDirRemoved(needClose = true) {
+        this.rootDirRemoving =  true;
         this.setMainViewScenePath(INIT_DIR);
-        this.createRootDirScenesCallback();
 
-        this.appProxies.forEach(appProxy => {
+        this.createRootDirScenesCallback();
+        
+        for (const [id, appProxy] of this.appProxies.entries()) {
             if (appProxy.view) {
-                this.closeApp(appProxy.id);
+                await this.closeApp(id, needClose);
             }
-        });
+        }
         // 删除了根目录的 scenes 之后 mainview 需要重新绑定, 否则主白板会不能渲染
         this.mainViewProxy.rebind();
 
         emitter.emit("rootDirRemoved");
+        this.rootDirRemoving = false;
     }
 
     private onReadonlyChanged = () => {
@@ -159,7 +164,7 @@ export class AppManager {
         });
     };
 
-    private createRootDirScenesCallback = () => {
+    public createRootDirScenesCallback = () => {
         let isRecreate = false;
         if (this.callbacksNode) {
             this.callbacksNode.dispose();
@@ -361,14 +366,13 @@ export class AppManager {
             for (const { id } of orderBy(appsWithCreatedAt, "createdAt", "asc")) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
-
-                    this.appStatus.set(id, AppStatus.StartCreate);
                     try {
                         const appAttributes = this.attributes[id];
                         if (!appAttributes) {
                             throw new Error("appAttributes is undefined");
                         }
                         this.appCreateQueue.push(() => {
+                            this.appStatus.set(id, AppStatus.StartCreate);
                             return this.baseInsertApp(
                                 {
                                     kind: app.kind,
@@ -505,10 +509,10 @@ export class AppManager {
         }
     }
 
-    public async closeApp(appId: string) {
+    public async closeApp(appId: string, needClose = true) {
         const appProxy = this.appProxies.get(appId);
         if (appProxy) {
-            appProxy.destroy(true, true, false);
+            appProxy.destroy(true, needClose, false);
         }
     }
 

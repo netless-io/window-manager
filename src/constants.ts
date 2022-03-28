@@ -51,3 +51,5 @@ export const DEFAULT_CONTAINER_RATIO = 9 / 16;
 
 export const ROOT_DIR = "/";
 export const INIT_DIR = "/init";
+
+export const SETUP_APP_DELAY = 50;

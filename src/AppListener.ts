@@ -99,6 +99,8 @@ export class AppListeners {
     };
 
     private rootDirRemovedHandler = () => {
-        this.manager.onRootDirRemoved();
-    };
+        this.manager.createRootDirScenesCallback();
+        this.manager.mainViewProxy.rebind();
+        emitter.emit("rootDirRemoved");
+    }
 }

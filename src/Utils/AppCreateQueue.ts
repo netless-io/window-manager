@@ -1,5 +1,6 @@
 import { callbacks } from "../callback";
 import type { AppProxy } from "../AppProxy";
+import { SETUP_APP_DELAY } from "../constants";
 
 export type Invoker = () => Promise<AppProxy | undefined>;
 
@@ -60,9 +61,16 @@ export class AppCreateQueue {
 
     public emitReady() {
         if (!this.isEmit) {
-            callbacks.emit("ready");
+            setTimeout(() => {
+                callbacks.emit("ready");
+            }, SETUP_APP_DELAY);
         }
         this.isEmit = true;
+    }
+
+    public empty() {
+        this.list = [];
+        this.clear();
     }
 
     public destroy() {

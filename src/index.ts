@@ -25,6 +25,7 @@ import {
     ensureValidScenePath,
     entireScenes,
     isValidScenePath,
+    putScenes,
     wait,
 } from "./Utils/Common";
 import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
@@ -388,6 +389,28 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
      */
     public async addApp<T = any>(params: AddAppParams<T>): Promise<string | undefined> {
         if (this.appManager) {
+            // 移除根目录时需要做一些异步的释放操作 addApp 需要等待释放完成才可以继续添加
+            if (this.appManager.rootDirRemoving) {
+                return new Promise((resolve, reject) => {
+                    emitter.once("rootDirRemoved").then(async () => {
+                        try {
+                            const appId = await this._addApp(params);
+                            resolve(appId);
+                        } catch (error) {
+                            reject(error.message);
+                        }
+                    });
+                });
+            } else {
+                return this._addApp(params);
+            }
+        } else {
+            throw new AppManagerNotInitError();
+        }
+    }
+
+    private async _addApp<T = any>(params: AddAppParams<T>): Promise<string | undefined> {
+        if (this.appManager) {
             if (!params.kind || typeof params.kind !== "string") {
                 throw new ParamsInvalidError();
             }
@@ -438,16 +461,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
                 if (this.isDynamicPPT(scenes)) {
                     isDynamicPPT = true;
                     if (!entireScenes(this.displayer)[scenePath]) {
-                        this.room?.putScenes(scenePath, scenes);
+                        putScenes(this.room, scenePath, scenes);
                     }
                 } else {
                     if (!entireScenes(this.displayer)[scenePath]) {
-                        this.room?.putScenes(scenePath, [{ name: scenes[0].name }]);
+                        putScenes(this.room, scenePath, [{ name: scenes[0].name }]);
                     }
                 }
             }
             if (scenePath && scenes === undefined) {
-                this.room?.putScenes(scenePath, [{}]);
+                putScenes(this.room, scenePath, [{}]);
             }
         }
         return isDynamicPPT;

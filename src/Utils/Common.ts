@@ -1,12 +1,12 @@
 import { appRegister } from "../Register";
 import { debounce } from "lodash";
 import { emitter } from "../InternalEmitter";
+import { ROOT_DIR } from "../constants";
 import { ScenePathType } from "white-web-sdk";
 import { v4 } from "uuid";
 import type { PublicEvent } from "../callback";
-import type { Displayer, ViewVisionMode, Room, View } from "white-web-sdk";
+import type { Displayer, ViewVisionMode, Room, View , SceneDefinition} from "white-web-sdk";
 import type Emittery from "emittery";
-import { ROOT_DIR } from "../constants";
 
 export const genAppId = async (kind: string) => {
     const impl = await appRegister.appClasses.get(kind)?.();
@@ -104,6 +104,9 @@ export const entireScenes = (displayer: Displayer) => {
     return displayer.entireScenes();
 };
 
+export const putScenes = (room: Room | undefined, path: string, scenes: SceneDefinition[]) => {
+    return room?.putScenes(path, scenes);
+}
 
 export const isValidScenePath = (scenePath: string) => {
     return scenePath.startsWith("/");
