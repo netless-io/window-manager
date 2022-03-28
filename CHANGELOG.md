@@ -1,3 +1,7 @@
+## 0.4.18
+
+1. 修复设置 viewMode freedom 时, 不能 focus 到主白板的问题
+
 ## 0.4.17
 
 1. 修复 safari 浏览器下 removeScenes 为 "/" 没有清理完成完成时可以 addApp
