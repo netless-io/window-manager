@@ -2,6 +2,7 @@ import { emitter } from "../InternalEmitter";
 import { isPlayer } from "white-web-sdk";
 import type { WindowManager } from "../index";
 import type { Camera, Room, Player, PlayerSeekingResult } from "white-web-sdk";
+import { ROOT_DIR } from "../constants";
 
 // 修改多窗口状态下一些失效的方法实现到 manager 的 mainview 上, 降低迁移成本
 export const replaceRoomFunction = (room: Room | Player, manager: WindowManager) => {
@@ -54,13 +55,16 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.lockImage = (...args) => manager.lockImage(...args);
         room.lockImages = (...args) => manager.lockImages(...args);
 
-        delegateRemoveScenes(room);
+        delegateRemoveScenes(room, manager);
     }
 };
 
-const delegateRemoveScenes = (room: Room) => {
+const delegateRemoveScenes = (room: Room, manager: WindowManager) => {
     const originRemoveScenes = room.removeScenes;
     room.removeScenes = (scenePath: string) => {
+        if (scenePath === ROOT_DIR) {
+            manager.appManager?.updateRootDirRemoving(true);
+        }
         const result = originRemoveScenes.call(room, scenePath);
         emitter.emit("removeScenes", scenePath);
         return result;

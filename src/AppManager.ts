@@ -130,9 +130,7 @@ export class AppManager {
      * 所以需要关掉所有开启了 view 的 app
      */
     public async onRootDirRemoved(needClose = true) {
-        this.rootDirRemoving =  true;
         this.setMainViewScenePath(INIT_DIR);
-
         this.createRootDirScenesCallback();
         
         for (const [id, appProxy] of this.appProxies.entries()) {
@@ -142,9 +140,8 @@ export class AppManager {
         }
         // 删除了根目录的 scenes 之后 mainview 需要重新绑定, 否则主白板会不能渲染
         this.mainViewProxy.rebind();
-
         emitter.emit("rootDirRemoved");
-        this.rootDirRemoving = false;
+        this.updateRootDirRemoving(false);
     }
 
     private onReadonlyChanged = () => {
@@ -730,6 +727,10 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("containerRectUpdate", rect);
         });
+    }
+
+    public updateRootDirRemoving = (removing: boolean) => {
+        this.rootDirRemoving = removing;
     }
 
     public dispatchInternalEvent(event: Events, payload?: any) {

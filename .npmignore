@@ -7,3 +7,7 @@ e2e/
 example/
 yarn.lock
 yarn-error.log
+.idea
+.eslintignore
+.eslintrc.js
+.vscode
