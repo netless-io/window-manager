@@ -23,6 +23,7 @@ export class MainViewProxy {
         this.moveCameraSizeByAttributes();
         emitter.once("mainViewMounted").then(() => {
             setTimeout(() => {
+                this.addMainViewListener();
                 this.start();
                 if (!this.mainViewCamera || !this.mainViewSize) {
                     this.setCameraAndSize();
@@ -54,7 +55,6 @@ export class MainViewProxy {
     public start() {
         if (this.started) return;
         this.sizeChangeHandler(this.mainViewSize);
-        this.addMainViewListener();
         this.addCameraListener();
         this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
         this.started = true;
@@ -116,9 +116,11 @@ export class MainViewProxy {
         const disableCameraTransform = this.mainView.disableCameraTransform;
         this.stop();
         this.mainView.release();
+        this.removeMainViewListener();
         this.mainView = this.createMainView();
         this.mainView.disableCameraTransform = disableCameraTransform;
         this.mainView.divElement = divElement;
+        this.addMainViewListener();
         this.start();
     }
 
@@ -204,7 +206,6 @@ export class MainViewProxy {
     }
 
     public stop() {
-        this.removeMainViewListener();
         this.removeCameraListener();
         this.manager.refresher?.remove(Fields.MainViewCamera);
         this.manager.refresher?.remove(Fields.MainViewSize);
@@ -212,6 +213,7 @@ export class MainViewProxy {
     }
 
     public destroy() {
+        this.removeMainViewListener();
         this.stop();
         this.sideEffectManager.flushAll();
     }
