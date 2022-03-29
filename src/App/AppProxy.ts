@@ -1,31 +1,41 @@
 import Emittery from "emittery";
-import { AppAttributes, AppEvents, Events, SETUP_APP_DELAY } from "./constants";
+import { AppAttributes, AppEvents, Events, SETUP_APP_DELAY } from "../constants";
 import { AppContext } from "./AppContext";
-import { appRegister } from "./Register";
+import { AppPageStateImpl } from "./AppPageStateImpl";
+import { appRegister } from "../Register";
 import { autorun } from "white-web-sdk";
-import { BoxManagerNotFoundError } from "./Utils/error";
-import { debounce, get } from "lodash";
-import { emitter } from "./InternalEmitter";
-import { Fields } from "./AttributesDelegate";
-import { entireScenes, getScenePath, removeScenes, setScenePath, setViewFocusScenePath } from "./Utils/Common";
-import { log } from "./Utils/log";
+import { BoxManagerNotFoundError } from "../Utils/error";
+import { debounce, get, memoize } from "lodash";
+import { emitter } from "../InternalEmitter";
+import { Fields } from "../AttributesDelegate";
+import { log } from "../Utils/log";
+import {
+    entireScenes,
+    getScenePath,
+    removeScenes,
+    setScenePath,
+    setViewFocusScenePath,
+} from "../Utils/Common";
 import type {
     AppEmitterEvent,
     AppInitState,
     BaseInsertParams,
     setAppOptions,
     AppListenerKeys,
-} from "./index";
+} from "../index";
 import type { SceneState, View, SceneDefinition } from "white-web-sdk";
-import type { AppManager } from "./AppManager";
-import type { NetlessApp } from "./typings";
+import type { AppManager } from "../AppManager";
+import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
+import type { PageState } from "../Page";
+
+export type AppEmitter = Emittery<AppEmitterEvent>;
 
 export class AppProxy {
     public kind: string;
     public id: string;
     public scenePath?: string;
-    public appEmitter: Emittery<AppEmitterEvent>;
+    public appEmitter: AppEmitter;
     public scenes?: SceneDefinition[];
 
     private appListener: any;
@@ -37,8 +47,10 @@ export class AppProxy {
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
     private stateKey: string;
-    private appResult?: NetlessApp<any>;
-    private appContext?: AppContext<any, any>;
+    private _pageState: AppPageStateImpl;
+
+    public appResult?: NetlessApp<any>;
+    public appContext?: AppContext<any, any>;
 
     constructor(
         private params: BaseInsertParams,
@@ -60,6 +72,12 @@ export class AppProxy {
             // 只有传入了 scenePath 的 App 才会创建 View
             this.createView();
         }
+        this._pageState = new AppPageStateImpl({
+            displayer: this.manager.displayer,
+            scenePath: this.scenePath,
+            view: this.view,
+            notifyPageStateChange: this.notifyPageStateChange,
+        });
     }
 
     private initScenes() {
@@ -76,6 +94,10 @@ export class AppProxy {
 
     public get view(): View | undefined {
         return this.manager.viewManager.getView(this.id);
+    }
+
+    public get viewIndex(): number | undefined {
+        return this.view?.focusSceneIndex;
     }
 
     public get isWritable(): boolean {
@@ -127,7 +149,7 @@ export class AppProxy {
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
-        emitter.emit("updateManagerRect")
+        emitter.emit("updateManagerRect");
         return {
             appId: this.id,
             app: appImpl,
@@ -210,7 +232,7 @@ export class AppProxy {
 
     public async onSeek(time: number) {
         this.appEmitter.emit("seek", time).catch(err => {
-            console.log(`[WindowManager]: emit seek error: ${err.message}`)
+            console.log(`[WindowManager]: emit seek error: ${err.message}`);
         });
         const boxInitState = this.getAppInitState(this.id);
         this.boxManager?.updateBoxState(boxInitState);
@@ -326,9 +348,15 @@ export class AppProxy {
             return autorun(() => {
                 const fullPath = this.appAttributes?.fullPath;
                 this.setFocusScenePathHandler(fullPath);
+                this.onFullPathChange(fullPath);
             });
         });
     };
+
+    private onFullPathChange = memoize(_ => {
+        console.log("onFullPathChange", _);
+        this.notifyPageStateChange();
+    });
 
     private setFocusScenePathHandler = debounce((fullPath: string | undefined) => {
         if (this.view && fullPath && fullPath !== this.view?.focusScenePath) {
@@ -358,6 +386,24 @@ export class AppProxy {
         return view;
     }
 
+    public notifyPageStateChange = () => {
+        this.appEmitter.emit("pageStateChange", this.pageState);
+    };
+
+    public get pageState(): PageState {
+        return this._pageState.toObject();
+    }
+
+    public setSceneIndex(index: number) {
+        if (this.view) {
+            this.view.focusSceneIndex = index;
+            const fullPath = this._pageState.getFullPath(index);
+            if (fullPath) {
+                this.setFullPath(fullPath);
+            }
+        }
+    }
+
     public async destroy(
         needCloseBox: boolean,
         cleanAttrs: boolean,
@@ -384,6 +430,7 @@ export class AppProxy {
             }
         }
         this.appProxies.delete(this.id);
+        this._pageState.destroy();
 
         this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);

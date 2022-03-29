@@ -1,7 +1,7 @@
 import { callbacks } from "./callback";
 import { emitter } from "./InternalEmitter";
 import type { View } from "white-web-sdk";
-import type { AppProxy } from "./AppProxy";
+import type { AppProxy } from "./App";
 
 export type RedoUndoContext = {
     mainView: () => View;

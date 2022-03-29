@@ -1,6 +1,6 @@
 import { callbacks } from "../callback";
-import type { AppProxy } from "../AppProxy";
 import { SETUP_APP_DELAY } from "../constants";
+import type { AppProxy } from "../App";
 
 export type Invoker = () => Promise<AppProxy | undefined>;
 
@@ -52,12 +52,12 @@ export class AppCreateQueue {
             this.clear();
             this.emitReady();
         }
-    }
+    };
 
     private clear = () => {
         clearInterval(this.timer);
         this.timer = undefined;
-    }
+    };
 
     public emitReady() {
         if (!this.isEmit) {

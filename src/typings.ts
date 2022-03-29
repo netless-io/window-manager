@@ -9,8 +9,9 @@ import type {
     SceneState,
     View,
 } from "white-web-sdk";
-import type { AppContext } from "./AppContext";
+import type { AppContext } from "./App";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
+import type { PageState } from "./PageState";
 
 export interface NetlessApp<Attributes = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
     kind: string;
@@ -50,6 +51,7 @@ export type AppEmitterEvent<T = any> = {
     focus: boolean;
     reconnected: void;
     seek: number;
+    pageStateChange: PageState,
 };
 
 export type RegisterEventData = {
@@ -73,7 +75,7 @@ export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any
 
 export type AppListenerKeys = keyof AppEmitterEvent;
 
-export type { AppContext } from "./AppContext";
+export type { AppContext } from "./App/AppContext";
 export type { ReadonlyTeleBox, TeleBoxRect };
 export type { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room, Player };
 export type { Storage, StorageStateChangedEvent, StorageStateChangedListener } from "./App/Storage";

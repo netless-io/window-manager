@@ -104,8 +104,8 @@ export const entireScenes = (displayer: Displayer) => {
     return displayer.entireScenes();
 };
 
-export const putScenes = (room: Room | undefined, path: string, scenes: SceneDefinition[]) => {
-    return room?.putScenes(path, scenes);
+export const putScenes = (room: Room | undefined, path: string, scenes: SceneDefinition[], index?: number) => {
+    return room?.putScenes(path, scenes, index);
 }
 
 export const isValidScenePath = (scenePath: string) => {

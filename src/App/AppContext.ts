@@ -1,5 +1,6 @@
-import { BoxNotCreatedError } from "./Utils/error";
-import { Storage } from "./App/Storage";
+import { BoxNotCreatedError } from "../Utils/error";
+import { putScenes } from "../Utils/Common";
+import { Storage } from "./Storage";
 import {
     autorun,
     listenDisposed,
@@ -17,17 +18,20 @@ import type {
 } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
-import type { BoxManager } from "./BoxManager";
-import type { AppEmitterEvent } from "./index";
-import type { AppManager } from "./AppManager";
+import type { BoxManager } from "../BoxManager";
+import type { AppEmitterEvent } from "../index";
+import type { AppManager } from "../AppManager";
 import type { AppProxy } from "./AppProxy";
 import type {
     MagixEventAddListener,
     MagixEventDispatcher,
     MagixEventRemoveListener,
-} from "./App/MagixEvent";
+} from "./MagixEvent";
+import type { AddPageParams, PageController, PageState } from "../Page";
 
-export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any> {
+export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any>
+    implements PageController
+{
     public readonly emitter: Emittery<AppEmitterEvent<TAttributes>>;
     public readonly mobxUtils = {
         autorun,
@@ -192,4 +196,42 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public removeMagixEventListener = this.manager.displayer.removeMagixEventListener.bind(
         this.manager.displayer
     ) as MagixEventRemoveListener<TMagixEventPayloads>;
+
+    /** PageController  */
+    public nextPage = async (): Promise<boolean> => {
+        const nextIndex = this.pageState.index + 1;
+        if (nextIndex > this.pageState.length - 1) {
+            console.warn("[WindowManager] nextPage: index out of range");
+            return false;
+        }
+        this.appProxy.setSceneIndex(nextIndex);
+        return true;
+    };
+
+    public prevPage = async (): Promise<boolean> => {
+        const nextIndex = this.pageState.index - 1;
+        if (nextIndex < 0) {
+            console.warn("[WindowManager] prevPage: index out of range");
+            return false;
+        }
+        this.appProxy.setSceneIndex(nextIndex);
+        return true;
+    };
+
+    public addPage = async (params?: AddPageParams) => {
+        const after = params?.after;
+        const scene = params?.scene;
+        const scenePath = this.appProxy.scenePath;
+        if (!scenePath) return;
+        if (after) {
+            const nextIndex = this.pageState.index + 1;
+            putScenes(this.manager.room, scenePath, [scene || {}], nextIndex);
+        } else {
+            putScenes(this.manager.room, scenePath, [scene || {}]);
+        }
+    };
+
+    public get pageState(): PageState {
+        return this.appProxy.pageState;
+    }
 }

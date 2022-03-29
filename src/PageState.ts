@@ -1,11 +1,7 @@
-import type { AppManager } from "./AppManager";
 import { callbacks } from "./callback";
 import { emitter } from "./InternalEmitter";
-
-export type PageState = {
-    index: number;
-    length: number;
-};
+import type { AppManager } from "./AppManager";
+import type { PageState } from "./Page";
 
 export class PageStateImpl {
     constructor(private manager: AppManager) {

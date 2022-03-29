@@ -55,10 +55,10 @@ import type {
 import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
-import type { AppProxy } from "./AppProxy";
+import type { AppProxy } from "./App";
 import type { PublicEvent } from "./Callback";
 import type Emittery from "emittery";
-import type { PageState } from "./PageState";
+import type { PageController, AddPageParams, PageState } from "./Page";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -145,12 +145,7 @@ export type MountParams = {
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
 
-export type AddPageParams = {
-    after?: boolean;
-    scene?: SceneDefinition;
-};
-
-export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> {
+export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> implements PageController {
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;

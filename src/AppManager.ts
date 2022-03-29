@@ -1,7 +1,7 @@
 import { AppAttributes, AppStatus, Events, INIT_DIR, MagixEventName, ROOT_DIR } from "./constants";
 import { AppCreateQueue } from "./Utils/AppCreateQueue";
 import { AppListeners } from "./AppListener";
-import { AppProxy } from "./AppProxy";
+import { AppProxy } from "./App";
 import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks } from "./callback";

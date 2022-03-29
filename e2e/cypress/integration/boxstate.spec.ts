@@ -1,6 +1,6 @@
 import { TELE_BOX_STATE } from "@netless/telebox-insider";
 import type { WindowManager } from "../../../dist";
-import { HelloWorldApp } from "../../../example/helloworld-app";
+import { HelloWorldApp } from "../../../example/app/helloworld-app";
 import sinon from "sinon";
 import "./common";
 

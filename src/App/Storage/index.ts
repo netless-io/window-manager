@@ -1,7 +1,7 @@
 import type { AkkoObjectUpdatedProperty } from "white-web-sdk";
 import { get, has, mapValues, isObject, size, noop } from "lodash";
 import { SideEffectManager } from "side-effect-manager";
-import type { AppContext } from "../../AppContext";
+import type { AppContext } from "../AppContext";
 import { safeListenPropsUpdated } from "../../Utils/Reactive";
 import { isRef, makeRef, plainObjectKeys } from "./utils";
 import type { Diff, MaybeRefValue, RefValue, StorageStateChangedEvent, StorageStateChangedListener, StorageStateChangedListenerDisposer } from "./typings";
