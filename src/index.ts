@@ -56,7 +56,7 @@ import type { AppListeners } from "./AppListener";
 import type { NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./App";
-import type { PublicEvent } from "./Callback";
+import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
 

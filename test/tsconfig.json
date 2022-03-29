@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+      "strict": true,
+      "noFallthroughCasesInSwitch": true,
+      "forceConsistentCasingInFileNames": true,
+      "noUnusedParameters": true,
+      "noImplicitOverride": true,
+      "module": "ESNext",
+      "lib": ["DOM", "ESNext"],
+      "moduleResolution": "Node",
+      "esModuleInterop": true,
+      "resolveJsonModule": true,
+      "skipLibCheck": true,
+      "noEmit": true,
+      "types": ["@types/jest"],
+      "useUnknownInCatchVariables": false,
+    },
+    "include": ["./**/*.test.ts", "../src/*.d.ts"]
+}
