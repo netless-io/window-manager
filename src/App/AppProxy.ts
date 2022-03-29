@@ -354,7 +354,6 @@ export class AppProxy {
     };
 
     private onFullPathChange = memoize(_ => {
-        console.log("onFullPathChange", _);
         this.notifyPageStateChange();
     });
 

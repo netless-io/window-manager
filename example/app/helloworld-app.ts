@@ -33,9 +33,6 @@ export const HelloWorldApp = async () => {
             // }
             console.log("HelloWorldApp pageState", context.pageState)
             console.log("helloworld options", context.getAppOptions());
-            setTimeout(() => {
-                context.addPage();
-            }, 1000)
 
             context.emitter.on("pageStateChange", pageState => {
                 console.log("HelloWorldApp pageState change", pageState)

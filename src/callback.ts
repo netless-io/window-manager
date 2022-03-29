@@ -2,7 +2,7 @@ import Emittery from "emittery";
 import type { TeleBoxColorScheme, TELE_BOX_STATE } from "@netless/telebox-insider";
 import type { CameraState, SceneState, ViewVisionMode } from "white-web-sdk";
 import type { LoadAppEvent } from "./Register";
-import type { PageState } from "./PageState";
+import type { PageState } from "./Page";
 
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;

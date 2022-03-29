@@ -11,7 +11,7 @@ import type {
 } from "white-web-sdk";
 import type { AppContext } from "./App";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
-import type { PageState } from "./PageState";
+import type { PageState } from "./Page";
 
 export interface NetlessApp<Attributes = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
     kind: string;

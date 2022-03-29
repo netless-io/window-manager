@@ -1,6 +1,5 @@
-import { get } from "lodash";
-import type { Displayer, SceneDefinition, ScenesCallbacksNode, View } from "white-web-sdk";
-import type { SceneMap, PageState } from "../Page";
+import type { Displayer, ScenesCallbacksNode, View } from "white-web-sdk";
+import type { PageState } from "../Page";
 
 export type AppPageStateParams = {
     displayer: Displayer;
@@ -27,23 +26,14 @@ export class AppPageStateImpl {
         this.params.notifyPageStateChange();
     };
 
-    public get scenes(): SceneDefinition[] | undefined {
-        return Object.values(this.getSceneMap());
-    }
-
     public getFullPath(index: number) {
-        const scenes = this.scenes;
+        const scenes = this.sceneNode?.scenes;
         if (this.params.scenePath && scenes) {
-            const name = scenes[index]?.name;
+            const name = scenes[index];
             if (name) {
                 return `${this.params.scenePath}/${name}`;
             }
         }
-    }
-
-    private getSceneMap() {
-        // TODO 使用了 SDK 没有暴露的类型的值, 需要确认
-        return get(this.sceneNode, ["state", "group", "scenesMap"]) as SceneMap;
     }
 
     public toObject(): PageState {

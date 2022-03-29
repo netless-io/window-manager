@@ -78,6 +78,31 @@ context.setScenePath("/page/2")
 context.mountView(ref)
 ```
 
+### addPage
+
+```ts
+context.addPage()
+```
+
+### nextPage
+
+```ts
+context.nextPage()
+```
+
+### prevPage
+
+```ts
+context.prevPage()
+```
+
+### pageState
+
+```ts
+context.pageState
+```
+
+
 <h2 id="events">events</h2>
 
 ### destroy

@@ -10,11 +10,6 @@ export type PageState = {
     length: number;
 };
 
-
-export type SceneMap = {
-    [key: string]: SceneDefinition;
-}
-
 export interface PageController {
     nextPage: () => Promise<boolean>;
     prevPage: () => Promise<boolean>;
