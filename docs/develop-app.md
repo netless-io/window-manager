@@ -4,6 +4,10 @@
 
 ## official apps https://github.com/netless-io/netless-app
 
+## app-with-whiteboard
+
+如果需要 app 中挂载白板请参考 [board.tsx](https://github.com/netless-io/window-manager/blob/master/example/app/board.tsx)
+
 <br>
 
 ```ts
