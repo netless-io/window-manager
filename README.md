@@ -210,8 +210,14 @@ manager.destroy();
 
 ## 开发流程
 
-yarn build:lib
+```bash
+pnpm install
 
-cd test
+pnpm build
 
-yarn dev
+cd example
+
+pnpm install
+
+pnpm dev
+```

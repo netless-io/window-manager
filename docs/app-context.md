@@ -134,3 +134,23 @@ context.emitter.on("focus", focus => {
     //
 })
 ```
+
+
+### pageStateChange
+
+#### PageState
+
+```ts
+type PateState {
+    index: number;
+    length: number;
+}
+```
+
+当前页数和总页数变化时触发
+
+```ts
+context.emitter.on("pageStateChange", pageState => {
+    // { index: 0, length: 1 }
+})
+```

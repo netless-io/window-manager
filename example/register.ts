@@ -1,6 +1,7 @@
 import { WindowManager } from "../dist/index.es";
 import "./app/helloworld-app";
 import "./app/counter";
+import { Board } from "./app/board";
 
 WindowManager.register({
     kind: "Slide",
@@ -30,4 +31,9 @@ WindowManager.register({
 WindowManager.register({
     kind: "Countdown",
     src: "https://netless-app.oss-cn-hangzhou.aliyuncs.com/@netless/app-countdown/0.0.2/dist/main.iife.js",
+});
+
+WindowManager.register({
+    kind: "Board",
+    src: Board
 });

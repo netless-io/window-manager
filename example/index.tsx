@@ -3,7 +3,7 @@ import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
 import type { WindowManager as WindowManagerType } from "../dist";
-import { createStatic, createDynamic, createHelloWorld, createVideo, createSlide, createCounter } from "./apps";
+import { createStatic, createDynamic, createHelloWorld, createVideo, createSlide, createCounter, createBoard } from "./apps";
 import "../dist/style.css";
 import "./register";
 import "./index.css";
@@ -168,6 +168,10 @@ const nextPage = (manager: WindowManager) => {
     manager.nextPage();
 };
 
+const cleanCurrentScene = (manager: WindowManager) => {
+    manager.cleanCurrentScene()
+}
+
 const App = () => {
     return (
         <div className="app">
@@ -186,6 +190,9 @@ const App = () => {
                 </button>
                 <button className="side-button" onClick={() => createCounter(manager)}>
                     Counter
+                </button>
+                <button className="side-button" onClick={() => createBoard(manager)}>
+                    Board
                 </button>
                 <button className="side-button" onClick={() => createStatic(manager)}>
                     课件 static
@@ -207,6 +214,9 @@ const App = () => {
                 </button>
                 <button className="side-button" onClick={() => nextPage(manager)}>
                     下一页
+                </button>
+                <button className="side-button" onClick={() => cleanCurrentScene(manager)}>
+                    清屏
                 </button>
             </div>
         </div>

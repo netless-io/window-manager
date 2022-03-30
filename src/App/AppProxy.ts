@@ -5,7 +5,7 @@ import { AppPageStateImpl } from "./AppPageStateImpl";
 import { appRegister } from "../Register";
 import { autorun } from "white-web-sdk";
 import { BoxManagerNotFoundError } from "../Utils/error";
-import { debounce, get, memoize } from "lodash";
+import { debounce, get } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { log } from "../Utils/log";
@@ -348,14 +348,10 @@ export class AppProxy {
             return autorun(() => {
                 const fullPath = this.appAttributes?.fullPath;
                 this.setFocusScenePathHandler(fullPath);
-                this.onFullPathChange(fullPath);
+                this.notifyPageStateChange();
             });
         });
     };
-
-    private onFullPathChange = memoize(_ => {
-        this.notifyPageStateChange();
-    });
 
     private setFocusScenePathHandler = debounce((fullPath: string | undefined) => {
         if (this.view && fullPath && fullPath !== this.view?.focusScenePath) {
