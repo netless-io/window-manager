@@ -1,3 +1,7 @@
+## 0.4.19
+
+1. 升级 @netless/app-docs-viewer@0.2.9
+
 ## 0.4.18
 
 1. 修复设置 viewMode freedom 时, 不能 focus 到主白板的问题
