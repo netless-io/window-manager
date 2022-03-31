@@ -1,3 +1,7 @@
+## 0.4.20
+
+1. 导出 Page 相关类型
+
 ## 0.4.19
 
 1. 升级 @netless/app-docs-viewer@0.2.9
