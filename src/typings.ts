@@ -79,3 +79,4 @@ export type { AppContext } from "./App/AppContext";
 export type { ReadonlyTeleBox, TeleBoxRect };
 export type { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room, Player };
 export type { Storage, StorageStateChangedEvent, StorageStateChangedListener } from "./App/Storage";
+export * from "./Page";
