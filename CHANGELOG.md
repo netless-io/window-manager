@@ -1,3 +1,6 @@
+## 0.4.21
+
+1. 添加 `manager.refresh()` 方法用于从其他房间 `copy` `attributes`
 ## 0.4.20
 
 1. 导出 Page 相关类型
