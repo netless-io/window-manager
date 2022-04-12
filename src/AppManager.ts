@@ -7,7 +7,7 @@ import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks } from "./callback";
 import { emitter } from "./InternalEmitter";
 import { Fields, store } from "./AttributesDelegate";
-import { get, isInteger, orderBy } from "lodash";
+import { debounce, get, isInteger, orderBy } from "lodash";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
@@ -251,19 +251,9 @@ export class AppManager {
         await this.attributesUpdateCallback(this.attributes.apps);
         emitter.emit("updateManagerRect");
         emitter.onAny(this.boxEventListener);
-        this.refresher?.add("apps", () => {
-            return safeListenPropsUpdated(
-                () => this.attributes.apps,
-                () => {
-                    this.attributesUpdateCallback(this.attributes.apps);
-                }
-            );
-        });
-        this.refresher?.add("appsClose", () => {
-            return onObjectRemoved(this.attributes.apps, () => {
-                this.onAppDelete(this.attributes.apps);
-            });
-        });
+
+        this.addAppsChangeListener();
+        this.addAppCloseListener();
         this.refresher?.add("maximized", () => {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
@@ -313,6 +303,25 @@ export class AppManager {
         });
     }
 
+    public addAppsChangeListener = () => {
+        this.refresher?.add("apps", () => {
+            return safeListenPropsUpdated(
+                () => this.attributes.apps,
+                () => {
+                    this.attributesUpdateCallback(this.attributes.apps);
+                }
+            );
+        });
+    }
+
+    public addAppCloseListener = () => {
+        this.refresher?.add("appsClose", () => {
+            return onObjectRemoved(this.attributes.apps, () => {
+                this.onAppDelete(this.attributes.apps);
+            });
+        });
+    }
+
     private onMainViewIndexChange = (index: number) => {
         if (index !== undefined && this._prevSceneIndex !== index) {
             callbacks.emit("mainViewSceneIndexChange", index);
@@ -342,13 +351,15 @@ export class AppManager {
         }
     }
 
+    public attributesUpdateCallback = debounce((apps: any) => this._attributesUpdateCallback(apps), 100);
+
     /**
      * 插件更新 attributes 时的回调
      *
      * @param {*} attributes
      * @memberof WindowManager
      */
-    public async attributesUpdateCallback(apps: any) {
+    public async _attributesUpdateCallback(apps: any) {
         if (apps && WindowManager.container) {
             const appIds = Object.keys(apps);
             if (appIds.length === 0) {

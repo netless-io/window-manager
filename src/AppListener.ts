@@ -59,6 +59,10 @@ export class AppListeners {
                     this.rootDirRemovedHandler();
                     break;
                 }
+                case Events.Refresh: {
+                    this.refreshHandler();
+                    break;
+                }
                 default:
                     break;
             }
@@ -102,5 +106,9 @@ export class AppListeners {
         this.manager.createRootDirScenesCallback();
         this.manager.mainViewProxy.rebind();
         emitter.emit("rootDirRemoved");
+    }
+
+    private refreshHandler = () => {
+        this.manager.windowManger._refresh();
     }
 }

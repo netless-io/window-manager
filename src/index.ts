@@ -332,6 +332,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
                     params.chessboard,
                     params.overwriteStyles
                 );
+                if (this.boxManager) {
+                    this.boxManager.destroy();
+                }
                 const boxManager = createBoxManager(this, callbacks, emitter, {
                     collectorContainer: params.collectorContainer,
                     collectorStyles: params.collectorStyles,
@@ -874,6 +877,20 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public lockImages(locked: boolean): void {
         return this.focusedView?.lockImages(locked);
+    }
+
+    public refresh() {
+       this._refresh();
+       this.appManager?.dispatchInternalEvent(Events.Refresh);
+    }
+    
+    /** @inner */
+    public _refresh() {
+        this.appManager?.mainViewProxy.rebind();
+        if (WindowManager.container) {
+            this.bindContainer(WindowManager.container);
+        }
+        this.appManager?.refresher?.refresh();
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {

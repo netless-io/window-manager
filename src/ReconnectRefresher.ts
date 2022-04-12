@@ -36,6 +36,10 @@ export class ReconnectRefresher {
     };
 
     private onReconnected = debounce(() => {
+        this._onReconnected();
+    }, 3000);
+
+    private _onReconnected = () => {
         log("onReconnected refresh reactors");
         this.releaseDisposers();
         this.reactors.forEach((func, id) => {
@@ -44,7 +48,7 @@ export class ReconnectRefresher {
             }
         });
         this.ctx.emitter.emit("onReconnected", undefined);
-    }, 3000);
+    }
 
     private releaseDisposers() {
         this.disposers.forEach(disposer => {
@@ -55,7 +59,15 @@ export class ReconnectRefresher {
         this.disposers.clear();
     }
 
+    public refresh() {
+        this._onReconnected();
+    }
+
     public add(id: string, func: any) {
+        const disposer = this.disposers.get(id);
+        if (disposer && isFunction(disposer)) {
+            disposer();
+        }
         if (isFunction(func)) {
             this.reactors.set(id, func);
             this.disposers.set(id, func());

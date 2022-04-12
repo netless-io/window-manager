@@ -1,7 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@netless/app-slide': ^0.1.0
+  '@netless/app-slide': ^0.1.1
   '@netless/video-js-plugin': ^0.3.7
   normalize.css: ^8.0.1
   p-queue: ^7.1.0
@@ -12,7 +12,7 @@ specifiers:
   white-web-sdk: ^2.16.3
 
 dependencies:
-  '@netless/app-slide': 0.1.0
+  '@netless/app-slide': 0.1.1
   '@netless/video-js-plugin': registry.npmmirror.com/@netless/video-js-plugin/0.3.8_0f2dc0b5c15fd3b86f06bc494e1fa0af
   normalize.css: registry.npmmirror.com/normalize.css/8.0.1
   p-queue: registry.npmmirror.com/p-queue/7.2.0
@@ -26,8 +26,8 @@ devDependencies:
 
 packages:
 
-  /@netless/app-slide/0.1.0:
-    resolution: {integrity: sha512-tivMMmd4vKr98AJixyxhHQkgheR8zOWV4mvq/yB2PCdkVpxfUtW4er9+mZ+CoOP6P/9X5kegL/vD49Gn8jYVeA==}
+  /@netless/app-slide/0.1.1:
+    resolution: {integrity: sha512-eZZK9jUsfrnnpEvKKRnSDET7DwNvCltzRnsvWGjveQCb5eeGsYVleP13bY/foFlL6wpUInNXhdjS5J2/E5WXsw==}
     dev: false
 
   /esbuild-android-64/0.14.28:
