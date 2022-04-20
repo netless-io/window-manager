@@ -8,6 +8,7 @@ import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
+import { Events } from "../constants";
 
 export class MainViewProxy {
     private scale?: number;
@@ -25,6 +26,7 @@ export class MainViewProxy {
             this.addMainViewListener();
             this.start();
             this.ensureCameraAndSize();
+            this.startListenWritableChange();
         });
         const playgroundSizeChangeListener = () => {
             this.sizeChangeHandler(this.mainViewSize);
@@ -33,6 +35,9 @@ export class MainViewProxy {
             emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
             return () => emitter.off("playgroundSizeChange", playgroundSizeChangeListener);
         });
+    }
+
+    private startListenWritableChange = () => {
         this.sideEffectManager.add(() => {
             return emitter.on("writableChange", isWritable => {
                 if (isWritable) {
@@ -44,6 +49,7 @@ export class MainViewProxy {
 
     public ensureCameraAndSize() {
         if (!this.mainViewCamera || !this.mainViewSize) {
+            this.manager.dispatchInternalEvent(Events.InitMainViewCamera);
             this.setCameraAndSize();
         }
     }
@@ -74,8 +80,9 @@ export class MainViewProxy {
     };
 
     public setCameraAndSize(): void {
-        this.store.setMainViewCamera({ ...this.mainView.camera, id: this.manager.uid });
-        this.store.setMainViewSize({ ...this.mainView.size, id: this.manager.uid });
+        const camera = { ...this.mainView.camera, id: this.manager.uid };
+        const size = { ...this.mainView.size, id: this.manager.uid };
+        this.store.setMainViewCameraAndSize(camera, size);
     }
 
     private cameraReaction = () => {

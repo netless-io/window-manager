@@ -38,6 +38,11 @@ export type StoreContext = {
     safeUpdateAttributes: (keys: string[], value: any) => void;
     safeSetAttributes: (attributes: any) => void;
 }
+
+export type ICamera = Camera & { id: string };
+
+export type ISize = Size & { id: string };
+
 export class AttributesDelegate {
 
     constructor(private context: StoreContext) {}
@@ -152,12 +157,19 @@ export class AttributesDelegate {
         return get(this.attributes, [Fields.MainViewSize]);
     }
 
-    public setMainViewCamera(camera: (Camera & { id: string }) | undefined) {
+    public setMainViewCamera(camera: ICamera) {
         this.context.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
 
-    public setMainViewSize(size: (Size & { id: string }) | undefined) {
+    public setMainViewSize(size: ISize) {
         this.context.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
+    }
+
+    public setMainViewCameraAndSize(camera: ICamera, size: ISize) {
+        this.context.safeSetAttributes({
+            [Fields.MainViewCamera]: { ...camera },
+            [Fields.MainViewSize]: { ...size },
+        });
     }
 
     public setAppFocus = (appId: string, focus: boolean) => {

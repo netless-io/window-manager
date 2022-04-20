@@ -63,6 +63,10 @@ export class AppListeners {
                     this.refreshHandler();
                     break;
                 }
+                case Events.InitMainViewCamera: {
+                    this.initMainViewCameraHandler();
+                    break;
+                }
                 default:
                     break;
             }
@@ -110,5 +114,9 @@ export class AppListeners {
 
     private refreshHandler = () => {
         this.manager.windowManger._refresh();
+    }
+
+    private initMainViewCameraHandler = () => {
+        this.manager.mainViewProxy.addCameraReaction();
     }
 }
