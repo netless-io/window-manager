@@ -8,6 +8,7 @@ import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
+import { Events } from "../constants";
 
 export class MainViewProxy {
     private scale?: number;
@@ -22,13 +23,12 @@ export class MainViewProxy {
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
         emitter.once("mainViewMounted").then(() => {
-            setTimeout(() => {
-                this.addMainViewListener();
-                this.start();
-                if (!this.mainViewCamera || !this.mainViewSize) {
-                    this.setCameraAndSize();
-                }
-            }, 200); // 等待 mainView 挂载完毕再进行监听，否则会触发不必要的 onSizeUpdated
+            this.addMainViewListener();
+            this.start();
+            if (!this.mainViewCamera || !this.mainViewSize) {
+                manager.dispatchInternalEvent(Events.InitMainViewCamera)
+                this.setCameraAndSize();
+            }
         });
         const playgroundSizeChangeListener = () => {
             this.sizeChangeHandler(this.mainViewSize);
@@ -56,8 +56,12 @@ export class MainViewProxy {
         if (this.started) return;
         this.sizeChangeHandler(this.mainViewSize);
         this.addCameraListener();
-        this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
+        this.addCameraReaction();
         this.started = true;
+    }
+
+    public addCameraReaction = () => {
+        this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
     }
 
     public setCameraAndSize(): void {
@@ -73,10 +77,7 @@ export class MainViewProxy {
                     this.moveCameraToContian(this.mainViewSize);
                     this.moveCamera(camera);
                 }
-            },
-            {
-                fireImmediately: true,
-            }
+            }, { fireImmediately: true }
         );
     };
 

@@ -15,6 +15,7 @@ export enum Events {
     CursorMove = "CursorMove",
     RootDirRemoved = "RootDirRemoved",
     Refresh = "Refresh",
+    InitMainViewCamera = "InitMainViewCamera",
 }
 
 export const MagixEventName = "__WindowManger";

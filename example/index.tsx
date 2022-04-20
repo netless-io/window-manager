@@ -35,16 +35,15 @@ const mountManager = async (room, root) => {
         debug: true,
         cursor: true,
     })) as WindowManagerType;
-    
+
     manager.emitter.on("ready", async () => {
-        if (isWritable === "false") return;
-        // await room.removeScenes("/");
-        // await createStatic(manager);
-        // await createDynamic(manager);
-        // await createSlide(manager);
+        if (isWritable === "false") {
+            manager.setViewMode("freedom" as any);
+        }
     });
 
     manager.bindContainer(root);
+
     console.log("manager apps", manager.queryAll());
     console.log("manager mounted boxState:", manager.boxState);
     (window as any).manager = manager;
@@ -142,9 +141,6 @@ const onRef = ref => {
             disableNewPencil: false,
             floatBar: true,
         }).then(async room => {
-            if (room.isWritable) {
-                // room.setMemberState({ strokeColor: [0, 0, 1] });
-            }
             (window as any).room = room;
             await mountManager(room, ref);
         });

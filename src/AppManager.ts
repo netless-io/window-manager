@@ -5,9 +5,9 @@ import { AppProxy } from "./App";
 import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks } from "./callback";
+import { debounce, get, isInteger, orderBy } from "lodash";
 import { emitter } from "./InternalEmitter";
 import { Fields, store } from "./AttributesDelegate";
-import { debounce, get, isInteger, orderBy } from "lodash";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
@@ -132,7 +132,7 @@ export class AppManager {
     public async onRootDirRemoved(needClose = true) {
         this.setMainViewScenePath(INIT_DIR);
         this.createRootDirScenesCallback();
-        
+
         for (const [id, appProxy] of this.appProxies.entries()) {
             if (appProxy.view) {
                 await this.closeApp(id, needClose);
@@ -312,7 +312,7 @@ export class AppManager {
                 }
             );
         });
-    }
+    };
 
     public addAppCloseListener = () => {
         this.refresher?.add("appsClose", () => {
@@ -320,7 +320,7 @@ export class AppManager {
                 this.onAppDelete(this.attributes.apps);
             });
         });
-    }
+    };
 
     private onMainViewIndexChange = (index: number) => {
         if (index !== undefined && this._prevSceneIndex !== index) {
@@ -331,7 +331,7 @@ export class AppManager {
             }
             this._prevSceneIndex = index;
         }
-    }
+    };
 
     private onFocusChange = (focused: string | undefined) => {
         if (this._prevFocused !== focused) {
@@ -349,9 +349,12 @@ export class AppManager {
                 }, 0);
             }
         }
-    }
+    };
 
-    public attributesUpdateCallback = debounce((apps: any) => this._attributesUpdateCallback(apps), 100);
+    public attributesUpdateCallback = debounce(
+        (apps: any) => this._attributesUpdateCallback(apps),
+        100
+    );
 
     /**
      * 插件更新 attributes 时的回调
@@ -742,7 +745,7 @@ export class AppManager {
 
     public updateRootDirRemoving = (removing: boolean) => {
         this.rootDirRemoving = removing;
-    }
+    };
 
     public dispatchInternalEvent(event: Events, payload?: any) {
         this.safeDispatchMagixEvent(MagixEventName, {
