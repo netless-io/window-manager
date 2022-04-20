@@ -585,6 +585,7 @@ export class AppManager {
         } else {
             this.mainView.disableCameraTransform = true;
         }
+        emitter.emit("writableChange", isWritable);
     };
 
     public safeSetAttributes(attributes: any) {

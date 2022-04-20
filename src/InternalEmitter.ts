@@ -24,6 +24,7 @@ export type EmitterEvent = {
     rootDirRemoved: undefined;
     setReadonly: boolean;
     changePageState: undefined;
+    writableChange: boolean;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

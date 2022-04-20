@@ -8,7 +8,6 @@ import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
-import { Events } from "../constants";
 
 export class MainViewProxy {
     private scale?: number;
@@ -25,10 +24,7 @@ export class MainViewProxy {
         emitter.once("mainViewMounted").then(() => {
             this.addMainViewListener();
             this.start();
-            if (!this.mainViewCamera || !this.mainViewSize) {
-                manager.dispatchInternalEvent(Events.InitMainViewCamera)
-                this.setCameraAndSize();
-            }
+            this.ensureCameraAndSize();
         });
         const playgroundSizeChangeListener = () => {
             this.sizeChangeHandler(this.mainViewSize);
@@ -37,6 +33,19 @@ export class MainViewProxy {
             emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
             return () => emitter.off("playgroundSizeChange", playgroundSizeChangeListener);
         });
+        this.sideEffectManager.add(() => {
+            return emitter.on("writableChange", isWritable => {
+                if (isWritable) {
+                    this.ensureCameraAndSize();
+                }
+            });
+        });
+    }
+
+    public ensureCameraAndSize() {
+        if (!this.mainViewCamera || !this.mainViewSize) {
+            this.setCameraAndSize();
+        }
     }
 
     private get mainViewCamera() {
@@ -62,7 +71,7 @@ export class MainViewProxy {
 
     public addCameraReaction = () => {
         this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
-    }
+    };
 
     public setCameraAndSize(): void {
         this.store.setMainViewCamera({ ...this.mainView.camera, id: this.manager.uid });
@@ -77,7 +86,8 @@ export class MainViewProxy {
                     this.moveCameraToContian(this.mainViewSize);
                     this.moveCamera(camera);
                 }
-            }, { fireImmediately: true }
+            },
+            { fireImmediately: true }
         );
     };
 

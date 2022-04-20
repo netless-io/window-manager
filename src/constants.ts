@@ -14,8 +14,7 @@ export enum Events {
     MoveCameraToContain = "MoveCameraToContain",
     CursorMove = "CursorMove",
     RootDirRemoved = "RootDirRemoved",
-    Refresh = "Refresh",
-    InitMainViewCamera = "InitMainViewCamera",
+    Refresh = "Refresh"
 }
 
 export const MagixEventName = "__WindowManger";
