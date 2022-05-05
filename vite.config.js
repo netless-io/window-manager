@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
             lib: {
                 // eslint-disable-next-line no-undef
                 entry: path.resolve(__dirname, "src/index.ts"),
-                formats: ["es", "umd"], // TODO cjs 版本待修复
+                formats: ["es", "umd", "cjs"],
                 name: "WindowManager",
                 fileName: "index"
             },
