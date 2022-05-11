@@ -94,10 +94,18 @@ manager.addPage()
 
 <h3 id="view-mode">视角跟随</h3>
 
-`ViewMode` 有 `broadcaster` `freedom` 两种模式
+多窗口中 `ViewMode` 有 `broadcaster` `freedom` 两种模式
 
-可写权限默认进去为 `broadcaster` 并且互相操作并跟随视角
+- `freedom`
 
-当 `room` 设置 `Writable` 为 `false` 时此时只能跟随视角并不能广播视角
+    自由模式，用户可以自由放缩、移动视角
 
-在 `room` 的 `isWritable` 设置为 `false` 后想重新跟随视角可以通过设置为 `broadcaster` 跟随
+    即便房间里有主播，主播也无法影响用户的视角
+
+- `broadcaster`
+
+    主播模式, 操作时其他人的视角都会跟随我
+
+    同时其他为 `broadcaster` 模式的人也会影响我的视角
+
+    在 `isWritable` 为 `false` 时只会跟随其他 `broadcaster` 的视角
