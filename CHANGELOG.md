@@ -1,3 +1,7 @@
+## 0.4.25
+
+1. 添加 `setContainerSizeRatio` 方法, 用于初始化后更新 `containerSizeRatio`
+
 ## 0.4.24
 
 1. `package.json` `main` 指定为 `cjs` 格式
