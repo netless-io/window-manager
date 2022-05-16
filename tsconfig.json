@@ -1,5 +1,4 @@
 {
-    "extends": "@tsconfig/svelte/tsconfig.json",
     "compilerOptions": {
       "rootDir": "./src",
       "outDir": "dist",
@@ -27,6 +26,7 @@
       "noImplicitOverride": true,
       "isolatedModules": true,
       "resolveJsonModule": true,
+      "esModuleInterop": true
     },
     "include": [
       "src",

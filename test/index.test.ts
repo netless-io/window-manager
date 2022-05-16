@@ -1,19 +1,18 @@
 import { Displayer, WindowManager } from "../src";
+import { describe, it, vi, expect, beforeAll } from "vitest";
 
 describe("WindowManager", () => {
+    beforeAll(() => {
+        vi.mock("white-web-sdk");
+    });
+
     const displayer = {} as Displayer;
 
-    test("constructor", () => {
+    it("constructor", async () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
-        (WindowManager as any).__proto__ = jest.fn().mockImplementation(() => {
-            return class {
-                constructor(args: any) {
-                    expect(args).toEqual(invisiblePluginContext);
-                }
-            }
-        }) as any;
-
         const wm = new WindowManager(invisiblePluginContext);
         expect(wm).toBeDefined();
-    })
+        expect(wm.attributes).toBeDefined();
+        expect(wm.setAttributes).toBeDefined();
+    });
 });

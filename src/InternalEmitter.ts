@@ -25,6 +25,7 @@ export type EmitterEvent = {
     setReadonly: boolean;
     changePageState: undefined;
     writableChange: boolean;
+    containerSizeRatioUpdate: number;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

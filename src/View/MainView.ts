@@ -32,8 +32,10 @@ export class MainViewProxy {
             this.sizeChangeHandler(this.mainViewSize);
         };
         this.sideEffectManager.add(() => {
-            emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
-            return () => emitter.off("playgroundSizeChange", playgroundSizeChangeListener);
+            return emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
+        });
+        this.sideEffectManager.add(() => {
+            return emitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio);
         });
     }
 
@@ -98,12 +100,20 @@ export class MainViewProxy {
         );
     };
 
-    private sizeChangeHandler = debounce((size: Size) => {
+    public sizeChangeHandler = debounce((size: Size) => {
         if (size) {
             this.moveCameraToContian(size);
             this.moveCamera(this.mainViewCamera);
         }
     }, 30);
+
+    public onUpdateContainerSizeRatio = () => {
+        const size = this.store.getMainViewSize();
+        this.sizeChangeHandler(size);
+        if (size.id === this.manager.uid) {
+            this.setCameraAndSize();
+        }
+    }
 
     public get view(): View {
         return this.mainView;

@@ -11,7 +11,7 @@ import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
-import { isEqual, isNull, isObject, omit } from "lodash";
+import { isEqual, isNull, isObject, omit, isNumber } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -891,6 +891,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             this.bindContainer(WindowManager.container);
         }
         this.appManager?.refresher?.refresh();
+    }
+
+    public setContainerSizeRatio(ratio: number) {
+        if (!isNumber(ratio)) {
+            throw new Error(`[WindowManager]: updateContainerSizeRatio error, ratio must be a number. but got ${ratio}`);
+        }
+        WindowManager.containerSizeRatio = ratio;
+        this.containerSizeRatio = ratio;
+        emitter.emit("containerSizeRatioUpdate", ratio);
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {

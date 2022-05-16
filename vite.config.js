@@ -1,5 +1,5 @@
 import path from "path";
-import { defineConfig } from "vite";
+import { defineConfig } from 'vitest/config'
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
 import { omit } from "lodash";
@@ -8,6 +8,14 @@ export default defineConfig(({ mode }) => {
     const isProd = mode === "production";
 
     return {
+        test: {
+            environment: "jsdom",
+            deps: {
+                inline: [
+                  "@juggle/resize-observer"
+                ]
+            }
+        },
         define: {
             __APP_VERSION__: JSON.stringify(version),
             __APP_DEPENDENCIES__: JSON.stringify({

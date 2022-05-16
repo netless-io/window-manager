@@ -1,11 +1,14 @@
 import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
+import { isFunction } from "lodash";
 import { WindowManager } from "./index";
 import type { EmitterType } from "./InternalEmitter";
+import type { UnsubscribeFn } from "emittery";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
 export class ContainerResizeObserver {
     private containerResizeObserver?: ResizeObserver;
+    private disposer?: UnsubscribeFn;
 
     constructor(private emitter: EmitterType) {}
 
@@ -35,10 +38,14 @@ export class ContainerResizeObserver {
             }
         });
 
+        this.disposer = this.emitter.on("containerSizeRatioUpdate", () => {
+            this.updateSizer(container.getBoundingClientRect(), sizer, wrapper);
+        });
+
         this.containerResizeObserver.observe(container);
     }
 
-    private updateSizer(
+    public updateSizer(
         { width, height }: DOMRectReadOnly,
         sizer: HTMLElement,
         wrapper: HTMLDivElement
@@ -58,5 +65,9 @@ export class ContainerResizeObserver {
 
     public disconnect() {
         this.containerResizeObserver?.disconnect();
+        if (isFunction(this.disposer)) {
+            this.disposer();
+            this.disposer = undefined;
+        }        
     }
 }

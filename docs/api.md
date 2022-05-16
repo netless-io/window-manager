@@ -28,6 +28,7 @@
     - [`prevPage`](#prevPage)
     - [`addPage`](#addPage)
     - [`refresh`](#refresh)
+    - [`setContainerSizeRatio`](#setContainerSizeRatio)
   - [实例属性](#prototypes)
   - [事件回调](#events)
 
@@ -219,6 +220,14 @@ manager.addPage({ scene: { name: "page2" } }) // 传入 page 信息
 
 ```ts
 manager.refresh()
+```
+
+<h3 id="setContainerSizeRatio">setContainerSizeRatio</h3>
+
+> 设置白板同步区域的宽高比
+
+```ts
+manager.setContainerSizeRatio(10 / 16)
 ```
 
 <br>
