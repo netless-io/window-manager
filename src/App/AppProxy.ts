@@ -48,6 +48,7 @@ export class AppProxy {
     private status: "normal" | "destroyed" = "normal";
     private stateKey: string;
     private _pageState: AppPageStateImpl;
+    private _prevFullPath: string | undefined;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -348,7 +349,10 @@ export class AppProxy {
             return autorun(() => {
                 const fullPath = this.appAttributes?.fullPath;
                 this.setFocusScenePathHandler(fullPath);
-                this.notifyPageStateChange();
+                if (this._prevFullPath !== fullPath) {
+                    this.notifyPageStateChange();
+                    this._prevFullPath = fullPath;
+                }
             });
         });
     };
@@ -432,6 +436,7 @@ export class AppProxy {
         this.manager.refresher?.remove(this.id);
         this.manager.refresher?.remove(this.stateKey);
         this.manager.refresher?.remove(`${this.id}-fullPath`);
+        this._prevFullPath = undefined;
     }
 
     public close(): Promise<void> {
