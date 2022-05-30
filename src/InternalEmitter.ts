@@ -16,7 +16,8 @@ export type EmitterEvent = {
     observerIdChange: number;
     boxStateChange: string;
     playgroundSizeChange: DOMRect;
-    onReconnected: void;
+    startReconnect: undefined;
+    onReconnected: undefined;
     removeScenes: string;
     cursorMove: CursorMovePayload;
     updateManagerRect: undefined;

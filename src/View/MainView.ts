@@ -1,7 +1,7 @@
 import { AnimationMode, reaction } from "white-web-sdk";
 import { callbacks } from "../callback";
 import { createView } from "./ViewManager";
-import { debounce, isEmpty, isEqual } from "lodash";
+import { debounce, get, isEmpty, isEqual } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { setViewFocusScenePath } from "../Utils/Common";
@@ -37,6 +37,11 @@ export class MainViewProxy {
         this.sideEffectManager.add(() => {
             return emitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio);
         });
+        this.sideEffectManager.add(() => {
+            return emitter.on("startReconnect", () => {
+                this.mainView.release();
+            });
+        });
     }
 
     private startListenWritableChange = () => {
@@ -62,6 +67,10 @@ export class MainViewProxy {
 
     private get mainViewSize() {
         return this.store.getMainViewSize();
+    }
+
+    private get didRelease(): boolean {
+        return get(this.view, ["didRelease"]);
     }
 
     private moveCameraSizeByAttributes() {
@@ -133,9 +142,13 @@ export class MainViewProxy {
     }
 
     public onReconnect(): void {
-        const mainViewScenePath = this.store.getMainViewScenePath();
-        if (mainViewScenePath) {
-            setViewFocusScenePath(this.view, mainViewScenePath);
+        if (this.didRelease) {
+            this.rebind();
+        } else {
+            const mainViewScenePath = this.store.getMainViewScenePath();
+            if (mainViewScenePath) {
+                setViewFocusScenePath(this.view, mainViewScenePath);
+            }
         }
     }
 
@@ -143,7 +156,9 @@ export class MainViewProxy {
         const divElement = this.mainView.divElement;
         const disableCameraTransform = this.mainView.disableCameraTransform;
         this.stop();
-        this.mainView.release();
+        if (!this.didRelease) {
+            this.mainView.release();
+        }
         this.removeMainViewListener();
         this.mainView = this.createMainView();
         this.mainView.disableCameraTransform = disableCameraTransform;

@@ -29,6 +29,9 @@ export class ReconnectRefresher {
     }
 
     private onPhaseChanged = (phase: RoomPhase) => {
+        if (phase === RoomPhase.Reconnecting) {
+            this.ctx.emitter.emit("startReconnect");
+        }
         if (phase === RoomPhase.Connected && this.phase === RoomPhase.Reconnecting) {
             this.onReconnected();
         }
@@ -47,7 +50,7 @@ export class ReconnectRefresher {
                 this.disposers.set(id, func());
             }
         });
-        this.ctx.emitter.emit("onReconnected", undefined);
+        this.ctx.emitter.emit("onReconnected");
     }
 
     private releaseDisposers() {
