@@ -37,15 +37,21 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
     this._state = {} as TState;
     const rawState = this._getRawState(this._state);
 
-    if (this.id !== null && this._context.getIsWritable()) {
-      if (rawState === this._state || !isObject(rawState)) {
-        if (!get(this._context.getAttributes(), [STORAGE_NS])) {
-          this._context.updateAttributes([STORAGE_NS], {});
+    if (this._context.getIsWritable()) {
+      if (this.id === null) {
+        if (context.isAddApp && defaultState) {
+            this.setState(defaultState);
         }
-        this._context.updateAttributes([STORAGE_NS, this.id], this._state);
-      }
-      if (defaultState) {
-        this.setState(defaultState);
+      } else {
+        if (rawState === this._state || !isObject(rawState)) {
+          if (!get(this._context.getAttributes(), [STORAGE_NS])) {
+            this._context.updateAttributes([STORAGE_NS], {});
+          }
+          this._context.updateAttributes([STORAGE_NS, this.id], this._state);
+          if (defaultState) {
+            this.setState(defaultState);
+          }
+        }
       }
     }
 
