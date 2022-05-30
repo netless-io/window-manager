@@ -1,3 +1,8 @@
+## 0.4.26
+
+1. 修复 `app` 中 `pageStateChange` 事件被多次触发的问题
+2. 修复重连之后 `mainView` 显示错误的内容的问题
+
 ## 0.4.25
 
 1. 添加 `setContainerSizeRatio` 方法, 用于初始化后更新 `containerSizeRatio`
