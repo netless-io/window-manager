@@ -82,6 +82,17 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.appProxy.view;
     };
 
+    public mountView = (dom: HTMLElement): void => {
+        const view = this.getView();
+        if (view) {
+            view.divElement = dom as HTMLDivElement;
+            setTimeout(() => {
+                // 渲染需要时间，延迟 refresh
+                this.getRoom()?.refreshViewSize();
+            }, 1000);
+        }
+    };
+
     public getInitScenePath = () => {
         return this.manager.getAppInitPath(this.appId);
     };
@@ -122,17 +133,6 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         this.appProxy.setFullPath(scenePath);
         // 兼容 15 版本 SDK 的切页
         this.getRoom()?.setScenePath(scenePath);
-    };
-
-    public mountView = (dom: HTMLElement): void => {
-        const view = this.getView();
-        if (view) {
-            view.divElement = dom as HTMLDivElement;
-            setTimeout(() => {
-                // 渲染需要时间，延迟 refresh
-                this.getRoom()?.refreshViewSize();
-            }, 1000);
-        }
     };
 
     /** Get the local App options. */

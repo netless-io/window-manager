@@ -1,156 +1,205 @@
 ## AppContext
 
-- [api](#api)
-- [events](#events)
+-   [api](#api)
+    - [view](#view)
+    - [page](#page)
+    - [storage](#storage)
+-   [events](#events)
 
 <h2 id="api">API</h2>
 
-### appId
+- **context.appId**
 
-插入 `app` 时生成的唯一 ID
+    插入 `app` 时生成的唯一 ID
 
-```ts
-const appId = context.appId
-```
+    ```ts
+    const appId = context.appId;
+    ```
 
-### getDisplayer
+- **context.getDisplayer()**
 
-在默认情况下 `Displayer` 为白板的 `room` 实例
+    在默认情况下 `Displayer` 为白板的 `room` 实例
 
-回放时则为 `Player` 实例
+    回放时则为 `Player` 实例
 
-```ts
-const displayer = context.getDisplayer()
+    ```ts
+    const displayer = context.getDisplayer();
 
-assert(displayer, room) // 互动房间
-assert(displayer, player) // 回放房间
-```
+    assert(displayer, room); // 互动房间
+    assert(displayer, player); // 回放房间
+    ```
 
-### getScenes
 
-`scenes` 在 `addApp` 时传入 `scenePath` 会由 `WindowManager` 创建
+- **context.getIsWritable()**
 
-```ts
-const scenes = context.getScenes()
-```
+    获取当前状态是否可写
 
-### getView
+    ```ts
+    // isWritable === (room.isWritable && box.readonly)
+    const isWritable = context.getIsWritable();
+    ```
 
-`View` 为白板中一块可标注部分
+- **context.getBox()**
 
-```ts
-const view = context.getView()
-```
+    获取当前 app 的 box
 
-### getIsWritable
+    ```ts
+    const box = context.getBox();
 
-获取当前状态是否可写
+    box.$content; // box 的 main element
+    box.$footer;
+    ```
 
-```ts
-// isWritable === (room.isWritable && box.readonly)
-const isWritable = context.getIsWritable()
-```
+<h3 id="view">View</h3>
 
-### getBox
+`view` 可以理解为一块白板，可以从 `context` 中拿到这个实例并挂载到 `Dom` 中
 
-获取当前 app 的 box
+- **context.getView()**
 
-```ts
-const box = context.getBox()
+    获取 `view` 实例
 
-box.$content // box 的 main element
-box.$footer
-```
+    ```ts
+    const view = context.getView();
+    ```
 
-### setScenePath
+- **context.mountView()**
 
-切换当前 `view` 的 `scenePath`
+    挂载 view 到指定 dom
 
-```ts
-context.setScenePath("/page/2")
-```
+    ```ts
+    context.mountView(element);
+    ```
 
-### mountView
+- **context.getScenes()**
 
-挂载 view 到指定 dom
+    `scenes` 在 `addApp` 时传入 `scenePath` 会由 `WindowManager` 创建
 
-```ts
-context.mountView(ref)
-```
+    ```ts
+    const scenes = context.getScenes();
+    ```
 
-### addPage
+- **context.setScenePath()**
 
-```ts
-context.addPage()
-```
+    切换当前 `view` 到指定的 `scenePath`
 
-### nextPage
+    ```ts
+    context.setScenePath("/page/2");
+    ```
 
-```ts
-context.nextPage()
-```
 
-### prevPage
+<h3 id="page">Page</h3>
 
-```ts
-context.prevPage()
-```
+`Page` 是封装后 `scenes` 的一些概念
 
-### pageState
+- **context.addPage()**
 
-```ts
-context.pageState
-```
+    添加一页至 `view`
+
+    ```ts
+    context.addPage() // 默认在最后添加一页
+    context.addPage({ after: true }) // 在当前页后添加一页
+    context.addPage({ scene: { name: "page2" } }) // 传入 page 信息
+    ```
+
+- **context.nextPage()**
+
+    上一页
+
+    ```ts
+    context.nextPage();
+    ```
+
+- **context.prevPage()**
+
+    下一页
+
+    ```ts
+    context.prevPage();
+    ```
+
+- **context.pageState**
+
+    获取当前所在的 `index` 和一共有多少页
+
+    ```ts
+    context.pageState;
+    // {
+    //     index: number,
+    //     length: number,
+    // }
+    ```
+
+<h3 id="storage">storage</h3>
+
+存储和同步状态，以及发送事件的一系列集合
+
+- **context.storage**
+
+    默认创建的 storage 实例
+
+    ```ts
+    context.storage
+    ```
+
+- **createStorage()**
+
+    同时你也可以创建多个 `storage` 实例
+
+    ```ts
+    const defaultState = { count: 0 } // 可选
+    const storage = context.createStorage("store1", defaultState);
+    ```
+
+
 
 
 <h2 id="events">events</h2>
 
-### destroy
+- **destroy**
 
-app 被关闭时发送的事件
+    app 被关闭时发送
 
-```ts
-context.emitter.on("destroy", () => {
-    // release your listeners
-})
-```
+    ```ts
+    context.emitter.on("destroy", () => {
+        // release your listeners
+    });
+    ```
 
-### writableChange
+- **writableChange**
 
-白板可写状态切换时触发
+    白板可写状态切换时触发
 
-```ts
-context.emitter.on("writableChange", isWritable => {
-    //
-})
-```
+    ```ts
+    context.emitter.on("writableChange", isWritable => {
+        //
+    });
+    ```
 
-### focus
+- **focus**
 
-当前 app 获得焦点或者失去焦点时触发
+    当前 app 获得焦点或者失去焦点时触发
 
-```ts
-context.emitter.on("focus", focus => {
-    //
-})
-```
+    ```ts
+    context.emitter.on("focus", focus => {
+        //
+    });
+    ```
 
+- **pageStateChange**
 
-### pageStateChange
+    `PageState`
 
-#### PageState
+    ```ts
+    type PateState {
+        index: number;
+        length: number;
+    }
+    ```
 
-```ts
-type PateState {
-    index: number;
-    length: number;
-}
-```
+    当前页数和总页数变化时触发
 
-当前页数和总页数变化时触发
-
-```ts
-context.emitter.on("pageStateChange", pageState => {
-    // { index: 0, length: 1 }
-})
-```
+    ```ts
+    context.emitter.on("pageStateChange", pageState => {
+        // { index: 0, length: 1 }
+    });
+    ```
