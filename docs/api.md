@@ -27,6 +27,7 @@
     - [`nextPage`](#nextPage)
     - [`prevPage`](#prevPage)
     - [`addPage`](#addPage)
+    - [`removePage`](#removePage)
     - [`refresh`](#refresh)
     - [`setContainerSizeRatio`](#setContainerSizeRatio)
   - [实例属性](#prototypes)
