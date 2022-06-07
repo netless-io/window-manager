@@ -6,6 +6,7 @@
   - [判断是否打开某种 APP](#has-kind)
   - [页面控制器](#page-control)
   - [视角](#view-mode)
+  - [插入图片到当前app](#insert-image-to-app)
 
 
 <h3 id="redo-undo">撤销重做</h3>
@@ -109,3 +110,19 @@ manager.addPage()
     同时其他为 `broadcaster` 模式的人也会影响我的视角
 
     在 `isWritable` 为 `false` 时只会跟随其他 `broadcaster` 的视角
+
+<br>
+
+<h3 id="insert-image-to-app">插入图片到当前 app</h3>
+
+```ts
+// 判断当前是否为最大化
+if (manager.boxState === "maximized") {
+    // `focused` 的值的会根据当前 focus 的 app 不同而变化
+    const app = manager.queryOne(manager.focused)
+    // 有 view 的 app 才可以插入图片, 像是 视频，音频之类的 app 是没有 view 的
+    if (app.view) {
+        app.view.insertImage()
+    }
+}
+```
