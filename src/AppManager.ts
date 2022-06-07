@@ -6,7 +6,7 @@ import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks } from "./callback";
 import { debounce, get, isInteger, orderBy } from "lodash";
-import { emitter } from "./InternalEmitter";
+import { emitter, RemoveSceneParams } from "./InternalEmitter";
 import { Fields, store } from "./AttributesDelegate";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
@@ -20,8 +20,10 @@ import type { EmitterEvent } from "./InternalEmitter";
 import {
     entireScenes,
     genAppId,
+    isRootDirPage,
     makeValidScenePath,
     parseSceneDir,
+    removeScenes,
     setScenePath,
     setViewFocusScenePath,
 } from "./Utils/Common";
@@ -35,6 +37,7 @@ import type {
     SceneState,
 } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
+import { calculateNextIndex } from "./Page";
 
 export class AppManager {
     public displayer: Displayer;
@@ -108,20 +111,29 @@ export class AppManager {
         });
     }
 
-    private onRemoveScenes = async (scenePath: string) => {
+    private onRemoveScenes = async (params: RemoveSceneParams) => {
+        const { scenePath } = params;
         // 如果移除根目录就把 scenePath 设置为初始值
         if (scenePath === ROOT_DIR) {
             await this.onRootDirRemoved();
             this.dispatchInternalEvent(Events.RootDirRemoved);
             return;
         }
-        // 如果移除的 path 跟 MainViewScenePath 相同就取当前目录的当前 index
-        const mainViewScenePath = this.store.getMainViewScenePath();
-        if (this.room && mainViewScenePath) {
-            if (mainViewScenePath === scenePath) {
-                const nextPath = this.callbacksNode?.scenes[this.store.getMainViewSceneIndex()];
-                this.setMainViewScenePath(`/${nextPath}` || INIT_DIR);
+        if (isRootDirPage(scenePath)) {
+            let nextIndex = this.mainView.focusSceneIndex || 0;
+            let sceneName = this.callbacksNode?.scenes[nextIndex];
+            if (!sceneName) {
+                nextIndex = 0;
+                sceneName = this.callbacksNode?.scenes[nextIndex];
             }
+            if (sceneName) {
+                this.setMainViewScenePath(`${ROOT_DIR}${sceneName}`);
+            }
+            await this.setMainViewSceneIndex(nextIndex);
+        } else {
+            this.appProxies.forEach(app => {
+                app.onRemoveScene(scenePath);
+            });
         }
     };
 
@@ -180,6 +192,26 @@ export class AppManager {
         }
     };
 
+    public removeSceneByIndex = async (index: number) => {
+        const nextIndex = calculateNextIndex(index, this.windowManger.pageState);
+        this.setSceneIndexWithoutSync(nextIndex);
+        this.dispatchInternalEvent(Events.SetAppFocusIndex, { type: "main", index: nextIndex });
+        setTimeout(() => {
+            const scene = this.callbacksNode?.scenes[index];
+            if (scene) {
+                removeScenes(this.room, `${ROOT_DIR}${scene}`, index)
+            }
+        }, 100);
+        return true;
+    }
+
+    public setSceneIndexWithoutSync = (index: number) => {
+        const sceneName = this.callbacksNode?.scenes[index];
+        if (sceneName) {
+            this.mainViewProxy.setFocusScenePath(`${ROOT_DIR}${sceneName}`);
+        }
+    }
+
     private onSceneChange = (node: ScenesCallbacksNode) => {
         this.mainViewScenesLength = node.scenes.length;
         this.updateSceneState(node);
@@ -193,7 +225,10 @@ export class AppManager {
 
     private updateSceneState = (node: ScenesCallbacksNode) => {
         const currentIndex = this.store.getMainViewSceneIndex() || 0;
-        const sceneName = node.scenes[currentIndex];
+        let sceneName = node.scenes[currentIndex];
+        if (!sceneName) {
+            sceneName = node.scenes[this.mainView.focusSceneIndex || 0];
+        }
         this.sceneState = {
             scenePath: `${ROOT_DIR}${sceneName}`,
             contextPath: node.path,
@@ -322,6 +357,7 @@ export class AppManager {
         });
     };
 
+    
     private onMainViewIndexChange = (index: number) => {
         if (index !== undefined && this._prevSceneIndex !== index) {
             callbacks.emit("mainViewSceneIndexChange", index);
@@ -472,8 +508,8 @@ export class AppManager {
     public setMainViewFocusPath(scenePath?: string) {
         const focusScenePath = scenePath || this.store.getMainViewScenePath();
         if (focusScenePath) {
-            const view = setViewFocusScenePath(this.mainView, focusScenePath);
-            return view?.focusScenePath === focusScenePath;
+            setViewFocusScenePath(this.mainView, focusScenePath);
+            return this.mainView?.focusScenePath === focusScenePath;
         }
     }
 
@@ -643,20 +679,17 @@ export class AppManager {
     public async setMainViewSceneIndex(index: number) {
         if (this.room) {
             if (this.store.getMainViewSceneIndex() === index) return;
-            const mainViewScenePath = this.store.getMainViewScenePath() as string;
-            if (mainViewScenePath) {
-                const sceneDir = parseSceneDir(mainViewScenePath);
-                const scenePath = makeValidScenePath(this.displayer, sceneDir, index);
-                if (scenePath) {
-                    const success = this.setMainViewFocusPath(scenePath);
-                    if (success) {
-                        this.store.setMainViewScenePath(scenePath);
-                        this.safeSetAttributes({ _mainSceneIndex: index });
-                        this.dispatchSetMainViewScenePath(scenePath);
-                    }
-                } else {
-                    throw new Error(`[WindowManager]: ${sceneDir}: ${index} not valid index`);
+            const sceneName = this.callbacksNode?.scenes[index];
+            const scenePath =`${ROOT_DIR}${sceneName}`;
+            if (sceneName) {
+                const success = this.setMainViewFocusPath(scenePath);
+                if (success) {
+                    this.store.setMainViewScenePath(scenePath);
+                    this.safeSetAttributes({ _mainSceneIndex: index });
+                    this.dispatchSetMainViewScenePath(scenePath);
                 }
+            } else {
+                throw new Error(`[WindowManager]: ${index} not valid index`);
             }
         }
     }

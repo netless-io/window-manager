@@ -29,6 +29,10 @@ const BoardFooter = ({ context }: { context: AppContext }) => {
 
     const addPage = () =>  context.addPage();
 
+    const removePage = () => context.removePage(1);
+
+    const removeLastPage = () => context.removePage(context.pageState.length - 1);
+
     useEffect(() => {
         setPageState(context.pageState);
         return context.emitter.on("pageStateChange", pageState => {
@@ -42,7 +46,8 @@ const BoardFooter = ({ context }: { context: AppContext }) => {
             <button onClick={prevPage}>上一页</button>
             <button onClick={nextPage}>下一页</button>
             <button onClick={addPage}>添加页</button>
-
+            <button onClick={removePage}>删除一页</button>
+            <button onClick={removeLastPage}>删除最后一页</button>
             {pageState.index + 1}/{pageState.length}
         </div>
     )

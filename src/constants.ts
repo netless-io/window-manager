@@ -9,6 +9,7 @@ export enum Events {
     WindowCreated = "WindowCreated",
     SetMainViewScenePath = "SetMainViewScenePath",
     SetMainViewSceneIndex = "SetMainViewSceneIndex",
+    SetAppFocusIndex = "SetAppFocusIndex",
     SwitchViewsToFreedom = "SwitchViewsToFreedom",
     MoveCamera = "MoveCamera",
     MoveCameraToContain = "MoveCameraToContain",

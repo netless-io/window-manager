@@ -27,11 +27,11 @@ import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
-import type { PageState } from "../Page";
+import { calculateNextIndex, PageRemoveService, PageState } from "../Page";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
-export class AppProxy {
+export class AppProxy implements PageRemoveService {
     public kind: string;
     public id: string;
     public scenePath?: string;
@@ -249,6 +249,24 @@ export class AppProxy {
         this.boxManager?.updateBoxState(currentAppState);
     }
 
+    public async onRemoveScene(scenePath: string) {
+        if (this.scenePath && scenePath.startsWith(this.scenePath + "/")) {
+            let nextIndex = this.pageState.index;
+            let fullPath = this._pageState.getFullPath(nextIndex);
+            if (!fullPath) {
+                nextIndex = 0;
+                fullPath = this._pageState.getFullPath(nextIndex);
+            }
+            if (fullPath) {
+                this.setFullPath(fullPath);
+            }
+            this.setViewFocusScenePath();
+            if (this.view) {
+                this.view.focusSceneIndex = nextIndex;
+            }
+        }
+    }
+
     public getAppInitState = (id: string) => {
         const attrs = this.store.getAppState(id);
         if (!attrs) return;
@@ -385,13 +403,46 @@ export class AppProxy {
         return view;
     }
 
-    public notifyPageStateChange = () => {
+    public notifyPageStateChange = debounce(() => {
         this.appEmitter.emit("pageStateChange", this.pageState);
-    };
+    }, 50);
 
     public get pageState(): PageState {
         return this._pageState.toObject();
     }
+
+    // PageRemoveService
+    public async removeSceneByIndex(index: number) {
+        const scenePath = this._pageState.getFullPath(index);
+        if (scenePath) {
+            // 不能删除所有场景
+            if (this.pageState.length <= 1) {
+                return false;
+            }
+            const nextIndex = calculateNextIndex(index, this.pageState);
+            // 只修改 focus path 不修改 FullPath
+            this.setSceneIndexWithoutSync(nextIndex);
+            this.manager.dispatchInternalEvent(Events.SetAppFocusIndex, {
+                type: "app",
+                appID: this.id,
+                index: nextIndex,
+            });
+            // 手动添加一个延迟, 让 app 切换场景后再删除以避免闪烁
+            setTimeout(() => {
+                removeScenes(this.manager.room, scenePath, index);
+            }, 100);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public setSceneIndexWithoutSync(index: number) {
+        if (this.view) {
+            this.view.focusSceneIndex = index;
+        }
+    }
+    // PageRemoveService end
 
     public setSceneIndex(index: number) {
         if (this.view) {

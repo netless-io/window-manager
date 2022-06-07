@@ -53,11 +53,11 @@ export const getScenePath = (
     }
 };
 
-export const removeScenes = (room: Room | undefined, scenePath: string) => {
+export const removeScenes = (room: Room | undefined, scenePath: string, index?: number) => {
     if (room) {
         const type = room.scenePathType(scenePath);
         if (type !== ScenePathType.None) {
-            room.removeScenes(scenePath);
+            (room.removeScenes as any)(scenePath, index);
         }
     }
 };
@@ -140,3 +140,15 @@ export const getVersionNumber = (version: string) => {
 };
 
 export const wait = (time: number) => new Promise(resolve => setTimeout(resolve, time));
+
+// rootDirPage: /page1  || / page2
+// notRootDirPage: /dir1/page1 || /dir1/page2
+export const isRootDirPage = (scenePath: string) => {
+    const delimiterCount = scenePath.split("").reduce((prev, cur) => {
+        if (cur === ROOT_DIR) {
+            prev += 1;
+        }
+        return prev;
+    }, 0);
+    return delimiterCount === 1;
+}

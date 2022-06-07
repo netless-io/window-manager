@@ -61,12 +61,12 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
 
 const delegateRemoveScenes = (room: Room, manager: WindowManager) => {
     const originRemoveScenes = room.removeScenes;
-    room.removeScenes = (scenePath: string) => {
+    room.removeScenes = (scenePath: string, index?: number) => {
         if (scenePath === ROOT_DIR) {
             manager.appManager?.updateRootDirRemoving(true);
         }
         const result = originRemoveScenes.call(room, scenePath);
-        emitter.emit("removeScenes", scenePath);
+        emitter.emit("removeScenes", { scenePath, index });
         return result;
     };
 };

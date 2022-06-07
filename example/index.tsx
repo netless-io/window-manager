@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
@@ -119,12 +119,12 @@ const replay = () => {
     });
 };
 
-const onRef = ref => {
+const joinRoom = ref => {
     const uid = Math.random().toString().substr(3, 8);
     if (isReplay) {
         replay();
     } else {
-        sdk.joinRoom({
+        return sdk.joinRoom({
             uuid: import.meta.env.VITE_ROOM_UUID,
             roomToken: import.meta.env.VITE_ROOM_TOKEN,
             invisiblePlugins: [WindowManager as any],
@@ -142,10 +142,9 @@ const onRef = ref => {
             floatBar: true,
         }).then(async room => {
             (window as any).room = room;
-            await mountManager(room, ref);
+            return await mountManager(room, ref);
         });
-    }
-    
+    }  
 };
 
 const destroy = () => {
@@ -164,15 +163,32 @@ const nextPage = (manager: WindowManager) => {
     manager.nextPage();
 };
 
+const addPage = (manager: WindowManager) => manager.addPage();
+
 const cleanCurrentScene = (manager: WindowManager) => {
     manager.cleanCurrentScene()
 }
 
 const App = () => {
+    const [pageState, setPageState] = useState({});
+    const ref = useRef();
+
+    useEffect(() => {
+        joinRoom(ref.current).then(() => {
+            if (manager) {
+                setPageState(manager.pageState);
+                return manager.emitter.on("pageStateChange", state => {
+                    setPageState(state);
+                });
+            }
+        });
+    }, [ref]);
+    
+
     return (
         <div className="app">
             <div
-                ref={onRef}
+                ref={ref}
                 id="container"
                 style={{
                     flex: 1,
@@ -211,9 +227,13 @@ const App = () => {
                 <button className="side-button" onClick={() => nextPage(manager)}>
                     下一页
                 </button>
+                <button className="side-button" onClick={() => addPage(manager)}>
+                    加一页
+                </button>
                 <button className="side-button" onClick={() => cleanCurrentScene(manager)}>
                     清屏
                 </button>
+                <span>{pageState.index}/{pageState.length}</span>
             </div>
         </div>
     );

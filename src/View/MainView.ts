@@ -146,9 +146,13 @@ export class MainViewProxy {
             this.rebind();
         } else {
             const mainViewScenePath = this.store.getMainViewScenePath();
-            if (mainViewScenePath) {
-                setViewFocusScenePath(this.view, mainViewScenePath);
-            }
+            this.setFocusScenePath(mainViewScenePath);
+        }
+    }
+
+    public setFocusScenePath(path: string | undefined) {
+        if (path) {
+            return setViewFocusScenePath(this.view, path);
         }
     }
 

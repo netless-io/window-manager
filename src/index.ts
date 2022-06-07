@@ -32,6 +32,7 @@ import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
 import {
     AppCreateError,
     AppManagerNotInitError,
+    BindContainerRoomPhaseInvalidError,
     InvalidScenePath,
     ParamsInvalidError,
 } from "./Utils/error";
@@ -319,6 +320,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     }
 
     public bindContainer(container: HTMLElement) {
+        if (this.room.phase !== RoomPhase.Connected) {
+            throw new BindContainerRoomPhaseInvalidError();
+        }
         if (WindowManager.isCreated && WindowManager.container) {
             if (WindowManager.container.firstChild) {
                 container.appendChild(WindowManager.container.firstChild);
@@ -530,6 +534,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             } else {
                 this.room.putScenes(ROOT_DIR, [scene || {}]);
             }
+        }
+    }
+
+    public async removePage(index: number): Promise<boolean> {
+        if (this.appManager) {
+            if (index < 0 || index >= this.pageState.length) {
+                console.warn(`[WindowManager]: index ${index} out of range`);
+                return false;
+            }
+            return this.appManager.removeSceneByIndex(index);;
+        } else {
+            return false;
         }
     }
 

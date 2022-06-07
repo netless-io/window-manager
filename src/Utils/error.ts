@@ -34,3 +34,7 @@ export class InvalidScenePath extends Error {
 export class BoxManagerNotFoundError extends Error {
     override message = "[WindowManager]: boxManager not found";
 }
+
+export class BindContainerRoomPhaseInvalidError extends Error {
+    override message = "[WindowManager]: room phase only Connected can be bindContainer";
+}

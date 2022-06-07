@@ -231,6 +231,15 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
     };
 
+    public removePage = async (index: number): Promise<boolean> => {
+        if (index < 0 || index >= this.pageState.length) {
+            console.warn(`[WindowManager]: page index ${index} out of range`);
+            return false;
+        }
+        this.appProxy.removeSceneByIndex(index);
+        return true;
+    }
+
     public get pageState(): PageState {
         return this.appProxy.pageState;
     }

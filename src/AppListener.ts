@@ -6,6 +6,13 @@ import { setViewFocusScenePath } from "./Utils/Common";
 import type { AnimationMode, Camera, Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
+
+type SetAppFocusIndex = {
+    type: "main" | "app";
+    appID?: string;
+    index: number;
+}
+
 export class AppListeners {
     private displayer = this.manager.displayer;
 
@@ -67,6 +74,10 @@ export class AppListeners {
                     this.initMainViewCameraHandler();
                     break;
                 }
+                case Events.SetAppFocusIndex: {
+                    this.setAppFocusViewIndexHandler(data.payload);
+                    break;
+                }
                 default:
                     break;
             }
@@ -118,5 +129,16 @@ export class AppListeners {
 
     private initMainViewCameraHandler = () => {
         this.manager.mainViewProxy.addCameraReaction();
+    }
+
+    private setAppFocusViewIndexHandler = (payload: SetAppFocusIndex) => {
+        if (payload.type === "main") {
+            this.manager.setSceneIndexWithoutSync(payload.index);
+        } else if (payload.type === "app" && payload.appID) {
+            const app = this.manager.appProxies.get(payload.appID);
+            if (app) {
+                app.setSceneIndexWithoutSync(payload.index);
+            }
+        }
     }
 }

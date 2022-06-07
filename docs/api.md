@@ -214,6 +214,14 @@ manager.addPage({ after: true }) // 在当前页后添加一页
 manager.addPage({ scene: { name: "page2" } }) // 传入 page 信息
 ```
 
+<h3 id="removePage">removePage</h3>
+
+> 移除一页
+
+```ts
+const success = await manager.removePage(1)
+```
+
 <h3 id="refresh">refresh</h3>
 
 > 刷新 `manager` 的内部状态, 用于从其他房间 `copy` `attributes`

@@ -1,6 +1,9 @@
 import Emittery from "emittery";
 import type { AppInitState, CursorMovePayload } from "./index";
 
+export type RemoveSceneParams = {
+    scenePath: string, index?: number
+}
 
 export type EmitterEvent = {
     onCreated: undefined;
@@ -18,7 +21,7 @@ export type EmitterEvent = {
     playgroundSizeChange: DOMRect;
     startReconnect: undefined;
     onReconnected: undefined;
-    removeScenes: string;
+    removeScenes: RemoveSceneParams;
     cursorMove: CursorMovePayload;
     updateManagerRect: undefined;
     focusedChange: { focused: string | undefined; prev: string | undefined };

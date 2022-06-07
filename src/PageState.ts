@@ -19,8 +19,9 @@ export class PageStateImpl {
     }
 
     public toObject(): PageState {
+        const index = this.index >= this.length ? this.length - 1 : this.index;
         return {
-            index: this.index,
+            index,
             length: this.length,
         };
     }
