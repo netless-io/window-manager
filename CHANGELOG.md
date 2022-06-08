@@ -1,3 +1,8 @@
+## 0.4.27 (2022-06-07)
+
+- 添加 `removePage` API
+- `storage` 仅在第一次时设置默认状态
+
 ## 0.4.26
 
 1. 修复 `app` 中 `pageStateChange` 事件被多次触发的问题

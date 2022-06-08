@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.4.27-canary.0",
+  "version": "0.4.27",
   "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
