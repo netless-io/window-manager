@@ -181,7 +181,10 @@ export class AppManager {
         }
         this.callbacksNode = this.displayer.createScenesCallback(ROOT_DIR, {
             onAddScene: this.onSceneChange,
-            onRemoveScene: this.onSceneChange,
+            onRemoveScene: async (node, name) => {
+                await this.onSceneChange(node);
+                emitter.emit("rootDirSceneRemoved", name);
+            },
         });
         if (this.callbacksNode) {
             this.updateSceneState(this.callbacksNode);
@@ -196,13 +199,22 @@ export class AppManager {
         const nextIndex = calculateNextIndex(index, this.windowManger.pageState);
         this.setSceneIndexWithoutSync(nextIndex);
         this.dispatchInternalEvent(Events.SetAppFocusIndex, { type: "main", index: nextIndex });
+        const scene = this.callbacksNode?.scenes[index];
         setTimeout(() => {
-            const scene = this.callbacksNode?.scenes[index];
             if (scene) {
                 removeScenes(this.room, `${ROOT_DIR}${scene}`, index)
             }
         }, 100);
-        return true;
+        return new Promise<boolean>((resolve, reject) => {
+            emitter.once("rootDirSceneRemoved").then(name => {
+                if (name === scene) {
+                    resolve(true);
+                }
+            }).catch(e => {
+                console.log(`[WindowManager]: removePage error: ${e}`);
+                reject(false);
+            });
+        });
     }
 
     public setSceneIndexWithoutSync = (index: number) => {
@@ -215,12 +227,14 @@ export class AppManager {
     private onSceneChange = (node: ScenesCallbacksNode) => {
         this.mainViewScenesLength = node.scenes.length;
         this.updateSceneState(node);
-        this.emitMainViewScenesChange(this.mainViewScenesLength);
+        return this.emitMainViewScenesChange(this.mainViewScenesLength);
     };
 
     private emitMainViewScenesChange = (length: number) => {
-        callbacks.emit("mainViewScenesLengthChange", length);
-        emitter.emit("changePageState");
+        return Promise.all([
+            callbacks.emit("mainViewScenesLengthChange", length),
+            emitter.emit("changePageState"),
+        ]);
     };
 
     private updateSceneState = (node: ScenesCallbacksNode) => {

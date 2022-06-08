@@ -25,7 +25,8 @@ export type EmitterEvent = {
     cursorMove: CursorMovePayload;
     updateManagerRect: undefined;
     focusedChange: { focused: string | undefined; prev: string | undefined };
-    rootDirRemoved: undefined;
+    rootDirRemoved: undefined;  // 根目录整个被删除
+    rootDirSceneRemoved: string; // 根目录下的场景被删除
     setReadonly: boolean;
     changePageState: undefined;
     writableChange: boolean;
