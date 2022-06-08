@@ -2,6 +2,7 @@
 
 - 添加 `removePage` API
 - `storage` 仅在第一次时设置默认状态
+- `bindContainer` 在 `room` 非 `Connected` 状态下调用会直接抛出错误
 
 ## 0.4.26
 
