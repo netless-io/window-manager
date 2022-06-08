@@ -122,7 +122,16 @@ if (manager.boxState === "maximized") {
     const app = manager.queryOne(manager.focused)
     // 有 view 的 app 才可以插入图片, 像是 视频，音频之类的 app 是没有 view 的
     if (app.view) {
-        app.view.insertImage()
+        var imageInformation = {
+            uuid: uuid,
+            centerX: centerX,
+            centerY: centerY,
+            width: width,
+            height: height,
+            locked: false,
+        };
+        app.view.insertImage(imageInformation);
+        app.view.completeImageUpload(uuid, src);
     }
 }
 ```

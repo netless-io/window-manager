@@ -6,7 +6,7 @@ import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
 import { callbacks } from "./callback";
 import { debounce, get, isInteger, orderBy } from "lodash";
-import { emitter, RemoveSceneParams } from "./InternalEmitter";
+import { emitter } from "./InternalEmitter";
 import { Fields, store } from "./AttributesDelegate";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
@@ -16,7 +16,7 @@ import { RedoUndo } from "./RedoUndo";
 import { SideEffectManager } from "side-effect-manager";
 import { ViewManager } from "./View/ViewManager";
 import type { SyncRegisterAppPayload } from "./Register";
-import type { EmitterEvent } from "./InternalEmitter";
+import type { EmitterEvent , RemoveSceneParams } from "./InternalEmitter";
 import {
     entireScenes,
     genAppId,
