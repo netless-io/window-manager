@@ -231,13 +231,17 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
     };
 
-    public removePage = async (index: number): Promise<boolean> => {
-        if (index < 0 || index >= this.pageState.length) {
+    public removePage = async (index?: number): Promise<boolean> => {
+        const needRemoveIndex = index === undefined ? this.pageState.index : index;
+        if (this.pageState.length === 1) {
+            console.warn(`[WindowManager]: can not remove the last page`);
+            return false;
+        }
+        if (needRemoveIndex < 0 || needRemoveIndex >= this.pageState.length) {
             console.warn(`[WindowManager]: page index ${index} out of range`);
             return false;
         }
-        this.appProxy.removeSceneByIndex(index);
-        return true;
+        return this.appProxy.removeSceneByIndex(needRemoveIndex);;
     }
 
     public get pageState(): PageState {

@@ -537,17 +537,23 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         }
     }
 
-    public async removePage(index: number): Promise<boolean> {
+    /**
+     * 删除一页
+     * 默认删除当前页, 可以删除指定 index 页
+     * 最低保留一页
+     */
+    public async removePage(index?: number): Promise<boolean> {
         if (this.appManager) {
+            const needRemoveIndex = index === undefined ? this.pageState.index : index;
             if (this.pageState.length === 1) {
                 console.warn(`[WindowManager]: can not remove the last page`);
                 return false;
             }
-            if (index < 0 || index >= this.pageState.length) {
+            if (needRemoveIndex < 0 || needRemoveIndex >= this.pageState.length) {
                 console.warn(`[WindowManager]: index ${index} out of range`);
                 return false;
             }
-            return this.appManager.removeSceneByIndex(index);;
+            return this.appManager.removeSceneByIndex(needRemoveIndex);;
         } else {
             return false;
         }

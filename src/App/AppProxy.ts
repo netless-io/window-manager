@@ -27,7 +27,8 @@ import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
-import { calculateNextIndex, PageRemoveService, PageState } from "../Page";
+import type { PageRemoveService, PageState } from "../Page";
+import { calculateNextIndex } from "../Page";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -415,10 +416,6 @@ export class AppProxy implements PageRemoveService {
     public async removeSceneByIndex(index: number) {
         const scenePath = this._pageState.getFullPath(index);
         if (scenePath) {
-            // 不能删除所有场景
-            if (this.pageState.length <= 1) {
-                return false;
-            }
             const nextIndex = calculateNextIndex(index, this.pageState);
             // 只修改 focus path 不修改 FullPath
             this.setSceneIndexWithoutSync(nextIndex);

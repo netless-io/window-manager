@@ -218,9 +218,11 @@ manager.addPage({ scene: { name: "page2" } }) // 传入 page 信息
 <h3 id="removePage">removePage</h3>
 
 > 移除一页
+> 当只剩一页时, 最后一页不允许被删除
 
 ```ts
-const success = await manager.removePage(1)
+const success = await manager.removePage() // 默认删除当前页
+const success = await manager.removePage(1) // 可以删除指定 index
 ```
 
 <h3 id="refresh">refresh</h3>
