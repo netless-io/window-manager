@@ -20,6 +20,7 @@ export enum Events {
 }
 
 export const MagixEventName = "__WindowManger";
+export const EnsureReconnectEvent = "__WindowMangerEnsureReconnected__";
 
 export enum AppAttributes {
     Size = "size",

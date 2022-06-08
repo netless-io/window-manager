@@ -241,6 +241,11 @@ export class AppProxy implements PageRemoveService {
     }
 
     public async onReconnected() {
+        const isExist = Boolean(this.manager.attributes.apps[this.id]);
+        if (!isExist) {
+            await this.destroy(true, false, true);
+            return;
+        }
         this.appEmitter.emit("reconnected", undefined);
         const currentAppState = this.getAppInitState(this.id);
         await this.destroy(true, false, true);
