@@ -539,6 +539,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public async removePage(index: number): Promise<boolean> {
         if (this.appManager) {
+            if (this.pageState.length === 1) {
+                console.warn(`[WindowManager]: can not remove the last page`);
+                return false;
+            }
             if (index < 0 || index >= this.pageState.length) {
                 console.warn(`[WindowManager]: index ${index} out of range`);
                 return false;
