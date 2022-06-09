@@ -321,7 +321,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     }
 
     public bindContainer(container: HTMLElement) {
-        if (this.room.phase !== RoomPhase.Connected) {
+        if (isRoom(this.displayer) && this.room.phase !== RoomPhase.Connected) {
             throw new BindContainerRoomPhaseInvalidError();
         }
         if (WindowManager.isCreated && WindowManager.container) {
