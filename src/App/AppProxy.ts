@@ -29,6 +29,7 @@ import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
 import { calculateNextIndex } from "../Page";
+import { boxEmitter } from "../BoxEmitter";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -342,7 +343,7 @@ export class AppProxy implements PageRemoveService {
                 }
                 case "focus": {
                     this.boxManager?.focusBox({ appId: this.id });
-                    emitter.emit("focus", { appId: this.id });
+                    boxEmitter.emit("focus", { appId: this.id });
                     break;
                 }
                 default: {

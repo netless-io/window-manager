@@ -2,6 +2,7 @@ import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { debounce } from "lodash";
 import { TELE_BOX_STATE, TeleBoxCollector, TeleBoxManager } from "@netless/telebox-insider";
 import { WindowManager } from "./index";
+import type { BoxEmitterType } from "./BoxEmitter";
 import type { AddAppOptions, AppInitState } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
@@ -51,6 +52,7 @@ export type BoxManagerContext = {
     getMainView: () => View;
     updateAppState: (appId: string, field: AppAttributes, value: any) => void;
     emitter: EmitterType;
+    boxEmitter: BoxEmitterType;
     callbacks: CallbacksType;
     canOperate: () => boolean;
     notifyContainerRectUpdate: (rect: TeleBoxRect) => void;
@@ -62,6 +64,7 @@ export const createBoxManager = (
     manager: WindowManager,
     callbacks: CallbacksType,
     emitter: EmitterType,
+    boxEmitter: BoxEmitterType,
     options: CreateTeleBoxManagerConfig
 ) => {
     return new BoxManager(
@@ -76,6 +79,7 @@ export const createBoxManager = (
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             callbacks,
             emitter,
+            boxEmitter
         },
         options
     );
@@ -88,7 +92,7 @@ export class BoxManager {
         private context: BoxManagerContext,
         private createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig
     ) {
-        const { emitter, callbacks } = context;
+        const { emitter, callbacks, boxEmitter } = context;
         this.teleBoxManager = this.setupBoxManager(createTeleBoxManagerConfig);
 
         // 使用 _xxx$.reaction 订阅修改的值, 不管有没有 skipUpdate, 修改值都会触发回调
@@ -123,19 +127,19 @@ export class BoxManager {
         });
         this.teleBoxManager.events.on("removed", boxes => {
             boxes.forEach(box => {
-                emitter.emit("close", { appId: box.id });
+                boxEmitter.emit("close", { appId: box.id });
             });
         });
         this.teleBoxManager.events.on(
             "intrinsic_move",
             debounce((box: ReadonlyTeleBox): void => {
-                emitter.emit("move", { appId: box.id, x: box.intrinsicX, y: box.intrinsicY });
+                boxEmitter.emit("move", { appId: box.id, x: box.intrinsicX, y: box.intrinsicY });
             }, 50)
         );
         this.teleBoxManager.events.on(
             "intrinsic_resize",
             debounce((box: ReadonlyTeleBox): void => {
-                emitter.emit("resize", {
+                boxEmitter.emit("resize", {
                     appId: box.id,
                     width: box.intrinsicWidth,
                     height: box.intrinsicHeight,
@@ -145,7 +149,7 @@ export class BoxManager {
         this.teleBoxManager.events.on("focused", box => {
             if (box) {
                 if (this.canOperate) {
-                    emitter.emit("focus", { appId: box.id });
+                    boxEmitter.emit("focus", { appId: box.id });
                 } else {
                     this.teleBoxManager.blurBox(box.id);
                 }
@@ -221,7 +225,7 @@ export class BoxManager {
         const box = this.teleBoxManager.queryOne({ id: appId });
         if (box) {
             if (box.state === TELE_BOX_STATE.Maximized) {
-                this.context.emitter.emit("resize", {
+                this.context.boxEmitter.emit("resize", {
                     appId: appId,
                     x: box.x,
                     y: box.y,

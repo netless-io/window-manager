@@ -8,10 +8,6 @@ export type RemoveSceneParams = {
 export type EmitterEvent = {
     onCreated: undefined;
     InitReplay: AppInitState;
-    move: { appId: string; x: number; y: number };
-    focus: { appId: string };
-    close: { appId: string };
-    resize: { appId: string; width: number; height: number; x?: number; y?: number };
     error: Error;
     seekStart: undefined;
     seek: number;

@@ -60,6 +60,7 @@ import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
+import { boxEmitter } from "./BoxEmitter";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -339,7 +340,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
                 if (this.boxManager) {
                     this.boxManager.destroy();
                 }
-                const boxManager = createBoxManager(this, callbacks, emitter, {
+                const boxManager = createBoxManager(this, callbacks, emitter, boxEmitter, {
                     collectorContainer: params.collectorContainer,
                     collectorStyles: params.collectorStyles,
                     prefersColorScheme: params.prefersColorScheme,

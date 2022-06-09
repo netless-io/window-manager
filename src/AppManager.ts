@@ -4,6 +4,8 @@ import { AppListeners } from "./AppListener";
 import { AppProxy } from "./App";
 import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
+import { boxEmitter } from "./BoxEmitter";
+import { calculateNextIndex } from "./Page";
 import { callbacks } from "./callback";
 import { debounce, get, isInteger, orderBy } from "lodash";
 import { emitter } from "./InternalEmitter";
@@ -16,7 +18,7 @@ import { RedoUndo } from "./RedoUndo";
 import { SideEffectManager } from "side-effect-manager";
 import { ViewManager } from "./View/ViewManager";
 import type { SyncRegisterAppPayload } from "./Register";
-import type { EmitterEvent , RemoveSceneParams } from "./InternalEmitter";
+import type { RemoveSceneParams } from "./InternalEmitter";
 import {
     entireScenes,
     genAppId,
@@ -37,7 +39,14 @@ import type {
     SceneState,
 } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
-import { calculateNextIndex } from "./Page";
+import type {
+    BoxClosePayload,
+    BoxFocusPayload,
+    BoxMovePayload,
+    BoxResizePayload,
+    BoxStateChangePayload,
+} from "./BoxEmitter";
+
 
 export class AppManager {
     public displayer: Displayer;
@@ -202,27 +211,30 @@ export class AppManager {
         const scene = this.callbacksNode?.scenes[index];
         setTimeout(() => {
             if (scene) {
-                removeScenes(this.room, `${ROOT_DIR}${scene}`, index)
+                removeScenes(this.room, `${ROOT_DIR}${scene}`, index);
             }
         }, 100);
         return new Promise<boolean>((resolve, reject) => {
-            emitter.once("rootDirSceneRemoved").then(name => {
-                if (name === scene) {
-                    resolve(true);
-                }
-            }).catch(e => {
-                console.log(`[WindowManager]: removePage error: ${e}`);
-                reject(false);
-            });
+            emitter
+                .once("rootDirSceneRemoved")
+                .then(name => {
+                    if (name === scene) {
+                        resolve(true);
+                    }
+                })
+                .catch(e => {
+                    console.log(`[WindowManager]: removePage error: ${e}`);
+                    reject(false);
+                });
         });
-    }
+    };
 
     public setSceneIndexWithoutSync = (index: number) => {
         const sceneName = this.callbacksNode?.scenes[index];
         if (sceneName) {
             this.mainViewProxy.setFocusScenePath(`${ROOT_DIR}${sceneName}`);
         }
-    }
+    };
 
     private onSceneChange = (node: ScenesCallbacksNode) => {
         this.mainViewScenesLength = node.scenes.length;
@@ -299,7 +311,11 @@ export class AppManager {
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
         emitter.emit("updateManagerRect");
-        emitter.onAny(this.boxEventListener);
+        boxEmitter.on("move", this.onBoxMove);
+        boxEmitter.on("resize", this.onBoxResize);
+        boxEmitter.on("focus", this.onBoxFocus);
+        boxEmitter.on("close", this.onBoxClose);
+        boxEmitter.on("boxStateChange", this.onBoxStateChange);
 
         this.addAppsChangeListener();
         this.addAppCloseListener();
@@ -352,6 +368,39 @@ export class AppManager {
         });
     }
 
+    private onBoxMove = (payload: BoxMovePayload) => {
+        this.dispatchInternalEvent(Events.AppMove, payload);
+        this.store.updateAppState(payload.appId, AppAttributes.Position, {
+            x: payload.x,
+            y: payload.y,
+        });
+    };
+
+    private onBoxResize = (payload: BoxResizePayload) => {
+        if (payload.width && payload.height) {
+            this.dispatchInternalEvent(Events.AppResize, payload);
+            this.store.updateAppState(payload.appId, AppAttributes.Size, {
+                width: payload.width,
+                height: payload.height,
+            });
+        }
+    };
+
+    private onBoxFocus = (payload: BoxFocusPayload) => {
+        this.windowManger.safeSetAttributes({ focus: payload.appId });
+    };
+
+    private onBoxClose = (payload: BoxClosePayload) => {
+        const appProxy = this.appProxies.get(payload.appId);
+        if (appProxy) {
+            appProxy.destroy(false, true, true, payload.error);
+        }
+    };
+
+    private onBoxStateChange = (payload: BoxStateChangePayload) => {
+        this.dispatchInternalEvent(Events.AppBoxStateChange, payload);
+    };
+
     public addAppsChangeListener = () => {
         this.refresher?.add("apps", () => {
             return safeListenPropsUpdated(
@@ -371,7 +420,6 @@ export class AppManager {
         });
     };
 
-    
     private onMainViewIndexChange = (index: number) => {
         if (index !== undefined && this._prevSceneIndex !== index) {
             callbacks.emit("mainViewSceneIndexChange", index);
@@ -558,7 +606,7 @@ export class AppManager {
     private afterAddApp(appProxy: AppProxy | undefined) {
         if (appProxy && appProxy.box) {
             const box = appProxy.box;
-            emitter.emit("move", {
+            boxEmitter.emit("move", {
                 appId: appProxy.id,
                 x: box?.intrinsicX,
                 y: box?.intrinsicY,
@@ -694,7 +742,7 @@ export class AppManager {
         if (this.room) {
             if (this.store.getMainViewSceneIndex() === index) return;
             const sceneName = this.callbacksNode?.scenes[index];
-            const scenePath =`${ROOT_DIR}${sceneName}`;
+            const scenePath = `${ROOT_DIR}${sceneName}`;
             if (sceneName) {
                 const success = this.setMainViewFocusPath(scenePath);
                 if (success) {
@@ -726,46 +774,6 @@ export class AppManager {
             (this.displayer as Room).dispatchMagixEvent(event, payload);
         }
     }
-
-    private boxEventListener = (eventName: keyof EmitterEvent, payload: any) => {
-        switch (eventName) {
-            case "move": {
-                this.dispatchInternalEvent(Events.AppMove, payload);
-                this.store.updateAppState(payload.appId, AppAttributes.Position, {
-                    x: payload.x,
-                    y: payload.y,
-                });
-                break;
-            }
-            case "focus": {
-                this.windowManger.safeSetAttributes({ focus: payload.appId });
-                break;
-            }
-            case "resize": {
-                if (payload.width && payload.height) {
-                    this.dispatchInternalEvent(Events.AppResize, payload);
-                    this.store.updateAppState(payload.appId, AppAttributes.Size, {
-                        width: payload.width,
-                        height: payload.height,
-                    });
-                }
-                break;
-            }
-            case "close": {
-                const appProxy = this.appProxies.get(payload.appId);
-                if (appProxy) {
-                    appProxy.destroy(false, true, payload.error);
-                }
-                break;
-            }
-            case "boxStateChange": {
-                this.dispatchInternalEvent(Events.AppBoxStateChange, payload);
-                break;
-            }
-            default:
-                break;
-        }
-    };
 
     public focusByAttributes(apps: any) {
         if (apps && Object.keys(apps).length === this.boxManager?.boxSize) {
@@ -806,7 +814,7 @@ export class AppManager {
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();
-        emitter.offAny(this.boxEventListener);
+        boxEmitter.clearListeners();
         emitter.clearListeners();
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
