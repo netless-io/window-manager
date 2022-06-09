@@ -432,7 +432,7 @@ export class AppManager {
                         if (!appAttributes) {
                             throw new Error("appAttributes is undefined");
                         }
-                        this.appCreateQueue.push(() => {
+                        this.appCreateQueue.push<AppProxy>(() => {
                             this.appStatus.set(id, AppStatus.StartCreate);
                             return this.baseInsertApp(
                                 {

@@ -1,8 +1,7 @@
 import { callbacks } from "../callback";
 import { SETUP_APP_DELAY } from "../constants";
-import type { AppProxy } from "../App";
 
-export type Invoker = () => Promise<AppProxy | undefined>;
+export type Invoker<T = any> = () => Promise<T | undefined>;
 
 export class AppCreateQueue {
     private list: Invoker[] = [];
@@ -16,7 +15,7 @@ export class AppCreateQueue {
         }, 50);
     }
 
-    public push(item: Invoker) {
+    public push<T>(item: Invoker<T>) {
         this.list.push(item);
         this.invoke();
         if (this.timer === undefined && this.list.length > 0) {
