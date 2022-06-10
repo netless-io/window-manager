@@ -64,7 +64,7 @@ const manager = await WindowManager.mount(
 | disableCameraTransform | [optional] boolean                      |         | 禁用主白板的相机移动                   |
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | 打印日志信息   
-
+| applianceIcons         | [optional] {ApplianceNames, string}     |         | 配置光标使用的教具图片           ｜
 
 <h3 id="register">WindowManager.register</h3>
 
