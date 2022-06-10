@@ -1,5 +1,4 @@
 import App from "./Cursor.svelte";
-import { ApplianceMap } from "./icons";
 import { ApplianceNames } from "white-web-sdk";
 import { findMemberByUid } from "../Helper";
 import { omit } from "lodash";
@@ -159,8 +158,9 @@ export class Cursor {
 
     private getIcon() {
         if (this.member) {
-            const applianceSrc = ApplianceMap[this.memberApplianceName || ApplianceNames.shape];
-            return applianceSrc || ApplianceMap[ApplianceNames.shape];
+            const icons = this.cursorManager.applianceIcons;
+            const applianceSrc = icons[this.memberApplianceName || ApplianceNames.shape];
+            return applianceSrc || icons[ApplianceNames.shape];
         }
     }
 

@@ -1,6 +1,7 @@
 import type Emittery from "emittery";
 import type {
     AnimationMode,
+    ApplianceNames,
     Displayer,
     DisplayerState,
     Player,
@@ -74,6 +75,8 @@ export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any
 };
 
 export type AppListenerKeys = keyof AppEmitterEvent;
+
+export type ApplianceIcons = Partial<Record<ApplianceNames, string>>;
 
 export type { AppContext } from "./App/AppContext";
 export type { ReadonlyTeleBox, TeleBoxRect };

@@ -5,10 +5,11 @@ import { emitter } from "../InternalEmitter";
 import { SideEffectManager } from "side-effect-manager";
 import { throttle } from "lodash";
 import { WindowManager } from "../index";
-import type { CursorMovePayload } from "../index";
+import type { CursorMovePayload , ApplianceIcons} from "../index";
 import type { PositionType } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
+import { ApplianceMap } from "./icons";
 
 export type EventType = {
     type: PositionType;
@@ -20,6 +21,7 @@ export type MoveCursorParams = {
     x: number;
     y: number;
 };
+
 export class CursorManager {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
@@ -28,8 +30,9 @@ export class CursorManager {
     private mainViewElement?: HTMLDivElement;
     private sideEffectManager = new SideEffectManager();
     private store = this.manager.store;
+    public applianceIcons: ApplianceIcons = ApplianceMap;
 
-    constructor(private manager: AppManager, private enableCursor: boolean) {
+    constructor(private manager: AppManager, private enableCursor: boolean, applianceIcons?: ApplianceIcons) {
         this.roomMembers = this.manager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
@@ -42,6 +45,9 @@ export class CursorManager {
         this.sideEffectManager.add(() => {
             return emitter.on("playgroundSizeChange", () => this.updateContainerRect());
         });
+        if (applianceIcons) {
+            this.applianceIcons = { ...ApplianceMap, ...applianceIcons };
+        }
     }
 
     private onCursorMove = (payload: CursorMovePayload) => {

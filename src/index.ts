@@ -29,13 +29,7 @@ import {
     wait,
 } from "./Utils/Common";
 import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
-import {
-    AppCreateError,
-    AppManagerNotInitError,
-    BindContainerRoomPhaseInvalidError,
-    InvalidScenePath,
-    ParamsInvalidError,
-} from "./Utils/error";
+import * as Errors from "./Utils/error";
 import type { Apps, Position } from "./AttributesDelegate";
 import type {
     Displayer,
@@ -54,7 +48,7 @@ import type {
     SceneState,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
-import type { NetlessApp, RegisterParams } from "./typings";
+import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
@@ -143,6 +137,7 @@ export type MountParams = {
     debug?: boolean;
     disableCameraTransform?: boolean;
     prefersColorScheme?: TeleBoxColorScheme;
+    applianceIcons?: ApplianceIcons;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
@@ -238,7 +233,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
         manager.appManager = new AppManager(manager);
         manager._pageState = new PageStateImpl(manager.appManager);
-        manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor));
+        manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor), params.applianceIcons);
         if (containerSizeRatio) {
             manager.containerSizeRatio = containerSizeRatio;
         }
@@ -322,7 +317,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public bindContainer(container: HTMLElement) {
         if (isRoom(this.displayer) && this.room.phase !== RoomPhase.Connected) {
-            throw new BindContainerRoomPhaseInvalidError();
+            throw new Errors.BindContainerRoomPhaseInvalidError();
         }
         if (WindowManager.isCreated && WindowManager.container) {
             if (WindowManager.container.firstChild) {
@@ -408,19 +403,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
                 return this._addApp(params);
             }
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
     private async _addApp<T = any>(params: AddAppParams<T>): Promise<string | undefined> {
         if (this.appManager) {
             if (!params.kind || typeof params.kind !== "string") {
-                throw new ParamsInvalidError();
+                throw new Errors.ParamsInvalidError();
             }
             const appImpl = await appRegister.appClasses.get(params.kind)?.();
             if (appImpl && appImpl.config?.singleton) {
                 if (this.appManager.appProxies.has(params.kind)) {
-                    throw new AppCreateError();
+                    throw new Errors.AppCreateError();
                 }
             }
             const isDynamicPPT = this.setupScenePath(params, this.appManager);
@@ -433,7 +428,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             const appId = await this.appManager.addApp(params, Boolean(isDynamicPPT));
             return appId;
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -443,7 +438,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             const { scenePath, scenes } = params.options;
             if (scenePath) {
                 if (!isValidScenePath(scenePath)) {
-                    throw new InvalidScenePath();
+                    throw new Errors.InvalidScenePath();
                 }
                 const apps = Object.keys(this.apps || {});
                 for (const appId of apps) {
@@ -646,7 +641,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (this.appManager) {
             return this.appManager.mainViewProxy.view;
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -654,7 +649,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (this.appManager) {
             return this.appManager.mainViewProxy.view.camera;
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -662,7 +657,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (this.appManager) {
             return this.appManager.mainViewProxy.cameraState;
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -674,7 +669,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (this.appManager) {
             return this.appManager.boxManager?.boxState;
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -686,7 +681,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (this.appManager) {
             return this.appManager.boxManager?.prefersColorScheme;
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -706,7 +701,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (this.appManager) {
             return this.appManager?.getMainViewSceneDir();
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -731,7 +726,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             return this.appManager.sceneState!;
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 
@@ -739,7 +734,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (this._pageState) {
             return this._pageState.toObject();
         } else {
-            throw new AppManagerNotInitError();
+            throw new Errors.AppManagerNotInitError();
         }
     }
 

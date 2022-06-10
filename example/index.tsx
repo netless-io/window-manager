@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
-import type { WindowManager as WindowManagerType } from "../dist";
+import type { MountParams, WindowManager as WindowManagerType } from "../dist";
 import { createStatic, createDynamic, createHelloWorld, createVideo, createSlide, createCounter, createBoard } from "./apps";
 import "../dist/style.css";
 import "./register";
@@ -34,7 +34,7 @@ const mountManager = async (room, root) => {
         chessboard: true,
         debug: true,
         cursor: true,
-    })) as WindowManagerType;
+    } as MountParams)) as WindowManagerType;
 
     manager.emitter.on("ready", async () => {
         if (isWritable === "false") {
