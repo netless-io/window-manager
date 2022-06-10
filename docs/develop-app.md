@@ -49,7 +49,7 @@ const Counter: NetlessApp<{ count: number }> = {
         countDom.innerText = storage.state.count.toString();
         $content.appendChild(countDom);
 
-        // state 变化回调
+        // 监听 state 变化回调
         storage.addStateChangedListener(diff => {
             if (diff.count) {
                 // diff 会给出 newValue 和 oldValue

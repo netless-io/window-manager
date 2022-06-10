@@ -1,10 +1,11 @@
 ## AppContext
 
--   [api](#api)
+- [api](#api)
     - [view](#view)
     - [page](#page)
     - [storage](#storage)
--   [events](#events)
+- [events](#events)
+- [Advanced](#Advanced)
 
 <h2 id="api">API</h2>
 
@@ -15,6 +16,12 @@
     ```ts
     const appId = context.appId;
     ```
+
+- **context.isReplay**
+    
+    类型: `boolean`
+    
+    当前是否回放模式
 
 - **context.getDisplayer()**
 
@@ -32,10 +39,10 @@
 
 - **context.getIsWritable()**
 
-    获取当前状态是否可写
+    获取当前状态是否可写\
+    可以通过监听 `writableChange` 事件获取可写状态的改变
 
     ```ts
-    // isWritable === (room.isWritable && box.readonly)
     const isWritable = context.getIsWritable();
     ```
 
@@ -50,46 +57,31 @@
     box.$footer;
     ```
 
-<h3 id="view">View</h3>
+<h3 id="view">挂载白板</h3>
 
-`view` 可以理解为一块白板，可以从 `context` 中拿到这个实例并挂载到 `Dom` 中
-
-- **context.getView()**
-
-    获取 `view` 实例
-
-    ```ts
-    const view = context.getView();
-    ```
+当应用想要一个可以涂画的白板，可以使用以下接口
 
 - **context.mountView()**
 
-    挂载 view 到指定 dom
+    挂载白板到指定 dom
 
     ```ts
     context.mountView(element);
     ```
 
-- **context.getScenes()**
-
-    `scenes` 在 `addApp` 时传入 `scenePath` 会由 `WindowManager` 创建
-
-    ```ts
-    const scenes = context.getScenes();
-    ```
-
-- **context.setScenePath()**
-
-    切换当前 `view` 到指定的 `scenePath`
-
-    ```ts
-    context.setScenePath("/page/2");
-    ```
-
+**注意** 在调用 `manager` 的 `addApp` 时必须填写 `scenePath` 才可以使用 `view`
+```ts
+manager.addApp({
+    kind: "xxx",
+    options: { // 可选配置
+        scenePath: "/example-path"
+    }
+})
+```
 
 <h3 id="page">Page</h3>
 
-`Page` 是封装后 `scenes` 的一些概念
+白板有多页的概念, 可以通过以下接口添加，切换，以及删除
 
 - **context.addPage()**
 
@@ -116,10 +108,19 @@
     ```ts
     context.prevPage();
     ```
+- **context.removePage()**
+
+    删除一页
+
+    ```ts
+    context.removePage() // 默认删除当前页
+    context.removePage(1) // 也可以指定 index 删除
+    ```
 
 - **context.pageState**
 
-    获取当前所在的 `index` 和一共有多少页
+    获取当前所在的 `index` 和一共有多少页\
+    当想要监听 `pageState` 的变化时, 可以监听 `pageStateChange` 事件获取最新的 `pageState`
 
     ```ts
     context.pageState;
@@ -141,17 +142,97 @@
     context.storage
     ```
 
-- **createStorage()**
+- **context.createStorage(namespace)**
 
     同时你也可以创建多个 `storage` 实例
+    
+    返回: `Storage<State>`
 
     ```ts
-    const defaultState = { count: 0 } // 可选
-    const storage = context.createStorage("store1", defaultState);
+    type State = { count: number };
+    const defaultState = { count: 0 };
+    const storage = context.createStorage<State>("store1", defaultState);
     ```
 
+- **storage.state**
 
+  类型: `State`\
+  默认值: `defaultState`
 
+  在所有客户端之间同步的状态，调用 `storage.setState()` 来改变它。
+
+- **storage.ensureState(partialState)**
+
+  确保 `storage.state` 包含某些初始值，类似于执行了：
+
+  ```js
+  // 这段代码不能直接运行，因为 app.state 是只读的
+  storage.state = { ...partialState, ...storage.state };
+  ```
+
+  **partialState**
+
+  类型: `Partial<State>`
+
+  ```js
+  storage.state; // { a: 1 }
+  storage.ensureState({ a: 0, b: 0 });
+  storage.state; // { a: 1, b: 0 }
+  ```
+
+- **storage.setState(partialState)**
+
+  和 React 的 `setState` 类似，更新 `storage.state` 并同步到所有客户端。
+
+  当设置某个字段为 `undefined` 时，它会被从 `storage.state` 里删除。
+
+  > - 状态同步所需的时间和网络状态与数据大小有关，建议只在 state 里存储必须的数据。
+
+  **partialState**
+
+  类型: `Partial<State>`
+
+  ```js
+  storage.state; //=> { count: 0, a: 1 }
+  storage.setState({ count: storage.state.count + 1, b: 2 });
+  storage.state; //=> { count: 1, a: 1, b: 2 }
+  ```
+
+- **storage.addStateChangedListener(listener)**
+
+  它在有人调用 `storage.setState()` 后触发 (包含当前 `storage`)
+
+  返回: `() => void`
+
+  ```js
+  const disposer = storage.addStateChangedListener(diff => {
+    console.log("state changed", diff.oldValue, diff.newValue);
+    disposer(); // remove listener by calling disposer
+  });
+  ```
+
+- **context.dispatchMagixEvent(event, payload)**
+
+  向其他客户端广播事件消息
+
+  ```js
+  context.dispatchMagixEvent("click", { data: "data" });
+  ```
+
+- **context.addMagixEventListener(event, listener)**
+
+  当接收来自其他客户端的消息时(当其他客户端调用'context.dispatchMagixEvent()`时), 它会被触发
+
+  返回: `() => void` a disposer function.
+
+  ```js
+  const disposer = context.addMagixEventListener("click", ({ payload }) => {
+    console.log(payload.data);
+    disposer();
+  });
+
+  context.dispatchMagixEvent("click", { data: "data" });
+  ```
 
 <h2 id="events">events</h2>
 
@@ -202,4 +283,14 @@
     context.emitter.on("pageStateChange", pageState => {
         // { index: 0, length: 1 }
     });
+    ```
+
+<h2 id="Advanced">Advanced</h2>
+
+- **context.getView()**
+
+    获取 `view` 实例
+
+    ```ts
+    const view = context.getView();
     ```
