@@ -210,6 +210,10 @@ export class BoxManager {
         return this.teleBoxManager.boxes.length;
     }
 
+    public get stageRect() {
+        return this.teleBoxManager.stageRect;
+    }
+
     public createBox(params: CreateBoxParams): void {
         if (!this.teleBoxManager) return;
         let { minwidth = MIN_WIDTH, minheight = MIN_HEIGHT } = params.app.config ?? {};
@@ -242,7 +246,7 @@ export class BoxManager {
     ): TeleBoxManager {
         const root = WindowManager.playground;
         const initManagerState: TeleBoxManagerConfig = {
-            stageRatio: 3 / 4,
+            stageRatio: createTeleBoxManagerConfig?.stageRatio,
             root: root,
             fence: false,
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
@@ -388,6 +392,10 @@ export class BoxManager {
 
     public setRoot(root: HTMLElement) {
         this.teleBoxManager._root$.setValue(root);
+    }
+
+    public setCollector(collector: HTMLElement) {
+        this.teleBoxManager.collector.set$collector(collector);
     }
 
     public destroy() {

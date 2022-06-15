@@ -42,7 +42,7 @@ export class MainViewProxy {
                 }
             });
         });
-        const rect = this.manager.boxManager?.teleBoxManager.stageRect;
+        const rect = this.manager.boxManager?.stageRect;
         if (rect) {
             this.synchronizer.setRect(rect);
         }
@@ -191,7 +191,7 @@ export class MainViewProxy {
     };
 
     private getStageSize(): Size | undefined {
-        const stage = this.manager.boxManager?.teleBoxManager.stageRect;
+        const stage = this.manager.boxManager?.stageRect;
         if (stage) {
             return { width: stage.width, height: stage.height };
         }

@@ -340,7 +340,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public bindCollectorContainer(container: HTMLElement) {
         if (WindowManager.isCreated && this.boxManager) {
-            this.boxManager.teleBoxManager.collector.set$collector(container)
+            this.boxManager.setCollector(container);
         } else {
             if (WindowManager.params) {
                 WindowManager.params.collectorContainer = container;
