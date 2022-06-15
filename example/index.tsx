@@ -55,10 +55,6 @@ const mountManager = async (room, root) => {
         console.log("mode", mode);
     });
 
-    manager.emitter.on("boxStateChange", state => {
-        console.log("boxStateChange:", state);
-    });
-
     manager.emitter.on("mainViewSceneIndexChange", index => {
         console.log("mainViewSceneIndexChange", index);
     });

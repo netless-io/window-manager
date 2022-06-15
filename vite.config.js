@@ -39,7 +39,6 @@ export default defineConfig(({ mode }) => {
                 fileName: "index"
             },
             outDir: "dist",
-            sourcemap: true,
             rollupOptions: {
                 external: Object.keys({
                     ...omit(dependencies, ["@netless/telebox-insider"]),

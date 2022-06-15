@@ -1,25 +1,29 @@
-import { AnimationMode, reaction } from "white-web-sdk";
+import { reaction } from "white-web-sdk";
 import { callbacks } from "../callback";
 import { createView } from "./ViewManager";
-import { debounce, get, isEmpty, isEqual } from "lodash";
+import { debounce, get, isEqual } from "lodash";
 import { emitter } from "../InternalEmitter";
+import { Events } from "../constants";
 import { Fields } from "../AttributesDelegate";
 import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
-import { Events } from "../constants";
+import { CameraSynchronizer } from "./CameraSynchronizer";
 
 export class MainViewProxy {
-    private scale?: number;
     private started = false;
     private mainViewIsAddListener = false;
     private mainView: View;
     private store = this.manager.store;
+    private synchronizer: CameraSynchronizer;
 
     private sideEffectManager = new SideEffectManager();
 
     constructor(private manager: AppManager) {
+        this.synchronizer = new CameraSynchronizer(
+            camera => this.store.setMainViewCamera({ ...camera, id: this.manager.uid })
+        );
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
         emitter.once("mainViewMounted").then(() => {
@@ -28,18 +32,24 @@ export class MainViewProxy {
             this.ensureCameraAndSize();
             this.startListenWritableChange();
         });
-        const playgroundSizeChangeListener = () => {
-            this.sizeChangeHandler(this.mainViewSize);
-        };
-        this.sideEffectManager.add(() => {
-            return emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
-        });
         this.sideEffectManager.add(() => {
             return emitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio);
         });
         this.sideEffectManager.add(() => {
             return emitter.on("startReconnect", () => {
-                this.mainView.release();
+                if (!(this.mainView as any).didRelease) {
+                    this.mainView.release();
+                }
+            });
+        });
+        const rect = this.manager.boxManager?.teleBoxManager.stageRect;
+        if (rect) {
+            this.synchronizer.setRect(rect);
+        }
+        this.sideEffectManager.add(() => {
+            return emitter.on("playgroundSizeChange", rect => {
+                this.synchronizer.setRect(rect);
+                this.synchronizer.onLocalSizeUpdate(rect);
             });
         });
     }
@@ -52,7 +62,7 @@ export class MainViewProxy {
                 }
             });
         });
-    }
+    };
 
     public ensureCameraAndSize() {
         if (!this.mainViewCamera || !this.mainViewSize) {
@@ -74,8 +84,7 @@ export class MainViewProxy {
     }
 
     private moveCameraSizeByAttributes() {
-        this.moveCameraToContian(this.mainViewSize);
-        this.moveCamera(this.mainViewCamera);
+        this.synchronizer.onRemoteUpdate(this.mainViewCamera, this.mainViewSize);
     }
 
     public start() {
@@ -91,9 +100,12 @@ export class MainViewProxy {
     };
 
     public setCameraAndSize(): void {
-        const camera = { ...this.mainView.camera, id: this.manager.uid };
-        const size = { ...this.mainView.size, id: this.manager.uid };
-        this.store.setMainViewCameraAndSize(camera, size);
+        const stageSize = this.getStageSize();
+        if (stageSize) {
+            const camera = { ...this.mainView.camera, id: this.manager.uid };
+            const size = { ...stageSize, id: this.manager.uid };
+            this.store.setMainViewCameraAndSize(camera, size);
+        }
     }
 
     private cameraReaction = () => {
@@ -101,8 +113,7 @@ export class MainViewProxy {
             () => this.mainViewCamera,
             camera => {
                 if (camera && camera.id !== this.manager.uid) {
-                    this.moveCameraToContian(this.mainViewSize);
-                    this.moveCamera(camera);
+                    this.synchronizer.onRemoteUpdate(camera, this.mainViewSize);
                 }
             },
             { fireImmediately: true }
@@ -111,8 +122,7 @@ export class MainViewProxy {
 
     public sizeChangeHandler = debounce((size: Size) => {
         if (size) {
-            this.moveCameraToContian(size);
-            this.moveCamera(this.mainViewCamera);
+            this.synchronizer.onLocalSizeUpdate(size);
         }
     }, 30);
 
@@ -122,7 +132,7 @@ export class MainViewProxy {
         if (size.id === this.manager.uid) {
             this.setCameraAndSize();
         }
-    }
+    };
 
     public get view(): View {
         return this.mainView;
@@ -138,6 +148,7 @@ export class MainViewProxy {
         if (mainViewScenePath) {
             setViewFocusScenePath(mainView, mainViewScenePath);
         }
+        this.synchronizer.setView(mainView);
         return mainView;
     }
 
@@ -172,11 +183,19 @@ export class MainViewProxy {
     }
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
-        this.store.setMainViewCamera({ ...camera, id: this.manager.uid });
-        if (!isEqual(this.mainViewSize, { ...this.mainView.size, id: this.manager.uid })) {
-            this.setMainViewSize(this.view.size);
+        this.synchronizer.onLocalCameraUpdate(camera);
+        const size = this.getStageSize();
+        if (size && !isEqual(size, this.mainViewSize)) {
+            this.setMainViewSize(size);
         }
     };
+
+    private getStageSize(): Size | undefined {
+        const stage = this.manager.boxManager?.teleBoxManager.stageRect;
+        if (stage) {
+            return { width: stage.width, height: stage.height };
+        }
+    }
 
     public addMainViewListener(): void {
         if (this.mainViewIsAddListener) return;
@@ -205,7 +224,7 @@ export class MainViewProxy {
         this.manager.boxManager?.blurAllBox();
     }
 
-    public setMainViewSize = debounce(size => {
+    public setMainViewSize = debounce((size: Size) => {
         this.store.setMainViewSize({ ...size, id: this.manager.uid });
     }, 50);
 
@@ -224,33 +243,6 @@ export class MainViewProxy {
     private onCameraOrSizeUpdated = () => {
         callbacks.emit("cameraStateChange", this.cameraState);
     };
-
-    public moveCameraToContian(size: Size): void {
-        if (!isEmpty(size)) {
-            this.view.moveCameraToContain({
-                width: size.width,
-                height: size.height,
-                originX: -size.width / 2,
-                originY: -size.height / 2,
-                animationMode: AnimationMode.Immediately,
-            });
-            this.scale = this.view.camera.scale;
-        }
-    }
-
-    public moveCamera(camera: Camera): void {
-        if (!isEmpty(camera)) {
-            if (isEqual(camera, this.view.camera)) return;
-            const { centerX, centerY, scale } = camera;
-            const needScale = scale * (this.scale || 1);
-            this.view.moveCamera({
-                centerX: centerX,
-                centerY: centerY,
-                scale: needScale,
-                animationMode: AnimationMode.Immediately,
-            });
-        }
-    }
 
     public stop() {
         this.removeCameraListener();

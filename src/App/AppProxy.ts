@@ -191,7 +191,6 @@ export class AppProxy implements PageRemoveService {
                     const result = await app.setup(context);
                     this.appResult = result;
                     appRegister.notifyApp(this.kind, "created", { appId, result });
-                    this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
                 }, SETUP_APP_DELAY);
             });
@@ -222,14 +221,6 @@ export class AppProxy implements PageRemoveService {
                 height: box.intrinsicHeight + 0.001,
                 skipUpdate: true,
             });
-        }
-    }
-
-    private afterSetupApp(boxInitState: AppInitState | undefined): void {
-        if (boxInitState) {
-            if (!boxInitState?.x || !boxInitState.y) {
-                this.boxManager?.setBoxInitState(this.id);
-            }
         }
     }
 

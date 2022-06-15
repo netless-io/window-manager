@@ -1,9 +1,11 @@
 import Emittery from "emittery";
+import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { AppInitState, CursorMovePayload } from "./index";
 
 export type RemoveSceneParams = {
-    scenePath: string, index?: number
-}
+    scenePath: string;
+    index?: number;
+};
 
 export type EmitterEvent = {
     onCreated: undefined;
@@ -14,14 +16,14 @@ export type EmitterEvent = {
     mainViewMounted: undefined;
     observerIdChange: number;
     boxStateChange: string;
-    playgroundSizeChange: DOMRect;
+    playgroundSizeChange: TeleBoxRect;
     startReconnect: undefined;
     onReconnected: undefined;
     removeScenes: RemoveSceneParams;
     cursorMove: CursorMovePayload;
     updateManagerRect: undefined;
     focusedChange: { focused: string | undefined; prev: string | undefined };
-    rootDirRemoved: undefined;  // 根目录整个被删除
+    rootDirRemoved: undefined; // 根目录整个被删除
     rootDirSceneRemoved: string; // 根目录下的场景被删除
     setReadonly: boolean;
     changePageState: undefined;

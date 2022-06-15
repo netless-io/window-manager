@@ -34,9 +34,9 @@ export class CursorManager {
 
     constructor(private manager: AppManager, private enableCursor: boolean, applianceIcons?: ApplianceIcons) {
         this.roomMembers = this.manager.room?.state.roomMembers;
-        const wrapper = WindowManager.wrapper;
-        if (wrapper) {
-            this.setupWrapper(wrapper);
+        const playground = WindowManager.playground;
+        if (playground) {
+            this.setupWrapper(playground);
         }
         this.sideEffectManager.add(() => {
             return emitter.on("cursorMove", this.onCursorMove);
@@ -65,7 +65,7 @@ export class CursorManager {
     private initCursorInstance = (uid: string) => {
         let cursorInstance = this.cursorInstances.get(uid);
         if (!cursorInstance) {
-            cursorInstance = new Cursor(this.manager, uid, this, WindowManager.wrapper);
+            cursorInstance = new Cursor(this.manager, uid, this, WindowManager.playground);
             this.cursorInstances.set(uid, cursorInstance);
         }
         return cursorInstance;
@@ -169,7 +169,7 @@ export class CursorManager {
 
     public updateContainerRect() {
         this.containerRect = WindowManager.container?.getBoundingClientRect();
-        this.wrapperRect = WindowManager.wrapper?.getBoundingClientRect();
+        this.wrapperRect = WindowManager.playground?.getBoundingClientRect();
     }
 
     public deleteCursor(uid: string) {

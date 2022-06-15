@@ -3,7 +3,6 @@ import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
 import { callbacks } from "./callback";
 import { checkVersion, setupWrapper } from "./Helper";
-import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
 import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants";
@@ -145,7 +144,6 @@ export const reconnectRefresher = new ReconnectRefresher({ emitter });
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> implements PageController {
     public static kind = "WindowManager";
     public static displayer: Displayer;
-    public static wrapper?: HTMLElement;
     public static playground?: HTMLElement;
     public static container?: HTMLElement;
     public static debug = false;
@@ -168,7 +166,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     private boxManager?: BoxManager;
     private static params?: MountParams;
 
-    private containerResizeObserver?: ContainerResizeObserver;
     public containerSizeRatio = WindowManager.containerSizeRatio;
 
     constructor(context: InvisiblePluginContext) {
@@ -237,7 +234,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (containerSizeRatio) {
             manager.containerSizeRatio = containerSizeRatio;
         }
-
+        manager.boxManager = createBoxManager(manager, callbacks, emitter, boxEmitter, {
+            collectorContainer: params.collectorContainer,
+            collectorStyles: params.collectorStyles,
+            prefersColorScheme: params.prefersColorScheme,
+            stageRatio: params.containerSizeRatio,
+        });
+        manager.appManager?.setBoxManager(manager.boxManager);
         if (params.container) {
             manager.bindContainer(params.container);
         }
@@ -283,31 +286,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     }
 
     private static initContainer(
-        manager: WindowManager,
         container: HTMLElement,
-        chessboard: boolean | undefined,
         overwriteStyles: string | undefined
     ) {
         if (!WindowManager.container) {
             WindowManager.container = container;
         }
-        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
+        const { playground, mainViewElement } = setupWrapper(container);
         WindowManager.playground = playground;
-        if (chessboard) {
-            sizer.classList.add("netless-window-manager-chess-sizer");
-        }
         if (overwriteStyles) {
             const style = document.createElement("style");
             style.textContent = overwriteStyles;
             playground.appendChild(style);
         }
-        manager.containerResizeObserver = ContainerResizeObserver.create(
-            playground,
-            sizer,
-            wrapper,
-            emitter
-        );
-        WindowManager.wrapper = wrapper;
         return mainViewElement;
     }
 
@@ -327,24 +318,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             if (WindowManager.params) {
                 const params = WindowManager.params;
                 const mainViewElement = WindowManager.initContainer(
-                    this,
                     container,
-                    params.chessboard,
                     params.overwriteStyles
                 );
-                if (this.boxManager) {
-                    this.boxManager.destroy();
+                if (this.boxManager && WindowManager.playground) {
+                    this.boxManager.setRoot(WindowManager.playground);
                 }
-                const boxManager = createBoxManager(this, callbacks, emitter, boxEmitter, {
-                    collectorContainer: params.collectorContainer,
-                    collectorStyles: params.collectorStyles,
-                    prefersColorScheme: params.prefersColorScheme,
-                });
-                this.boxManager = boxManager;
-                this.appManager?.setBoxManager(boxManager);
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
-                if (WindowManager.wrapper) {
-                    this.cursorManager?.setupWrapper(WindowManager.wrapper);
+                if (WindowManager.playground) {
+                    this.cursorManager?.setupWrapper(WindowManager.playground);
                 }
             }
         }
@@ -358,7 +340,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public bindCollectorContainer(container: HTMLElement) {
         if (WindowManager.isCreated && this.boxManager) {
-            this.boxManager.setCollectorContainer(container);
+            this.boxManager.teleBoxManager.collector.set$collector(container)
         } else {
             if (WindowManager.params) {
                 WindowManager.params.collectorContainer = container;
@@ -802,11 +784,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     }
 
     private _destroy() {
-        this.containerResizeObserver?.disconnect();
         this.appManager?.destroy();
         this.cursorManager?.destroy();
         WindowManager.container = undefined;
-        WindowManager.wrapper = undefined;
         WindowManager.isCreated = false;
         if (WindowManager.playground) {
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);

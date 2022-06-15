@@ -14,7 +14,7 @@ import type {
     Room,
     SceneDefinition,
     View,
-    EventListener as WhiteEventListener,
+    EventListener as WhiteEventListener
 } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
