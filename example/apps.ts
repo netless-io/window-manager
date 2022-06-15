@@ -64,8 +64,5 @@ export const createSlide = (manager: WindowManager) => {
 export const createBoard = (manager: WindowManager) => {
     return manager.addApp({
         kind: "Board",
-        options: {
-            scenePath: "/board1",
-        }
     });
 }

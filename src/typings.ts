@@ -13,6 +13,7 @@ import type {
 import type { AppContext } from "./App";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 import type { PageState } from "./Page";
+import type { Member } from "./Helper";
 
 export interface NetlessApp<Attributes = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
     kind: string;
@@ -53,6 +54,7 @@ export type AppEmitterEvent<T = any> = {
     reconnected: void;
     seek: number;
     pageStateChange: PageState,
+    roomMembersChange: Member[];
 };
 
 export type RegisterEventData = {
@@ -79,8 +81,10 @@ export type AppListenerKeys = keyof AppEmitterEvent;
 export type ApplianceIcons = Partial<Record<ApplianceNames, string>>;
 
 export type { AppContext } from "./App/AppContext";
+export type { WhiteBoardView } from "./App";
 export type { ReadonlyTeleBox, TeleBoxRect };
 export type { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room, Player };
 export type { Storage, StorageStateChangedEvent, StorageStateChangedListener } from "./App/Storage";
 export * from "./Page";
 export * from "./Utils/error";
+export type { Member } from "./Helper";

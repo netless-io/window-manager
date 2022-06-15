@@ -57,3 +57,5 @@ export const ROOT_DIR = "/";
 export const INIT_DIR = "/init";
 
 export const SETUP_APP_DELAY = 50;
+
+export const MAX_PAGE_SIZE = 500;

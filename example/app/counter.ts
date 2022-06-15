@@ -8,7 +8,7 @@ export const Counter: NetlessApp<{ count: number }> = {
         // 初始化值，只会在相应的 key 不存在 storage.state 的时候设置值
         storage.ensureState({ count: 0 });
 
-        const box = context.getBox(); // box 为这个应用打开的窗口
+        const box = context.box; // box 为这个应用打开的窗口
         const $content = box.$content; // 获取窗口的 content
 
         const countDom = document.createElement("div");

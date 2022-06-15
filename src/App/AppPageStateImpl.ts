@@ -9,11 +9,15 @@ export type AppPageStateParams = {
 };
 
 export class AppPageStateImpl {
-    private sceneNode: ScenesCallbacksNode | null = null;
+    public sceneNode: ScenesCallbacksNode | null = null;
+    private scenePath?: string;
+    private view?: View;
 
     constructor(private params: AppPageStateParams) {
         const { displayer, scenePath } = this.params;
+        this.view = this.params.view;
         if (scenePath) {
+            this.scenePath = scenePath;
             this.sceneNode = displayer.createScenesCallback(scenePath, {
                 onAddScene: this.onSceneChange,
                 onRemoveScene: this.onSceneChange,
@@ -21,24 +25,39 @@ export class AppPageStateImpl {
         }
     }
 
-    private onSceneChange = (node: ScenesCallbacksNode) => {
-        this.sceneNode = node;
+    public createSceneNode = (scenePath: string) => {
+        this.scenePath = scenePath;
+        if (this.sceneNode) {
+            this.sceneNode.dispose();
+        }
+        this.sceneNode = this.params.displayer.createScenesCallback(scenePath, {
+            onAddScene: this.onSceneChange,
+            onRemoveScene: this.onSceneChange,
+        });
+        return this.sceneNode;
+    }
+
+    public setView(view: View) {
+        this.view = view;
+    }
+
+    private onSceneChange = () => {
         this.params.notifyPageStateChange();
     };
 
     public getFullPath(index: number) {
         const scenes = this.sceneNode?.scenes;
-        if (this.params.scenePath && scenes) {
+        if (this.scenePath && scenes) {
             const name = scenes[index];
             if (name) {
-                return `${this.params.scenePath}/${name}`;
+                return `${this.scenePath}/${name}`;
             }
         }
     }
 
     public toObject(): PageState {
         return {
-            index: this.params.view?.focusSceneIndex || 0,
+            index: this.view?.focusSceneIndex || 0,
             length: this.sceneNode?.scenes.length || 0,
         };
     }

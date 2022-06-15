@@ -1,42 +1,42 @@
-import type { NetlessApp } from "../../dist";
+import type { NetlessApp, WhiteBoardView } from "../../dist";
 import React, { useEffect, useState } from "react";
 import ReactDom from "react-dom";
-import type { AppContext } from "../../dist";
 import "./board.css";
 
 export const Board: NetlessApp = {
     kind: "Board",
-    setup: context => {
+    setup:  async context => {
         // 获取 app 的 box
-        const box = context.getBox();
+        const box = context.box;
 
-        // 挂载白板的 view 到 box 到 content
-        context.mountView(box.$content);
+         // 挂载白板到当前 box
+        const view = context.createWhiteBoardView(10);
 
         // 挂载自定义的 footer 到 box 的 footer 上
-        mount(box.$footer, context);
+        mount(box.$footer, view);
         return;
     }
 }
 
-const BoardFooter = ({ context }: { context: AppContext }) => {
+const BoardFooter = ({ view }: { view: WhiteBoardView }) => {
     
     const [pageState, setPageState] = useState({ index: 0, length: 0 });
 
-    const nextPage = () => context.nextPage();
+    const nextPage = () => view.nextPage();
     
-    const prevPage = () => context.prevPage();
+    const prevPage = () => view.prevPage();
 
-    const addPage = () =>  context.addPage();
+    const addPage = () =>  view.addPage();
 
-    const removePage = () => context.removePage(1);
+    const removePage = () => view.removePage(1);
 
-    const removeLastPage = () => context.removePage(context.pageState.length - 1);
+    const removeLastPage = () => view.removePage(view.pageState.length - 1);
 
     useEffect(() => {
-        setPageState(context.pageState);
-        return context.emitter.on("pageStateChange", pageState => {
-            console.log("pageStateChange", pageState);
+        setPageState(view.pageState);
+        // 订阅 pageState 的修改
+        return view.pageState$.subscribe(pageState => {
+            console.log("subscribe pageState", pageState);
             setPageState(pageState);
         });
     }, []);
@@ -53,6 +53,6 @@ const BoardFooter = ({ context }: { context: AppContext }) => {
     )
 }
 
-export const mount = (dom: HTMLElement, context: AppContext) => {
-    ReactDom.render(<BoardFooter context={context} />, dom)
+export const mount = (dom: HTMLElement, view: WhiteBoardView) => {
+    ReactDom.render(<BoardFooter view={view} />, dom)
 }

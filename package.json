@@ -29,6 +29,7 @@
     "p-retry": "^4.6.1",
     "side-effect-manager": "^1.1.0",
     "uuid": "^7.0.3",
+    "value-enhancer": "^1.2.1",
     "video.js": ">=7"
   },
   "devDependencies": {

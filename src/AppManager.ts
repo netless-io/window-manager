@@ -15,6 +15,7 @@ import { MainViewProxy } from "./View/MainView";
 import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
 import { reconnectRefresher, WindowManager } from "./index";
 import { RedoUndo } from "./RedoUndo";
+import { serializeRoomMembers } from "./Helper";
 import { SideEffectManager } from "side-effect-manager";
 import { ViewManager } from "./View/ViewManager";
 import type { SyncRegisterAppPayload } from "./Register";
@@ -46,7 +47,7 @@ import type {
     BoxResizePayload,
     BoxStateChangePayload,
 } from "./BoxEmitter";
-
+import type { Member } from "./Helper";
 
 export class AppManager {
     public displayer: Displayer;
@@ -297,6 +298,10 @@ export class AppManager {
 
     public get uid() {
         return this.room?.uid || "";
+    }
+
+    public get members(): Member[] {
+        return serializeRoomMembers(this.displayer.state.roomMembers);
     }
 
     public getMainViewSceneDir() {
@@ -660,6 +665,9 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
+        if (state.roomMembers) {
+            emitter.emit("roomMembersChange", this.members);
+        }
         emitter.emit("observerIdChange", this.displayer.observerId);
     };
 

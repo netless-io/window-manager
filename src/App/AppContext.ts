@@ -1,5 +1,4 @@
 import { BoxNotCreatedError } from "../Utils/error";
-import { putScenes } from "../Utils/Common";
 import { Storage } from "./Storage";
 import {
     autorun,
@@ -19,7 +18,7 @@ import type {
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { BoxManager } from "../BoxManager";
-import type { AppEmitterEvent } from "../index";
+import type { AppEmitterEvent, Member } from "../index";
 import type { AppManager } from "../AppManager";
 import type { AppProxy } from "./AppProxy";
 import type {
@@ -27,11 +26,13 @@ import type {
     MagixEventDispatcher,
     MagixEventRemoveListener,
 } from "./MagixEvent";
-import type { AddPageParams, PageController, PageState } from "../Page";
+import { WhiteBoardView } from "./WhiteBoardView";
+import { findMemberByUid } from "../Helper";
+import { MAX_PAGE_SIZE } from "../constants";
+import { putScenes } from "../Utils/Common";
+import { isNumber } from "lodash";
 
-export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any>
-    implements PageController
-{
+export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttributes>>;
     public readonly mobxUtils = {
         autorun,
@@ -48,6 +49,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     private store = this.manager.store;
     public readonly isAddApp: boolean;
     public readonly isReplay = this.manager.isReplay;
+    private whiteBoardView?: WhiteBoardView;
 
     constructor(
         private manager: AppManager,
@@ -60,7 +62,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         this.isAddApp = appProxy.isAddApp;
     }
 
-    public getDisplayer = () => {
+    public get displayer(){
         return this.manager.displayer;
     };
 
@@ -78,32 +80,50 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
     };
 
-    public getView = (): View | undefined => {
+    public get view(): View | undefined {
         return this.appProxy.view;
     };
 
-    public mountView = (dom: HTMLElement): void => {
-        const view = this.getView();
-        if (view) {
-            view.divElement = dom as HTMLDivElement;
-            setTimeout(() => {
-                // 渲染需要时间，延迟 refresh
-                this.getRoom()?.refreshViewSize();
-            }, 1000);
+    public createWhiteBoardView = (size?: number): WhiteBoardView => {
+        if (this.whiteBoardView) {
+            return this.whiteBoardView;
         }
-    };
+        let view = this.view;
+        if (!view) {
+            view = this.appProxy.createAppDir();
+        }
+        view.divElement = this.box.$content as HTMLDivElement;
+        this.initPageSize(size);
+        this.whiteBoardView = new WhiteBoardView(this, this.appProxy);
+        return this.whiteBoardView;
+    }
+
+    private initPageSize = (size?: number) => {
+        if (!isNumber(size)) return;
+        if (!this.appProxy.scenePath) return;
+        if (this.appProxy.pageState.length >= size) return;
+        if (size <= 0 || size >= MAX_PAGE_SIZE) {
+            throw Error(`[WindowManager]: size ${size} muse be in range [1, ${MAX_PAGE_SIZE}]`);
+        }
+        const needInsert = size - this.appProxy.pageState.length;
+        const startPageNumber = this.appProxy.pageState.length;
+        const scenes = new Array(needInsert).fill({}).map((_, index) => {
+            return { name: `${startPageNumber + index + 1}` };
+        });
+        putScenes(this.room, this.appProxy.scenePath, scenes);
+    }
 
     public getInitScenePath = () => {
         return this.manager.getAppInitPath(this.appId);
     };
 
     /** Get App writable status. */
-    public getIsWritable = (): boolean => {
+    public get isWritable(): boolean {
         return this.manager.canOperate;
     };
 
     /** Get the App Window UI box. */
-    public getBox = (): ReadonlyTeleBox => {
+    public get box(): ReadonlyTeleBox {
         const box = this.boxManager.getBox(this.appId);
         if (box) {
             return box;
@@ -112,9 +132,24 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
     };
 
-    public getRoom = (): Room | undefined => {
+    public get room(): Room | undefined {
         return this.manager.room;
     };
+
+    public get members() {
+        return this.manager.members;
+    }
+
+    public get memberState(): Member {
+        const self = findMemberByUid(this.room, this.manager.uid);
+        if (!self) {
+            throw new Error(`Member ${this.manager.uid} not found.`);
+        }
+        return {
+            uid: this.manager.uid,
+            ...self,
+        }
+    }
 
     /** @deprecated Use context.storage.setState instead. */
     public setAttributes = (attributes: TAttributes) => {
@@ -128,11 +163,12 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
     };
 
+    /** @deprecated Use Pages api instead. */
     public setScenePath = async (scenePath: string): Promise<void> => {
         if (!this.appProxy.box) return;
         this.appProxy.setFullPath(scenePath);
         // 兼容 15 版本 SDK 的切页
-        this.getRoom()?.setScenePath(scenePath);
+        this.room?.setScenePath(scenePath);
     };
 
     /** Get the local App options. */
@@ -196,55 +232,4 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public removeMagixEventListener = this.manager.displayer.removeMagixEventListener.bind(
         this.manager.displayer
     ) as MagixEventRemoveListener<TMagixEventPayloads>;
-
-    /** PageController  */
-    public nextPage = async (): Promise<boolean> => {
-        const nextIndex = this.pageState.index + 1;
-        if (nextIndex > this.pageState.length - 1) {
-            console.warn("[WindowManager] nextPage: index out of range");
-            return false;
-        }
-        this.appProxy.setSceneIndex(nextIndex);
-        return true;
-    };
-
-    public prevPage = async (): Promise<boolean> => {
-        const nextIndex = this.pageState.index - 1;
-        if (nextIndex < 0) {
-            console.warn("[WindowManager] prevPage: index out of range");
-            return false;
-        }
-        this.appProxy.setSceneIndex(nextIndex);
-        return true;
-    };
-
-    public addPage = async (params?: AddPageParams) => {
-        const after = params?.after;
-        const scene = params?.scene;
-        const scenePath = this.appProxy.scenePath;
-        if (!scenePath) return;
-        if (after) {
-            const nextIndex = this.pageState.index + 1;
-            putScenes(this.manager.room, scenePath, [scene || {}], nextIndex);
-        } else {
-            putScenes(this.manager.room, scenePath, [scene || {}]);
-        }
-    };
-
-    public removePage = async (index?: number): Promise<boolean> => {
-        const needRemoveIndex = index === undefined ? this.pageState.index : index;
-        if (this.pageState.length === 1) {
-            console.warn(`[WindowManager]: can not remove the last page`);
-            return false;
-        }
-        if (needRemoveIndex < 0 || needRemoveIndex >= this.pageState.length) {
-            console.warn(`[WindowManager]: page index ${index} out of range`);
-            return false;
-        }
-        return this.appProxy.removeSceneByIndex(needRemoveIndex);;
-    }
-
-    public get pageState(): PageState {
-        return this.appProxy.pageState;
-    }
 }

@@ -1,6 +1,7 @@
 import Emittery from "emittery";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { AppInitState, CursorMovePayload } from "./index";
+import type { Member } from "./Helper";
 
 export type RemoveSceneParams = {
     scenePath: string;
@@ -29,6 +30,7 @@ export type EmitterEvent = {
     changePageState: undefined;
     writableChange: boolean;
     containerSizeRatioUpdate: number;
+    roomMembersChange: Member[];
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

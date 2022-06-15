@@ -35,6 +35,7 @@ specifiers:
   svelte: ^3.42.4
   typescript: ^4.5.5
   uuid: ^7.0.3
+  value-enhancer: ^1.2.1
   video.js: '>=7'
   vite: ^2.5.3
   vitest: ^0.14.1
@@ -48,6 +49,7 @@ dependencies:
   p-retry: registry.npmmirror.com/p-retry/4.6.1
   side-effect-manager: 1.1.0
   uuid: registry.npmmirror.com/uuid/7.0.3
+  value-enhancer: 1.2.1
   video.js: registry.npmmirror.com/video.js/7.18.1
 
 devDependencies:

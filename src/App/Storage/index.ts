@@ -37,7 +37,7 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
     this._state = {} as TState;
     const rawState = this._getRawState(this._state);
 
-    if (this._context.getIsWritable()) {
+    if (this._context.isWritable) {
       if (this.id === null) {
         if (context.isAddApp && defaultState) {
             this.setState(defaultState);
@@ -115,7 +115,7 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
       return;
     }
 
-    if (!this._context.getIsWritable()) {
+    if (!this._context.isWritable) {
       console.error(new Error(`Cannot setState on Storage "${this.id}" without writable access`), state);
       return;
     }
@@ -165,7 +165,7 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
       return;
     }
 
-    if (!this._context.getIsWritable()) {
+    if (!this._context.isWritable) {
       console.error(new Error(`Cannot empty Storage "${this.id}" without writable access.`));
       return;
     }
@@ -181,7 +181,7 @@ export class Storage<TState extends Record<string, any> = any> implements Storag
       throw new Error(`Cannot delete main Storage`);
     }
 
-    if (!this._context.getIsWritable()) {
+    if (!this._context.isWritable) {
       console.error(new Error(`Cannot delete Storage "${this.id}" without writable access.`));
       return;
     }

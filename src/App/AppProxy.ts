@@ -12,6 +12,7 @@ import { log } from "../Utils/log";
 import {
     entireScenes,
     getScenePath,
+    putScenes,
     removeScenes,
     setScenePath,
     setViewFocusScenePath,
@@ -30,6 +31,7 @@ import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
 import { calculateNextIndex } from "../Page";
 import { boxEmitter } from "../BoxEmitter";
+import { SideEffectManager } from "side-effect-manager";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -37,6 +39,7 @@ export class AppProxy implements PageRemoveService {
     public kind: string;
     public id: string;
     public scenePath?: string;
+    private appScenePath: string;
     public appEmitter: AppEmitter;
     public scenes?: SceneDefinition[];
 
@@ -49,11 +52,13 @@ export class AppProxy implements PageRemoveService {
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
     private stateKey: string;
-    private _pageState: AppPageStateImpl;
+    public _pageState: AppPageStateImpl;
     private _prevFullPath: string | undefined;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
+
+    private sideEffectManager = new SideEffectManager();
 
     constructor(
         private params: BaseInsertParams,
@@ -63,6 +68,7 @@ export class AppProxy implements PageRemoveService {
     ) {
         this.kind = params.kind;
         this.id = appId;
+        this.appScenePath = `/${this.id}-app-dir`;
         this.stateKey = `${this.id}_state`;
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
@@ -75,12 +81,37 @@ export class AppProxy implements PageRemoveService {
             // 只有传入了 scenePath 的 App 才会创建 View
             this.createView();
         }
+        if (!this.scenePath) {
+            this.scenePath = this.appScenePath;
+        }
         this._pageState = new AppPageStateImpl({
             displayer: this.manager.displayer,
             scenePath: this.scenePath,
             view: this.view,
             notifyPageStateChange: this.notifyPageStateChange,
         });
+        this.sideEffectManager.add(() => {
+            return () => this._pageState.destroy();
+        });
+        this.sideEffectManager.add(() => {
+            return emitter.on("roomMembersChange", members => {
+                this.appEmitter.emit("roomMembersChange", members);
+            });
+        });
+    }
+
+    public createAppDir() {
+        const scenePath = this.scenePath || this.appScenePath;
+        const sceneNode = this._pageState.createSceneNode(scenePath);
+        if (!sceneNode) {
+            putScenes(this.manager.room, scenePath, [{ name: "1" }]);
+            this._pageState.createSceneNode(scenePath);
+            this.setSceneIndex(0);
+        }
+        this.scenes = entireScenes(this.manager.displayer)[scenePath];
+        const view = this.createView();
+        this._pageState.setView(view);
+        return view;
     }
 
     private initScenes() {
@@ -395,14 +426,16 @@ export class AppProxy implements PageRemoveService {
         return fullPath;
     }
 
-    private async createView(): Promise<View> {
-        const view = await this.viewManager.createView(this.id);
+    private createView(): View {
+        const view = this.viewManager.createView(this.id);
         this.setViewFocusScenePath();
         return view;
     }
 
     public notifyPageStateChange = debounce(() => {
-        this.appEmitter.emit("pageStateChange", this.pageState);
+        if (this.pageState) {
+            this.appEmitter.emit("pageStateChange", this.pageState);
+        }
     }, 50);
 
     public get pageState(): PageState {
@@ -412,7 +445,7 @@ export class AppProxy implements PageRemoveService {
     // PageRemoveService
     public async removeSceneByIndex(index: number) {
         const scenePath = this._pageState.getFullPath(index);
-        if (scenePath) {
+        if (scenePath && this.pageState) {
             const nextIndex = calculateNextIndex(index, this.pageState);
             // 只修改 focus path 不修改 FullPath
             this.setSceneIndexWithoutSync(nextIndex);
@@ -474,7 +507,6 @@ export class AppProxy implements PageRemoveService {
             }
         }
         this.appProxies.delete(this.id);
-        this._pageState.destroy();
 
         this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
@@ -482,6 +514,7 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher?.remove(this.stateKey);
         this.manager.refresher?.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
+        this.sideEffectManager.flushAll();
     }
 
     public close(): Promise<void> {

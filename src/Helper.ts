@@ -2,7 +2,7 @@ import { getVersionNumber } from "./Utils/Common";
 import { REQUIRE_VERSION } from "./constants";
 import { WhiteVersion } from "white-web-sdk";
 import { WhiteWebSDKInvalidError } from "./Utils/error";
-import type { Room } from "white-web-sdk";
+import type { Room , RoomMember} from "white-web-sdk";
 
 export const setupWrapper = (
     root: HTMLElement
@@ -32,3 +32,12 @@ export const findMemberByUid = (room: Room | undefined, uid: string) => {
     const roomMembers = room?.state.roomMembers;
     return roomMembers?.find(member => member.payload?.uid === uid);
 };
+
+export type Member = RoomMember & { uid: string };
+
+export const serializeRoomMembers = (members: readonly RoomMember[]) => {
+    return members.map(member => ({
+        uid: member.payload?.uid || "",
+        ...member,
+    }));
+}
