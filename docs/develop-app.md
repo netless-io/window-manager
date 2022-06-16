@@ -16,7 +16,7 @@ import type { NetlessApp, AppContext } from "@netless/window-manager";
 const HelloWorld: NetlessApp = {
     kind: "HelloWorld",
     setup: (context: AppContext) => {
-        context.mountView(context.getBox().$content); // 可选: 挂载 View 到 box 上
+        context.createWhiteBoardView(); // 可选: 创建 View 到 box 上
     },
 };
 
@@ -27,9 +27,6 @@ WindowManager.register({
 
 manager.addApp({
     kind: "HelloWorld",
-    options: {
-        scenePath: "/hello-world", // 如果需要在 App 中使用白板则必须声明 scenePath
-    },
 });
 ```
 
@@ -42,7 +39,7 @@ const Counter: NetlessApp<{ count: number }> = {
         const storage = context.storage;
         storage.ensureState({ count: 0 });
 
-        const box = context.getBox(); // box 为这个应用打开的窗口
+        const box = context.box; // box 为这个应用打开的窗口
         const $content = box.$content // 获取窗口的 content
 
         const countDom = document.createElement("div");

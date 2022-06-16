@@ -93,7 +93,9 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
             view = this.appProxy.createAppDir();
         }
         view.divElement = this.box.$content as HTMLDivElement;
-        this.initPageSize(size);
+        if (this.isAddApp) {
+            this.initPageSize(size);
+        }
         this.whiteBoardView = new WhiteBoardView(this, this.appProxy);
         return this.whiteBoardView;
     }

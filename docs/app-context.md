@@ -23,111 +23,129 @@
     
     当前是否回放模式
 
-- **context.getDisplayer()**
+- **context.displayer**
 
     在默认情况下 `Displayer` 为白板的 `room` 实例
 
     回放时则为 `Player` 实例
 
     ```ts
-    const displayer = context.getDisplayer();
+    const displayer = context.displayer;
 
     assert(displayer, room); // 互动房间
     assert(displayer, player); // 回放房间
     ```
 
 
-- **context.getIsWritable()**
+- **context.isWritable**
 
     获取当前状态是否可写\
     可以通过监听 `writableChange` 事件获取可写状态的改变
 
     ```ts
-    const isWritable = context.getIsWritable();
+    const isWritable = context.isWritable;
     ```
 
-- **context.getBox()**
+- **context.box**
 
     获取当前 app 的 box
 
+    类型: `ReadonlyTeleBox`
+
     ```ts
-    const box = context.getBox();
+    const box = context.box;
 
     box.$content; // box 的 main element
     box.$footer;
     ```
 
-<h3 id="view">挂载白板</h3>
+<h3 id="view">创建白板</h3>
 
 当应用想要一个可以涂画的白板，可以使用以下接口
 
-- **context.mountView()**
+- **context.createWhiteBoardView()**
 
-    挂载白板到指定 dom
+    创建白板
+
+    返回: `WhiteBoardView`
 
     ```ts
-    context.mountView(element);
+    const view = context.createWhiteBoardView();
     ```
 
-**注意** 在调用 `manager` 的 `addApp` 时必须填写 `scenePath` 才可以使用 `view`
-```ts
-manager.addApp({
-    kind: "xxx",
-    options: { // 可选配置
-        scenePath: "/example-path"
+    ```ts
+    const view = context.createWhiteBoardView(10); // 生成带有 10 页的白板
+    ```
+
+- **WhiteBoardView**
+
+  白板实例
+
+  白板有多页的概念, 可以通过以下接口添加，切换，以及删除
+
+  - **addPage()**
+
+      添加一页至白板
+
+      ```ts
+      const view = context.createWhiteBoardView();
+      view.addPage() // 默认在最后添加一页
+      context.addPage({ after: true }) // 在当前页后添加一页
+      context.addPage({ scene: { name: "page2" } }) // 传入 page 信息
+      ```
+
+  - **nextPage()**
+
+      上一页
+
+      ```ts
+      const view = context.createWhiteBoardView();
+      view.nextPage();
+      ```
+
+  - **prevPage()**
+
+      下一页
+
+      ```ts
+      const view = context.createWhiteBoardView();
+      view.prevPage();
+      ```
+  - **removePage()**
+
+      删除一页
+
+      ```ts
+      const view = context.createWhiteBoardView();
+      view.removePage() // 默认删除当前页
+      view.removePage(1) // 也可以指定 index 删除
+      ```
+
+  - **pageState**
+
+    类型: `PageState`
+
+    ```ts
+    type PageState {
+        index: number
+        length: number
     }
-})
-```
-
-<h3 id="page">Page</h3>
-
-白板有多页的概念, 可以通过以下接口添加，切换，以及删除
-
-- **context.addPage()**
-
-    添加一页至 `view`
-
-    ```ts
-    context.addPage() // 默认在最后添加一页
-    context.addPage({ after: true }) // 在当前页后添加一页
-    context.addPage({ scene: { name: "page2" } }) // 传入 page 信息
     ```
 
-- **context.nextPage()**
-
-    上一页
-
     ```ts
-    context.nextPage();
+    const view = context.createWhiteBoardView();
+    view.pageState // PageState
     ```
 
-- **context.prevPage()**
+  - **pageState$**
 
-    下一页
-
-    ```ts
-    context.prevPage();
-    ```
-- **context.removePage()**
-
-    删除一页
+    订阅 `pageState` 的变化
 
     ```ts
-    context.removePage() // 默认删除当前页
-    context.removePage(1) // 也可以指定 index 删除
-    ```
-
-- **context.pageState**
-
-    获取当前所在的 `index` 和一共有多少页\
-    当想要监听 `pageState` 的变化时, 可以监听 `pageStateChange` 事件获取最新的 `pageState`
-
-    ```ts
-    context.pageState;
-    // {
-    //     index: number,
-    //     length: number,
-    // }
+    const view = context.createWhiteBoardView();
+    view.pageState$.subscribe(pageState => {
+        console.log("pageStateChange", pageState)
+    })
     ```
 
 <h3 id="storage">storage</h3>
@@ -266,25 +284,6 @@ manager.addApp({
     });
     ```
 
-- **pageStateChange**
-
-    `PageState`
-
-    ```ts
-    type PateState {
-        index: number;
-        length: number;
-    }
-    ```
-
-    当前页数和总页数变化时触发
-
-    ```ts
-    context.emitter.on("pageStateChange", pageState => {
-        // { index: 0, length: 1 }
-    });
-    ```
-
 <h2 id="Advanced">Advanced</h2>
 
 - **context.getView()**
@@ -292,5 +291,5 @@ manager.addApp({
     获取 `view` 实例
 
     ```ts
-    const view = context.getView();
+    const view = context.view;
     ```
