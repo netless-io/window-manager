@@ -5,6 +5,7 @@
     - [page](#page)
     - [storage](#storage)
 - [events](#events)
+- [box](#box)
 - [Advanced](#Advanced)
 
 <h2 id="api">API</h2>
@@ -292,4 +293,34 @@
 
     ```ts
     const view = context.view;
+    ```
+
+<h2 id="box">box</h2>
+
+- **contentStageRect**
+
+    可同步区域\
+    在这个区域中的内容, `WindowManager` 会确保所有的端都可以看到
+
+    类型: `TeleboxRect`
+
+    ```ts
+    interface TeleboxRect {
+        readonly x: number;
+        readonly y: number;
+        readonly width: number;
+        readonly height: number;
+    }
+    ```
+
+    ```ts
+    box.contentStageRect
+    ```
+
+    订阅 `contextStateRect` 的变化
+
+    ```ts
+    box._contentStageRect$.subscribe(rect => {
+        console.log("contentStageRect changed", rect);
+    });
     ```

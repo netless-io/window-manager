@@ -92,11 +92,17 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         if (!view) {
             view = this.appProxy.createAppDir();
         }
-        view.divElement = this.box.$content as HTMLDivElement;
+        const viewWrapper = document.createElement("div");
+        viewWrapper.className = "window-manager-view-wrapper";
+        this.box.$content.parentElement?.appendChild(viewWrapper);
+        const removeViewWrapper = () => {
+            this.box.$content.parentElement?.removeChild(viewWrapper);
+        }
+        view.divElement = viewWrapper
         if (this.isAddApp) {
             this.initPageSize(size);
         }
-        this.whiteBoardView = new WhiteBoardView(this, this.appProxy);
+        this.whiteBoardView = new WhiteBoardView(this, this.appProxy, removeViewWrapper);
         return this.whiteBoardView;
     }
 

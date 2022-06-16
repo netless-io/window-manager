@@ -1,4 +1,4 @@
-import type { NetlessApp, WhiteBoardView } from "../../dist";
+import type { NetlessApp, TeleBoxRect, WhiteBoardView } from "../../dist";
 import React, { useEffect, useState } from "react";
 import ReactDom from "react-dom";
 import "./board.css";
@@ -9,13 +9,35 @@ export const Board: NetlessApp = {
         // 获取 app 的 box
         const box = context.box;
 
+        const stage = document.createElement("div");
+        stage.addEventListener("click", () => {
+            console.log("onStage click");
+        });
+        addStyle(stage, box.contentStageRect);
+
+        box._contentStageRect$.subscribe(rect => {
+            addStyle(stage, rect);
+        });
+
          // 挂载白板到当前 box
         const view = context.createWhiteBoardView(10);
 
+        box.$content.appendChild(stage);
+        console.log(stage);
         // 挂载自定义的 footer 到 box 的 footer 上
         mount(box.$footer, view);
         return;
     }
+}
+
+const addStyle = (el: HTMLDivElement, rect: TeleBoxRect) => {
+    el.style.width = `${rect.width}px`;
+    el.style.height = `${rect.height}px`;
+    el.style.position = "absolute";
+    el.style.left = `${rect.x}px`;
+    el.style.top = `${rect.y}px`;
+    el.style.backgroundColor = "gray";
+    el.style.zIndex = "-1";
 }
 
 const BoardFooter = ({ view }: { view: WhiteBoardView }) => {

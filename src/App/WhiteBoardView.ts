@@ -9,7 +9,11 @@ import type { AppContext } from "./AppContext";
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
 
-    constructor(protected appContext: AppContext, protected appProxy: AppProxy) {
+    constructor(
+        protected appContext: AppContext, 
+        protected appProxy: AppProxy,
+        private removeViewWrapper: () => void,
+    ) {
         const pageState$ = new Val<PageState>(appProxy.pageState);
         this.pageState$ = pageState$;
         appProxy.appEmitter.on("pageStateChange", pageState => {
@@ -65,4 +69,8 @@ export class WhiteBoardView implements PageController {
         }
         return this.appProxy.removeSceneByIndex(needRemoveIndex);
     };
+
+    public destroy() {
+        this.removeViewWrapper();
+    }
 }

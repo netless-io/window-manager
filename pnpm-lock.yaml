@@ -4,7 +4,7 @@ specifiers:
   '@juggle/resize-observer': ^3.3.1
   '@netless/app-docs-viewer': ^0.2.9
   '@netless/app-media-player': 0.1.0-beta.5
-  '@netless/telebox-insider': 1.0.0-alpha.8
+  '@netless/telebox-insider': 1.0.0-alpha.9
   '@rollup/plugin-commonjs': ^20.0.0
   '@rollup/plugin-node-resolve': ^13.0.4
   '@rollup/plugin-url': ^6.1.0
@@ -43,7 +43,7 @@ specifiers:
 
 dependencies:
   '@juggle/resize-observer': registry.npmmirror.com/@juggle/resize-observer/3.3.1
-  '@netless/telebox-insider': 1.0.0-alpha.8
+  '@netless/telebox-insider': 1.0.0-alpha.9
   emittery: registry.npmmirror.com/emittery/0.9.2
   lodash: registry.npmmirror.com/lodash/4.17.21
   p-retry: registry.npmmirror.com/p-retry/4.6.1
@@ -97,8 +97,8 @@ packages:
       vanilla-lazyload: 17.6.1
     dev: true
 
-  /@netless/telebox-insider/1.0.0-alpha.8:
-    resolution: {integrity: sha512-GFQpS8fVwc2kSjFFg88QQObQ5P25a2eVblC/wWn6J/IF8PihO8kDs/kI9lN+KtbRJltI2Ca9g9QlQAHi7SArHw==}
+  /@netless/telebox-insider/1.0.0-alpha.9:
+    resolution: {integrity: sha512-jIdt2bHboaBeuSfp2rwhAxVE7OCUFhpJY8Dw2QqYywkTj3A9wgWArdps/NMV9ap4lm1/+hb0xRB36jpkVBW1+g==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@types/shallowequal': 1.1.1
@@ -106,7 +106,7 @@ packages:
       shallowequal: 1.1.0
       side-effect-manager: 1.1.0
       stylefire: 7.0.3
-      value-enhancer: 1.2.1
+      value-enhancer: 1.3.0
     dev: false
 
   /@polka/url/1.0.0-next.21:
@@ -1004,6 +1004,10 @@ packages:
 
   /value-enhancer/1.2.1:
     resolution: {integrity: sha512-11IrGi9xmVbr3twzuaMRrdUGzhdaE4eXvT6qYZlB5VrhK5uQzSPlYOEBlsIGH+dMvkakNkWGNIbxdZi87/MWuQ==}
+    dev: false
+
+  /value-enhancer/1.3.0:
+    resolution: {integrity: sha512-shI9N5ML4MGwD6bMu/My1l1+REFqhZGOuIjDN5Gf+k7gACfY2k8WtJEcqgdZMfepwivfhQxIfZp0riobUDZpDQ==}
     dev: false
 
   /vanilla-lazyload/17.6.1:
