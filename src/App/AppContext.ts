@@ -130,7 +130,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
 
     /** Get App writable status. */
     public get isWritable(): boolean {
-        return this.manager.canOperate;
+        return this.manager.canOperate && !this.destroyed;
     };
 
     /** Get the App Window UI box. */
