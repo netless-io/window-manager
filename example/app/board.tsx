@@ -21,7 +21,7 @@ export const Board: NetlessApp = {
 
          // 挂载白板到当前 box
         const view = context.createWhiteBoardView(10);
-
+        view.view.disableCameraTransform = true;
         box.$content.appendChild(stage);
 
         // 挂载自定义的 footer 到 box 的 footer 上

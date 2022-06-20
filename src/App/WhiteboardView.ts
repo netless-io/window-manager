@@ -5,25 +5,22 @@ import type { ReadonlyVal } from "value-enhancer";
 import type { AddPageParams, PageController, PageState } from "../Page";
 import type { AppProxy } from "./AppProxy";
 import type { AppContext } from "./AppContext";
-import type { Camera } from "white-web-sdk";
+import type { Camera, View } from "white-web-sdk";
 
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
 
     constructor(
+        public view: View,
         protected appContext: AppContext,
         protected appProxy: AppProxy,
-        private removeViewWrapper: () => void
+        private removeViewWrapper: () => void,
     ) {
         const pageState$ = new Val<PageState>(appProxy.pageState);
         this.pageState$ = pageState$;
         appProxy.appEmitter.on("pageStateChange", pageState => {
             pageState$.setValue(pageState);
         });
-    }
-
-    public get view() {
-        return this.appContext.view;
     }
 
     public get pageState() {

@@ -105,7 +105,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         if (this.isAddApp) {
             this.initPageSize(size);
         }
-        this.whiteBoardView = new WhiteBoardView(this, this.appProxy, removeViewWrapper);
+        this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, removeViewWrapper);
         return this.whiteBoardView;
     }
 
