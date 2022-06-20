@@ -54,7 +54,7 @@ export class AppProxy implements PageRemoveService {
     public uid = this.manager.uid;
 
     public isAddApp: boolean;
-    private status: "normal" | "destroyed" = "normal";
+    public status: "normal" | "destroyed" = "normal";
     private stateKey: string;
     public _pageState: AppPageStateImpl;
     private _prevFullPath: string | undefined;

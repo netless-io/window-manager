@@ -18,12 +18,15 @@ export const Board: NetlessApp = {
         box._contentStageRect$.subscribe(rect => {
             addStyle(stage, rect);
         });
-
+        console.log("destroyed", context.destroyed);
          // 挂载白板到当前 box
-        const view = context.createWhiteBoardView(10);
+        const view = context.createWhiteBoardView();
+        view.ensureSize(10);
         view.view.disableCameraTransform = true;
         box.$content.appendChild(stage);
-
+        context.emitter.on("destroy", () => {
+            console.log("on destroy", context.destroyed);
+        });
         // 挂载自定义的 footer 到 box 的 footer 上
         mount(box.$footer, view);
         return;

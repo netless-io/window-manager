@@ -15,6 +15,7 @@ export class WhiteBoardView implements PageController {
         protected appContext: AppContext,
         protected appProxy: AppProxy,
         private removeViewWrapper: () => void,
+        public ensureSize: (size: number) => void
     ) {
         const pageState$ = new Val<PageState>(appProxy.pageState);
         this.pageState$ = pageState$;

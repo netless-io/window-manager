@@ -29,7 +29,6 @@ import type {
 import { WhiteBoardView } from "./WhiteboardView";
 import { findMemberByUid } from "../Helper";
 import { MAX_PAGE_SIZE } from "../constants";
-import { putScenes } from "../Utils/Common";
 import { isNumber } from "lodash";
 
 export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any> {
@@ -63,9 +62,13 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         this.isAddApp = appProxy.isAddApp;
     }
 
-    public get displayer(){
+    public get displayer() {
         return this.manager.displayer;
-    };
+    }
+
+    public get destroyed() {
+        return this.appProxy.status === "destroyed";
+    }
 
     /** @deprecated Use context.storage.state instead. */
     public getAttributes = (): TAttributes | undefined => {
@@ -103,13 +106,13 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
         view.divElement = viewWrapper;
         if (this.isAddApp) {
-            this.initPageSize(size);
+            this.ensurePageSize(size);
         }
-        this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, removeViewWrapper);
+        this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, removeViewWrapper, this.ensurePageSize);
         return this.whiteBoardView;
     }
 
-    private initPageSize = (size?: number) => {
+    private ensurePageSize = (size?: number) => {
         if (!isNumber(size)) return;
         if (!this.appProxy.scenePath) return;
         if (this.appProxy.pageState.length >= size) return;
@@ -117,11 +120,8 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
             throw Error(`[WindowManager]: size ${size} muse be in range [1, ${MAX_PAGE_SIZE}]`);
         }
         const needInsert = size - this.appProxy.pageState.length;
-        const startPageNumber = this.appProxy.pageState.length;
-        const scenes = new Array(needInsert).fill({}).map((_, index) => {
-            return { name: `${startPageNumber + index + 1}` };
-        });
-        putScenes(this.room, this.appProxy.scenePath, scenes);
+        const scenes = new Array(needInsert).fill({});
+        this.room?.putScenes(this.appProxy.scenePath, scenes);
     }
 
     public getInitScenePath = () => {
