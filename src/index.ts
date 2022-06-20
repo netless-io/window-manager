@@ -29,7 +29,7 @@ import {
 } from "./Utils/Common";
 import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
 import * as Errors from "./Utils/error";
-import type { Apps, Position } from "./AttributesDelegate";
+import type { Apps, Position , ICamera, ISize } from "./AttributesDelegate";
 import type {
     Displayer,
     SceneDefinition,
@@ -104,6 +104,8 @@ export type AppSyncAttributes = {
     isDynamicPPT?: boolean;
     fullPath?: string;
     createdAt?: number;
+    camera?: ICamera;
+    size?: ISize;
 };
 
 export type AppInitState = {

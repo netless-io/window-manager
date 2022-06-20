@@ -3,12 +3,18 @@ import { AppAttributes, AppEvents, Events, SETUP_APP_DELAY } from "../constants"
 import { AppContext } from "./AppContext";
 import { AppPageStateImpl } from "./AppPageStateImpl";
 import { appRegister } from "../Register";
-import { autorun } from "white-web-sdk";
+import { AppViewSync } from "./AppViewSync";
+import { autorun, reaction, toJS } from "white-web-sdk";
+import { boxEmitter } from "../BoxEmitter";
 import { BoxManagerNotFoundError } from "../Utils/error";
+import { calculateNextIndex } from "../Page";
+import { combine, Val } from "value-enhancer";
 import { debounce, get } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { log } from "../Utils/log";
+import { SideEffectManager } from "side-effect-manager";
+import type { ICamera, ISize } from "../AttributesDelegate";
 import {
     entireScenes,
     getScenePath,
@@ -24,14 +30,11 @@ import type {
     setAppOptions,
     AppListenerKeys,
 } from "../index";
-import type { SceneState, View, SceneDefinition } from "white-web-sdk";
+import type { SceneState, View, SceneDefinition, Camera } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
-import { calculateNextIndex } from "../Page";
-import { boxEmitter } from "../BoxEmitter";
-import { SideEffectManager } from "side-effect-manager";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -48,6 +51,7 @@ export class AppProxy implements PageRemoveService {
     private appProxies = this.manager.appProxies;
     private viewManager = this.manager.viewManager;
     private store = this.manager.store;
+    public uid = this.manager.uid;
 
     public isAddApp: boolean;
     private status: "normal" | "destroyed" = "normal";
@@ -59,6 +63,14 @@ export class AppProxy implements PageRemoveService {
     public appContext?: AppContext<any, any>;
 
     private sideEffectManager = new SideEffectManager();
+
+    public camera$ = new Val<ICamera | undefined>(undefined);
+    public size$ = new Val<ISize | undefined>(undefined);
+
+    private appViewSync?: AppViewSync;
+
+    public box$ = new Val<ReadonlyTeleBox | undefined>(undefined);
+    public view$ = new Val<View | undefined>(undefined);
 
     constructor(
         private params: BaseInsertParams,
@@ -90,13 +102,44 @@ export class AppProxy implements PageRemoveService {
             view: this.view,
             notifyPageStateChange: this.notifyPageStateChange,
         });
+        this.sideEffectManager.add(() => () => this._pageState.destroy());
+        this.sideEffectManager.add(() =>
+            emitter.on("roomMembersChange", members => {
+                this.appEmitter.emit("roomMembersChange", members);
+            })
+        );
+        this.camera$.setValue(toJS(this.appAttributes.camera));
+        this.size$.setValue(toJS(this.appAttributes.size));
         this.sideEffectManager.add(() => {
-            return () => this._pageState.destroy();
+            return this.manager.refresher.add(`${this.id}-camera`, () => {
+                return reaction(
+                    () => this.appAttributes?.camera,
+                    camera => {
+                        if (camera && camera.id !== this.uid) {
+                            this.camera$.setValue(toJS(camera));
+                        }
+                    }
+                );
+            });
         });
         this.sideEffectManager.add(() => {
-            return emitter.on("roomMembersChange", members => {
-                this.appEmitter.emit("roomMembersChange", members);
+            return this.manager.refresher.add(`${this.id}-size`, () => {
+                return reaction(
+                    () => this.appAttributes?.size,
+                    size => {
+                        if (size && size.id !== this.uid) {
+                            this.size$.setValue(toJS(size));
+                        }
+                    }
+                );
             });
+        });
+        combine([this.box$, this.view$]).subscribe(([box, view]) => {
+            if (box && view) {
+                const appViewSync = new AppViewSync(this);
+                this.appViewSync = appViewSync;
+                this.sideEffectManager.add(() => () => appViewSync.destroy());
+            }
         });
     }
 
@@ -162,7 +205,7 @@ export class AppProxy implements PageRemoveService {
     }
 
     public setFullPath(path: string) {
-        this.manager.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
+        this.store.updateAppAttributes(this.id, Fields.FullPath, path);
     }
 
     public async baseInsertApp(skipUpdate = false): Promise<{ appId: string; app: NetlessApp }> {
@@ -191,7 +234,7 @@ export class AppProxy implements PageRemoveService {
     }
 
     public get box(): ReadonlyTeleBox | undefined {
-        return this.boxManager?.getBox(this.id);
+        return this.box$.value;
     }
 
     private async setupApp(
@@ -225,13 +268,14 @@ export class AppProxy implements PageRemoveService {
                     this.fixMobileSize();
                 }, SETUP_APP_DELAY);
             });
-            this.boxManager?.createBox({
+            const box = this.boxManager?.createBox({
                 appId: appId,
                 app,
                 options,
                 canOperate: this.manager.canOperate,
                 smartPosition: this.isAddApp,
             });
+            this.box$.setValue(box);
             if (this.isAddApp && this.box) {
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
                 this.boxManager.focusBox({ appId }, false);
@@ -428,6 +472,7 @@ export class AppProxy implements PageRemoveService {
 
     private createView(): View {
         const view = this.viewManager.createView(this.id);
+        this.view$.setValue(view);
         this.setViewFocusScenePath();
         return view;
     }
@@ -481,6 +526,22 @@ export class AppProxy implements PageRemoveService {
         }
     }
 
+    public storeCamera = (camera: ICamera) => {
+        this.store.updateAppAttributes(this.id, Fields.Camera, camera);
+    };
+
+    public storeSize = (size: ISize) => {
+        this.store.updateAppAttributes(this.id, Fields.Size, size);
+    };
+
+    public moveCamera = (camera: Camera) => {
+        if (!this.camera$.value) {
+            return;
+        }
+        const nextCamera = { ...this.camera$.value, ...camera };
+        this.storeCamera(nextCamera);
+    };
+
     public async destroy(
         needCloseBox: boolean,
         cleanAttrs: boolean,
@@ -496,6 +557,7 @@ export class AppProxy implements PageRemoveService {
             console.error("[WindowManager]: notifyApp error", error.message, error.stack);
         }
         this.appEmitter.clearListeners();
+        this.sideEffectManager.flushAll();
         emitter.emit(`destroy-${this.id}` as any, { error });
         if (needCloseBox) {
             this.boxManager?.closeBox(this.id, skipUpdate);
@@ -514,7 +576,9 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher?.remove(this.stateKey);
         this.manager.refresher?.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
-        this.sideEffectManager.flushAll();
+        this.camera$.destroy();
+        this.size$.destroy();
+        this.box$.destroy();
     }
 
     public close(): Promise<void> {

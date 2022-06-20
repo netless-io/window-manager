@@ -23,7 +23,7 @@ export const Board: NetlessApp = {
         const view = context.createWhiteBoardView(10);
 
         box.$content.appendChild(stage);
-        console.log(stage);
+
         // 挂载自定义的 footer 到 box 的 footer 上
         mount(box.$footer, view);
         return;

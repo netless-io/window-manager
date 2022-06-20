@@ -26,7 +26,7 @@ import type {
     MagixEventDispatcher,
     MagixEventRemoveListener,
 } from "./MagixEvent";
-import { WhiteBoardView } from "./WhiteBoardView";
+import { WhiteBoardView } from "./WhiteboardView";
 import { findMemberByUid } from "../Helper";
 import { MAX_PAGE_SIZE } from "../constants";
 import { putScenes } from "../Utils/Common";
@@ -98,7 +98,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         const removeViewWrapper = () => {
             this.box.$content.parentElement?.removeChild(viewWrapper);
         }
-        view.divElement = viewWrapper
+        view.divElement = viewWrapper;
         if (this.isAddApp) {
             this.initPageSize(size);
         }

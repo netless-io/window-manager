@@ -56,7 +56,7 @@ export class AppManager {
     public appStatus: Map<string, AppStatus> = new Map();
     public store = store;
     public mainViewProxy: MainViewProxy;
-    public refresher?: ReconnectRefresher;
+    public refresher: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
     public mainViewScenesLength = 0;
 

@@ -297,6 +297,10 @@
 
 <h2 id="box">box</h2>
 
+    `box` 为应用窗口本身
+
+    类型: `ReadonlyTeleBox`
+
 - **contentStageRect**
 
     可同步区域\

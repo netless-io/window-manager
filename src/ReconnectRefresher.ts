@@ -88,6 +88,7 @@ export class ReconnectRefresher {
             this.reactors.set(id, func);
             this.disposers.set(id, func());
         }
+        return () => this.remove(id);
     }
 
     public remove(id: string) {

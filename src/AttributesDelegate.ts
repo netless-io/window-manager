@@ -18,6 +18,8 @@ export enum Fields {
     CursorState = "cursorState",
     FullPath = "fullPath",
     Registered = "registered",
+    Camera = "camera",
+    Size = "size",
 }
 
 export type Apps = {
@@ -39,9 +41,13 @@ export type StoreContext = {
     safeSetAttributes: (attributes: any) => void;
 }
 
-export type ICamera = Camera & { id: string };
+export type ICamera = Camera & { 
+    id: string; // room uid
+};
 
-export type ISize = Size & { id: string };
+export type ISize = Size & {
+    id: string; // room uid
+};
 
 export class AttributesDelegate {
 
@@ -108,6 +114,10 @@ export class AttributesDelegate {
         }
     }
 
+    public updateAppAttributes(appId: string, key: string, value: any) {
+        this.context.safeUpdateAttributes([Fields.Apps, appId, key], value);
+    }
+
     public cleanAppAttributes(id: string) {
         this.context.safeUpdateAttributes([Fields.Apps, id], undefined);
         this.context.safeSetAttributes({ [id]: undefined });
@@ -149,11 +159,11 @@ export class AttributesDelegate {
         this.context.safeSetAttributes({ _mainSceneIndex: index });
     }
 
-    public getMainViewCamera(): MainViewCamera {
+    public getMainViewCamera(): ICamera {
         return get(this.attributes, [Fields.MainViewCamera]);
     }
 
-    public getMainViewSize(): MainViewSize {
+    public getMainViewSize(): ISize {
         return get(this.attributes, [Fields.MainViewSize]);
     }
 
@@ -213,19 +223,6 @@ export class AttributesDelegate {
         }
     }
 }
-
-export type MainViewSize = {
-    id: string;
-    width: number;
-    height: number;
-};
-
-export type MainViewCamera = {
-    id: string;
-    centerX: number;
-    centerY: number;
-    scale: number;
-};
 
 export type Cursors = {
     [key: string]: Cursor;

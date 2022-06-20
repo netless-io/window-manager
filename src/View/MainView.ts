@@ -1,15 +1,15 @@
-import { reaction } from "white-web-sdk";
 import { callbacks } from "../callback";
+import { CameraSynchronizer } from "./CameraSynchronizer";
 import { createView } from "./ViewManager";
 import { debounce, get, isEqual } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Events } from "../constants";
 import { Fields } from "../AttributesDelegate";
-import { setViewFocusScenePath } from "../Utils/Common";
+import { reaction } from "white-web-sdk";
+import { releaseView, setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
-import { CameraSynchronizer } from "./CameraSynchronizer";
 
 export class MainViewProxy {
     private started = false;
@@ -21,8 +21,8 @@ export class MainViewProxy {
     private sideEffectManager = new SideEffectManager();
 
     constructor(private manager: AppManager) {
-        this.synchronizer = new CameraSynchronizer(
-            camera => this.store.setMainViewCamera({ ...camera, id: this.manager.uid })
+        this.synchronizer = new CameraSynchronizer(camera =>
+            this.store.setMainViewCamera({ ...camera, id: this.manager.uid })
         );
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
@@ -37,9 +37,7 @@ export class MainViewProxy {
         });
         this.sideEffectManager.add(() => {
             return emitter.on("startReconnect", () => {
-                if (!(this.mainView as any).didRelease) {
-                    this.mainView.release();
-                }
+                releaseView(this.mainView);
             });
         });
         const rect = this.manager.boxManager?.stageRect;
@@ -49,7 +47,7 @@ export class MainViewProxy {
         this.sideEffectManager.add(() => {
             return emitter.on("playgroundSizeChange", rect => {
                 this.synchronizer.setRect(rect);
-                this.synchronizer.onLocalSizeUpdate(rect);
+                // this.synchronizer.onLocalSizeUpdate(rect);
             });
         });
     }
@@ -122,7 +120,7 @@ export class MainViewProxy {
 
     public sizeChangeHandler = debounce((size: Size) => {
         if (size) {
-            this.synchronizer.onLocalSizeUpdate(size);
+            // this.synchronizer.onLocalSizeUpdate(size);
         }
     }, 30);
 
@@ -171,9 +169,7 @@ export class MainViewProxy {
         const divElement = this.mainView.divElement;
         const disableCameraTransform = this.mainView.disableCameraTransform;
         this.stop();
-        if (!this.didRelease) {
-            this.mainView.release();
-        }
+        releaseView(this.mainView);
         this.removeMainViewListener();
         this.mainView = this.createMainView();
         this.mainView.disableCameraTransform = disableCameraTransform;

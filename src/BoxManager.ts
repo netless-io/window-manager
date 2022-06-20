@@ -214,7 +214,7 @@ export class BoxManager {
         return this.teleBoxManager.stageRect;
     }
 
-    public createBox(params: CreateBoxParams): void {
+    public createBox(params: CreateBoxParams): ReadonlyTeleBox | undefined {
         if (!this.teleBoxManager) return;
         let { minwidth = MIN_WIDTH, minheight = MIN_HEIGHT } = params.app.config ?? {};
         const { width, height } = params.app.config ?? {};
@@ -237,8 +237,9 @@ export class BoxManager {
             height,
             id: params.appId,
         };
-        this.teleBoxManager.create(createBoxConfig, params.smartPosition);
+        const box = this.teleBoxManager.create(createBoxConfig, params.smartPosition);
         this.context.emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
+        return box;
     }
 
     public setupBoxManager(

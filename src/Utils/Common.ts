@@ -30,6 +30,12 @@ export const setViewSceneIndex = (view: View, index: number) => {
     }
 };
 
+export const releaseView = (view: View) => {
+    if (!(view as any).didRelease) {
+        view.release();
+    }
+}
+
 export const setScenePath = (room: Room | undefined, scenePath: string) => {
     if (room && room.isWritable) {
         if (room.state.sceneState.scenePath !== scenePath) {

@@ -34,8 +34,17 @@ enum ViewMode {
     Broadcaster = "broadcaster",
 }
 
+enum AnimationMode {
+    Immediately = "immediately",
+    Continuous = "continuous",
+}
+
 const isPlayer = vi.fn(() => false);
+const unlistenDisposed = vi.fn();
+const unlistenUpdated = vi.fn();
+const toJS = vi.fn();
 
 export {
-    InvisiblePlugin, UpdateEventKind, ApplianceNames, ViewMode, isPlayer
+    InvisiblePlugin, UpdateEventKind, ApplianceNames, ViewMode, isPlayer, unlistenDisposed,
+    unlistenUpdated, toJS, AnimationMode
 }
