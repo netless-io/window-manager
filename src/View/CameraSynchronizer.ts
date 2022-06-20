@@ -64,7 +64,6 @@ export class CameraSynchronizer {
                 scale = this.rect.height / size.height;
             }
             const nextScale = this.view.camera.scale / scale;
-            console.log("onLocalSizeUpdate", nextScale.toFixed(3), scale.toFixed(3));
             this.view.moveCamera({
                 scale: nextScale,
                 animationMode: AnimationMode.Immediately
