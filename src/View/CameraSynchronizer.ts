@@ -7,8 +7,8 @@ import type { ISize } from "../AttributesDelegate";
 export type SaveCamera = (camera: Camera) => void;
 
 export class CameraSynchronizer {
-    protected remoteCamera?: Camera;
-    protected remoteSize?: ISize;
+    public remoteCamera?: Camera;
+    public remoteSize?: ISize;
     protected rect?: TeleBoxRect;
     protected view?: View;
 

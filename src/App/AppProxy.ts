@@ -140,6 +140,7 @@ export class AppProxy implements PageRemoveService {
                     this.storeCamera({
                         centerX: 0, centerY: 0, scale: 1, id: this.uid,
                     });
+                    this.camera$.setValue(toJS(this.appAttributes.camera));
                 }
                 if (!this.size$.value && box.contentStageRect) {
                     this.storeSize({
@@ -147,6 +148,7 @@ export class AppProxy implements PageRemoveService {
                         width: box.contentStageRect?.width,
                         height: box.contentStageRect?.height,
                     });
+                    this.size$.setValue(toJS(this.appAttributes.size));
                 }
                 this.appViewSync = new AppViewSync(this);
                 this.sideEffectManager.add(() => () => this.appViewSync?.destroy());

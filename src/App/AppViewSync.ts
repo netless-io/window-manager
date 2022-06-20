@@ -34,11 +34,11 @@ export class AppViewSync {
                 }),
             );
         }
-        combine([this.appProxy.camera$, this.appProxy.size$]).subscribe(([camera, size]) => {
+        this.sem.add(() => combine([this.appProxy.camera$, this.appProxy.size$]).subscribe(([camera, size]) => {
             if (camera && size) {
                 this.synchronizer.onRemoteUpdate(camera, size);
             }
-        });
+        }));
     }
 
     public bindView = (view?: View) => {
