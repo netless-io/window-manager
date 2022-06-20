@@ -3,7 +3,7 @@ import { AppCreateQueue } from "./Utils/AppCreateQueue";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./App";
 import { appRegister } from "./Register";
-import { autorun, isPlayer, isRoom, ScenePathType } from "white-web-sdk";
+import { autorun, isPlayer, isRoom, ScenePathType, toJS } from "white-web-sdk";
 import { boxEmitter } from "./BoxEmitter";
 import { calculateNextIndex } from "./Page";
 import { callbacks } from "./callback";
@@ -34,10 +34,10 @@ import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
 import type {
     Displayer,
-    DisplayerState,
     Room,
     ScenesCallbacksNode,
     SceneState,
+    RoomState,
 } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 import type {
@@ -651,7 +651,7 @@ export class AppManager {
         }
     }
 
-    private displayerStateListener = (state: Partial<DisplayerState>) => {
+    private displayerStateListener = (state: Partial<RoomState>) => {
         const sceneState = state.sceneState;
         if (sceneState) {
             const scenePath = sceneState.scenePath;
@@ -669,6 +669,9 @@ export class AppManager {
             emitter.emit("roomMembersChange", this.members);
         }
         emitter.emit("observerIdChange", this.displayer.observerId);
+        if (state.memberState) {
+            emitter.emit("memberStateChange", toJS(state.memberState));
+        }
     };
 
     public displayerWritableListener = (isReadonly: boolean) => {

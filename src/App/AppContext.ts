@@ -50,6 +50,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public readonly isAddApp: boolean;
     public readonly isReplay = this.manager.isReplay;
     private whiteBoardView?: WhiteBoardView;
+    public _viewWrapper?: HTMLElement;
 
     constructor(
         private manager: AppManager,
@@ -93,10 +94,12 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
             view = this.appProxy.createAppDir();
         }
         const viewWrapper = document.createElement("div");
+        this._viewWrapper = viewWrapper;
         viewWrapper.className = "window-manager-view-wrapper";
         this.box.$content.parentElement?.appendChild(viewWrapper);
         const removeViewWrapper = () => {
             this.box.$content.parentElement?.removeChild(viewWrapper);
+            this._viewWrapper = undefined;
         }
         view.divElement = viewWrapper;
         if (this.isAddApp) {

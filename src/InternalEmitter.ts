@@ -2,6 +2,7 @@ import Emittery from "emittery";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { AppInitState, CursorMovePayload } from "./index";
 import type { Member } from "./Helper";
+import type { MemberState } from "white-web-sdk";
 
 export type RemoveSceneParams = {
     scenePath: string;
@@ -31,6 +32,7 @@ export type EmitterEvent = {
     writableChange: boolean;
     containerSizeRatioUpdate: number;
     roomMembersChange: Member[];
+    memberStateChange: MemberState;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

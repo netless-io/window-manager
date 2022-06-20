@@ -136,11 +136,35 @@ export class AppProxy implements PageRemoveService {
         });
         combine([this.box$, this.view$]).subscribe(([box, view]) => {
             if (box && view) {
-                const appViewSync = new AppViewSync(this);
-                this.appViewSync = appViewSync;
-                this.sideEffectManager.add(() => () => appViewSync.destroy());
+                if (!this.camera$.value) {
+                    this.storeCamera({
+                        centerX: 0, centerY: 0, scale: 1, id: this.uid,
+                    });
+                }
+                if (!this.size$.value && box.contentStageRect) {
+                    this.storeSize({
+                        id: this.uid,
+                        width: box.contentStageRect?.width,
+                        height: box.contentStageRect?.height,
+                    });
+                }
+                this.appViewSync = new AppViewSync(this);
+                this.sideEffectManager.add(() => () => this.appViewSync?.destroy());
             }
         });
+        this.sideEffectManager.add(() => emitter.on("memberStateChange", memberState => {
+            // clicker 教具把事件穿透给下层
+            const needPointerEventsNone = memberState.currentApplianceName === "clicker";
+            if (needPointerEventsNone) {
+                if (this.appContext?._viewWrapper) {
+                    this.appContext._viewWrapper.style.pointerEvents = "none";
+                }
+            } else {
+                if (this.appContext?._viewWrapper) {
+                    this.appContext._viewWrapper.style.pointerEvents = "auto";
+                }
+            }
+        }));
     }
 
     public createAppDir() {

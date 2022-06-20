@@ -3,6 +3,7 @@ import { SideEffectManager } from "side-effect-manager";
 import type { Camera, View } from "white-web-sdk";
 import type { AppProxy } from "./AppProxy";
 import { isEqual } from "lodash";
+import { combine } from "value-enhancer";
 
 export class AppViewSync {
     private sem = new SideEffectManager();
@@ -32,14 +33,12 @@ export class AppViewSync {
                     }
                 }),
             );
-            if (!this.appProxy.size$.value) {
-                this.appProxy.storeSize({
-                    id: this.appProxy.uid,
-                    width: box.contentStageRect.width,
-                    height: box.contentStageRect.height,
-                });
-            }
         }
+        combine([this.appProxy.camera$, this.appProxy.size$]).subscribe(([camera, size]) => {
+            if (camera && size) {
+                this.synchronizer.onRemoteUpdate(camera, size);
+            }
+        });
     }
 
     public bindView = (view?: View) => {
