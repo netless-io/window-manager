@@ -30,7 +30,7 @@ import type {
     setAppOptions,
     AppListenerKeys,
 } from "../index";
-import type { SceneState, View, SceneDefinition, Camera } from "white-web-sdk";
+import type { SceneState, View, SceneDefinition, Camera , MemberState} from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
@@ -138,20 +138,28 @@ export class AppProxy implements PageRemoveService {
             })
         );
         this.sideEffectManager.add(() =>
-            emitter.on("memberStateChange", memberState => {
-                // clicker 教具把事件穿透给下层
-                const needPointerEventsNone = memberState.currentApplianceName === "clicker";
-                if (needPointerEventsNone) {
-                    if (this.appContext?._viewWrapper) {
-                        this.appContext._viewWrapper.style.pointerEvents = "none";
-                    }
-                } else {
-                    if (this.appContext?._viewWrapper) {
-                        this.appContext._viewWrapper.style.pointerEvents = "auto";
-                    }
-                }
-            })
+            emitter.on("memberStateChange", this.onMemberStateChange)
         );
+    }
+
+    public fireMemberStateChange = () => {
+        if (this.manager.room) {
+            this.onMemberStateChange(this.manager.room.state.memberState);
+        }
+    }
+
+    private onMemberStateChange = (memberState: MemberState) => {
+        // clicker 教具把事件穿透给下层
+        const needPointerEventsNone = memberState.currentApplianceName === "clicker";
+        if (needPointerEventsNone) {
+            if (this.appContext?._viewWrapper) {
+                this.appContext._viewWrapper.style.pointerEvents = "none";
+            }
+        } else {
+            if (this.appContext?._viewWrapper) {
+                this.appContext._viewWrapper.style.pointerEvents = "auto";
+            }
+        }
     }
 
     public createAppDir() {

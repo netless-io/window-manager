@@ -105,6 +105,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
             this._viewWrapper = undefined;
         }
         view.divElement = viewWrapper;
+        this.appProxy.fireMemberStateChange();
         if (this.isAddApp) {
             this.ensurePageSize(size);
         }
