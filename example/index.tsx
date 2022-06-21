@@ -30,7 +30,7 @@ const mountManager = async (room, root) => {
     manager = (await WindowManager.mount({
         room,
         // collectorStyles: { bottom: "100px", left: "30px" },
-        containerSizeRatio: 9 / 16,
+        // containerSizeRatio: 9 / 16,
         debug: true,
         cursor: true,
         disableCameraTransform: true,

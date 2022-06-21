@@ -179,7 +179,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     public static async mount(params: MountParams): Promise<WindowManager> {
         const room = params.room;
         WindowManager.container = params.container;
-        const containerSizeRatio = params.containerSizeRatio;
+
         const debug = params.debug;
 
         const cursor = params.cursor;
@@ -225,22 +225,21 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             throw new Error("[WindowManager]: create manager failed");
         }
 
-        if (containerSizeRatio) {
-            WindowManager.containerSizeRatio = containerSizeRatio;
+        if (params.containerSizeRatio) {
+            WindowManager.containerSizeRatio = params.containerSizeRatio;
         }
+        manager.containerSizeRatio = WindowManager.containerSizeRatio;
         await manager.ensureAttributes();
 
         manager.appManager = new AppManager(manager);
         manager._pageState = new PageStateImpl(manager.appManager);
         manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor), params.applianceIcons);
-        if (containerSizeRatio) {
-            manager.containerSizeRatio = containerSizeRatio;
-        }
+
         manager.boxManager = createBoxManager(manager, callbacks, emitter, boxEmitter, {
             collectorContainer: params.collectorContainer,
             collectorStyles: params.collectorStyles,
             prefersColorScheme: params.prefersColorScheme,
-            stageRatio: containerSizeRatio,
+            stageRatio: WindowManager.containerSizeRatio,
             highlightStage: params.highlightStage
         });
         manager.appManager?.setBoxManager(manager.boxManager);
