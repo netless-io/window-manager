@@ -240,7 +240,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             collectorContainer: params.collectorContainer,
             collectorStyles: params.collectorStyles,
             prefersColorScheme: params.prefersColorScheme,
-            stageRatio: params.containerSizeRatio,
+            stageRatio: containerSizeRatio,
             highlightStage: params.highlightStage
         });
         manager.appManager?.setBoxManager(manager.boxManager);
