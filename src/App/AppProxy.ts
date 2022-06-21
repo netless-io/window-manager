@@ -8,7 +8,7 @@ import { autorun, reaction, toJS } from "white-web-sdk";
 import { boxEmitter } from "../BoxEmitter";
 import { BoxManagerNotFoundError } from "../Utils/error";
 import { calculateNextIndex } from "../Page";
-import { combine, Val } from "value-enhancer";
+import { combine, Val, ValManager } from "value-enhancer";
 import { debounce, get } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
@@ -63,14 +63,14 @@ export class AppProxy implements PageRemoveService {
     public appContext?: AppContext<any, any>;
 
     private sideEffectManager = new SideEffectManager();
-
-    public camera$ = new Val<ICamera | undefined>(undefined);
-    public size$ = new Val<ISize | undefined>(undefined);
+    private valManager = new ValManager();
 
     private appViewSync?: AppViewSync;
 
-    public box$ = new Val<ReadonlyTeleBox | undefined>(undefined);
-    public view$ = new Val<View | undefined>(undefined);
+    public camera$ = this.valManager.attach(new Val<ICamera | undefined>(undefined));
+    public size$ = this.valManager.attach(new Val<ISize | undefined>(undefined));
+    public box$ = this.valManager.attach(new Val<ReadonlyTeleBox | undefined>(undefined));
+    public view$ = this.valManager.attach(new Val<View | undefined>(undefined));
 
     constructor(
         private params: BaseInsertParams,
@@ -110,30 +110,8 @@ export class AppProxy implements PageRemoveService {
         );
         this.camera$.setValue(toJS(this.appAttributes.camera));
         this.size$.setValue(toJS(this.appAttributes.size));
-        this.sideEffectManager.add(() => {
-            return this.manager.refresher.add(`${this.id}-camera`, () => {
-                return reaction(
-                    () => this.appAttributes?.camera,
-                    camera => {
-                        if (camera && camera.id !== this.uid) {
-                            this.camera$.setValue(toJS(camera));
-                        }
-                    }
-                );
-            });
-        });
-        this.sideEffectManager.add(() => {
-            return this.manager.refresher.add(`${this.id}-size`, () => {
-                return reaction(
-                    () => this.appAttributes?.size,
-                    size => {
-                        if (size && size.id !== this.uid) {
-                            this.size$.setValue(toJS(size));
-                        }
-                    }
-                );
-            });
-        });
+        this.addCameraReaction();
+        this.addSizeReaction();
         this.sideEffectManager.add(() =>
             combine([this.box$, this.view$]).subscribe(([box, view]) => {
                 if (box && view) {
@@ -203,7 +181,7 @@ export class AppProxy implements PageRemoveService {
     }
 
     public get view(): View | undefined {
-        return this.manager.viewManager.getView(this.id);
+        return this.view$.value;
     }
 
     public get viewIndex(): number | undefined {
@@ -453,7 +431,7 @@ export class AppProxy implements PageRemoveService {
     }
 
     private appAttributesUpdateListener = (appId: string) => {
-        this.manager.refresher?.add(appId, () => {
+        this.manager.refresher.add(appId, () => {
             return autorun(() => {
                 const attrs = this.manager.attributes[appId];
                 if (attrs) {
@@ -461,7 +439,7 @@ export class AppProxy implements PageRemoveService {
                 }
             });
         });
-        this.manager.refresher?.add(this.stateKey, () => {
+        this.manager.refresher.add(this.stateKey, () => {
             return autorun(() => {
                 const appState = this.appAttributes?.state;
                 if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
@@ -469,7 +447,7 @@ export class AppProxy implements PageRemoveService {
                 }
             });
         });
-        this.manager.refresher?.add(`${appId}-fullPath`, () => {
+        this.manager.refresher.add(`${appId}-fullPath`, () => {
             return autorun(() => {
                 const fullPath = this.appAttributes?.fullPath;
                 this.setFocusScenePathHandler(fullPath);
@@ -605,13 +583,41 @@ export class AppProxy implements PageRemoveService {
 
         this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
-        this.manager.refresher?.remove(this.id);
-        this.manager.refresher?.remove(this.stateKey);
-        this.manager.refresher?.remove(`${this.id}-fullPath`);
+        this.manager.refresher.remove(this.id);
+        this.manager.refresher.remove(this.stateKey);
+        this.manager.refresher.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
-        this.camera$.destroy();
-        this.size$.destroy();
-        this.box$.destroy();
+        this.valManager.destroy();
+    }
+
+    private addCameraReaction = () => {
+        this.sideEffectManager.add(() =>
+            this.manager.refresher.add(`${this.id}-camera`, () =>
+                reaction(
+                    () => this.appAttributes?.camera,
+                    camera => {
+                        if (camera && camera.id !== this.uid) {
+                            this.camera$.setValue(toJS(camera));
+                        }
+                    }
+                )
+            )
+        , "camera");
+    }
+
+    private addSizeReaction = () => {
+        this.sideEffectManager.add(() =>
+            this.manager.refresher.add(`${this.id}-size`, () =>
+                reaction(
+                    () => this.appAttributes?.size,
+                    size => {
+                        if (size && size.id !== this.uid) {
+                            this.size$.setValue(toJS(size));
+                        }
+                    }
+                )
+            )
+        , "size");
     }
 
     public close(): Promise<void> {

@@ -324,31 +324,31 @@ export class AppManager {
 
         this.addAppsChangeListener();
         this.addAppCloseListener();
-        this.refresher?.add("maximized", () => {
+        this.refresher.add("maximized", () => {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
                 this.boxManager?.setMaximized(Boolean(maximized));
             });
         });
-        this.refresher?.add("minimized", () => {
+        this.refresher.add("minimized", () => {
             return autorun(() => {
                 const minimized = this.attributes.minimized;
                 this.onMinimized(minimized);
             });
         });
-        this.refresher?.add("mainViewIndex", () => {
+        this.refresher.add("mainViewIndex", () => {
             return autorun(() => {
                 const mainSceneIndex = get(this.attributes, "_mainSceneIndex");
                 this.onMainViewIndexChange(mainSceneIndex);
             });
         });
-        this.refresher?.add("focusedChange", () => {
+        this.refresher.add("focusedChange", () => {
             return autorun(() => {
                 const focused = get(this.attributes, "focus");
                 this.onFocusChange(focused);
             });
         });
-        this.refresher?.add("registeredChange", () => {
+        this.refresher.add("registeredChange", () => {
             return autorun(() => {
                 const registered = get(this.attributes, Fields.Registered);
                 this.onRegisteredChange(registered);

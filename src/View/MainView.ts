@@ -32,14 +32,15 @@ export class MainViewProxy {
             this.ensureCameraAndSize();
             this.startListenWritableChange();
         });
-        this.sideEffectManager.add(() => {
-            return emitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio);
-        });
-        this.sideEffectManager.add(() => {
-            return emitter.on("startReconnect", () => {
+        this.sideEffectManager.add(() => [
+            emitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio),
+            emitter.on("startReconnect", () => {
                 releaseView(this.mainView);
-            });
-        });
+            }),
+            emitter.on("playgroundSizeChange", rect => {
+                this.synchronizer.setRect(rect);
+            })
+        ]);
         const rect = this.manager.boxManager?.stageRect;
         if (rect) {
             this.synchronizer.setRect(rect);
@@ -47,13 +48,13 @@ export class MainViewProxy {
     }
 
     private startListenWritableChange = () => {
-        this.sideEffectManager.add(() => {
-            return emitter.on("writableChange", isWritable => {
+        this.sideEffectManager.add(() =>
+            emitter.on("writableChange", isWritable => {
                 if (isWritable) {
                     this.ensureCameraAndSize();
                 }
-            });
-        });
+            })
+        );
     };
 
     public ensureCameraAndSize() {
@@ -87,7 +88,7 @@ export class MainViewProxy {
     }
 
     public addCameraReaction = () => {
-        this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
+        this.manager.refresher.add(Fields.MainViewCamera, this.cameraReaction);
     };
 
     public setCameraAndSize(): void {
@@ -228,8 +229,8 @@ export class MainViewProxy {
 
     public stop() {
         this.removeCameraListener();
-        this.manager.refresher?.remove(Fields.MainViewCamera);
-        this.manager.refresher?.remove(Fields.MainViewSize);
+        this.manager.refresher.remove(Fields.MainViewCamera);
+        this.manager.refresher.remove(Fields.MainViewSize);
         this.started = false;
     }
 
