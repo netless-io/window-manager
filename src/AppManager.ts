@@ -18,6 +18,7 @@ import { RedoUndo } from "./RedoUndo";
 import { serializeRoomMembers } from "./Helper";
 import { SideEffectManager } from "side-effect-manager";
 import { ViewManager } from "./View/ViewManager";
+import { Val } from "value-enhancer";
 import type { SyncRegisterAppPayload } from "./Register";
 import type { RemoveSceneParams } from "./InternalEmitter";
 import {
@@ -63,10 +64,10 @@ export class AppManager {
     private appListeners: AppListeners;
     public boxManager?: BoxManager;
 
-    private _prevSceneIndex: number | undefined;
-    private _prevFocused: string | undefined;
     private callbacksNode: ScenesCallbacksNode | null = null;
     private appCreateQueue = new AppCreateQueue();
+    private sceneIndex$ = new Val<number | undefined>(undefined);
+    private focused$ = new Val<string | undefined>(undefined);
 
     private sideEffectManager = new SideEffectManager();
 
@@ -361,7 +362,7 @@ export class AppManager {
         }
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
-        this._prevFocused = this.attributes.focus;
+        this.focused$.setValue(this.attributes.focus);
 
         this.sideEffectManager.add(() => {
             const redoUndo = new RedoUndo({
@@ -426,21 +427,21 @@ export class AppManager {
     };
 
     private onMainViewIndexChange = (index: number) => {
-        if (index !== undefined && this._prevSceneIndex !== index) {
+        if (index !== undefined && this.sceneIndex$.value !== index) {
             callbacks.emit("mainViewSceneIndexChange", index);
             emitter.emit("changePageState");
             if (this.callbacksNode) {
                 this.updateSceneState(this.callbacksNode);
             }
-            this._prevSceneIndex = index;
+            this.sceneIndex$.setValue(index);
         }
     };
 
     private onFocusChange = (focused: string | undefined) => {
-        if (this._prevFocused !== focused) {
+        if (this.focused$.value !== focused) {
             callbacks.emit("focusedChange", focused);
-            emitter.emit("focusedChange", { focused, prev: this._prevFocused });
-            this._prevFocused = focused;
+            emitter.emit("focusedChange", { focused, prev: this.focused$.value });
+            this.focused$.setValue(focused);
             if (focused !== undefined) {
                 this.boxManager?.focusBox({ appId: focused });
                 // 确保 focus 修改的时候, appProxy 已经创建
@@ -831,7 +832,7 @@ export class AppManager {
         }
         callbacks.clearListeners();
         this.sideEffectManager.flushAll();
-        this._prevFocused = undefined;
-        this._prevSceneIndex = undefined;
+        this.sceneIndex$.destroy();
+        this.focused$.destroy();
     }
 }

@@ -57,7 +57,6 @@ export class AppProxy implements PageRemoveService {
     public status: "normal" | "destroyed" = "normal";
     private stateKey: string;
     public _pageState: AppPageStateImpl;
-    private _prevFullPath: string | undefined;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -65,6 +64,7 @@ export class AppProxy implements PageRemoveService {
     private sideEffectManager = new SideEffectManager();
     private valManager = new ValManager();
 
+    private fullPath$ = this.valManager.attach(new Val<string | undefined>(undefined));
     private appViewSync?: AppViewSync;
 
     public camera$ = this.valManager.attach(new Val<ICamera | undefined>(undefined));
@@ -451,9 +451,9 @@ export class AppProxy implements PageRemoveService {
             return autorun(() => {
                 const fullPath = this.appAttributes?.fullPath;
                 this.setFocusScenePathHandler(fullPath);
-                if (this._prevFullPath !== fullPath) {
+                if (this.fullPath$.value !== fullPath) {
                     this.notifyPageStateChange();
-                    this._prevFullPath = fullPath;
+                    this.fullPath$.setValue(fullPath);
                 }
             });
         });
@@ -586,7 +586,6 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher.remove(this.id);
         this.manager.refresher.remove(this.stateKey);
         this.manager.refresher.remove(`${this.id}-fullPath`);
-        this._prevFullPath = undefined;
         this.valManager.destroy();
     }
 
