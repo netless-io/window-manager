@@ -1,5 +1,5 @@
 import { AnimationMode } from "white-web-sdk";
-import { delay, throttle } from "lodash";
+import { debounce, delay, throttle } from "lodash";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { Camera, View } from "white-web-sdk";
 import type { ISize } from "../AttributesDelegate";
@@ -14,12 +14,12 @@ export class CameraSynchronizer {
 
     constructor(protected saveCamera: SaveCamera) {}
 
-    public setRect(rect: TeleBoxRect) {
+    public setRect = debounce((rect: TeleBoxRect) => {
         this.rect = rect;
         if (this.remoteCamera && this.remoteSize) {
             this.onRemoteUpdate(this.remoteCamera, this.remoteSize);
         }
-    }
+    }, 50);
 
     public setView(view: View) {
         this.view = view;
@@ -37,16 +37,32 @@ export class CameraSynchronizer {
                 scale = this.rect.height / size.height;
             }
             const nextScale = camera.scale * scale;
-            const moveCamera = () => this.view?.moveCamera({
-                centerX: camera.centerX,
-                centerY: camera.centerY,
-                scale: nextScale,
-                animationMode: AnimationMode.Immediately,
-            });
+
+            const moveCamera = () => {
+                this.view?.moveCamera({
+                    centerX: camera.centerX,
+                    centerY: camera.centerY,
+                    scale: nextScale,
+                    animationMode: AnimationMode.Immediately,
+                });
+            }
             // TODO 直接调用 moveCamera 依然会出现 camera 错误的情况,这里暂时加一个 delay 保证 camera 是对的, 后续需要 SDK 进行修改
             delay(moveCamera, 50);
         }
     }, 50);
+
+    public onRemoteSizeUpdate(size: ISize) {
+        if (this.rect) {
+            const nextScale = this.rect.width / size.width;
+            const moveCamera = () => {
+                this.view?.moveCamera({
+                    scale: nextScale,
+                    animationMode: AnimationMode.Immediately,
+                })
+            };
+            delay(moveCamera, 50);
+        }
+    }
 
 
     public onLocalCameraUpdate(camera: Camera) {

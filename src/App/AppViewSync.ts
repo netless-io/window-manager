@@ -23,6 +23,11 @@ export class AppViewSync {
                 this.synchronizer.onRemoteUpdate(camera, size);
             }
         }));
+        this.sem.add(() => this.appProxy.size$.subscribe(size => {
+            if (size) {
+                this.synchronizer.onRemoteSizeUpdate(size);
+            }
+        }));
         const box = this.appProxy.box;
         if (box && box.contentStageRect) {
             this.synchronizer.setRect(box.contentStageRect);

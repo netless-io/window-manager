@@ -64,5 +64,10 @@ export const createSlide = (manager: WindowManager) => {
 export const createBoard = (manager: WindowManager) => {
     return manager.addApp({
         kind: "Board",
+        options: {
+            scenePath: "/ppt3",
+            title: "ppt3",
+            scenes: docs.dynamicDocs,
+        },
     });
 }

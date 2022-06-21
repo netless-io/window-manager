@@ -6,6 +6,7 @@ import type { AddPageParams, PageController, PageState } from "../Page";
 import type { AppProxy } from "./AppProxy";
 import type { AppContext } from "./AppContext";
 import type { Camera, View } from "white-web-sdk";
+import type { TeleBoxRect } from "@netless/telebox-insider";
 
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
@@ -77,7 +78,12 @@ export class WhiteBoardView implements PageController {
         return this.appProxy.removeSceneByIndex(needRemoveIndex);
     };
 
+    public setRect(rect: Omit<TeleBoxRect, "x" | "y">) {
+        this.appProxy.updateSize(rect.width, rect.height);
+    }
+
     public destroy() {
+        this.pageState$.destroy();
         this.removeViewWrapper();
     }
 }

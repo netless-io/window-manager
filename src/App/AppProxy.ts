@@ -33,7 +33,7 @@ import type {
 import type { SceneState, View, SceneDefinition, Camera , MemberState} from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
-import type { ReadonlyTeleBox } from "@netless/telebox-insider";
+import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
@@ -125,10 +125,13 @@ export class AppProxy implements PageRemoveService {
                         this.camera$.setValue(toJS(this.appAttributes.camera));
                     }
                     if (!this.size$.value && box.contentStageRect) {
+                        const initialRect = this.computedInitialRect(box.contentStageRect);
+                        const width = initialRect?.width || box.contentStageRect.width;
+                        const height = initialRect?.height || box.contentStageRect.height;
                         this.storeSize({
                             id: this.uid,
-                            width: box.contentStageRect?.width,
-                            height: box.contentStageRect?.height,
+                            width,
+                            height,
                         });
                         this.size$.setValue(toJS(this.appAttributes.size));
                     }
@@ -158,6 +161,25 @@ export class AppProxy implements PageRemoveService {
         } else {
             if (this.appContext?._viewWrapper) {
                 this.appContext._viewWrapper.style.pointerEvents = "auto";
+            }
+        }
+    }
+
+    private computedInitialRect = (boxRect: TeleBoxRect) => {
+        const managerRect = this.manager.boxManager?.stageRect;
+        if (managerRect) {
+            const { width, height } = managerRect;
+            const boxRatio = boxRect.height / boxRect.width;
+            if (height < 480) {
+                return {
+                    width: 480 / boxRatio,
+                    height: 480,
+                };
+            } else {
+                return {
+                    width: width * 0.65,
+                    height: height * 0.65,
+                };
             }
         }
     }
@@ -553,6 +575,15 @@ export class AppProxy implements PageRemoveService {
         this.store.updateAppAttributes(this.id, Fields.Size, size);
     };
 
+    public updateSize = (width: number, height: number) => {
+        const iSize = {
+            id: this.manager.uid,
+            width, height
+        }
+        this.store.updateAppAttributes(this.id, Fields.Size, iSize);
+        this.size$.setValue(iSize);
+    }
+
     public moveCamera = (camera: Camera) => {
         if (!this.camera$.value) {
             return;
@@ -604,7 +635,10 @@ export class AppProxy implements PageRemoveService {
                     () => this.appAttributes?.camera,
                     camera => {
                         if (camera && camera.id !== this.uid) {
-                            this.camera$.setValue(toJS(camera));
+                            const rawCamera = toJS(camera);
+                            if (rawCamera !== this.camera$.value) {
+                                this.camera$.setValue(rawCamera);
+                            }
                         }
                     }
                 )
@@ -619,7 +653,10 @@ export class AppProxy implements PageRemoveService {
                     () => this.appAttributes?.size,
                     size => {
                         if (size && size.id !== this.uid) {
-                            this.size$.setValue(toJS(size));
+                            const rawSize = toJS(size);
+                            if (this.size$.value !== rawSize) {
+                                this.size$.setValue(rawSize);
+                            }
                         }
                     }
                 )
