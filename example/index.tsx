@@ -31,9 +31,9 @@ const mountManager = async (room, root) => {
         room,
         // collectorStyles: { bottom: "100px", left: "30px" },
         containerSizeRatio: 9 / 16,
-        chessboard: true,
         debug: true,
         cursor: true,
+        disableCameraTransform: true,
     } as MountParams)) as WindowManagerType;
 
     manager.emitter.on("ready", async () => {

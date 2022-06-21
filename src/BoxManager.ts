@@ -47,11 +47,11 @@ export type CreateTeleBoxManagerConfig = {
     collectorStyles?: Partial<CSSStyleDeclaration>;
     prefersColorScheme?: TeleBoxColorScheme;
     stageRatio?: number;
+    highlightStage?: boolean;
 };
 
 export type BoxManagerContext = {
     safeSetAttributes: (attributes: any) => void;
-    getMainView: () => View;
     updateAppState: (appId: string, field: AppAttributes, value: any) => void;
     emitter: EmitterType;
     boxEmitter: BoxEmitterType;
@@ -72,7 +72,6 @@ export const createBoxManager = (
     return new BoxManager(
         {
             safeSetAttributes: (attributes: any) => manager.safeSetAttributes(attributes),
-            getMainView: () => manager.mainView,
             updateAppState: (...args) => manager.appManager?.store.updateAppState(...args),
             canOperate: () => manager.canOperate,
             notifyContainerRectUpdate: (rect: TeleBoxRect) =>
@@ -178,10 +177,6 @@ export class BoxManager {
         ]);
     }
 
-    private get mainView() {
-        return this.context.getMainView();
-    }
-
     private get canOperate() {
         return this.context.canOperate();
     }
@@ -251,6 +246,7 @@ export class BoxManager {
             root: root,
             fence: false,
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
+            highlightStage: createTeleBoxManagerConfig?.highlightStage,
         };
 
         const manager = new TeleBoxManager(initManagerState);

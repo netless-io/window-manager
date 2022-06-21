@@ -44,12 +44,6 @@ export class MainViewProxy {
         if (rect) {
             this.synchronizer.setRect(rect);
         }
-        this.sideEffectManager.add(() => {
-            return emitter.on("playgroundSizeChange", rect => {
-                this.synchronizer.setRect(rect);
-                // this.synchronizer.onLocalSizeUpdate(rect);
-            });
-        });
     }
 
     private startListenWritableChange = () => {
@@ -87,7 +81,6 @@ export class MainViewProxy {
 
     public start() {
         if (this.started) return;
-        this.sizeChangeHandler(this.mainViewSize);
         this.addCameraListener();
         this.addCameraReaction();
         this.started = true;
@@ -118,15 +111,8 @@ export class MainViewProxy {
         );
     };
 
-    public sizeChangeHandler = debounce((size: Size) => {
-        if (size) {
-            // this.synchronizer.onLocalSizeUpdate(size);
-        }
-    }, 30);
-
     public onUpdateContainerSizeRatio = () => {
         const size = this.store.getMainViewSize();
-        this.sizeChangeHandler(size);
         if (size.id === this.manager.uid) {
             this.setCameraAndSize();
         }

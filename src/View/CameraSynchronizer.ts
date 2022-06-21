@@ -1,7 +1,7 @@
 import { AnimationMode } from "white-web-sdk";
 import { delay, throttle } from "lodash";
 import type { TeleBoxRect } from "@netless/telebox-insider";
-import type { Camera, View, Size } from "white-web-sdk";
+import type { Camera, View } from "white-web-sdk";
 import type { ISize } from "../AttributesDelegate";
 
 export type SaveCamera = (camera: Camera) => void;
@@ -52,22 +52,5 @@ export class CameraSynchronizer {
     public onLocalCameraUpdate(camera: Camera) {
         this.saveCamera(camera);
         this.remoteCamera = camera;
-    }
-
-    // 本地 Size 更新, 先匹配 camera 到新的 size 然后再发送 camera 数据到远端
-    public onLocalSizeUpdate = (size: Size) => {
-        if (this.rect && this.view) {
-            let scale: number;
-            if (size.width < size.height) {
-                scale = this.rect.width / size.width;
-            } else {
-                scale = this.rect.height / size.height;
-            }
-            const nextScale = this.view.camera.scale / scale;
-            this.view.moveCamera({
-                scale: nextScale,
-                animationMode: AnimationMode.Immediately
-            });
-        }
     }
 }

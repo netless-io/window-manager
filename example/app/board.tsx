@@ -1,4 +1,4 @@
-import type { NetlessApp, TeleBoxRect, WhiteBoardView } from "../../dist";
+import type { NetlessApp, WhiteBoardView } from "../../dist";
 import React, { useEffect, useState } from "react";
 import ReactDom from "react-dom";
 import "./board.css";
@@ -9,21 +9,12 @@ export const Board: NetlessApp = {
         // 获取 app 的 box
         const box = context.box;
 
-        const stage = document.createElement("div");
-        stage.addEventListener("click", () => {
-            console.log("onStage click");
-        });
-        addStyle(stage, box.contentStageRect);
-
-        box._contentStageRect$.subscribe(rect => {
-            addStyle(stage, rect);
-        });
         console.log("destroyed", context.destroyed);
          // 挂载白板到当前 box
         const view = context.createWhiteBoardView();
         view.ensureSize(10);
         view.view.disableCameraTransform = true;
-        box.$content.appendChild(stage);
+
         context.emitter.on("destroy", () => {
             console.log("on destroy", context.destroyed);
         });
@@ -31,16 +22,6 @@ export const Board: NetlessApp = {
         mount(box.$footer, view);
         return;
     }
-}
-
-const addStyle = (el: HTMLDivElement, rect: TeleBoxRect) => {
-    el.style.width = `${rect.width}px`;
-    el.style.height = `${rect.height}px`;
-    el.style.position = "absolute";
-    el.style.left = `${rect.x}px`;
-    el.style.top = `${rect.y}px`;
-    el.style.backgroundColor = "gray";
-    el.style.zIndex = "-1";
 }
 
 const BoardFooter = ({ view }: { view: WhiteBoardView }) => {

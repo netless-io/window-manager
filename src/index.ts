@@ -129,8 +129,8 @@ export type MountParams = {
     container?: HTMLElement;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
-    /** 显示 PS 透明背景，默认 true */
-    chessboard?: boolean;
+    /** 是否高亮显示同步区域, 默认为 true */
+    highlightStage?: boolean;
     collectorContainer?: HTMLElement;
     collectorStyles?: Partial<CSSStyleDeclaration>;
     overwriteStyles?: string;
@@ -241,6 +241,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             collectorStyles: params.collectorStyles,
             prefersColorScheme: params.prefersColorScheme,
             stageRatio: params.containerSizeRatio,
+            highlightStage: params.highlightStage
         });
         manager.appManager?.setBoxManager(manager.boxManager);
         if (params.container) {

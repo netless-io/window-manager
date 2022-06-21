@@ -687,12 +687,9 @@ export class AppManager {
             appProxy.emitAppIsWritableChange();
         });
         if (isWritable === true) {
-            this.mainView.disableCameraTransform = false;
             if (this.room && this.room.disableSerialization === true) {
                 this.room.disableSerialization = false;
             }
-        } else {
-            this.mainView.disableCameraTransform = true;
         }
         emitter.emit("writableChange", isWritable);
     };
