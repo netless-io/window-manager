@@ -58,8 +58,8 @@ export class AppProxy implements PageRemoveService {
     private stateKey: string;
     public _pageState: AppPageStateImpl;
 
-    public appResult?: NetlessApp<any>;
-    public appContext?: AppContext<any, any>;
+    public appResult?: NetlessApp;
+    public appContext?: AppContext;
 
     private sideEffectManager = new SideEffectManager();
     private valManager = new ValManager();
@@ -563,6 +563,7 @@ export class AppProxy implements PageRemoveService {
             const fullPath = this._pageState.getFullPath(index);
             if (fullPath) {
                 this.setFullPath(fullPath);
+                setScenePath(this.manager.room, fullPath);
             }
         }
     }
@@ -584,7 +585,7 @@ export class AppProxy implements PageRemoveService {
         this.size$.setValue(iSize);
     }
 
-    public moveCamera = (camera: Camera) => {
+    public moveCamera = (camera: Partial<Camera>) => {
         if (!this.camera$.value) {
             return;
         }
@@ -662,6 +663,10 @@ export class AppProxy implements PageRemoveService {
                 )
             )
         , "size");
+    }
+
+    public onFocus = () => {
+        this.setScenePath();
     }
 
     public close(): Promise<void> {

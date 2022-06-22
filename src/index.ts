@@ -906,7 +906,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         if (WindowManager.container) {
             this.bindContainer(WindowManager.container);
         }
-        this.appManager?.refresher?.refresh();
+        this.appManager?.refresher.refresh();
     }
 
     public setContainerSizeRatio(ratio: number) {

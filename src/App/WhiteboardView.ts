@@ -23,13 +23,14 @@ export class WhiteBoardView implements PageController {
         appProxy.appEmitter.on("pageStateChange", pageState => {
             pageState$.setValue(pageState);
         });
+        view.disableCameraTransform = true;
     }
 
     public get pageState() {
         return this.pageState$.value;
     }
 
-    public moveCamera(camera: Camera) {
+    public moveCamera(camera: Partial<Camera>) {
         this.appProxy.moveCamera(camera);
     }
 
