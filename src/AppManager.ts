@@ -138,7 +138,7 @@ export class AppManager {
                 sceneName = this.callbacksNode?.scenes[nextIndex];
             }
             if (sceneName) {
-                this.setMainViewScenePath(`${ROOT_DIR}${sceneName}`);
+                await this.setMainViewScenePath(`${ROOT_DIR}${sceneName}`);
             }
             await this.setMainViewSceneIndex(nextIndex);
         } else {
@@ -153,7 +153,7 @@ export class AppManager {
      * 所以需要关掉所有开启了 view 的 app
      */
     public async onRootDirRemoved(needClose = true) {
-        this.setMainViewScenePath(INIT_DIR);
+        await this.setMainViewScenePath(INIT_DIR);
         this.createRootDirScenesCallback();
 
         for (const [id, appProxy] of this.appProxies.entries()) {
@@ -161,9 +161,9 @@ export class AppManager {
                 await this.closeApp(id, needClose);
             }
         }
-        // 删除了根目录的 scenes 之后 mainview 需要重新绑定, 否则主白板会不能渲染
+        // 删除了根目录的 scenes 之后 main-view 需要重新绑定, 否则主白板会不能渲染
         this.mainViewProxy.rebind();
-        emitter.emit("rootDirRemoved");
+        await emitter.emit("rootDirRemoved");
         this.updateRootDirRemoving(false);
     }
 
@@ -462,9 +462,9 @@ export class AppManager {
     );
 
     /**
-     * 插件更新 attributes 时的回调
+     * 插件更新 apps 时的回调
      *
-     * @param {*} attributes
+     * @param {*} apps
      * @memberof WindowManager
      */
     public async _attributesUpdateCallback(apps: any) {
@@ -680,7 +680,7 @@ export class AppManager {
     public displayerWritableListener = (isReadonly: boolean) => {
         const isWritable = !isReadonly;
         const isManualWritable =
-            this.windowManger.readonly === undefined || this.windowManger.readonly === false;
+            this.windowManger.readonly === undefined || !this.windowManger.readonly;
         if (this.windowManger.readonly === undefined) {
             this.boxManager?.setReadonly(isReadonly);
         } else {
@@ -689,7 +689,7 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.emitAppIsWritableChange();
         });
-        if (isWritable === true) {
+        if (isWritable) {
             if (this.room && this.room.disableSerialization === true) {
                 this.room.disableSerialization = false;
             }

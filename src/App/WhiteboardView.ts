@@ -10,6 +10,7 @@ import type { TeleBoxRect } from "@netless/telebox-insider";
 
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
+    public readonly camera$: ReadonlyVal<Camera>;
 
     constructor(
         public view: View,
@@ -22,6 +23,13 @@ export class WhiteBoardView implements PageController {
         this.pageState$ = pageState$;
         appProxy.appEmitter.on("pageStateChange", pageState => {
             pageState$.setValue(pageState);
+        });
+        const camera$ = new Val<Camera, boolean>(this.view.camera);
+        this.camera$ = camera$
+        appProxy.camera$.subscribe(camera => {
+            if (camera) {
+                camera$.setValue(camera, true);
+            }
         });
         view.disableCameraTransform = true;
     }
@@ -85,6 +93,7 @@ export class WhiteBoardView implements PageController {
 
     public destroy() {
         this.pageState$.destroy();
+        this.camera$.destroy();
         this.removeViewWrapper();
     }
 }

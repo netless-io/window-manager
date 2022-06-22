@@ -6,7 +6,7 @@ import type { PageState } from "./Page";
 export class PageStateImpl {
     constructor(private manager: AppManager) {
         emitter.on("changePageState", () => {
-            callbacks.emit("pageStateChange", this.toObject());
+          callbacks.emit("pageStateChange", this.toObject());
         });
     }
 

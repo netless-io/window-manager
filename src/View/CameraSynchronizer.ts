@@ -46,7 +46,7 @@ export class CameraSynchronizer {
                     animationMode: AnimationMode.Immediately,
                 });
             }
-            moveCamera();
+            moveCamera(); 
             // TODO 直接调用 moveCamera 依然会出现 camera 错误的情况,这里暂时加一个 delay 保证 camera 是对的, 后续需要 SDK 进行修改
             delay(moveCamera, 50);
         }

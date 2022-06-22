@@ -15,6 +15,9 @@ export const Board: NetlessApp = {
         if (context.isAddApp) {
             view.setRect({ width: 1280, height: 720 });
         }
+        view.camera$.subscribe(camera => {
+            console.log("onCameraChange", camera);
+        });
         // view.ensureSize(10);
         // view.view.disableCameraTransform = true;
 
@@ -41,6 +44,8 @@ const BoardFooter = ({ view }: { view: WhiteBoardView }) => {
 
     const removeLastPage = () => view.removePage(view.pageState.length - 1);
 
+    const moveCamera = () => view.moveCamera({ centerY: view.camera$.value.centerY + 10 });
+
     useEffect(() => {
         setPageState(view.pageState);
         // 订阅 pageState 的修改
@@ -57,6 +62,7 @@ const BoardFooter = ({ view }: { view: WhiteBoardView }) => {
             <button onClick={addPage}>添加页</button>
             <button onClick={removePage}>删除一页</button>
             <button onClick={removeLastPage}>删除最后一页</button>
+            <button onClick={moveCamera}>移动 camera</button>
             {pageState.index + 1}/{pageState.length}
         </div>
     )
