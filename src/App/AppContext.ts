@@ -110,6 +110,12 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
             this.ensurePageSize(size);
         }
         this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, removeViewWrapper, this.ensurePageSize);
+        this.appProxy.sideEffectManager.add(() => {
+            return () => {
+                this.whiteBoardView?.destroy();
+                this.whiteBoardView = undefined;
+            }
+        });
         return this.whiteBoardView;
     }
 

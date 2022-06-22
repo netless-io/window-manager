@@ -1,5 +1,4 @@
 import { WindowManager } from "../dist/index.es";
-import "./app/helloworld-app";
 import "./app/counter";
 import { Board } from "./app/board";
 

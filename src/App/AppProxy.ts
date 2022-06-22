@@ -61,7 +61,7 @@ export class AppProxy implements PageRemoveService {
     public appResult?: NetlessApp;
     public appContext?: AppContext;
 
-    private sideEffectManager = new SideEffectManager();
+    public sideEffectManager = new SideEffectManager();
     private valManager = new ValManager();
 
     private fullPath$ = this.valManager.attach(new Val<string | undefined>(undefined));

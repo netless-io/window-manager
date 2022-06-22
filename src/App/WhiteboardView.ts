@@ -1,5 +1,6 @@
 import { putScenes } from "../Utils/Common";
 import { Val } from "value-enhancer";
+import { pick } from "lodash";
 
 import type { ReadonlyVal } from "value-enhancer";
 import type { AddPageParams, PageController, PageState } from "../Page";
@@ -8,9 +9,11 @@ import type { AppContext } from "./AppContext";
 import type { Camera, View } from "white-web-sdk";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 
+export type WhiteBoardViewCamera = Omit<Camera, "scale">;
+
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
-    public readonly camera$: ReadonlyVal<Camera>;
+    public readonly camera$: ReadonlyVal<WhiteBoardViewCamera>;
 
     constructor(
         public view: View,
@@ -21,16 +24,22 @@ export class WhiteBoardView implements PageController {
     ) {
         const pageState$ = new Val<PageState>(appProxy.pageState);
         this.pageState$ = pageState$;
-        appProxy.appEmitter.on("pageStateChange", pageState => {
-            pageState$.setValue(pageState);
-        });
-        const camera$ = new Val<Camera, boolean>(this.view.camera);
-        this.camera$ = camera$
-        appProxy.camera$.subscribe(camera => {
-            if (camera) {
-                camera$.setValue(camera, true);
-            }
-        });
+        this.appProxy.sideEffectManager.add(() =>
+            appProxy.appEmitter.on("pageStateChange", pageState => {
+                pageState$.setValue(pageState);
+            })
+        );
+        const camera$ = new Val<WhiteBoardViewCamera>(
+            pick(this.view.camera, ["centerX", "centerY"])
+        );
+        this.camera$ = camera$;
+        this.appProxy.sideEffectManager.add(() =>
+            appProxy.camera$.subscribe(camera => {
+                if (camera) {
+                    camera$.setValue(pick(camera, ["centerX", "centerY"]));
+                }
+            })
+        );
         view.disableCameraTransform = true;
     }
 
@@ -38,7 +47,7 @@ export class WhiteBoardView implements PageController {
         return this.pageState$.value;
     }
 
-    public moveCamera(camera: Partial<Camera>) {
+    public moveCamera(camera: Partial<WhiteBoardViewCamera>) {
         this.appProxy.moveCamera(camera);
     }
 

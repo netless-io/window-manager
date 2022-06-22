@@ -2,15 +2,6 @@ import type { WindowManager } from "../dist";
 import { BuiltinApps } from "../dist/index.es";
 import * as docs from "./docs.json";
 
-export const createHelloWorld = (manager: WindowManager) => {
-    manager.addApp({
-        kind: "HelloWorld",
-        options: {
-            scenePath: "/helloworld1",
-        },
-    });
-};
-
 export const createCounter = (manager: WindowManager) => {
     manager.addApp({
         kind: "Counter"

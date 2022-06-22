@@ -3,7 +3,7 @@ import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
 import type { MountParams, WindowManager as WindowManagerType } from "../dist";
-import { createStatic, createDynamic, createHelloWorld, createVideo, createSlide, createCounter, createBoard } from "./apps";
+import { createStatic, createDynamic, createVideo, createSlide, createCounter, createBoard } from "./apps";
 import "../dist/style.css";
 import "./register";
 import "./index.css";
@@ -193,9 +193,6 @@ const App = () => {
                 }}
             ></div>
             <div className="side">
-                <button className="side-button" onClick={() => createHelloWorld(manager)}>
-                    Hello World
-                </button>
                 <button className="side-button" onClick={() => createCounter(manager)}>
                     Counter
                 </button>
