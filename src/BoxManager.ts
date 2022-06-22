@@ -80,7 +80,7 @@ export const createBoxManager = (
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             callbacks,
             emitter,
-            boxEmitter
+            boxEmitter,
         },
         options
     );
@@ -99,17 +99,17 @@ export class BoxManager {
         this.teleBoxManager = this.setupBoxManager(createTeleBoxManagerConfig);
         this.sideEffectManager.add(() => [
             // 使用 _xxx$.reaction 订阅修改的值, 不管有没有 skipUpdate, 修改值都会触发回调
-            this.teleBoxManager._state$.reaction(state => {
+            this.teleBoxManager.onValChanged("state", state => {
                 callbacks.emit("boxStateChange", state);
                 emitter.emit("boxStateChange", state);
             }),
-            this.teleBoxManager._darkMode$.reaction(darkMode => {
+            this.teleBoxManager.onValChanged("darkMode", darkMode => {
                 callbacks.emit("darkModeChange", darkMode);
             }),
-            this.teleBoxManager._prefersColorScheme$.reaction(colorScheme => {
+            this.teleBoxManager.onValChanged("prefersColorScheme", colorScheme => {
                 callbacks.emit("prefersColorSchemeChange", colorScheme);
             }),
-            this.teleBoxManager._minimized$.reaction((minimized, skipUpdate) => {
+            this.teleBoxManager.onValChanged("minimized", (minimized, skipUpdate) => {
                 if (skipUpdate) {
                     return;
                 }
@@ -125,7 +125,7 @@ export class BoxManager {
                     }
                 }
             }),
-            this.teleBoxManager._maximized$.reaction((maximized, skipUpdate) => {
+            this.teleBoxManager.onValChanged("maximized", (maximized, skipUpdate) => {
                 if (skipUpdate) {
                     return;
                 }
@@ -139,7 +139,11 @@ export class BoxManager {
             this.teleBoxManager.events.on(
                 "intrinsic_move",
                 debounce((box: ReadonlyTeleBox): void => {
-                    boxEmitter.emit("move", { appId: box.id, x: box.intrinsicX, y: box.intrinsicY });
+                    boxEmitter.emit("move", {
+                        appId: box.id,
+                        x: box.intrinsicX,
+                        y: box.intrinsicY,
+                    });
                 }, 50)
             ),
             this.teleBoxManager.events.on(

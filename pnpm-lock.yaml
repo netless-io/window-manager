@@ -4,7 +4,7 @@ specifiers:
   '@juggle/resize-observer': ^3.3.1
   '@netless/app-docs-viewer': ^0.2.9
   '@netless/app-media-player': 0.1.0-beta.5
-  '@netless/telebox-insider': 1.0.0-alpha.15
+  '@netless/telebox-insider': 1.0.0-alpha.16
   '@rollup/plugin-commonjs': ^20.0.0
   '@rollup/plugin-node-resolve': ^13.0.4
   '@rollup/plugin-url': ^6.1.0
@@ -35,7 +35,7 @@ specifiers:
   svelte: ^3.42.4
   typescript: ^4.5.5
   uuid: ^7.0.3
-  value-enhancer: ^1.2.1
+  value-enhancer: ^1.3.0
   video.js: '>=7'
   vite: ^2.5.3
   vitest: ^0.14.1
@@ -43,13 +43,13 @@ specifiers:
 
 dependencies:
   '@juggle/resize-observer': registry.npmmirror.com/@juggle/resize-observer/3.3.1
-  '@netless/telebox-insider': 1.0.0-alpha.15
+  '@netless/telebox-insider': 1.0.0-alpha.16
   emittery: registry.npmmirror.com/emittery/0.9.2
   lodash: registry.npmmirror.com/lodash/4.17.21
   p-retry: registry.npmmirror.com/p-retry/4.6.1
   side-effect-manager: 1.1.0
   uuid: registry.npmmirror.com/uuid/7.0.3
-  value-enhancer: 1.2.1
+  value-enhancer: 1.3.0
   video.js: registry.npmmirror.com/video.js/7.18.1
 
 devDependencies:
@@ -97,8 +97,8 @@ packages:
       vanilla-lazyload: 17.6.1
     dev: true
 
-  /@netless/telebox-insider/1.0.0-alpha.15:
-    resolution: {integrity: sha512-gjEvPhbPompzxLUW76YIjJBIR9DG0j8UTk+3ar3F27B9+OSlxzaOnTGBnQHDwSq9jmIJrgSV+95SlKrXdldltw==}
+  /@netless/telebox-insider/1.0.0-alpha.16:
+    resolution: {integrity: sha512-WoBhBMVXKqZuTYEhcDapYOX05ScvngcdCfcrc2fXHkH5PQxtWWwOc4G2X/stK8giHdlGlAkq+HdKTpQ1Ymn7Aw==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@types/shallowequal': 1.1.1
@@ -1001,10 +1001,6 @@ packages:
     resolution: {integrity: sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg==}
     engines: {node: '>= 4.0.0'}
     dev: true
-
-  /value-enhancer/1.2.1:
-    resolution: {integrity: sha512-11IrGi9xmVbr3twzuaMRrdUGzhdaE4eXvT6qYZlB5VrhK5uQzSPlYOEBlsIGH+dMvkakNkWGNIbxdZi87/MWuQ==}
-    dev: false
 
   /value-enhancer/1.3.0:
     resolution: {integrity: sha512-shI9N5ML4MGwD6bMu/My1l1+REFqhZGOuIjDN5Gf+k7gACfY2k8WtJEcqgdZMfepwivfhQxIfZp0riobUDZpDQ==}
