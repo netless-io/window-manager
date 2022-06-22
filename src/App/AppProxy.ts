@@ -589,8 +589,9 @@ export class AppProxy implements PageRemoveService {
         if (!this.camera$.value) {
             return;
         }
-        const nextCamera = { ...this.camera$.value, ...camera };
+        const nextCamera = { ...this.camera$.value, ...camera, id: this.uid };
         this.storeCamera(nextCamera);
+        this.camera$.setValue(nextCamera);
     };
 
     public async destroy(

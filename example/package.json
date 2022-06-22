@@ -17,7 +17,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "video.js": "^7.14.3",
-    "white-web-sdk": "^2.16.15"
+    "white-web-sdk": "npm:white-web-sdk-esm@2.16.24"
   },
   "devDependencies": {
     "vite": "^2.7.13"

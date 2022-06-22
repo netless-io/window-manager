@@ -9,17 +9,17 @@ specifiers:
   react-dom: ^17.0.2
   video.js: ^7.14.3
   vite: ^2.7.13
-  white-web-sdk: ^2.16.15
+  white-web-sdk: npm:white-web-sdk-esm@2.16.24
 
 dependencies:
   '@netless/app-slide': 0.2.0
-  '@netless/video-js-plugin': 0.3.8_ayjharauvvwew5ggis67sljjea
+  '@netless/video-js-plugin': 0.3.8_bsbjo3bce2xgq2fleqqtxcorju
   normalize.css: 8.0.1
   p-queue: 7.2.0
   react: 17.0.2
   react-dom: 17.0.2_react@17.0.2
   video.js: 7.18.1
-  white-web-sdk: 2.16.15
+  white-web-sdk: /white-web-sdk-esm/2.16.24
 
 devDependencies:
   vite: 2.8.6
@@ -45,7 +45,7 @@ packages:
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
     dev: false
 
-  /@netless/video-js-plugin/0.3.8_ayjharauvvwew5ggis67sljjea:
+  /@netless/video-js-plugin/0.3.8_bsbjo3bce2xgq2fleqqtxcorju:
     resolution: {integrity: sha512-xCLfL8ISjPD5XQbeGWT/pwKdWXqYXmaEXiP4jcX8oaR83+vJo463znIg2JW8EXHkTq7KRrYnZqqlQdI6It4L+A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@netless/video-js-plugin/-/video-js-plugin-0.3.8.tgz}
     peerDependencies:
       react: '>=16'
@@ -56,7 +56,7 @@ packages:
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
       video.js: 7.18.1
-      white-web-sdk: 2.16.15
+      white-web-sdk: /white-web-sdk-esm/2.16.24
     dev: false
 
   /@netless/xml-js/1.6.15:
@@ -65,7 +65,7 @@ packages:
     dev: false
 
   /@protobufjs/aspromise/1.1.2:
-    resolution: {integrity: sha1-m4sMxmPWaafY9vXQiToU00jzD78=}
+    resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
     dev: false
 
   /@protobufjs/base64/1.1.2:
@@ -77,34 +77,34 @@ packages:
     dev: false
 
   /@protobufjs/eventemitter/1.1.0:
-    resolution: {integrity: sha1-NVy8mLr61ZePntCV85diHx0Ga3A=}
+    resolution: {integrity: sha512-j9ednRT81vYJ9OfVuXG6ERSTdEL1xVsNgqpkxMsbIabzSo3goCjDIveeGv5d03om39ML71RdmrGNjG5SReBP/Q==}
     dev: false
 
   /@protobufjs/fetch/1.1.0:
-    resolution: {integrity: sha1-upn7WYYUr2VwDBYZ/wbUVLDYTEU=}
+    resolution: {integrity: sha512-lljVXpqXebpsijW71PZaCYeIcE5on1w5DlQy5WH6GLbFryLUrBD4932W/E2BSpfRJWseIL4v/KPgBFxDOIdKpQ==}
     dependencies:
       '@protobufjs/aspromise': 1.1.2
       '@protobufjs/inquire': 1.1.0
     dev: false
 
   /@protobufjs/float/1.0.2:
-    resolution: {integrity: sha1-Xp4avctz/Ap8uLKR33jIy9l7h9E=}
+    resolution: {integrity: sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ==}
     dev: false
 
   /@protobufjs/inquire/1.1.0:
-    resolution: {integrity: sha1-/yAOPnzyQp4tyvwRQIKOjMY48Ik=}
+    resolution: {integrity: sha512-kdSefcPdruJiFMVSbn801t4vFK7KB/5gd2fYvrxhuJYg8ILrmn9SKSX2tZdV6V+ksulWqS7aXjBcRXl3wHoD9Q==}
     dev: false
 
   /@protobufjs/path/1.1.2:
-    resolution: {integrity: sha1-bMKyDFya1q0NzP0hynZz2Nf79o0=}
+    resolution: {integrity: sha512-6JOcJ5Tm08dOHAbdR3GrvP+yUUfkjG5ePsHYczMFLq3ZmMkAD98cDgcT2iA1lJ9NVwFd4tH/iSSoe44YWkltEA==}
     dev: false
 
   /@protobufjs/pool/1.1.0:
-    resolution: {integrity: sha1-Cf0V8tbTq/qbZbw2ZQbWrXhG/1Q=}
+    resolution: {integrity: sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw==}
     dev: false
 
   /@protobufjs/utf8/1.1.0:
-    resolution: {integrity: sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=}
+    resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
     dev: false
 
   /@types/long/4.0.1:
@@ -186,7 +186,7 @@ packages:
     dev: false
 
   /color-name/1.1.3:
-    resolution: {integrity: sha1-p9BVi9icQveV3UIyj3QIMcpTvCU=}
+    resolution: {integrity: sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==}
     dev: false
 
   /color-name/1.1.4:
@@ -221,7 +221,7 @@ packages:
     dev: false
 
   /decode-uri-component/0.2.0:
-    resolution: {integrity: sha1-6zkTMzRYd1y4TNGh+uBiEGu4dUU=}
+    resolution: {integrity: sha512-hjf+xovcEn31w/EUYdTXQh/8smFL/dzYjohQGEIgjyNavaJfBY2p5F527Bo1VPATxv0VYTUC2bOcXvqFwk78Og==}
     engines: {node: '>=0.10'}
     dev: false
 
@@ -519,7 +519,7 @@ packages:
     dev: false
 
   /javascript-natural-sort/0.7.1:
-    resolution: {integrity: sha1-+eIwPUUH9tdDVac2ZNFED7Wg71k=}
+    resolution: {integrity: sha512-nO6jcEfZWQXDhOiBtG2KvKyEptz7RVbpGP4vTD2hLBdmNQSsCiicO2Ioinv6UI4y9ukqnBpy+XZ9H6uLNgJTlw==}
     dev: false
 
   /js-tokens/4.0.0:
@@ -569,43 +569,6 @@ packages:
     resolution: {integrity: sha512-9Wy1B3m3f66bPPmU5hdA4DR4PB2OfDU/+GS3yAB7IQozE3tqXaVv2zOjgla7MEGSRv95+ILmOuvhLkOK6wJtCQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/min-document/-/min-document-2.19.0.tgz}
     dependencies:
       dom-walk: 0.1.2
-    dev: false
-
-  /mobx-react-lite/3.3.0_zwjkjci6wuiuwdmroumroayc7y:
-    resolution: {integrity: sha512-U/kMSFtV/bNVgY01FuiGWpRkaQVHozBq5CEBZltFvPt4FcV111hEWkgwqVg9GPPZSEuEdV438PEz8mk8mKpYlA==}
-    peerDependencies:
-      mobx: ^6.1.0
-      react: ^16.8.0 || ^17
-      react-dom: '*'
-      react-native: '*'
-    peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-native:
-        optional: true
-    dependencies:
-      mobx: 6.5.0
-      react: 16.14.0
-      react-dom: 16.14.0_react@16.14.0
-    dev: false
-
-  /mobx-react/7.3.0_zwjkjci6wuiuwdmroumroayc7y:
-    resolution: {integrity: sha512-RGEcwZokopqyJE5JPwXKB9FWMSqFM9NJVO2QPI+z6laJTJeBHqvPicjnKgY5mvihxTeXB1+72TnooqUePeGV1g==}
-    peerDependencies:
-      mobx: ^6.1.0
-      react: ^16.8.0 || ^17
-      react-dom: '*'
-      react-native: '*'
-    peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-native:
-        optional: true
-    dependencies:
-      mobx: 6.5.0
-      mobx-react-lite: 3.3.0_zwjkjci6wuiuwdmroumroayc7y
-      react: 16.14.0
-      react-dom: 16.14.0_react@16.14.0
     dev: false
 
   /mobx/6.5.0:
@@ -778,7 +741,7 @@ packages:
     dev: false
 
   /requires-port/1.0.0:
-    resolution: {integrity: sha1-kl0mAdOaxIXgkc8NpcbmlNw9yv8=}
+    resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
     dev: false
 
   /resolve/1.22.0:
@@ -829,7 +792,7 @@ packages:
     dev: false
 
   /simple-swizzle/0.2.2:
-    resolution: {integrity: sha1-pNprY1/8zMoz9w0Xy5JZLeleVXo=}
+    resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==}
     dependencies:
       is-arrayish: 0.3.2
     dev: false
@@ -844,7 +807,7 @@ packages:
     dev: false
 
   /strict-uri-encode/1.1.0:
-    resolution: {integrity: sha1-J5siXfHVgrH1TmWt3UNS4Y+qBxM=}
+    resolution: {integrity: sha512-R3f198pcvnB+5IpnBlRkphuE9n46WyVl8I39W/ZUTZLz4nqSP/oLYUrcnJrw462Ds8he4YKMov2efsTIw1BDGQ==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -934,8 +897,8 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /white-web-sdk/2.16.15:
-    resolution: {integrity: sha512-pTyWJukPHSujZHK1objwA1tbwPOYmjD9laz9FMsNnsVi13x9Mv0nwHyj46lvvQFMtTsRdBDbSTYyBgJtrZbaww==}
+  /white-web-sdk-esm/2.16.24:
+    resolution: {integrity: sha512-eDRHAtn5NhA8Dl6u9oZg5S3sM+2sfs/7hyxjt0YaHLB4EouA3HWtFLADtsthNLgA8uP6ZLXmVTmaMjCHfDPJ6g==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@netless/canvas-polyfill': 0.0.4
@@ -948,7 +911,6 @@ packages:
       eventemitter3: 4.0.7
       mathjs: 10.4.3
       mobx: 6.5.0
-      mobx-react: 7.3.0_zwjkjci6wuiuwdmroumroayc7y
       protobufjs: 6.11.2
       query-string: 5.1.1
       react: 16.14.0
@@ -957,6 +919,4 @@ packages:
       textarea-caret-ts: 4.1.1
       url-parse: 1.5.10
       uuid: 7.0.3
-    transitivePeerDependencies:
-      - react-native
     dev: false
