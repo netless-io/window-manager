@@ -17,7 +17,6 @@ import type {
 } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
-import type { BoxManager } from "../BoxManager";
 import type { AppEmitterEvent, Member } from "../index";
 import type { AppManager } from "../AppManager";
 import type { AppProxy } from "./AppProxy";
@@ -53,7 +52,6 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
 
     constructor(
         private manager: AppManager,
-        private boxManager: BoxManager,
         public appId: string,
         private appProxy: AppProxy,
         private appOptions?: TAppOptions | (() => TAppOptions)
@@ -100,19 +98,14 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         this._viewWrapper = viewWrapper;
         viewWrapper.className = "window-manager-view-wrapper";
         this.box.$content.parentElement?.appendChild(viewWrapper);
-        const removeViewWrapper = () => {
-            this.box.$content.parentElement?.removeChild(viewWrapper);
-            this._viewWrapper = undefined;
-        }
         view.divElement = viewWrapper;
         this.appProxy.fireMemberStateChange();
         if (this.isAddApp) {
             this.ensurePageSize(size);
         }
-        this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, removeViewWrapper, this.ensurePageSize);
+        this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, this.ensurePageSize);
         this.appProxy.sideEffectManager.add(() => {
             return () => {
-                this.whiteBoardView?.destroy();
                 this.whiteBoardView = undefined;
             }
         });
@@ -142,7 +135,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
 
     /** Get the App Window UI box. */
     public get box(): ReadonlyTeleBox {
-        const box = this.boxManager.getBox(this.appId);
+        const box = this.appProxy.box$.value;
         if (box) {
             return box;
         } else {

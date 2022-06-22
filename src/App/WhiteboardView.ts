@@ -19,7 +19,6 @@ export class WhiteBoardView implements PageController {
         public view: View,
         protected appContext: AppContext,
         protected appProxy: AppProxy,
-        private removeViewWrapper: () => void,
         public ensureSize: (size: number) => void
     ) {
         const pageState$ = new Val<PageState>(appProxy.pageState);
@@ -98,11 +97,5 @@ export class WhiteBoardView implements PageController {
 
     public setRect(rect: Omit<TeleBoxRect, "x" | "y">) {
         this.appProxy.updateSize(rect.width, rect.height);
-    }
-
-    public destroy() {
-        this.pageState$.destroy();
-        this.camera$.destroy();
-        this.removeViewWrapper();
     }
 }

@@ -289,7 +289,7 @@ export class AppProxy implements PageRemoveService {
         if (!this.boxManager) {
             throw new BoxManagerNotFoundError();
         }
-        const context = new AppContext(this.manager, this.boxManager, appId, this, appOptions);
+        const context = new AppContext(this.manager, appId, this, appOptions);
         this.appContext = context;
         try {
             emitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
