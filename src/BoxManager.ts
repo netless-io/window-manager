@@ -213,6 +213,10 @@ export class BoxManager {
         return this.teleBoxManager.stageRect;
     }
 
+    public get stageRect$() {
+        return this.teleBoxManager._stageRect$;
+    }
+
     public createBox(params: CreateBoxParams): ReadonlyTeleBox | undefined {
         if (!this.teleBoxManager) return;
         let { minwidth = MIN_WIDTH, minheight = MIN_HEIGHT } = params.app.config ?? {};

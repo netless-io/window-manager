@@ -3,13 +3,13 @@ import { AppAttributes, AppEvents, Events, SETUP_APP_DELAY } from "../constants"
 import { AppContext } from "./AppContext";
 import { AppPageStateImpl } from "./AppPageStateImpl";
 import { appRegister } from "../Register";
-import { AppViewSync } from "./AppViewSync";
+import { ViewSync } from "../View/ViewSync"
 import { autorun, reaction, toJS } from "white-web-sdk";
 import { boxEmitter } from "../BoxEmitter";
 import { BoxManagerNotFoundError } from "../Utils/error";
 import { calculateNextIndex } from "../Page";
 import { combine, Val, ValManager } from "value-enhancer";
-import { debounce, get } from "lodash";
+import { debounce, get, isEqual } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { log } from "../Utils/log";
@@ -65,7 +65,7 @@ export class AppProxy implements PageRemoveService {
     private valManager = new ValManager();
 
     private fullPath$ = this.valManager.attach(new Val<string | undefined>(undefined));
-    private appViewSync?: AppViewSync;
+    private viewSync?: ViewSync;
 
     public camera$ = this.valManager.attach(new Val<ICamera | undefined>(undefined));
     public size$ = this.valManager.attach(new Val<ISize | undefined>(undefined));
@@ -135,8 +135,16 @@ export class AppProxy implements PageRemoveService {
                         });
                         this.size$.setValue(toJS(this.appAttributes.size));
                     }
-                    this.appViewSync = new AppViewSync(this);
-                    this.sideEffectManager.add(() => () => this.appViewSync?.destroy());
+                    this.viewSync = new ViewSync({
+                        uid: this.uid,
+                        view$: this.view$,
+                        camera$: this.camera$,
+                        size$: this.size$,
+                        stageRect$: box._contentStageRect$,
+                        storeCamera: this.storeCamera,
+                        storeSize: this.storeSize
+                    });
+                    this.sideEffectManager.add(() => () => this.viewSync?.destroy());
                 }
             })
         );
@@ -636,9 +644,9 @@ export class AppProxy implements PageRemoveService {
                 reaction(
                     () => this.appAttributes?.camera,
                     camera => {
-                        if (camera && camera.id !== this.uid) {
+                        if (camera) {
                             const rawCamera = toJS(camera);
-                            if (rawCamera !== this.camera$.value) {
+                            if (!isEqual(rawCamera, this.camera$.value)) {
                                 this.camera$.setValue(rawCamera);
                             }
                         }
@@ -654,9 +662,9 @@ export class AppProxy implements PageRemoveService {
                 reaction(
                     () => this.appAttributes?.size,
                     size => {
-                        if (size && size.id !== this.uid) {
+                        if (size) {
                             const rawSize = toJS(size);
-                            if (this.size$.value !== rawSize) {
+                            if (!isEqual(rawSize, this.size$.value)) {
                                 this.size$.setValue(rawSize);
                             }
                         }

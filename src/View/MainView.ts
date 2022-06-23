@@ -1,14 +1,16 @@
 import { callbacks } from "../callback";
-import { CameraSynchronizer } from "./CameraSynchronizer";
 import { createView } from "./ViewManager";
 import { debounce, get, isEqual } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Events } from "../constants";
 import { Fields } from "../AttributesDelegate";
-import { reaction } from "white-web-sdk";
+import { reaction, toJS } from "white-web-sdk";
 import { releaseView, setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
-import type { Camera, Size, View } from "white-web-sdk";
+import { Val } from "value-enhancer";
+import { ViewSync } from "./ViewSync";
+import type { ICamera, ISize } from "../AttributesDelegate";
+import type { Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 
 export class MainViewProxy {
@@ -16,16 +18,17 @@ export class MainViewProxy {
     private mainViewIsAddListener = false;
     private mainView: View;
     private store = this.manager.store;
-    private synchronizer: CameraSynchronizer;
 
     private sideEffectManager = new SideEffectManager();
 
+    public camera$ = new Val<ICamera | undefined>(undefined);
+    public size$ = new Val<ISize | undefined>(undefined);
+    public view$ = new Val<View | undefined>(undefined);
+
+    public viewSync?: ViewSync;
+
     constructor(private manager: AppManager) {
-        this.synchronizer = new CameraSynchronizer(camera =>
-            this.store.setMainViewCamera({ ...camera, id: this.manager.uid })
-        );
         this.mainView = this.createMainView();
-        this.moveCameraSizeByAttributes();
         emitter.once("mainViewMounted").then(() => {
             this.addMainViewListener();
             this.start();
@@ -33,19 +36,27 @@ export class MainViewProxy {
             this.startListenWritableChange();
         });
         this.sideEffectManager.add(() => [
-            emitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio),
             emitter.on("startReconnect", () => {
                 releaseView(this.mainView);
             }),
-            emitter.on("playgroundSizeChange", rect => {
-                this.synchronizer.setRect(rect);
-            })
         ]);
-        const rect = this.manager.boxManager?.stageRect;
-        if (rect) {
-            this.synchronizer.setRect(rect);
-        }
+        this.createViewSync();
     }
+
+    public createViewSync = () => {
+        if (this.manager.boxManager && !this.viewSync) {
+            this.viewSync = new ViewSync({
+                uid: this.manager.uid,
+                view$: this.view$,
+                camera$: this.camera$,
+                size$: this.size$,
+                stageRect$: this.manager.boxManager?.stageRect$,
+                viewMode$: this.manager.windowManger.viewMode$,
+                storeCamera: this.storeCamera,
+                storeSize: this.storeSize,
+            });
+        }
+    };
 
     private startListenWritableChange = () => {
         this.sideEffectManager.add(() =>
@@ -60,7 +71,18 @@ export class MainViewProxy {
     public ensureCameraAndSize() {
         if (!this.mainViewCamera || !this.mainViewSize) {
             this.manager.dispatchInternalEvent(Events.InitMainViewCamera);
-            this.setCameraAndSize();
+            this.storeCamera({
+                id: this.manager.uid,
+                ...this.view.camera
+            });
+            const stageRect = this.manager.boxManager?.stageRect;
+            if (stageRect && !this.mainViewSize) {
+                this.storeSize({
+                    id: this.manager.uid,
+                    width: stageRect.width,
+                    height: stageRect.height
+                });
+            }
         }
     }
 
@@ -76,10 +98,6 @@ export class MainViewProxy {
         return get(this.view, ["didRelease"]);
     }
 
-    private moveCameraSizeByAttributes() {
-        this.synchronizer.onRemoteUpdate(this.mainViewCamera, this.mainViewSize);
-    }
-
     public start() {
         if (this.started) return;
         this.addCameraListener();
@@ -89,34 +107,64 @@ export class MainViewProxy {
 
     public addCameraReaction = () => {
         this.manager.refresher.add(Fields.MainViewCamera, this.cameraReaction);
+        this.manager.refresher.add(Fields.MainViewSize, this.sizeReaction);
     };
 
-    public setCameraAndSize(): void {
-        const stageSize = this.getStageSize();
-        if (stageSize) {
-            const camera = { ...this.mainView.camera, id: this.manager.uid };
-            const size = { ...stageSize, id: this.manager.uid };
-            this.store.setMainViewCameraAndSize(camera, size);
+    public storeCurrentCamera = () => {
+        const iCamera = this.view.camera;
+        this.storeCamera({
+            id: this.manager.uid,
+            ...iCamera
+        });
+    }
+
+    public storeCurrentSize = () => {
+        const rect = this.manager.boxManager?.stageRect;
+        if (rect) {
+            this.storeSize({
+                id: this.manager.uid,
+                width: rect.width,
+                height: rect.height
+            });
         }
     }
+
+    public storeCamera = (camera: ICamera) => {
+        this.store.setMainViewCamera(camera);
+    };
+
+    public storeSize = (size: ISize) => {
+        this.store.setMainViewSize(size);
+    };
 
     private cameraReaction = () => {
         return reaction(
             () => this.mainViewCamera,
             camera => {
-                if (camera && camera.id !== this.manager.uid) {
-                    this.synchronizer.onRemoteUpdate(camera, this.mainViewSize);
+                if (camera) {
+                    const rawCamera = toJS(camera);
+                    if (!isEqual(rawCamera, this.camera$.value)) {
+                        this.camera$.setValue(rawCamera);
+                    }
                 }
             },
             { fireImmediately: true }
         );
     };
 
-    public onUpdateContainerSizeRatio = () => {
-        const size = this.store.getMainViewSize();
-        if (size.id === this.manager.uid) {
-            this.setCameraAndSize();
-        }
+    private sizeReaction = () => {
+        return reaction(
+            () => this.mainViewSize,
+            size => {
+                if (size) {
+                    const rawSize = toJS(size);
+                    if (!isEqual(rawSize, this.size$.value)) {
+                        this.size$.setValue(rawSize);
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
     };
 
     public get view(): View {
@@ -133,7 +181,7 @@ export class MainViewProxy {
         if (mainViewScenePath) {
             setViewFocusScenePath(mainView, mainViewScenePath);
         }
-        this.synchronizer.setView(mainView);
+        this.view$.setValue(mainView);
         return mainView;
     }
 
@@ -163,21 +211,6 @@ export class MainViewProxy {
         this.mainView.divElement = divElement;
         this.addMainViewListener();
         this.start();
-    }
-
-    private onCameraUpdatedByDevice = (camera: Camera) => {
-        this.synchronizer.onLocalCameraUpdate(camera);
-        const size = this.getStageSize();
-        if (size && !isEqual(size, this.mainViewSize)) {
-            this.setMainViewSize(size);
-        }
-    };
-
-    private getStageSize(): Size | undefined {
-        const stage = this.manager.boxManager?.stageRect;
-        if (stage) {
-            return { width: stage.width, height: stage.height };
-        }
     }
 
     public addMainViewListener(): void {
@@ -212,13 +245,11 @@ export class MainViewProxy {
     }, 50);
 
     private addCameraListener() {
-        this.view.callbacks.on("onCameraUpdatedByDevice", this.onCameraUpdatedByDevice);
         this.view.callbacks.on("onCameraUpdated", this.onCameraOrSizeUpdated);
         this.view.callbacks.on("onSizeUpdated", this.onCameraOrSizeUpdated);
     }
 
     private removeCameraListener() {
-        this.view.callbacks.off("onCameraUpdatedByDevice", this.onCameraUpdatedByDevice);
         this.view.callbacks.off("onCameraUpdated", this.onCameraOrSizeUpdated);
         this.view.callbacks.off("onSizeUpdated", this.onCameraOrSizeUpdated);
     }
@@ -235,6 +266,9 @@ export class MainViewProxy {
     }
 
     public destroy() {
+        this.camera$.destroy();
+        this.size$.destroy();
+        this.view$.destroy();
         this.removeMainViewListener();
         this.stop();
         this.sideEffectManager.flushAll();

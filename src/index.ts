@@ -54,6 +54,7 @@ import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
 import { boxEmitter } from "./BoxEmitter";
+import { Val } from "value-enhancer";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -162,6 +163,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     public appManager?: AppManager;
     public cursorManager?: CursorManager;
     public viewMode = ViewMode.Broadcaster;
+    public viewMode$ = new Val<ViewMode>(ViewMode.Broadcaster);
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
 
@@ -592,16 +594,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
      * 设置 ViewMode
      */
     public setViewMode(mode: ViewMode): void {
+        log("setViewMode", mode);
+        const mainViewProxy = this.appManager?.mainViewProxy;
         if (mode === ViewMode.Broadcaster) {
             if (this.canOperate) {
-                this.appManager?.mainViewProxy.setCameraAndSize();
+                mainViewProxy?.storeCurrentCamera();
             }
-            this.appManager?.mainViewProxy.start();
+            mainViewProxy?.start();
         }
         if (mode === ViewMode.Freedom) {
-            this.appManager?.mainViewProxy.stop();
+            mainViewProxy?.stop();
         }
         this.viewMode = mode;
+        this.viewMode$.setValue(mode);
     }
 
     public setBoxState(boxState: TeleBoxState): void {
@@ -764,7 +769,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         this.mainView.moveCamera(camera);
         this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
         setTimeout(() => {
-            this.appManager?.mainViewProxy.setCameraAndSize();
+            this.appManager?.mainViewProxy.storeCurrentCamera();
         }, 500);
     }
 
@@ -777,7 +782,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         this.mainView.moveCameraToContain(rectangle);
         this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
         setTimeout(() => {
-            this.appManager?.mainViewProxy.setCameraAndSize();
+            this.appManager?.mainViewProxy.storeCurrentCamera();
         }, 500);
     }
 

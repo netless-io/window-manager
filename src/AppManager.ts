@@ -538,6 +538,7 @@ export class AppManager {
 
     public setBoxManager(boxManager: BoxManager) {
         this.boxManager = boxManager;
+        this.mainViewProxy.createViewSync();
     }
 
     public resetMaximized() {

@@ -29,17 +29,14 @@ let manager: WindowManagerType;
 const mountManager = async (room, root) => {
     manager = (await WindowManager.mount({
         room,
-        // collectorStyles: { bottom: "100px", left: "30px" },
-        // containerSizeRatio: 9 / 16,
+        containerSizeRatio: 9 / 16,
         debug: true,
         cursor: true,
-        disableCameraTransform: true,
+        // disableCameraTransform: true,
     } as MountParams)) as WindowManagerType;
 
     manager.emitter.on("ready", async () => {
-        if (isWritable === "false") {
-            manager.setViewMode("freedom" as any);
-        }
+        //
     });
 
     manager.bindContainer(root);
