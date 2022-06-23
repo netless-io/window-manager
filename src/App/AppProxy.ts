@@ -635,6 +635,8 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher.remove(this.id);
         this.manager.refresher.remove(this.stateKey);
         this.manager.refresher.remove(`${this.id}-fullPath`);
+        this.manager.refresher.remove(`${this.id}-camera`);
+        this.manager.refresher.remove(`${this.id}-size`);
         this.valManager.destroy();
     }
 

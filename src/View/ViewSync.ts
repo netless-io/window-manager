@@ -35,9 +35,10 @@ export class ViewSync {
             const iCamera = {
                 id: this.context.uid,
                 ...camera,
-            }
+            };
             this.context.camera$.setValue(iCamera, true);
-            const notStoreCamera = this.context.viewMode$ && this.context.viewMode$.value === ViewMode.Freedom;
+            const notStoreCamera =
+                this.context.viewMode$ && this.context.viewMode$.value === ViewMode.Freedom;
             if (notStoreCamera) {
                 return;
             } else {
@@ -54,8 +55,8 @@ export class ViewSync {
                         animationMode: AnimationMode.Immediately,
                     });
                     this.synchronizer.onRemoteUpdate(currentCamera, this.context.size$.value);
-                }   
-              
+                }
+
                 this.bindView(view);
             })
         );
@@ -74,18 +75,15 @@ export class ViewSync {
                 }
             })
         );
-        if (this.context.stageRect$.value) {
-            this.synchronizer.setRect(this.context.stageRect$.value);
-            this.sem.add(() =>
-                this.context.stageRect$.subscribe(rect => {
-                    if (rect) {
-                        this.synchronizer.setRect(rect);
-                    }
-                })
-            );
-        }
+        this.sem.add(() =>
+            this.context.stageRect$.reaction(rect => {
+                if (rect) {
+                    this.synchronizer.setRect(rect);
+                }
+            })
+        );
         const camera$size$ = combine([this.context.camera$, this.context.size$]);
-        camera$size$.subscribe(([camera, size]) => {
+        camera$size$.reaction(([camera, size]) => {
             if (camera && size) {
                 this.synchronizer.onRemoteUpdate(camera, size);
                 camera$size$.destroy();
