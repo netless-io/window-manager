@@ -53,7 +53,7 @@ export class ReconnectRefresher {
 
     private onReconnected = debounce(() => {
         this._onReconnected();
-    }, 3000);
+    }, 1000);
 
     private _onReconnected = () => {
         log("onReconnected refresh reactors");
