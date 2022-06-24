@@ -339,12 +339,14 @@ export class AppProxy implements PageRemoveService {
     private fixMobileSize() {
         const box = this.boxManager?.getBox(this.id);
         if (box) {
-            this.boxManager?.resizeBox({
-                appId: this.id,
-                width: box.intrinsicWidth + 0.001,
-                height: box.intrinsicHeight + 0.001,
-                skipUpdate: true,
-            });
+            if (!box.minimized) {
+                this.boxManager?.resizeBox({
+                    appId: this.id,
+                    width: box.intrinsicWidth + 0.001,
+                    height: box.intrinsicHeight + 0.001,
+                    skipUpdate: true,
+                });
+            }
         }
     }
 
