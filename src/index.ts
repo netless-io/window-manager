@@ -925,7 +925,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public createPPTHandler() {
         return {
-            onPageJumpTo: (pptUUID: string, index: number) => {
+            onPageJumpTo: (_pptUUID: string, index: number) => {
                 this.appManager?.focusApp?.appContext?.whiteBoardView?.jumpPage(index);
             },
             onPageToNext: () => {
