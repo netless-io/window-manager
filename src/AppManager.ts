@@ -659,7 +659,6 @@ export class AppManager {
         if (sceneState) {
             const scenePath = sceneState.scenePath;
             this.appProxies.forEach(appProxy => {
-                console.log("scenePath", scenePath, appProxy.scenePath);
                 if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
                     appProxy.emitAppSceneStateChange(sceneState);
                     appProxy.setFullPath(scenePath);

@@ -56,6 +56,9 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.lockImages = (...args) => manager.lockImages(...args);
 
         delegateRemoveScenes(room, manager);
+        if (!(room as any).dynamicPpt.slideStateAdapter.pptHandler) {
+            (room as any).dynamicPpt.slideStateAdapter.pptHandler = manager.createPPTHandler();
+        }
     }
 };
 

@@ -47,7 +47,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     private store = this.manager.store;
     public readonly isAddApp: boolean;
     public readonly isReplay = this.manager.isReplay;
-    private whiteBoardView?: WhiteBoardView;
+    public whiteBoardView?: WhiteBoardView;
     public _viewWrapper?: HTMLElement;
 
     constructor(

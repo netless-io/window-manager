@@ -923,6 +923,24 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         emitter.emit("containerSizeRatioUpdate", ratio);
     }
 
+    public createPPTHandler() {
+        return {
+            onPageJumpTo: (pptUUID: string, index: number) => {
+                this.appManager?.focusApp?.appContext?.whiteBoardView?.jumpPage(index);
+            },
+            onPageToNext: () => {
+                if (this.focused) {
+                    this.appManager?.focusApp?.appContext?.whiteBoardView?.nextPage();
+                }
+            },
+            onPageToPrev: () => {
+                if (this.focused) {
+                    this.appManager?.focusApp?.appContext?.whiteBoardView?.prevPage();
+                }
+            }
+        }
+    }
+
     private isDynamicPPT(scenes: SceneDefinition[]) {
         const sceneSrc = scenes[0]?.ppt?.src;
         return sceneSrc?.startsWith("pptx://");

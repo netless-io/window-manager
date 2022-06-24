@@ -5,7 +5,7 @@ import { emitter } from "../InternalEmitter";
 import { Events } from "../constants";
 import { Fields } from "../AttributesDelegate";
 import { reaction, toJS } from "white-web-sdk";
-import { releaseView, setViewFocusScenePath } from "../Utils/Common";
+import { releaseView, setScenePath, setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import { Val } from "value-enhancer";
 import { ViewSync } from "./ViewSync";
@@ -41,6 +41,14 @@ export class MainViewProxy {
             }),
         ]);
         this.createViewSync();
+        this.sideEffectManager.add(() => emitter.on("focusedChange", ({ focused }) => {
+            if (focused === undefined) {
+                const scenePath = this.store.getMainViewScenePath();
+                if (scenePath) {
+                    setScenePath(this.manager.room, scenePath);
+                }
+            }
+        }));
     }
 
     public createViewSync = () => {
