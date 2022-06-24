@@ -2,7 +2,7 @@ import { AppAttributes } from "./constants";
 import { get, pick } from "lodash";
 import { setViewFocusScenePath } from "./Utils/Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
-import type { Camera, Size, View } from "white-web-sdk";
+import type { Size, View } from "white-web-sdk";
 import type { Cursor } from "./Cursor/Cursor";
 
 export enum Fields {
@@ -41,8 +41,11 @@ export type StoreContext = {
     safeSetAttributes: (attributes: any) => void;
 }
 
-export type ICamera = Camera & { 
+export type ICamera =  & {
     id: string; // room uid
+    centerX: number | null,
+    centerY: number | null,
+    scale: number
 };
 
 export type ISize = Size & {

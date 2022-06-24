@@ -6,10 +6,11 @@ import type { ReadonlyVal } from "value-enhancer";
 import type { AddPageParams, PageController, PageState } from "../Page";
 import type { AppProxy } from "./AppProxy";
 import type { AppContext } from "./AppContext";
-import type { Camera, View } from "white-web-sdk";
+import type { View } from "white-web-sdk";
 import type { TeleBoxRect } from "@netless/telebox-insider";
+import type { ICamera } from "../AttributesDelegate";
 
-export type WhiteBoardViewCamera = Omit<Camera, "scale">;
+export type WhiteBoardViewCamera = Omit<ICamera, "scale" | "id">;
 
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;

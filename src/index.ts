@@ -130,6 +130,8 @@ export type MountParams = {
     container?: HTMLElement;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
+    /** @deprecated */
+    chessboard?: boolean;
     /** 是否高亮显示同步区域, 默认为 true */
     highlightStage?: boolean;
     collectorContainer?: HTMLElement;

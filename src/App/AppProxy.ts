@@ -30,7 +30,7 @@ import type {
     setAppOptions,
     AppListenerKeys,
 } from "../index";
-import type { SceneState, View, SceneDefinition, Camera , MemberState} from "white-web-sdk";
+import type { SceneState, View, SceneDefinition,  MemberState} from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
@@ -117,8 +117,8 @@ export class AppProxy implements PageRemoveService {
                 if (box && view) {
                     if (!this.camera$.value) {
                         this.storeCamera({
-                            centerX: 0,
-                            centerY: 0,
+                            centerX: null,
+                            centerY: null,
                             scale: 1,
                             id: this.uid,
                         });
@@ -595,7 +595,7 @@ export class AppProxy implements PageRemoveService {
         this.size$.setValue(iSize);
     }
 
-    public moveCamera = (camera: Partial<Camera>) => {
+    public moveCamera = (camera: Partial<ICamera>) => {
         if (!this.camera$.value) {
             return;
         }

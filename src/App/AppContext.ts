@@ -125,7 +125,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     }
 
     public getInitScenePath = () => {
-        return this.manager.getAppInitPath(this.appId);
+        return this.appProxy.scenePath;
     };
 
     /** Get App writable status. */

@@ -31,18 +31,14 @@ export class ViewSync {
     private synchronizer: CameraSynchronizer;
 
     constructor(private context: ViewSyncContext) {
-        this.synchronizer = new CameraSynchronizer((camera: Camera) => {
-            const iCamera = {
-                id: this.context.uid,
-                ...camera,
-            };
-            this.context.camera$.setValue(iCamera, true);
+        this.synchronizer = new CameraSynchronizer((camera: ICamera) => {
+            this.context.camera$.setValue(camera, true);
             const notStoreCamera =
                 this.context.viewMode$ && this.context.viewMode$.value === ViewMode.Freedom;
             if (notStoreCamera) {
                 return;
             } else {
-                this.context.storeCamera(iCamera);
+                this.context.storeCamera(camera);
             }
         });
         this.bindView(this.context.view$.value);
@@ -103,7 +99,7 @@ export class ViewSync {
     };
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
-        this.synchronizer.onLocalCameraUpdate(camera);
+        this.synchronizer.onLocalCameraUpdate(Object.assign(camera, { id: this.context.uid }));
         const stage = this.context.stageRect$.value;
         if (stage) {
             const size = { width: stage.width, height: stage.height, id: this.context.uid };

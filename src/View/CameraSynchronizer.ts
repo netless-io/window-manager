@@ -2,12 +2,12 @@ import { AnimationMode } from "white-web-sdk";
 import { debounce, delay, isEqual, pick, throttle } from "lodash";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { Camera, View } from "white-web-sdk";
-import type { ISize } from "../AttributesDelegate";
+import type { ICamera, ISize } from "../AttributesDelegate";
 
-export type SaveCamera = (camera: Camera) => void;
+export type SaveCamera = (camera: ICamera) => void;
 
 export class CameraSynchronizer {
-    public remoteCamera?: Camera;
+    public remoteCamera?: ICamera;
     public remoteSize?: ISize;
     protected rect?: TeleBoxRect;
     protected view?: View;
@@ -26,7 +26,7 @@ export class CameraSynchronizer {
     }
 
     // 远端 Camera 或者 size 更新
-    public onRemoteUpdate = throttle((camera: Camera, size: ISize) => {
+    public onRemoteUpdate = throttle((camera: ICamera, size: ISize) => {
         this.remoteCamera = camera;
         this.remoteSize = size;
         if (this.remoteSize && this.rect) {
@@ -38,12 +38,17 @@ export class CameraSynchronizer {
             }
             const nextScale = camera.scale * scale;
             const moveCamera = () => {
-                this.view?.moveCamera({
-                    centerX: camera.centerX,
-                    centerY: camera.centerY,
+                const config: Partial<Camera> & { animationMode: AnimationMode } = {
                     scale: nextScale,
                     animationMode: AnimationMode.Immediately,
-                });
+                }
+                if (camera.centerX !== null) {
+                    config.centerX = camera.centerX;
+                }
+                if (camera.centerY !== null) {
+                    config.centerY = camera.centerY;
+                }
+                this.view?.moveCamera(config);
             }
             moveCamera(); 
             // TODO 直接调用 moveCamera 依然会出现 camera 错误的情况,这里暂时加一个 delay 保证 camera 是对的, 后续需要 SDK 进行修改
@@ -68,7 +73,7 @@ export class CameraSynchronizer {
         }
     }
 
-    public onLocalCameraUpdate(camera: Camera) {
+    public onLocalCameraUpdate(camera: ICamera) {
         this.saveCamera(camera);
         this.remoteCamera = camera;
     }
