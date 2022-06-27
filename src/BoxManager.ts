@@ -1,9 +1,10 @@
 import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { debounce } from "lodash";
+import { SideEffectManager } from "side-effect-manager";
 import { TELE_BOX_STATE, TeleBoxManager } from "@netless/telebox-insider";
 import { WindowManager } from "./index";
 import type { BoxEmitterType } from "./BoxEmitter";
-import type { AddAppOptions, AppInitState } from "./index";
+import type { AddAppOptions } from "./index";
 import type {
     TeleBoxManagerUpdateConfig,
     TeleBoxManagerCreateConfig,
@@ -18,7 +19,7 @@ import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
-import { SideEffectManager } from "side-effect-manager";
+import type { AppState } from "./App/type";
 
 export { TELE_BOX_STATE };
 
@@ -294,17 +295,17 @@ export class BoxManager {
         return this.teleBoxManager.topBox;
     }
 
-    public updateBoxState(state?: AppInitState): void {
+    public updateBoxState(state?: AppState): void {
         if (!state) return;
         const box = this.getBox(state.id);
         if (box) {
             this.teleBoxManager.update(
                 box.id,
                 {
-                    x: state.x,
-                    y: state.y,
-                    width: state.width || 0.5,
-                    height: state.height || 0.5,
+                    x: state.position?.x,
+                    y: state.position?.y,
+                    width: state.size?.width || 0.5,
+                    height: state.size?.height || 0.5,
                     zIndex: state.zIndex,
                 },
                 true

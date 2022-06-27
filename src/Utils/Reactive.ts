@@ -1,7 +1,6 @@
 import { isObject } from "lodash";
 import { listenUpdated, reaction, unlistenUpdated, UpdateEventKind } from "white-web-sdk";
 import type { AkkoObjectUpdatedProperty, AkkoObjectUpdatedListener } from "white-web-sdk";
-import type { Val } from "value-enhancer";
 
 // 兼容 13 和 14 版本 SDK
 export const onObjectByEvent = (event: UpdateEventKind) => {
@@ -63,18 +62,3 @@ export const safeListenPropsUpdated = <T>(
 
 export const onObjectRemoved = onObjectByEvent(UpdateEventKind.Removed);
 export const onObjectInserted = onObjectByEvent(UpdateEventKind.Inserted);
-
-export const createValSync = <T>(expr: any, Val: Val<T, boolean>, isAddApp: boolean): (() => void) => {
-    let skipUpdate = false;
-    return reaction(
-        expr,
-        val => {
-            if (isAddApp && !skipUpdate) {
-                skipUpdate = true;
-            } else {
-                Val.setValue(val as T);
-            }
-        },
-        { fireImmediately: true }
-    );
-};

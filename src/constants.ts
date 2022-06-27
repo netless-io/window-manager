@@ -5,7 +5,6 @@ export enum Events {
     AppBoxStateChange = "AppBoxStateChange",
     GetAttributes = "GetAttributes",
     UpdateWindowManagerWrapper = "UpdateWindowManagerWrapper",
-    InitReplay = "InitReplay",
     WindowCreated = "WindowCreated",
     SetMainViewScenePath = "SetMainViewScenePath",
     SetMainViewSceneIndex = "SetMainViewSceneIndex",

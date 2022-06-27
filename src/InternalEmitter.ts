@@ -1,6 +1,6 @@
 import Emittery from "emittery";
 import type { TeleBoxRect } from "@netless/telebox-insider";
-import type { AppInitState, CursorMovePayload } from "./index";
+import type { CursorMovePayload } from "./index";
 import type { Member } from "./Helper";
 import type { MemberState } from "white-web-sdk";
 
@@ -11,7 +11,6 @@ export type RemoveSceneParams = {
 
 export type EmitterEvent = {
     onCreated: undefined;
-    InitReplay: AppInitState;
     error: Error;
     seekStart: undefined;
     seek: number;

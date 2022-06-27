@@ -9,7 +9,7 @@ import { boxEmitter } from "../BoxEmitter";
 import { BoxManagerNotFoundError } from "../Utils/error";
 import { calculateNextIndex } from "../Page";
 import { combine, Val, ValManager } from "value-enhancer";
-import { debounce, get, isEqual } from "lodash";
+import { debounce, get, isEqual, isUndefined, omitBy } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { log } from "../Utils/log";
@@ -25,7 +25,6 @@ import {
 } from "../Utils/Common";
 import type {
     AppEmitterEvent,
-    AppInitState,
     BaseInsertParams,
     setAppOptions,
     AppListenerKeys,
@@ -35,7 +34,7 @@ import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
-import { createValSync } from "../Utils/Reactive";
+import type { AppState } from "./type";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -348,7 +347,7 @@ export class AppProxy implements PageRemoveService {
         this.appContext = context;
         try {
             emitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
-                let boxInitState: AppInitState | undefined;
+                let boxInitState: AppState | undefined;
                 if (!skipUpdate) {
                     boxInitState = this.getAppInitState(appId);
                     this.boxManager?.updateBoxState(boxInitState);
@@ -438,30 +437,18 @@ export class AppProxy implements PageRemoveService {
         }
     }
 
-    public getAppInitState = (id: string) => {
+    public getAppInitState = (id: string): AppState | undefined => {
         const attrs = this.store.getAppState(id);
         if (!attrs) return;
-        const position = attrs?.[AppAttributes.Position];
         const focus = this.store.focus;
-        const size = attrs?.[AppAttributes.Size];
-        const sceneIndex = attrs?.[AppAttributes.SceneIndex];
         const maximized = this.attributes?.["maximized"];
         const minimized = this.attributes?.["minimized"];
-        const zIndex = attrs?.zIndex;
-        let payload = { maximized, minimized, zIndex } as AppInitState;
-        if (position) {
-            payload = { ...payload, id: id, x: position.x, y: position.y };
-        }
+        let payload = { maximized, minimized, id } as AppState;
+        const state =  omitBy(attrs, isUndefined);
         if (focus === id) {
             payload = { ...payload, focus: true };
         }
-        if (size) {
-            payload = { ...payload, width: size.width, height: size.height };
-        }
-        if (sceneIndex) {
-            payload = { ...payload, sceneIndex };
-        }
-        return payload;
+        return  Object.assign(payload, state);;
     };
 
     public emitAppSceneStateChange(sceneState: SceneState) {
@@ -733,3 +720,20 @@ export class AppProxy implements PageRemoveService {
         return this.destroy(true, true, false);
     }
 }
+
+
+const createValSync = (expr: any, Val: Val, isAddApp: boolean): (() => void) => {
+    let skipUpdate = false;
+    return reaction(
+        expr,
+        val => {
+            // 初次创建不再同步值回 box
+            if (isAddApp && !skipUpdate) {
+                skipUpdate = true;
+            } else {
+                Val.setValue(val);
+            }
+        },
+        { fireImmediately: true }
+    );
+};
