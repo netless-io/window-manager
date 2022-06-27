@@ -157,42 +157,52 @@ export class AppProxy implements PageRemoveService {
                 createValSync(
                     () => this.appAttributes?.state.visible,
                     box._visible$,
-                    this.isAddApp,
                 ),
                 createValSync(
                     () => this.appAttributes?.state.ratio,
                     box._ratio$,
-                    this.isAddApp,
                 ),
                 createValSync(
                     () => this.appAttributes?.state.stageRatio,
                     box._stageRatio$,
-                    this.isAddApp,
                 ),
                 createValSync(
                     () => this.appAttributes?.state.draggable,
                     box._draggable$,
-                    this.isAddApp,
                 ),
                 createValSync(
                     () => this.appAttributes?.state.resizable,
                     box._resizable$,
-                    this.isAddApp,
                 ),
-                box._visible$.subscribe(visible => {
+                box._visible$.reaction((visible, skipUpdate) => {
+                    if (skipUpdate) {
+                        return;
+                    }
                     this.store.updateAppState(this.id, AppAttributes.Visible, visible);
                 }),
-                box._ratio$.subscribe(ratio => {
+                box._ratio$.reaction((ratio, skipUpdate) => {
+                    console.log("ratio change", ratio, skipUpdate);
+                    if (skipUpdate) {
+                        return;
+                    }
                     this.store.updateAppState(this.id, AppAttributes.Ratio, ratio);
                 }),
-                box._stageRatio$.subscribe(stageRatio => {
+                box._stageRatio$.reaction((stageRatio, skipUpdate) => {
+                    if (skipUpdate) {
+                        return;
+                    }
                     this.store.updateAppState(this.id, AppAttributes.StageRatio, stageRatio);
                 }),
-                box._draggable$.subscribe(draggable => {
+                box._draggable$.reaction((draggable, skipUpdate) => {
+                    if (skipUpdate) {
+                        return;
+                    }
                     this.store.updateAppState(this.id, AppAttributes.Draggable, draggable);
                 }),
-                box._resizable$.subscribe(resizable => {
-                    console.log("resizable change", resizable);
+                box._resizable$.reaction((resizable, skipUpdate) => {
+                    if (skipUpdate) {
+                        return;
+                    }
                     this.store.updateAppState(this.id, AppAttributes.Resizable, resizable);
                 }),
             ])
@@ -373,6 +383,11 @@ export class AppProxy implements PageRemoveService {
             this.box$.setValue(box);
             if (this.isAddApp && this.box) {
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
+                this.store.updateAppState(appId, AppAttributes.Visible, this.box.visible);
+                this.store.updateAppState(appId, AppAttributes.Ratio, this.box.ratio);
+                this.store.updateAppState(appId, AppAttributes.StageRatio, this.box.stageRatio);
+                this.store.updateAppState(appId, AppAttributes.Draggable, this.box.draggable);
+                this.store.updateAppState(appId, AppAttributes.Resizable, this.box.resizable);
                 this.boxManager.focusBox({ appId }, false);
             }
         } catch (error: any) {
@@ -722,16 +737,12 @@ export class AppProxy implements PageRemoveService {
 }
 
 
-const createValSync = (expr: any, Val: Val, isAddApp: boolean): (() => void) => {
-    let skipUpdate = false;
+const createValSync = (expr: any, Val: Val): (() => void) => {
     return reaction(
         expr,
         val => {
-            // 初次创建不再同步值回 box
-            if (isAddApp && !skipUpdate) {
-                skipUpdate = true;
-            } else {
-                Val.setValue(val);
+            if (Val.value !== val && val !== undefined) {
+                Val.setValue(val, true);
             }
         },
         { fireImmediately: true }

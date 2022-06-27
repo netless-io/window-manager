@@ -23,7 +23,6 @@ export type MoveCursorParams = {
 };
 
 export class CursorManager {
-    public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
@@ -168,7 +167,6 @@ export class CursorManager {
     };
 
     public updateContainerRect() {
-        this.containerRect = WindowManager.container?.getBoundingClientRect();
         this.wrapperRect = WindowManager.playground?.getBoundingClientRect();
     }
 

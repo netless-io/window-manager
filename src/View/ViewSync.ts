@@ -42,7 +42,7 @@ export class ViewSync {
             }
         });
         this.bindView(this.context.view$.value);
-        this.sem.add(() =>
+        this.sem.add(() => [
             this.context.view$.subscribe(view => {
                 const currentCamera = this.context.camera$.value;
                 if (currentCamera && this.context.size$.value) {
@@ -54,30 +54,24 @@ export class ViewSync {
                 }
 
                 this.bindView(view);
-            })
-        );
-        this.sem.add(() =>
+            }),
             this.context.camera$.subscribe((camera, skipUpdate) => {
                 const size = this.context.size$.value;
                 if (camera && size && !skipUpdate) {
                     this.synchronizer.onRemoteUpdate(camera, size);
                 }
-            })
-        );
-        this.sem.add(() =>
+            }),
             this.context.size$.subscribe(size => {
                 if (size) {
                     this.synchronizer.onRemoteSizeUpdate(size);
                 }
-            })
-        );
-        this.sem.add(() =>
+            }),
             this.context.stageRect$.reaction(rect => {
                 if (rect) {
                     this.synchronizer.setRect(rect);
                 }
             })
-        );
+        ]);
         const camera$size$ = combine([this.context.camera$, this.context.size$]);
         camera$size$.reaction(([camera, size]) => {
             if (camera && size) {

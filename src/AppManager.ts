@@ -30,6 +30,7 @@ import {
     removeScenes,
     setScenePath,
     setViewFocusScenePath,
+    wait,
 } from "./Utils/Common";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
@@ -568,7 +569,10 @@ export class AppManager {
     public bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
         const mainView = this.mainViewProxy.view;
         mainView.disableCameraTransform = disableCameraTransform;
-        mainView.divElement = divElement;
+        // 延迟挂载 mainView 的 dom, 避免因为同步 camera 的闪动
+        wait(30).then(() => {
+            mainView.divElement = divElement;
+        });
         if (!mainView.focusScenePath) {
             this.setMainViewFocusPath();
         }
