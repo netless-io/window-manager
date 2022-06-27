@@ -121,6 +121,11 @@ export type AppInitState = {
     sceneIndex?: number;
     boxState?: TeleBoxState; // 兼容旧版 telebox
     zIndex?: number;
+    visible?: boolean;
+    stageRatio?: number;
+    resizable?: boolean;
+    draggable?: boolean;
+    ratio?: number;
 };
 
 export type CursorMovePayload = { uid: string; state?: "leave"; position: Position };

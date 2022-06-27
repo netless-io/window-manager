@@ -99,6 +99,7 @@ export class ViewSync {
     };
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
+        if (!camera) return;
         this.synchronizer.onLocalCameraUpdate(Object.assign(camera, { id: this.context.uid }));
         const stage = this.context.stageRect$.value;
         if (stage) {

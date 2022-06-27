@@ -35,6 +35,7 @@ import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
+import { createValSync } from "../Utils/Reactive";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -151,6 +152,52 @@ export class AppProxy implements PageRemoveService {
         this.sideEffectManager.add(() =>
             emitter.on("memberStateChange", this.onMemberStateChange)
         );
+        this.box$.subscribe(box => {
+            if (!box) return;
+            this.sideEffectManager.add(() => [
+                createValSync(
+                    () => this.appAttributes?.state.visible,
+                    box._visible$,
+                    this.isAddApp,
+                ),
+                createValSync(
+                    () => this.appAttributes?.state.ratio,
+                    box._ratio$,
+                    this.isAddApp,
+                ),
+                createValSync(
+                    () => this.appAttributes?.state.stageRatio,
+                    box._stageRatio$,
+                    this.isAddApp,
+                ),
+                createValSync(
+                    () => this.appAttributes?.state.draggable,
+                    box._draggable$,
+                    this.isAddApp,
+                ),
+                createValSync(
+                    () => this.appAttributes?.state.resizable,
+                    box._resizable$,
+                    this.isAddApp,
+                ),
+                box._visible$.subscribe(visible => {
+                    this.store.updateAppState(this.id, AppAttributes.Visible, visible);
+                }),
+                box._ratio$.subscribe(ratio => {
+                    this.store.updateAppState(this.id, AppAttributes.Ratio, ratio);
+                }),
+                box._stageRatio$.subscribe(stageRatio => {
+                    this.store.updateAppState(this.id, AppAttributes.StageRatio, stageRatio);
+                }),
+                box._draggable$.subscribe(draggable => {
+                    this.store.updateAppState(this.id, AppAttributes.Draggable, draggable);
+                }),
+                box._resizable$.subscribe(resizable => {
+                    console.log("resizable change", resizable);
+                    this.store.updateAppState(this.id, AppAttributes.Resizable, resizable);
+                }),
+            ])
+        });
     }
 
     public fireMemberStateChange = () => {

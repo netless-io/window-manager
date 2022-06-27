@@ -27,6 +27,11 @@ export enum AppAttributes {
     Position = "position",
     SceneIndex = "SceneIndex",
     ZIndex = "zIndex",
+    Visible = "visible",
+    Ratio = "ratio",
+    StageRatio = "stageRatio",
+    Draggable = "draggable",
+    Resizable = "resizable",
 }
 
 export enum AppEvents {

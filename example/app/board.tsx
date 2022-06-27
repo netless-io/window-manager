@@ -20,7 +20,9 @@ export const Board: NetlessApp = {
         });
         // view.ensureSize(10);
         // view.view.disableCameraTransform = true;
-
+        if (context.isAddApp) {
+           box._resizable$.setValue(false);
+        }
         context.emitter.on("destroy", () => {
             console.log("on destroy", context.destroyed);
         });
