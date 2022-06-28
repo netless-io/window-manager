@@ -71,6 +71,8 @@ export class AppProxy implements PageRemoveService {
     public size$ = this.valManager.attach(new Val<ISize | undefined>(undefined));
     public box$ = this.valManager.attach(new Val<ReadonlyTeleBox | undefined>(undefined));
     public view$ = this.valManager.attach(new Val<View | undefined>(undefined));
+    public syncCamera$ = this.valManager.attach(new Val<boolean>(true));
+    public whiteBoardViewCreated$ = this.valManager.attach(new Val<boolean>(false));
 
     constructor(
         private params: BaseInsertParams,
@@ -113,100 +115,60 @@ export class AppProxy implements PageRemoveService {
         this.addCameraReaction();
         this.addSizeReaction();
         this.sideEffectManager.add(() =>
-            combine([this.box$, this.view$]).subscribe(([box, view]) => {
-                if (box && view) {
-                    if (!this.camera$.value) {
-                        this.storeCamera({
-                            centerX: null,
-                            centerY: null,
-                            scale: 1,
-                            id: this.uid,
-                        });
-                        this.camera$.setValue(toJS(this.appAttributes.camera));
-                    }
-                    if (!this.size$.value && box.contentStageRect) {
-                        const initialRect = this.computedInitialRect(box.contentStageRect);
-                        const width = initialRect?.width || box.contentStageRect.width;
-                        const height = initialRect?.height || box.contentStageRect.height;
-                        this.storeSize({
-                            id: this.uid,
-                            width,
-                            height,
-                        });
-                        this.size$.setValue(toJS(this.appAttributes.size));
-                    }
-                    this.viewSync = new ViewSync({
-                        uid: this.uid,
-                        view$: this.view$,
-                        camera$: this.camera$,
-                        size$: this.size$,
-                        stageRect$: box._contentStageRect$,
-                        storeCamera: this.storeCamera,
-                        storeSize: this.storeSize
-                    });
-                    this.sideEffectManager.add(() => () => this.viewSync?.destroy());
-                }
-            })
-        );
-        this.sideEffectManager.add(() =>
             emitter.on("memberStateChange", this.onMemberStateChange)
         );
-        this.box$.subscribe(box => {
-            if (!box) return;
-            this.sideEffectManager.add(() => [
-                createValSync(
-                    () => this.appAttributes?.state.visible,
-                    box._visible$,
-                ),
-                createValSync(
-                    () => this.appAttributes?.state.ratio,
-                    box._ratio$,
-                ),
-                createValSync(
-                    () => this.appAttributes?.state.stageRatio,
-                    box._stageRatio$,
-                ),
-                createValSync(
-                    () => this.appAttributes?.state.draggable,
-                    box._draggable$,
-                ),
-                createValSync(
-                    () => this.appAttributes?.state.resizable,
-                    box._resizable$,
-                ),
-                box._visible$.reaction((visible, skipUpdate) => {
-                    if (skipUpdate) {
-                        return;
+        this.sideEffectManager.add(() => [
+            this.syncCamera$.reaction(syncCamera => {
+                if (!syncCamera) {
+                    if (this.viewSync) {
+                        this.viewSync.destroy();
+                        this.viewSync = undefined;
+                        this.sideEffectManager.flush("camera");
+                        this.sideEffectManager.flush("size");
                     }
-                    this.store.updateAppState(this.id, AppAttributes.Visible, visible);
-                }),
-                box._ratio$.reaction((ratio, skipUpdate) => {
-                    console.log("ratio change", ratio, skipUpdate);
-                    if (skipUpdate) {
-                        return;
-                    }
-                    this.store.updateAppState(this.id, AppAttributes.Ratio, ratio);
-                }),
-                box._stageRatio$.reaction((stageRatio, skipUpdate) => {
-                    if (skipUpdate) {
-                        return;
-                    }
-                    this.store.updateAppState(this.id, AppAttributes.StageRatio, stageRatio);
-                }),
-                box._draggable$.reaction((draggable, skipUpdate) => {
-                    if (skipUpdate) {
-                        return;
-                    }
-                    this.store.updateAppState(this.id, AppAttributes.Draggable, draggable);
-                }),
-                box._resizable$.reaction((resizable, skipUpdate) => {
-                    if (skipUpdate) {
-                        return;
-                    }
-                    this.store.updateAppState(this.id, AppAttributes.Resizable, resizable);
-                }),
-            ])
-        });
+                }
+            }),
+            this.whiteBoardViewCreated$.reaction(created => {
+                if (created && this.box) {
+                    if (!this.syncCamera$.value) return;
+                    combine([this.box$, this.view$]).subscribe(([box, view]) => {
+                        if (box && view) {
+                            if (!this.camera$.value) {
+                                this.storeCamera({
+                                    centerX: null,
+                                    centerY: null,
+                                    scale: 1,
+                                    id: this.uid,
+                                });
+                                this.camera$.setValue(toJS(this.appAttributes.camera));
+                            }
+                            if (!this.size$.value && box.contentStageRect) {
+                                const initialRect = this.computedInitialRect(box.contentStageRect);
+                                const width = initialRect?.width || box.contentStageRect.width;
+                                const height = initialRect?.height || box.contentStageRect.height;
+                                this.storeSize({
+                                    id: this.uid,
+                                    width,
+                                    height,
+                                });
+                                this.size$.setValue(toJS(this.appAttributes.size));
+                            }
+                            this.viewSync = new ViewSync({
+                                uid: this.uid,
+                                view$: this.view$,
+                                camera$: this.camera$,
+                                size$: this.size$,
+                                stageRect$: box._contentStageRect$,
+                                storeCamera: this.storeCamera,
+                                storeSize: this.storeSize
+                            });
+                            this.sideEffectManager.add(() => () => this.viewSync?.destroy());
+                            this.whiteBoardViewCreated$.destroy();
+                        }
+                    })
+                }
+            })
+        ]);
     }
 
     public fireMemberStateChange = () => {
@@ -383,11 +345,6 @@ export class AppProxy implements PageRemoveService {
             this.box$.setValue(box);
             if (this.isAddApp && this.box) {
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
-                this.store.updateAppState(appId, AppAttributes.Visible, this.box.visible);
-                this.store.updateAppState(appId, AppAttributes.Ratio, this.box.ratio);
-                this.store.updateAppState(appId, AppAttributes.StageRatio, this.box.stageRatio);
-                this.store.updateAppState(appId, AppAttributes.Draggable, this.box.draggable);
-                this.store.updateAppState(appId, AppAttributes.Resizable, this.box.resizable);
                 this.boxManager.focusBox({ appId }, false);
             }
         } catch (error: any) {
@@ -520,32 +477,34 @@ export class AppProxy implements PageRemoveService {
     }
 
     private appAttributesUpdateListener = (appId: string) => {
-        this.manager.refresher.add(appId, () => {
-            return autorun(() => {
-                const attrs = this.manager.attributes[appId];
-                if (attrs) {
-                    this.appEmitter.emit("attributesUpdate", attrs);
-                }
-            });
-        });
-        this.manager.refresher.add(this.stateKey, () => {
-            return autorun(() => {
-                const appState = this.appAttributes?.state;
-                if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
-                    this.boxManager?.setZIndex(appId, appState.zIndex);
-                }
-            });
-        });
-        this.manager.refresher.add(`${appId}-fullPath`, () => {
-            return autorun(() => {
-                const fullPath = this.appAttributes?.fullPath;
-                this.setFocusScenePathHandler(fullPath);
-                if (this.fullPath$.value !== fullPath) {
-                    this.notifyPageStateChange();
-                    this.fullPath$.setValue(fullPath);
-                }
-            });
-        });
+        this.sideEffectManager.add(() => [
+            this.manager.refresher.add(appId, () => {
+                return autorun(() => {
+                    const attrs = this.manager.attributes[appId];
+                    if (attrs) {
+                        this.appEmitter.emit("attributesUpdate", attrs);
+                    }
+                });
+            }),
+            this.manager.refresher.add(this.stateKey, () => {
+                return autorun(() => {
+                    const appState = this.appAttributes?.state;
+                    if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
+                        this.boxManager?.setZIndex(appId, appState.zIndex);
+                    }
+                });
+            }),
+            this.manager.refresher.add(`${appId}-fullPath`, () => {
+                return autorun(() => {
+                    const fullPath = this.appAttributes?.fullPath;
+                    this.setFocusScenePathHandler(fullPath);
+                    if (this.fullPath$.value !== fullPath) {
+                        this.notifyPageStateChange();
+                        this.fullPath$.setValue(fullPath);
+                    }
+                });
+            }),
+        ]);
     };
 
     private setFocusScenePathHandler = debounce((fullPath: string | undefined) => {
@@ -683,11 +642,6 @@ export class AppProxy implements PageRemoveService {
 
         this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
-        this.manager.refresher.remove(this.id);
-        this.manager.refresher.remove(this.stateKey);
-        this.manager.refresher.remove(`${this.id}-fullPath`);
-        this.manager.refresher.remove(`${this.id}-camera`);
-        this.manager.refresher.remove(`${this.id}-size`);
         this.valManager.destroy();
     }
 
@@ -735,16 +689,3 @@ export class AppProxy implements PageRemoveService {
         return this.destroy(true, true, false);
     }
 }
-
-
-const createValSync = (expr: any, Val: Val): (() => void) => {
-    return reaction(
-        expr,
-        val => {
-            if (Val.value !== val && val !== undefined) {
-                Val.setValue(val, true);
-            }
-        },
-        { fireImmediately: true }
-    );
-};

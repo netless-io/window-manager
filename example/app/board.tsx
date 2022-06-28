@@ -11,18 +11,22 @@ export const Board: NetlessApp = {
 
         console.log("destroyed", context.destroyed);
          // 挂载白板到当前 box
-        const view = context.createWhiteBoardView();
+        const view = context.createWhiteBoardView({ syncCamera: false });
         if (context.isAddApp) {
             view.setRect({ width: 1280, height: 720 });
         }
+        view.view.disableCameraTransform = false;
         view.camera$.subscribe(camera => {
             console.log("onCameraChange", camera);
         });
+        console.log("box Ratio", box.ratio)
         // view.ensureSize(10);
         // view.view.disableCameraTransform = true;
         if (context.isAddApp) {
-        //    box.setRatio(1);
+            console.log("isAddApp setRatio")
+            box.setRatio(1);
         }
+
         context.emitter.on("destroy", () => {
             console.log("on destroy", context.destroyed);
         });

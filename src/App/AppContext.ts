@@ -28,7 +28,12 @@ import type {
 import { WhiteBoardView } from "./WhiteboardView";
 import { findMemberByUid } from "../Helper";
 import { MAX_PAGE_SIZE } from "../constants";
-import { isNumber } from "lodash";
+import { isBoolean, isNumber } from "lodash";
+
+export type CreateWhiteBoardViewParams = {
+    size?: number;
+    syncCamera?: boolean;
+}
 
 export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttributes>>;
@@ -86,13 +91,18 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.appProxy.view;
     };
 
-    public createWhiteBoardView = (size?: number): WhiteBoardView => {
+    public createWhiteBoardView = (params?: CreateWhiteBoardViewParams): WhiteBoardView => {
         if (this.whiteBoardView) {
             return this.whiteBoardView;
         }
         let view = this.view;
         if (!view) {
             view = this.appProxy.createAppDir();
+        }
+        if (params) {
+            if (isBoolean(params.syncCamera)) {
+                this.appProxy.syncCamera$.setValue(params.syncCamera);
+            }
         }
         const viewWrapper = document.createElement("div");
         this._viewWrapper = viewWrapper;
@@ -101,7 +111,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         view.divElement = viewWrapper;
         this.appProxy.fireMemberStateChange();
         if (this.isAddApp) {
-            this.ensurePageSize(size);
+            this.ensurePageSize(params?.size);
         }
         this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, this.ensurePageSize);
         this.appProxy.sideEffectManager.add(() => {
@@ -109,6 +119,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
                 this.whiteBoardView = undefined;
             }
         });
+        this.appProxy.whiteBoardViewCreated$.setValue(true);
         return this.whiteBoardView;
     }
 

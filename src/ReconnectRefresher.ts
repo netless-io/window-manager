@@ -46,7 +46,11 @@ export class ReconnectRefresher {
             this.ctx.emitter.emit("startReconnect");
         }
         if (phase === RoomPhase.Connected && this.phase === RoomPhase.Reconnecting) {
-            this.room?.dispatchMagixEvent(EnsureReconnectEvent, {});
+            if (this.room?.isWritable) {
+                this.room?.dispatchMagixEvent(EnsureReconnectEvent, {});
+            } else {
+                this.onReconnected();
+            }
         }
         this.phase = phase;
     };

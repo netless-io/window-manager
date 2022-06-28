@@ -1,4 +1,4 @@
-import { AnimationMode, toJS, ViewMode } from "white-web-sdk";
+import { AnimationMode, ViewMode } from "white-web-sdk";
 import { CameraSynchronizer } from "./CameraSynchronizer";
 import { combine } from "value-enhancer";
 import { isEqual } from "lodash";
@@ -94,7 +94,7 @@ export class ViewSync {
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
         if (!camera) return;
-        this.synchronizer.onLocalCameraUpdate(Object.assign(toJS(camera), { id: this.context.uid }));
+        this.synchronizer.onLocalCameraUpdate({ ...camera, id: this.context.uid });
         const stage = this.context.stageRect$.value;
         if (stage) {
             const size = { width: stage.width, height: stage.height, id: this.context.uid };
