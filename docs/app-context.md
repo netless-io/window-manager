@@ -75,7 +75,7 @@
     ```
 
     ```ts
-    const view = context.createWhiteBoardView(10); // 生成带有 10 页的白板
+    const view = context.createWhiteBoardView({ size: 10 }); // 生成带有 10 页的白板
     ```
 
 - **WhiteBoardView**
@@ -147,6 +147,18 @@
     view.pageState$.subscribe(pageState => {
         console.log("pageStateChange", pageState)
     })
+    ```
+  - **setRect**
+
+    设置白板的显示的宽高\
+    在不同分辨率下会保证所有打开的窗口都能完整显示这个区域
+
+    ```ts
+    const view = context.createWhiteBoardView();
+    // 此方法建议只在插入时设置一次
+    if (context.isAddApp) {
+        view.setRect({ width: 500, height: 500 })
+    }
     ```
 
 <h3 id="storage">storage</h3>
@@ -301,6 +313,44 @@
 
     类型: `ReadonlyTeleBox`
 
+- **mountStyles()**
+
+    挂载样式到 `box` 上
+
+    参数: `string | HTMLStyleElement`
+
+    ```ts
+    box.mountStyles(`
+        .hello-world-app span {
+            color: red;
+        }
+    `);
+    ```
+
+- **mountContent()**
+
+    挂载元素到 `box` 中\
+    推荐使用 `mountStage` 方法挂载元素到 `stage` 中
+
+    参数: `HTMLElement`
+
+    ```ts
+    const app = document.createElement("div");
+    box.mountContent(app);
+    ```
+
+- **mountStage()**
+
+    挂载元素到 `box` 的 `contentStage` 中\
+    如无特殊情况, 推荐把所有内容挂载到 `stage` 中
+
+    参数: `HTMLElement`
+
+    ```ts
+    const app = document.createElement("div");
+    box.mountStage(app);
+    ```
+
 - **contentStageRect**
 
     可同步区域\
@@ -324,7 +374,43 @@
     订阅 `contextStateRect` 的变化
 
     ```ts
-    box._contentStageRect$.subscribe(rect => {
+    box.onValChanged("contentStageRect", rect => {
         console.log("contentStageRect changed", rect);
     });
     ```
+
+- **highlightStage**
+
+    是否高亮 `stage` 区域\
+    默认为 `true`
+
+    类型: `boolean`
+
+- **setHighlightStage()**
+
+    参数: `boolean`
+
+
+- **$content**
+
+    应用窗口的内容区域
+
+    类型: `HTMLElement`
+
+- **$footer**
+
+    应用窗口的底部区域
+
+    类型: `HTMLElement`
+
+- **resizable**
+
+    是否可以改变窗口大小
+
+    类型: `boolean`
+
+- **draggable**
+
+    窗口是否可以拖动
+
+    类型: `boolean`

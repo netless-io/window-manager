@@ -1,5 +1,5 @@
 import { AnimationMode } from "white-web-sdk";
-import { debounce, delay, isEqual, pick, throttle } from "lodash";
+import { isEqual, pick, throttle } from "lodash";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { Camera, View } from "white-web-sdk";
 import type { ICamera, ISize } from "../AttributesDelegate";
@@ -14,12 +14,12 @@ export class CameraSynchronizer {
 
     constructor(protected saveCamera: SaveCamera) {}
 
-    public setRect = debounce((rect: TeleBoxRect) => {
+    public setRect = (rect: TeleBoxRect) => {
         this.rect = rect;
         if (this.remoteCamera && this.remoteSize) {
             this.onRemoteUpdate(this.remoteCamera, this.remoteSize);
         }
-    }, 10);
+    }
 
     public setView(view: View) {
         this.view = view;
@@ -37,22 +37,17 @@ export class CameraSynchronizer {
                 scale = this.rect.height / size.height;
             }
             const nextScale = camera.scale * scale;
-            const moveCamera = () => {
-                const config: Partial<Camera> & { animationMode: AnimationMode } = {
-                    scale: nextScale,
-                    animationMode: AnimationMode.Immediately,
-                }
-                if (camera.centerX !== null) {
-                    config.centerX = camera.centerX;
-                }
-                if (camera.centerY !== null) {
-                    config.centerY = camera.centerY;
-                }
-                this.view?.moveCamera(config);
+            const config: Partial<Camera> & { animationMode: AnimationMode } = {
+                scale: nextScale,
+                animationMode: AnimationMode.Immediately,
             }
-            moveCamera(); 
-            // TODO 直接调用 moveCamera 依然会出现 camera 错误的情况,这里暂时加一个 delay 保证 camera 是对的, 后续需要 SDK 进行修改
-            delay(moveCamera, 50);
+            if (camera.centerX !== null) {
+                config.centerX = camera.centerX;
+            }
+            if (camera.centerY !== null) {
+                config.centerY = camera.centerY;
+            }
+            this.view?.moveCamera(config);
         }
     }, 10);
 
@@ -62,14 +57,10 @@ export class CameraSynchronizer {
         if (this.rect && this.remoteCamera && needMoveCamera) {
             const scale = this.rect.width / size.width;
             const nextScale = this.remoteCamera.scale * scale;
-            const moveCamera = () => {
-                this.view?.moveCamera({
-                    scale: nextScale,
-                    animationMode: AnimationMode.Immediately,
-                })
-            };
-            moveCamera();
-            delay(moveCamera, 50);
+            this.view?.moveCamera({
+                scale: nextScale,
+                animationMode: AnimationMode.Immediately,
+            })
         }
     }
 

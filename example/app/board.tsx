@@ -11,7 +11,7 @@ export const Board: NetlessApp = {
 
         console.log("destroyed", context.destroyed);
          // 挂载白板到当前 box
-        const view = context.createWhiteBoardView({ syncCamera: false });
+        const view = context.createWhiteBoardView();
         if (context.isAddApp) {
             view.setRect({ width: 1280, height: 720 });
         }
@@ -19,14 +19,13 @@ export const Board: NetlessApp = {
         view.camera$.subscribe(camera => {
             console.log("onCameraChange", camera);
         });
+
         console.log("box Ratio", box.ratio)
         // view.ensureSize(10);
         // view.view.disableCameraTransform = true;
-        if (context.isAddApp) {
-            console.log("isAddApp setRatio")
-            box.setRatio(1);
-        }
-
+        const stage = document.createElement("div");
+        stage.textContent = "stage";
+        box.mountStage(stage);
         context.emitter.on("destroy", () => {
             console.log("on destroy", context.destroyed);
         });
