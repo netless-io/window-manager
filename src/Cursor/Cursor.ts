@@ -7,6 +7,7 @@ import type { RoomMember } from "white-web-sdk";
 import type { CursorManager } from "./index";
 import type { SvelteComponent } from "svelte";
 import type { AppManager } from "../AppManager";
+import type { TeleBoxRect } from "@netless/telebox-insider";
 
 export type Payload = {
     [key: string]: any;
@@ -50,18 +51,21 @@ export class Cursor {
         this.hide();
     };
 
-    private moveCursor(cursor: Position, rect: DOMRect, view: any) {
+    private moveCursor(cursor: Position, rect: TeleBoxRect, view: any) {
         const { x, y, type } = cursor;
         const point = view?.screen.convertPointToScreen(x, y);
         if (point) {
             let translateX = point.x - 2;
             let translateY = point.y - 18;
             if (type === "app") {
-                const wrapperRect = this.cursorManager.wrapperRect;
+                const wrapperRect = this.cursorManager.playgroundRect;
                 if (wrapperRect) {
                     translateX = translateX + rect.x - wrapperRect.x;
                     translateY = translateY + rect.y - wrapperRect.y;
                 }
+            } else {
+                translateX = translateX + rect.x;
+                translateY = translateY + rect.y;
             }
             if (point.x < 0 || point.x > rect.width || point.y < 0 || point.y > rect.height) {
                 this.component?.$set({ visible: false, x: translateX, y: translateY });

@@ -1,8 +1,10 @@
-import { getVersionNumber } from "./Utils/Common";
+import { getVersionNumber, wait } from "./Utils/Common";
+import { log } from "./Utils/log";
 import { REQUIRE_VERSION } from "./constants";
 import { WhiteVersion } from "white-web-sdk";
 import { WhiteWebSDKInvalidError } from "./Utils/error";
-import type { Room , RoomMember} from "white-web-sdk";
+import { WindowManager } from "./index";
+import type { Room, RoomMember } from "white-web-sdk";
 
 export const setupWrapper = (
     root: HTMLElement
@@ -40,4 +42,19 @@ export const serializeRoomMembers = (members: readonly RoomMember[]) => {
         uid: member.payload?.uid || "",
         ...member,
     }));
-}
+};
+
+export const createInvisiblePlugin = async (room: Room) => {
+    try {
+        const manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
+        return manager;
+    } catch (error) {
+        // 如果有两个用户同时调用 WindowManager.mount 有概率出现这个错误
+        if (error.message === `invisible plugin "WindowManager" exits`) {
+            await wait(200);
+            return room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+        } else {
+            log("createInvisiblePlugin failed", error);
+        }
+    }
+};

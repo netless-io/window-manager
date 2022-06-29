@@ -20,6 +20,7 @@ import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
 import type { AppState } from "./App/type";
+import { Val } from "value-enhancer";
 
 export { TELE_BOX_STATE };
 
@@ -90,6 +91,8 @@ export const createBoxManager = (
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     protected sideEffectManager: SideEffectManager;
+
+    public mainViewElement$ = new Val<HTMLElement | undefined>(undefined);
 
     constructor(
         private context: BoxManagerContext,
@@ -170,6 +173,7 @@ export class BoxManager {
                 this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
             }),
             this.teleBoxManager._stageRect$.subscribe(stage => {
+                this.updateStyle(this.mainViewElement$.value, stage);
                 emitter.emit("playgroundSizeChange", stage);
                 this.context.notifyContainerRectUpdate(stage);
             }),
@@ -180,6 +184,14 @@ export class BoxManager {
                 this.teleBoxManager._stageRatio$.setValue(ratio);
             }),
         ]);
+    }
+
+    private updateStyle = (element: HTMLElement | undefined, rect: TeleBoxRect) => {
+        if (!element) return;
+        element.style.width = rect.width + "px";
+        element.style.height = rect.height + "px";
+        element.style.left = rect.x + "px";
+        element.style.top = rect.y + "px";
     }
 
     private get canOperate() {

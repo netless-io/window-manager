@@ -5,7 +5,7 @@ import { emitter } from "../InternalEmitter";
 import { SideEffectManager } from "side-effect-manager";
 import { throttle } from "lodash";
 import { WindowManager } from "../index";
-import type { CursorMovePayload , ApplianceIcons} from "../index";
+import type { CursorMovePayload , ApplianceIcons, TeleBoxRect } from "../index";
 import type { PositionType } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
@@ -23,7 +23,8 @@ export type MoveCursorParams = {
 };
 
 export class CursorManager {
-    public wrapperRect?: DOMRect;
+    public wrapperRect?: TeleBoxRect;
+    public playgroundRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
     private mainViewElement?: HTMLDivElement;
@@ -88,8 +89,6 @@ export class CursorManager {
                 wrapper.removeEventListener("pointerleave", this.mouseLeaveListener);
             };
         });
-
-        this.wrapperRect = wrapper.getBoundingClientRect();
     }
 
     public setMainViewDivElement(div: HTMLDivElement) {
@@ -167,7 +166,8 @@ export class CursorManager {
     };
 
     public updateContainerRect() {
-        this.wrapperRect = WindowManager.playground?.getBoundingClientRect();
+        this.wrapperRect = this.manager.boxManager?.teleBoxManager.stageRect;
+        this.playgroundRect = WindowManager.playground?.getBoundingClientRect();
     }
 
     public deleteCursor(uid: string) {

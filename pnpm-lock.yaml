@@ -19,7 +19,7 @@ specifiers:
   '@vitest/ui': ^0.14.1
   cypress: ^8.7.0
   dotenv: ^10.0.0
-  emittery: ^0.9.2
+  emittery: ^0.11.0
   eslint: ^7.32.0
   eslint-config-prettier: ^8.3.0
   eslint-plugin-svelte3: ^3.2.0
@@ -44,7 +44,7 @@ specifiers:
 dependencies:
   '@juggle/resize-observer': registry.npmmirror.com/@juggle/resize-observer/3.3.1
   '@netless/telebox-insider': 1.0.0-alpha.18
-  emittery: registry.npmmirror.com/emittery/0.9.2
+  emittery: 0.11.0
   lodash: registry.npmmirror.com/lodash/4.17.21
   p-retry: registry.npmmirror.com/p-retry/4.6.1
   side-effect-manager: 1.1.0
@@ -2775,13 +2775,6 @@ packages:
     name: electron-to-chromium
     version: 1.4.97
     dev: true
-
-  registry.npmmirror.com/emittery/0.9.2:
-    resolution: {integrity: sha512-sweWHu3j4dQm+NjLPu17pv+m5lCeK7g4Ov0NgfbRUEyzLc59DYDeRYXqlxEvuolaToI0VR3ThjFAghzl7Acjfw==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/emittery/-/emittery-0.9.2.tgz}
-    name: emittery
-    version: 0.9.2
-    engines: {node: '>=12'}
-    dev: false
 
   registry.npmmirror.com/emoji-regex/8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/emoji-regex/-/emoji-regex-8.0.0.tgz}

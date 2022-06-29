@@ -4,8 +4,9 @@
     - [view](#view)
     - [page](#page)
     - [storage](#storage)
-- [events](#events)
+- [属性](#attributes)
 - [box](#box)
+- [events](#events)
 - [Advanced](#Advanced)
 
 <h2 id="api">API</h2>
@@ -265,47 +266,44 @@
   context.dispatchMagixEvent("click", { data: "data" });
   ```
 
-<h2 id="events">events</h2>
+<h2 id="attributes">属性</h2>
 
-- **destroy**
+- **destroyed**
 
-    app 被关闭时发送
+    当前应用是否已经被销毁
 
-    ```ts
-    context.emitter.on("destroy", () => {
-        // release your listeners
-    });
-    ```
-
-- **writableChange**
-
-    白板可写状态切换时触发
+    类型: `boolean`
 
     ```ts
-    context.emitter.on("writableChange", isWritable => {
-        //
-    });
+    contest.destroyed
     ```
 
-- **focus**
+- **members**
+    
+    当前房间的所有用户
 
-    当前 app 获得焦点或者失去焦点时触发
+    类型: `Member[]`
 
     ```ts
-    context.emitter.on("focus", focus => {
-        //
-    });
+    type Member = {
+        uid: string;
+        memberId: number;
+        memberState: MemberState;
+        session: string;
+        payload?: UserPayload;
+    }
     ```
 
-<h2 id="Advanced">Advanced</h2>
+- **currentMember**
 
-- **context.getView()**
+    当前用户
 
-    获取 `view` 实例
+    类型: `Member`
 
     ```ts
-    const view = context.view;
+    context.currentMember
     ```
+
 
 <h2 id="box">box</h2>
 
@@ -414,3 +412,47 @@
     窗口是否可以拖动
 
     类型: `boolean`
+
+
+<h2 id="events">events</h2>
+
+- **destroy**
+
+    app 被关闭时发送
+
+    ```ts
+    context.emitter.on("destroy", () => {
+        // release your listeners
+    });
+    ```
+
+- **writableChange**
+
+    白板可写状态切换时触发
+
+    ```ts
+    context.emitter.on("writableChange", isWritable => {
+        //
+    });
+    ```
+
+- **focus**
+
+    当前 app 获得焦点或者失去焦点时触发
+
+    ```ts
+    context.emitter.on("focus", focus => {
+        //
+    });
+    ```
+
+
+<h2 id="Advanced">Advanced</h2>
+
+- **context.getView()**
+
+    获取 `view` 实例
+
+    ```ts
+    const view = context.view;
+    ```

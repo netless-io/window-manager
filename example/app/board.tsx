@@ -15,12 +15,9 @@ export const Board: NetlessApp = {
         if (context.isAddApp) {
             view.setRect({ width: 1280, height: 720 });
         }
-        view.view.disableCameraTransform = false;
         view.camera$.subscribe(camera => {
             console.log("onCameraChange", camera);
         });
-
-        console.log("box Ratio", box.ratio)
         // view.ensureSize(10);
         // view.view.disableCameraTransform = true;
         const stage = document.createElement("div");

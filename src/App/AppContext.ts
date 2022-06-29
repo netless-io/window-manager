@@ -114,11 +114,19 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
             this.ensurePageSize(params?.size);
         }
         this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, this.ensurePageSize);
-        this.appProxy.sideEffectManager.add(() => {
-            return () => {
-                this.whiteBoardView = undefined;
+        this.appProxy.sideEffectManager.add(() => [
+            this.box._contentStageRect$.subscribe(rect => {
+                viewWrapper.style.left = `${rect.x}px`;
+                viewWrapper.style.top = `${rect.y}px`;
+                viewWrapper.style.width = `${rect.width}px`;
+                viewWrapper.style.height = `${rect.height}px`;
+            }),
+            () => {
+                return () => {
+                    this.whiteBoardView = undefined;
+                }
             }
-        });
+        ]);
         this.appProxy.whiteBoardViewCreated$.setValue(true);
         return this.whiteBoardView;
     }
@@ -162,7 +170,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.manager.members;
     }
 
-    public get memberState(): Member {
+    public get currentMember(): Member {
         const self = findMemberByUid(this.room, this.manager.uid);
         if (!self) {
             throw new Error(`Member ${this.manager.uid} not found.`);
