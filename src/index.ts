@@ -2,7 +2,7 @@ import pRetry from "p-retry";
 import { AppManager } from "./AppManager";
 import { appRegister } from "./Register";
 import { callbacks } from "./callback";
-import { checkVersion, setupWrapper } from "./Helper";
+import { checkVersion, createInvisiblePlugin, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
@@ -254,8 +254,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         return manager;
     }
 
-    private static async initManager(room: Room): Promise<WindowManager> {
-        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+    private static async initManager(room: Room): Promise<WindowManager | undefined> {
+        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager | undefined;
         if (!manager) {
             if (isRoom(room)) {
                 if (room.isWritable === false) {
@@ -264,18 +264,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
                     } catch (error) {
                         throw new Error("[WindowManger]: room must be switched to be writable");
                     }
-                    manager = (await room.createInvisiblePlugin(
-                        WindowManager,
-                        {}
-                    )) as WindowManager;
-                    manager.ensureAttributes();
+                    manager = await createInvisiblePlugin(room);
+                    manager?.ensureAttributes();
                     await wait(500);
                     await room.setWritable(false);
                 } else {
-                    manager = (await room.createInvisiblePlugin(
-                        WindowManager,
-                        {}
-                    )) as WindowManager;
+                    manager = await createInvisiblePlugin(room);
                 }
             }
         }

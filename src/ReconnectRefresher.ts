@@ -4,6 +4,7 @@ import { RoomPhase } from "white-web-sdk";
 import type { Room } from "white-web-sdk";
 import type { EmitterType } from "./InternalEmitter";
 import { EnsureReconnectEvent } from "./constants";
+import { wait } from "./Utils/Common";
 
 export type ReconnectRefresherContext = {
     emitter: EmitterType;
@@ -41,19 +42,24 @@ export class ReconnectRefresher {
         this.ctx = ctx;
     }
 
-    private onPhaseChanged = (phase: RoomPhase) => {
+    private onPhaseChanged = async (phase: RoomPhase) => {
         if (phase === RoomPhase.Reconnecting) {
             this.ctx.emitter.emit("startReconnect");
         }
         if (phase === RoomPhase.Connected && this.phase === RoomPhase.Reconnecting) {
-            this.room?.dispatchMagixEvent(EnsureReconnectEvent, {});
+            if (this.room?.isWritable) {
+                this.room?.dispatchMagixEvent(EnsureReconnectEvent, {});
+            } else {
+                await wait(500);
+                this.onReconnected();
+            }
         }
         this.phase = phase;
     };
 
     private onReconnected = debounce(() => {
         this._onReconnected();
-    }, 3000);
+    }, 1000);
 
     private _onReconnected = () => {
         log("onReconnected refresh reactors");
