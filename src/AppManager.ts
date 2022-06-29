@@ -409,7 +409,7 @@ export class AppManager {
     };
 
     public addAppsChangeListener = () => {
-        this.refresher?.add("apps", () => {
+        this.refresher.add("apps", () => {
             return safeListenPropsUpdated(
                 () => this.attributes.apps,
                 () => {
@@ -800,6 +800,7 @@ export class AppManager {
     }
 
     public async onReconnected() {
+        this.attributesUpdateCallback(this.attributes.apps);
         const appProxies = Array.from(this.appProxies.values());
         const reconnected = appProxies.map(appProxy => {
             return appProxy.onReconnected();

@@ -4,7 +4,7 @@ import { debounce, get, isEqual } from "lodash";
 import { emitter } from "../InternalEmitter";
 import { Events } from "../constants";
 import { Fields } from "../AttributesDelegate";
-import { reaction, toJS } from "white-web-sdk";
+import { AnimationMode, reaction, toJS } from "white-web-sdk";
 import { releaseView, setScenePath, setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import { Val } from "value-enhancer";
@@ -211,12 +211,14 @@ export class MainViewProxy {
     public rebind(): void {
         const divElement = this.mainView.divElement;
         const disableCameraTransform = this.mainView.disableCameraTransform;
+        const camera = { ...this.mainView.camera };
         this.stop();
         releaseView(this.mainView);
         this.removeMainViewListener();
         this.mainView = this.createMainView();
         this.mainView.disableCameraTransform = disableCameraTransform;
         this.mainView.divElement = divElement;
+        this.mainView.moveCamera({ ...camera, animationMode: AnimationMode.Immediately });
         this.addMainViewListener();
         this.start();
     }

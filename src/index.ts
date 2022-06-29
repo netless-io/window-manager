@@ -10,7 +10,7 @@ import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
-import { isEqual, isNull, isObject, omit, isNumber } from "lodash";
+import { isEqual, isNull, isObject, isNumber } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -27,6 +27,8 @@ import {
     putScenes,
     wait,
 } from "./Utils/Common";
+import { boxEmitter } from "./BoxEmitter";
+import { Val } from "value-enhancer";
 import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
 import * as Errors from "./Utils/error";
 import type { Apps, Position , ICamera, ISize } from "./AttributesDelegate";
@@ -37,15 +39,13 @@ import type {
     Room,
     InvisiblePluginContext,
     Camera,
-    AnimationMode,
     CameraBound,
     Point,
-    Rectangle,
     CameraState,
     Player,
     ImageInformation,
     SceneState,
-} from "white-web-sdk";
+ Rectangle} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
@@ -53,8 +53,6 @@ import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
-import { boxEmitter } from "./BoxEmitter";
-import { Val } from "value-enhancer";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -657,6 +655,22 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         }
     }
 
+    public get baseCamera$() {
+        if (this.appManager) {
+            return this.appManager.mainViewProxy.camera$;
+        } else {
+            throw new Errors.AppManagerNotInitError();
+        }
+    }
+
+    public get baseSize$() {
+        if (this.appManager) {
+            return this.appManager.mainViewProxy.size$;
+        } else {
+            throw new Errors.AppManagerNotInitError();
+        }
+    }
+
     public get cameraState(): CameraState {
         if (this.appManager) {
             return this.appManager.mainViewProxy.cameraState;
@@ -763,30 +777,31 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         return this.appManager?.closeApp(appId);
     }
 
-    public moveCamera(
-        camera: Partial<Camera> & { animationMode?: AnimationMode | undefined }
-    ): void {
-        const pureCamera = omit(camera, ["animationMode"]);
+    public moveCamera(camera: Partial<Camera> ): void {
         const mainViewCamera = { ...this.mainView.camera };
-        if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
-        this.mainView.moveCamera(camera);
-        this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
-        setTimeout(() => {
-            this.appManager?.mainViewProxy.storeCurrentCamera();
-        }, 500);
+        const nextCamera = { ...mainViewCamera, ...camera };
+        if (isEqual(nextCamera, mainViewCamera)) return;
+        if (!this.appManager) return;
+        this.appManager.mainViewProxy.storeCamera({
+            id: this.appManager.uid,
+            ...nextCamera
+        });
     }
 
-    public moveCameraToContain(
-        rectangle: Rectangle &
-            Readonly<{
-                animationMode?: AnimationMode;
-            }>
-    ): void {
-        this.mainView.moveCameraToContain(rectangle);
-        this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
-        setTimeout(() => {
-            this.appManager?.mainViewProxy.storeCurrentCamera();
-        }, 500);
+    public moveCameraToContain(rectangle: Rectangle): void {
+        if (!this.appManager) return;
+        const mainViewSize = this.appManager.mainViewProxy.size$.value;
+        if (mainViewSize) {
+            const wScale = mainViewSize.width / rectangle.width;
+            const hScale = mainViewSize.height / rectangle.height;
+            const nextScale = Math.min(wScale, hScale);
+            this.appManager.mainViewProxy.storeCamera({
+                id: this.appManager.uid,
+                scale: nextScale,
+                centerX: rectangle.originX,
+                centerY: rectangle.originY,
+            });
+        }
     }
 
     public convertToPointInWorld(point: Point): Point {

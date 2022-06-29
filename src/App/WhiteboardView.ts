@@ -10,11 +10,11 @@ import type { View } from "white-web-sdk";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { ICamera } from "../AttributesDelegate";
 
-export type WhiteBoardViewCamera = Omit<ICamera, "scale" | "id">;
+export type WhiteBoardViewCamera = Omit<ICamera, "id">;
 
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
-    public readonly camera$: ReadonlyVal<WhiteBoardViewCamera>;
+    public readonly baseCamera$: ReadonlyVal<WhiteBoardViewCamera>;
 
     constructor(
         public view: View,
@@ -30,13 +30,13 @@ export class WhiteBoardView implements PageController {
             })
         );
         const camera$ = new Val<WhiteBoardViewCamera>(
-            pick(this.view.camera, ["centerX", "centerY"])
+            pick(this.view.camera, ["centerX", "centerY", "scale"])
         );
-        this.camera$ = camera$;
+        this.baseCamera$ = camera$;
         this.appProxy.sideEffectManager.add(() =>
             appProxy.camera$.subscribe(camera => {
                 if (camera) {
-                    camera$.setValue(pick(camera, ["centerX", "centerY"]));
+                    camera$.setValue(pick(camera, ["centerX", "centerY", "scale"]));
                 }
             })
         );
@@ -96,7 +96,7 @@ export class WhiteBoardView implements PageController {
         return this.appProxy.removeSceneByIndex(needRemoveIndex);
     };
 
-    public setRect(rect: Omit<TeleBoxRect, "x" | "y">) {
+    public setBaseRect(rect: Omit<TeleBoxRect, "x" | "y">) {
         this.appProxy.updateSize(rect.width, rect.height);
     }
 }

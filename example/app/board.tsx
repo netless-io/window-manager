@@ -5,6 +5,10 @@ import "./board.css";
 
 export const Board: NetlessApp = {
     kind: "Board",
+    config: {
+        width: 0.4,
+        height: 0.4,
+    },
     setup:  async context => {
         // 获取 app 的 box
         const box = context.box;
@@ -13,9 +17,9 @@ export const Board: NetlessApp = {
          // 挂载白板到当前 box
         const view = context.createWhiteBoardView();
         if (context.isAddApp) {
-            view.setRect({ width: 1280, height: 720 });
+            view.setBaseRect({ width: 1280, height: 720 });
         }
-        view.camera$.subscribe(camera => {
+        view.baseCamera$.subscribe(camera => {
             console.log("onCameraChange", camera);
         });
         // view.ensureSize(10);
@@ -46,7 +50,7 @@ const BoardFooter = ({ view }: { view: WhiteBoardView }) => {
 
     const removeLastPage = () => view.removePage(view.pageState.length - 1);
 
-    const moveCamera = () => view.moveCamera({ centerY: view.camera$.value.centerY + 10 });
+    const moveCamera = () => view.moveCamera({ centerY: view.baseCamera$.value.centerY + 10 });
 
     useEffect(() => {
         setPageState(view.pageState);

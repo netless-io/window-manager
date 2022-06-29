@@ -345,6 +345,10 @@ export class AppProxy implements PageRemoveService {
             this.box$.setValue(box);
             if (this.isAddApp && this.box) {
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
+                this.store.updateAppState(appId, AppAttributes.Size, {
+                    width: this.box.intrinsicWidth,
+                    height: this.box.intrinsicHeight,
+                });
                 this.boxManager.focusBox({ appId }, false);
             }
         } catch (error: any) {
