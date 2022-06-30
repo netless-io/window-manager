@@ -1,4 +1,5 @@
 import path from "path";
+import dts from 'vite-plugin-dts'
 import { defineConfig } from 'vitest/config'
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
@@ -28,7 +29,8 @@ export default defineConfig(({ mode }) => {
                 experimental: {
                     useVitePreprocess: true,
                 },
-            })
+            }),
+            dts()
         ],
         build: {
             lib: {
@@ -45,7 +47,7 @@ export default defineConfig(({ mode }) => {
                     ...peerDependencies,
                 }),
             },
-            minify: isProd,
+            minify: isProd
         },
     };
-});
+})

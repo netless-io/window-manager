@@ -40,6 +40,7 @@ describe("CameraSynchronizer", () => {
         }
         cameraSynchronizer.setRect(rect);
         const nextCamera = {
+            id: "test",
             scale: 1.5,
             centerX: 0,
             centerY: 0,

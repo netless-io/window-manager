@@ -4,10 +4,11 @@
   "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "repository": "netless-io/window-manager",
   "scripts": {
     "prettier": "prettier --write .",
+    "dev": "vite build --watch",
     "build": "vite build && yarn type-gen",
     "type-gen": "tsc --emitDeclarationOnly",
     "predev": "yarn type-gen",
@@ -61,6 +62,7 @@
     "svelte": "^3.42.4",
     "typescript": "^4.5.5",
     "vite": "^2.5.3",
+    "vite-plugin-dts": "^1.2.0",
     "vitest": "^0.14.1",
     "white-web-sdk": "2.16.10"
   }

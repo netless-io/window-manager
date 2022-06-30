@@ -6,15 +6,17 @@ import type { ReadonlyVal } from "value-enhancer";
 import type { AddPageParams, PageController, PageState } from "../Page";
 import type { AppProxy } from "./AppProxy";
 import type { AppContext } from "./AppContext";
-import type { View } from "white-web-sdk";
+import type { Camera, View } from "white-web-sdk";
 import type { TeleBoxRect } from "@netless/telebox-insider";
-import type { ICamera } from "../AttributesDelegate";
+import type { ICamera, ISize } from "../AttributesDelegate";
 
 export type WhiteBoardViewCamera = Omit<ICamera, "id">;
+export type WhiteBoardViewRect = Omit<ISize, "id">;
 
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
     public readonly baseCamera$: ReadonlyVal<WhiteBoardViewCamera>;
+    public readonly baseRect$: ReadonlyVal<WhiteBoardViewRect | undefined>;
 
     constructor(
         public view: View,
@@ -23,23 +25,26 @@ export class WhiteBoardView implements PageController {
         public ensureSize: (size: number) => void
     ) {
         const pageState$ = new Val<PageState>(appProxy.pageState);
+        const baseRect$ = new Val<WhiteBoardViewRect | undefined>(appProxy.size$.value);
+        const pickCamera = (camera: Camera | ICamera) =>
+            pick(camera, ["centerX", "centerY", "scale"]);
+        const camera$ = new Val<WhiteBoardViewCamera>(pickCamera(this.view.camera));
+        this.baseRect$ = baseRect$;
         this.pageState$ = pageState$;
-        this.appProxy.sideEffectManager.add(() =>
-            appProxy.appEmitter.on("pageStateChange", pageState => {
-                pageState$.setValue(pageState);
-            })
-        );
-        const camera$ = new Val<WhiteBoardViewCamera>(
-            pick(this.view.camera, ["centerX", "centerY", "scale"])
-        );
         this.baseCamera$ = camera$;
-        this.appProxy.sideEffectManager.add(() =>
+        this.appProxy.sideEffectManager.add(() => [
+            appProxy.appEmitter.on("pageStateChange", pageState => pageState$.setValue(pageState)),
             appProxy.camera$.subscribe(camera => {
                 if (camera) {
-                    camera$.setValue(pick(camera, ["centerX", "centerY", "scale"]));
+                    camera$.setValue(pickCamera(camera));
                 }
-            })
-        );
+            }),
+            appProxy.size$.subscribe(size => {
+                if (size) {
+                    baseRect$.setValue(pick(size, ["width", "height"]));
+                }
+            }),
+        ]);
         view.disableCameraTransform = true;
     }
 

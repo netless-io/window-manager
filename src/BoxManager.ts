@@ -311,17 +311,15 @@ export class BoxManager {
         if (!state) return;
         const box = this.getBox(state.id);
         if (box) {
-            this.teleBoxManager.update(
-                box.id,
-                {
-                    x: state.position?.x,
-                    y: state.position?.y,
-                    width: state.size?.width || 0.5,
-                    height: state.size?.height || 0.5,
-                    zIndex: state.zIndex,
-                },
-                true
-            );
+            if (state.size) {
+                box._intrinsicSize$.setValue(state.size, true);
+            }
+            if (state.position) {
+                box._intrinsicCoord$.setValue(state.position, true);
+            }
+            if (state.zIndex) {
+                box._zIndex$.setValue(state.zIndex, true);
+            }
             setTimeout(() => {
                 if (state.focus) {
                     this.teleBoxManager.focusBox(box.id, true);
@@ -338,7 +336,10 @@ export class BoxManager {
     }
 
     public moveBox({ appId, x, y }: MoveBoxParams): void {
-        this.teleBoxManager.update(appId, { x, y }, true);
+        const box = this.getBox(appId);
+        if (box) {
+            box._intrinsicCoord$.setValue({ x, y}, true);
+        }
     }
 
     public focusBox({ appId }: AppId, skipUpdate = true): void {
@@ -346,7 +347,10 @@ export class BoxManager {
     }
 
     public resizeBox({ appId, width, height, skipUpdate }: ResizeBoxParams): void {
-        this.teleBoxManager.update(appId, { width, height }, skipUpdate);
+        const box = this.getBox(appId);
+        if (box) {
+            box._intrinsicSize$.setValue({ width, height }, skipUpdate);
+        }
     }
 
     public setBoxMinSize(params: SetBoxMinSizeParams): void {

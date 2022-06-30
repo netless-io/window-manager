@@ -4,7 +4,7 @@
     - [view](#view)
     - [page](#page)
     - [storage](#storage)
-- [属性](#attributes)
+- [实例属性](#attributes)
 - [box](#box)
 - [events](#events)
 - [Advanced](#Advanced)

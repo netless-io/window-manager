@@ -1,4 +1,4 @@
-import type { NetlessApp, WhiteBoardView } from "../../dist";
+import type { NetlessApp, WhiteBoardView } from "../../dist/src";
 import React, { useEffect, useState } from "react";
 import ReactDom from "react-dom";
 import "./board.css";
@@ -12,7 +12,6 @@ export const Board: NetlessApp = {
     setup:  async context => {
         // 获取 app 的 box
         const box = context.box;
-
         console.log("destroyed", context.destroyed);
          // 挂载白板到当前 box
         const view = context.createWhiteBoardView();

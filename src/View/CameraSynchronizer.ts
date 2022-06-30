@@ -30,13 +30,9 @@ export class CameraSynchronizer {
         this.remoteCamera = camera;
         this.remoteSize = size;
         if (this.remoteSize && this.rect) {
-            let scale: number;
-            if (size.width < size.height) {
-                scale = this.rect.width / size.width;
-            } else {
-                scale = this.rect.height / size.height;
-            }
-            const nextScale = camera.scale * scale;
+            const wScale = this.rect.width / size.width;
+            const hScale = this.rect.height / size.height;
+            const nextScale = camera.scale * Math.min(wScale, hScale);
             const config: Partial<Camera> & { animationMode: AnimationMode } = {
                 scale: nextScale,
                 animationMode: AnimationMode.Continuous,
