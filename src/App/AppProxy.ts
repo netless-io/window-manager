@@ -32,9 +32,10 @@ import type {
 import type { SceneState, View, SceneDefinition,  MemberState} from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
-import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
+import type { ReadonlyTeleBox, TeleBox, TeleBoxRect } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
 import type { AppState } from "./type";
+import { callbacks } from "../callback";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -142,10 +143,10 @@ export class AppProxy implements PageRemoveService {
                                 });
                                 this.camera$.setValue(toJS(this.appAttributes.camera));
                             }
-                            if (!this.size$.value && box.contentStageRect) {
-                                const initialRect = this.computedInitialRect(box.contentStageRect);
-                                const width = initialRect?.width || box.contentStageRect.width;
-                                const height = initialRect?.height || box.contentStageRect.height;
+                            if (!this.size$.value && box.stageRect) {
+                                const initialRect = this.computedInitialRect(box.stageRect);
+                                const width = initialRect?.width || box.stageRect.width;
+                                const height = initialRect?.height || box.stageRect.height;
                                 this.storeSize({
                                     id: this.uid,
                                     width,
@@ -158,7 +159,7 @@ export class AppProxy implements PageRemoveService {
                                 view$: this.view$,
                                 camera$: this.camera$,
                                 size$: this.size$,
-                                stageRect$: box._contentStageRect$,
+                                stageRect$: box._stageRect$,
                                 storeCamera: this.storeCamera,
                                 storeSize: this.storeSize
                             });
@@ -341,7 +342,11 @@ export class AppProxy implements PageRemoveService {
                 options,
                 canOperate: this.manager.canOperate,
                 smartPosition: this.isAddApp,
-            });
+            }) as TeleBox;
+            const registerParams = appRegister.registered.get(this.kind);
+            if (registerParams?.contentStyles) {
+                box?.mountUserStyles(registerParams.contentStyles);
+            }
             this.box$.setValue(box);
             if (this.isAddApp && this.box) {
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
@@ -626,6 +631,7 @@ export class AppProxy implements PageRemoveService {
         this.status = "destroyed";
         try {
             await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
+            callbacks.emit("appClose", { appId: this.id, kind: this.kind, error });
             await this.appEmitter.emit("destroy", { error });
         } catch (error) {
             console.error("[WindowManager]: notifyApp error", error.message, error.stack);

@@ -7,7 +7,8 @@ import { WindowManager } from "./index";
 import type { Room, RoomMember } from "white-web-sdk";
 
 export const setupWrapper = (
-    root: HTMLElement
+    root: HTMLElement,
+    target: HTMLElement
 ): {
     playground: HTMLDivElement;
     mainViewElement: HTMLDivElement;
@@ -17,7 +18,7 @@ export const setupWrapper = (
 
     const mainViewElement = document.createElement("div");
     mainViewElement.className = "netless-window-manager-main-view";
-    playground.appendChild(mainViewElement);
+    target.appendChild(mainViewElement);
     root.appendChild(playground);
 
     return { playground, mainViewElement };

@@ -3,6 +3,7 @@ import { debounce } from "lodash";
 import { SideEffectManager } from "side-effect-manager";
 import { TELE_BOX_STATE, TeleBoxManager } from "@netless/telebox-insider";
 import { WindowManager } from "./index";
+import type { Writeable } from "./typings";
 import type { BoxEmitterType } from "./BoxEmitter";
 import type { AddAppOptions } from "./index";
 import type {
@@ -20,7 +21,6 @@ import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
 import type { AppState } from "./App/type";
-import { Val } from "value-enhancer";
 
 export { TELE_BOX_STATE };
 
@@ -49,7 +49,8 @@ export type CreateTeleBoxManagerConfig = {
     collectorStyles?: Partial<CSSStyleDeclaration>;
     prefersColorScheme?: TeleBoxColorScheme;
     stageRatio?: number;
-    highlightStage?: boolean;
+    containerStyle?: string;
+    stageStyle?: string;
 };
 
 export type BoxManagerContext = {
@@ -91,8 +92,6 @@ export const createBoxManager = (
 export class BoxManager {
     public teleBoxManager: TeleBoxManager;
     protected sideEffectManager: SideEffectManager;
-
-    public mainViewElement$ = new Val<HTMLElement | undefined>(undefined);
 
     constructor(
         private context: BoxManagerContext,
@@ -172,26 +171,10 @@ export class BoxManager {
             this.teleBoxManager.events.on("z_index", box => {
                 this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
             }),
-            this.teleBoxManager._stageRect$.subscribe(stage => {
-                this.updateStyle(this.mainViewElement$.value, stage);
-                emitter.emit("playgroundSizeChange", stage);
-                this.context.notifyContainerRectUpdate(stage);
-            }),
-            emitter.on("writableChange", isWritable => {
-                this.teleBoxManager.setHighlightStage(isWritable);
-            }),
             emitter.on("containerSizeRatioUpdate", ratio => {
                 this.teleBoxManager._stageRatio$.setValue(ratio);
             }),
         ]);
-    }
-
-    private updateStyle = (element: HTMLElement | undefined, rect: TeleBoxRect) => {
-        if (!element) return;
-        element.style.width = rect.width + "px";
-        element.style.height = rect.height + "px";
-        element.style.left = rect.x + "px";
-        element.style.top = rect.y + "px";
     }
 
     private get canOperate() {
@@ -232,7 +215,8 @@ export class BoxManager {
 
     public createBox(params: CreateBoxParams): ReadonlyTeleBox | undefined {
         if (!this.teleBoxManager) return;
-        let { minwidth = MIN_WIDTH, minheight = MIN_HEIGHT } = params.app.config ?? {};
+        // eslint-disable-next-line prefer-const
+        let { minwidth = MIN_WIDTH, minheight = MIN_HEIGHT, enableShadowDOM = true } = params.app.config ?? {};
         const { width, height } = params.app.config ?? {};
         const title = params.options?.title || params.appId;
         const rect = this.teleBoxManager.rootRect;
@@ -252,6 +236,7 @@ export class BoxManager {
             width,
             height,
             id: params.appId,
+            enableShadowDOM,
         };
         const box = this.teleBoxManager.create(createBoxConfig, params.smartPosition);
         this.context.emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
@@ -262,13 +247,20 @@ export class BoxManager {
         createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig
     ): TeleBoxManager {
         const root = WindowManager.playground;
-        const initManagerState: TeleBoxManagerConfig = {
+        const initManagerState: Writeable<TeleBoxManagerConfig> = {
             stageRatio: createTeleBoxManagerConfig?.stageRatio,
             root: root,
             fence: false,
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
-            highlightStage: createTeleBoxManagerConfig?.highlightStage,
         };
+
+        if (createTeleBoxManagerConfig?.containerStyle) {
+            initManagerState.containerStyle = createTeleBoxManagerConfig.containerStyle;
+        }
+
+        if (createTeleBoxManagerConfig?.stageStyle) {
+            initManagerState.stageStyle = createTeleBoxManagerConfig.stageStyle;
+        }
 
         const manager = new TeleBoxManager(initManagerState);
         if (this.teleBoxManager) {

@@ -107,7 +107,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         const viewWrapper = document.createElement("div");
         this._viewWrapper = viewWrapper;
         viewWrapper.className = "window-manager-view-wrapper";
-        this.box.$content.parentElement?.appendChild(viewWrapper);
+        this.box.$main.appendChild(viewWrapper);
         view.divElement = viewWrapper;
         this.appProxy.fireMemberStateChange();
         if (this.isAddApp) {
@@ -115,7 +115,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         }
         this.whiteBoardView = new WhiteBoardView(view, this, this.appProxy, this.ensurePageSize);
         this.appProxy.sideEffectManager.add(() => [
-            this.box._contentStageRect$.subscribe(rect => {
+            this.box._stageRect$.subscribe(rect => {
                 viewWrapper.style.left = `${rect.x}px`;
                 viewWrapper.style.top = `${rect.y}px`;
                 viewWrapper.style.width = `${rect.width}px`;

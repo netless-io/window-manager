@@ -10,6 +10,8 @@
 
 .netless-window-manager-main-view {
     position: absolute;
+    width: 100%;
+    height: 100%;
 }
 
 
@@ -140,5 +142,5 @@
 
 .window-manager-view-wrapper {
     position: absolute;
-    z-index: 1;
+    z-index: 10;
 }

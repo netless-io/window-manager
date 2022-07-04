@@ -8,6 +8,7 @@ export const Board: NetlessApp = {
     config: {
         width: 0.4,
         height: 0.4,
+        enableShadowDOM: true,
     },
     setup:  async context => {
         // 获取 app 的 box

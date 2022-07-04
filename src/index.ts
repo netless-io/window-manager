@@ -140,6 +140,8 @@ export type MountParams = {
     collectorContainer?: HTMLElement;
     collectorStyles?: Partial<CSSStyleDeclaration>;
     overwriteStyles?: string;
+    containerStyle?: string;
+    stageStyle?: string;
     cursor?: boolean;
     debug?: boolean;
     disableCameraTransform?: boolean;
@@ -247,7 +249,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             collectorStyles: params.collectorStyles,
             prefersColorScheme: params.prefersColorScheme,
             stageRatio: WindowManager.containerSizeRatio,
-            highlightStage: params.highlightStage
+            containerStyle: params.containerStyle,
+            stageStyle: params.stageStyle,
         });
         manager.appManager?.setBoxManager(manager.boxManager);
         if (params.container) {
@@ -290,12 +293,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     private static initContainer(
         container: HTMLElement,
+        target: HTMLElement,
         overwriteStyles: string | undefined
     ) {
         if (!WindowManager.container) {
             WindowManager.container = container;
         }
-        const { playground, mainViewElement } = setupWrapper(container);
+        const { playground, mainViewElement } = setupWrapper(container, target);
         WindowManager.playground = playground;
         if (overwriteStyles) {
             const style = document.createElement("style");
@@ -318,15 +322,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
                 container.appendChild(WindowManager.container.firstChild);
             }
         } else {
-            if (WindowManager.params) {
+            const teleboxContainer = this.boxManager?.teleBoxManager.$stage;
+            if (WindowManager.params && teleboxContainer) {
                 const params = WindowManager.params;
                 const mainViewElement = WindowManager.initContainer(
                     container,
+                    teleboxContainer,
                     params.overwriteStyles
                 );
                 if (this.boxManager && WindowManager.playground) {
                     this.boxManager.setRoot(WindowManager.playground);
-                    this.boxManager.mainViewElement$.setValue(mainViewElement);
                 }
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
                 if (WindowManager.playground) {
@@ -941,6 +946,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         emitter.emit("containerSizeRatioUpdate", ratio);
     }
 
+    public setContainerStyle(style: string) {
+        this.boxManager?.teleBoxManager.setContainerStyle(style);
+    }
+
+    public setStageStyle(style: string) {
+        this.boxManager?.teleBoxManager.setStageStyle(style);
+    }
+
     public createPPTHandler() {
         return {
             onPageJumpTo: (_pptUUID: string, index: number) => {
@@ -992,5 +1005,5 @@ setupBuiltin();
 
 export * from "./typings";
 
-export { BuiltinApps } from "./BuiltinApps";
+export { BuiltinApps, BuiltinAppsMap } from "./BuiltinApps";
 export type { PublicEvent } from "./callback";

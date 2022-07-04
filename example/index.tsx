@@ -23,6 +23,8 @@ const search = window.location.search;
 const url = new URLSearchParams(search);
 const isWritable = url.get("isWritable");
 const isReplay = url.get("isReplay");
+const roomUUID = url.get("uuid");
+const roomToken = url.get("roomToken");
 
 let manager: WindowManagerType;
 
@@ -112,14 +114,16 @@ const replay = () => {
     });
 };
 
-const joinRoom = ref => {
+const joinRoom = async ref => {
     const uid = Math.random().toString().substr(3, 8);
     if (isReplay) {
         replay();
     } else {
+        const uuid = roomUUID || import.meta.env.VITE_ROOM_UUID;
+        const token = roomToken || import.meta.env.VITE_ROOM_TOKEN;
         return sdk.joinRoom({
-            uuid: import.meta.env.VITE_ROOM_UUID,
-            roomToken: import.meta.env.VITE_ROOM_TOKEN,
+            uuid: uuid,
+            roomToken: token,
             invisiblePlugins: [WindowManager as any],
             useMultiViews: true,
             userPayload: {

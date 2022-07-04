@@ -21,3 +21,8 @@ export const BuiltinApps = {
     DocsViewer: AppDocsViewer.kind as string,
     MediaPlayer: AppMediaPlayer.kind as string,
 };
+
+export const BuiltinAppsMap = {
+    [BuiltinApps.DocsViewer]: AppDocsViewer,
+    [BuiltinApps.MediaPlayer]: AppMediaPlayer,
+}

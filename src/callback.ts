@@ -20,6 +20,7 @@ export type PublicEvent = {
     ready: undefined; // 所有 APP 创建完毕时触发
     sceneStateChange: SceneState;
     pageStateChange: PageState;
+    appClose: { appId: string; kind: string, error?: Error };
 };
 
 export type CallbacksType = Emittery<PublicEvent>;

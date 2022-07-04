@@ -9,11 +9,12 @@ export const Counter: NetlessApp<{ count: number }> = {
         storage.ensureState({ count: 0 });
 
         const box = context.box; // box 为这个应用打开的窗口
-        const $content = box.$content; // 获取窗口的 content
 
+        const container = document.createElement("div");
         const countDom = document.createElement("div");
         countDom.innerText = storage.state.count.toString();
-        $content.appendChild(countDom);
+        container.appendChild(countDom);
+        box.mountStage(container);
 
         // 监听 state 的修改, 自己和其他人的修改都会触发这个回调
         storage.addStateChangedListener(diff => {
@@ -29,7 +30,7 @@ export const Counter: NetlessApp<{ count: number }> = {
             storage.setState({ count: storage.state.count + 1 });
         };
         incButton.addEventListener("click", incButtonOnClick);
-        $content.appendChild(incButton);
+        container.appendChild(incButton);
 
         const decButton = document.createElement("button");
         decButton.innerText = "Dec";
@@ -37,8 +38,7 @@ export const Counter: NetlessApp<{ count: number }> = {
             storage.setState({ count: storage.state.count - 1 });
         };
         decButton.addEventListener("click", decButtonOnClick);
-
-        $content.appendChild(decButton);
+        container.appendChild(decButton);
 
         // 监听事件
         const event1Disposer = context.addMagixEventListener("event1", msg => {

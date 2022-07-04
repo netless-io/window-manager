@@ -30,6 +30,9 @@ export interface NetlessApp<Attributes = any, MagixEventPayloads = any, AppOptio
 
         /** App only single instance. */
         singleton?: boolean;
+
+        /** App box enableShadowDom. Default true */
+        enableShadowDOM?: boolean;
     };
     setup: (context: AppContext<Attributes, MagixEventPayloads, AppOptions>) => SetupResult;
 }
@@ -74,11 +77,14 @@ export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any
     addHooks?: (emitter: Emittery<RegisterEvents<SetupResult>>) => void;
     /** dynamic load app package name */
     name?: string;
+    contentStyles?: string;
 };
 
 export type AppListenerKeys = keyof AppEmitterEvent;
 
 export type ApplianceIcons = Partial<Record<ApplianceNames, string>>;
+
+export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 export type { AppContext } from "./App/AppContext";
 export type { WhiteBoardView } from "./App";
