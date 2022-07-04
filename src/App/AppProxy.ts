@@ -531,6 +531,7 @@ export class AppProxy implements PageRemoveService {
     }
 
     public setViewFocusScenePath() {
+        if (this.status === "destroyed") return;
         const fullPath = this.getFullScenePath();
         if (fullPath && this.view) {
             setViewFocusScenePath(this.view, fullPath);

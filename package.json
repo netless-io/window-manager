@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "1.0.0-canary.27",
+  "version": "1.0.0-canary.28",
   "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -9,7 +9,7 @@
   "scripts": {
     "prettier": "prettier --write .",
     "dev": "vite build --watch",
-    "build": "vite build && yarn type-gen",
+    "build": "vite build",
     "type-gen": "tsc --emitDeclarationOnly",
     "predev": "yarn type-gen",
     "build:lib:types": "tsc --emitDeclarationOnly",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@juggle/resize-observer": "^3.3.1",
-    "@netless/telebox-insider": "1.0.0-alpha.25",
+    "@netless/telebox-insider": "1.0.0-alpha.26",
     "emittery": "^0.11.0",
     "lodash": "^4.17.21",
     "p-retry": "^4.6.1",

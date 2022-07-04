@@ -17,6 +17,9 @@ export const genAppId = async (kind: string) => {
 };
 
 export const setViewFocusScenePath = (view: View, focusScenePath: string) => {
+    if ((view as any).didRelease) {
+        return;
+    }
     if (view.focusScenePath !== focusScenePath) {
         view.focusScenePath = focusScenePath;
         return view;
