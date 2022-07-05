@@ -166,8 +166,8 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.manager.room;
     };
 
-    public get members() {
-        return this.manager.members;
+    public get members(): Member[] {
+        return this.manager.members$.value;
     }
 
     public get currentMember(): Member {

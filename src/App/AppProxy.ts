@@ -106,11 +106,6 @@ export class AppProxy implements PageRemoveService {
             notifyPageStateChange: this.notifyPageStateChange,
         });
         this.sideEffectManager.add(() => () => this._pageState.destroy());
-        this.sideEffectManager.add(() =>
-            emitter.on("roomMembersChange", members => {
-                this.appEmitter.emit("roomMembersChange", members);
-            })
-        );
         this.camera$.setValue(toJS(this.appAttributes.camera));
         this.size$.setValue(toJS(this.appAttributes.size));
         this.addCameraReaction();
@@ -168,7 +163,10 @@ export class AppProxy implements PageRemoveService {
                         }
                     })
                 }
-            })
+            }),
+            this.manager.members$.reaction(members => {
+                this.appEmitter.emit("roomMembersChange", members);
+            }),
         ]);
     }
 

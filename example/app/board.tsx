@@ -19,6 +19,7 @@ export const Board: NetlessApp = {
         if (context.isAddApp) {
             view.setBaseRect({ width: 1280, height: 720 });
         }
+        console.log("membmers", context.members);
         view.baseCamera$.subscribe(camera => {
             console.log("onCameraChange", camera);
         });

@@ -1007,3 +1007,4 @@ export * from "./typings";
 
 export { BuiltinApps, BuiltinAppsMap } from "./BuiltinApps";
 export type { PublicEvent } from "./callback";
+export type { Member } from "./Helper";

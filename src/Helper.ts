@@ -1,7 +1,7 @@
 import { getVersionNumber, wait } from "./Utils/Common";
 import { log } from "./Utils/log";
 import { REQUIRE_VERSION } from "./constants";
-import { WhiteVersion } from "white-web-sdk";
+import { toJS, WhiteVersion } from "white-web-sdk";
 import { WhiteWebSDKInvalidError } from "./Utils/error";
 import { WindowManager } from "./index";
 import type { Room, RoomMember } from "white-web-sdk";
@@ -41,7 +41,7 @@ export type Member = RoomMember & { uid: string };
 export const serializeRoomMembers = (members: readonly RoomMember[]) => {
     return members.map(member => ({
         uid: member.payload?.uid || "",
-        ...member,
+        ...toJS(member),
     }));
 };
 

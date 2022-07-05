@@ -69,6 +69,7 @@ export class AppManager {
     private appCreateQueue = new AppCreateQueue();
     private sceneIndex$ = new Val<number | undefined>(undefined);
     private focused$ = new Val<string | undefined>(undefined);
+    public members$ = new Val<Member[]>([]);
 
     private sideEffectManager = new SideEffectManager();
 
@@ -121,6 +122,7 @@ export class AppManager {
         appRegister.setSyncRegisterApp(payload => {
             this.safeUpdateAttributes([Fields.Registered, payload.kind], payload);
         });
+        this.members$.setValue(serializeRoomMembers(this.displayer.state.roomMembers));
     }
 
     private onRemoveScenes = async (params: RemoveSceneParams) => {
@@ -300,10 +302,6 @@ export class AppManager {
 
     public get uid() {
         return this.room?.uid || "";
-    }
-
-    public get members(): Member[] {
-        return serializeRoomMembers(this.displayer.state.roomMembers);
     }
 
     public getMainViewSceneDir() {
@@ -673,7 +671,7 @@ export class AppManager {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
         if (state.roomMembers) {
-            emitter.emit("roomMembersChange", this.members);
+            this.members$.setValue(serializeRoomMembers(state.roomMembers));
         }
         emitter.emit("observerIdChange", this.displayer.observerId);
         if (state.memberState) {
@@ -841,5 +839,6 @@ export class AppManager {
         this.sideEffectManager.flushAll();
         this.sceneIndex$.destroy();
         this.focused$.destroy();
+        this.members$.destroy();
     }
 }
