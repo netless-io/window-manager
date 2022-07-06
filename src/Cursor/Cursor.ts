@@ -31,7 +31,7 @@ export class Cursor {
 
     public move = (position: Position) => {
         if (position.type === "main") {
-            const rect = this.cursorManager.wrapperRect;
+            const rect = this.manager.boxManager?.stageRect;
             if (this.component && rect) {
                 this.autoHidden();
                 this.moveCursor(position, rect, this.manager.mainView);

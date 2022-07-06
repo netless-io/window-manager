@@ -89,6 +89,7 @@ export class CursorManager {
                 wrapper.removeEventListener("pointerleave", this.mouseLeaveListener);
             };
         });
+        this.updateContainerRect();
     }
 
     public setMainViewDivElement(div: HTMLDivElement) {
@@ -108,7 +109,7 @@ export class CursorManager {
             if (!event.isPrimary) return;
         }
         this.updateCursor(this.getType(event), event.clientX, event.clientY);
-    }, 16);
+    }, 48);
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
@@ -166,7 +167,7 @@ export class CursorManager {
     };
 
     public updateContainerRect() {
-        this.wrapperRect = this.manager.boxManager?.teleBoxManager.stageRect;
+        this.wrapperRect = this.manager.boxManager?.stageRect;
         this.playgroundRect = WindowManager.playground?.getBoundingClientRect();
     }
 

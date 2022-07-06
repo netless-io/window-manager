@@ -83,7 +83,7 @@
     left: 0;
     top: 0;
     will-change: transform;
-    transition: transform 0.1s;
+    transition: transform 0.12s;
     transform-origin: 0 0;
     user-select: none;
 }
