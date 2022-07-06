@@ -110,7 +110,7 @@ export class CursorManager {
             if (!event.isPrimary) return;
         }
         this.updateCursor(this.getType(event), event.clientX, event.clientY);
-    }, 16);
+    }, 48);
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         if (this.wrapperRect && this.manager.canOperate) {
