@@ -191,6 +191,7 @@ const App = () => {
                     flex: 1,
                     height: "calc(100vh - 32px)",
                     border: "1px solid",
+                    overflow: "hidden"
                 }}
             ></div>
             <div className="side">
