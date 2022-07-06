@@ -1,4 +1,4 @@
-import { AnimationMode, ViewMode } from "white-web-sdk";
+import { ViewMode, AnimationMode } from "white-web-sdk";
 import { CameraSynchronizer } from "./CameraSynchronizer";
 import { combine } from "value-enhancer";
 import { isEqual } from "lodash";

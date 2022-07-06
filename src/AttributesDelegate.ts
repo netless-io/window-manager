@@ -98,7 +98,7 @@ export class AttributesDelegate {
             attrNames.push("scenes");
         }
         const options = pick(params.options, attrNames);
-        const attrs: AppSyncAttributes = { kind: params.kind, options, isDynamicPPT };
+        const attrs: AppSyncAttributes = { kind: params.kind, options, isDynamicPPT, setup: false };
         if (typeof params.src === "string") {
             attrs.src = params.src;
         }

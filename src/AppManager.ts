@@ -473,13 +473,17 @@ export class AppManager {
                 this.appCreateQueue.emitReady();
             }
             const appsWithCreatedAt = appIds.map(appId => {
-                return {
-                    id: appId,
-                    createdAt: apps[appId].createdAt,
-                };
+                if (apps[appId].setup) {
+                    return {
+                        id: appId,
+                        createdAt: apps[appId].createdAt,
+                    };
+                } else {
+                    return {}
+                }
             });
             for (const { id } of orderBy(appsWithCreatedAt, "createdAt", "asc")) {
-                if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
+                if (id && !this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
                     try {
                         const appAttributes = this.attributes[id];
@@ -570,11 +574,11 @@ export class AppManager {
         // 延迟挂载 mainView 的 dom, 避免因为同步 camera 的闪动
         wait(30).then(() => {
             mainView.divElement = divElement;
+            emitter.emit("mainViewMounted");
         });
         if (!mainView.focusScenePath) {
             this.setMainViewFocusPath();
         }
-        emitter.emit("mainViewMounted");
     }
 
     public setMainViewFocusPath(scenePath?: string) {
@@ -594,6 +598,7 @@ export class AppManager {
 
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
         log("addApp", params);
+        // 初始化 app 的属性创建
         const { appId, needFocus } = await this.beforeAddApp(params, isDynamicPPT);
         const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
         this.afterAddApp(appProxy);
@@ -605,6 +610,7 @@ export class AppManager {
         this.appStatus.set(appId, AppStatus.StartCreate);
         const attrs = params.attributes ?? {};
         this.safeUpdateAttributes([appId], attrs);
+        // 初始化的时候时需要一些异步的工作, 完成后其他端才可以创建
         this.store.setupAppAttributes(params, appId, isDynamicPPT);
         const needFocus = !this.boxManager?.minimized;
         if (needFocus) {

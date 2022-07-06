@@ -69,6 +69,10 @@ export class AppListeners {
                     this.setAppFocusViewIndexHandler(data.payload);
                     break;
                 }
+                case Events.InvokeAttributesUpdateCallback: {
+                    this.manager.attributesUpdateCallback(this.manager.attributes.apps);
+                    break;
+                }
                 default:
                     break;
             }

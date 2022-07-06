@@ -105,6 +105,7 @@ export type AppSyncAttributes = {
     createdAt?: number;
     camera?: ICamera;
     size?: ISize;
+    setup: boolean;
 };
 
 export type AppInitState = {

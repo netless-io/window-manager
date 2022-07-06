@@ -14,6 +14,7 @@ export enum Events {
     RootDirRemoved = "RootDirRemoved",
     Refresh = "Refresh",
     InitMainViewCamera = "InitMainViewCamera",
+    InvokeAttributesUpdateCallback = "InvokeAttributesUpdateCallback",
 }
 
 export const MagixEventName = "__WindowManger";

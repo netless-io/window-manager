@@ -332,6 +332,7 @@ export class AppProxy implements PageRemoveService {
                     this.appResult = result;
                     appRegister.notifyApp(this.kind, "created", { appId, result });
                     this.fixMobileSize();
+                    this.setupDone();
                 }, SETUP_APP_DELAY);
             });
             const box = this.boxManager?.createBox({
@@ -692,6 +693,12 @@ export class AppProxy implements PageRemoveService {
 
     public onFocus = () => {
         this.setScenePath();
+    }
+
+    // 异步值设置完成通知其他端创建 app
+    private setupDone = () => {
+        this.store.updateAppAttributes(this.id, "setup", true);
+        this.manager.dispatchInternalEvent(Events.InvokeAttributesUpdateCallback);
     }
 
     public close(): Promise<void> {

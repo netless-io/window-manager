@@ -6,8 +6,6 @@ import "./board.css";
 export const Board: NetlessApp = {
     kind: "Board",
     config: {
-        width: 0.4,
-        height: 0.4,
         enableShadowDOM: true,
     },
     setup:  async context => {

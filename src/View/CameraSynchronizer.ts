@@ -43,7 +43,7 @@ export class CameraSynchronizer {
             if (camera.centerY !== null) {
                 config.centerY = camera.centerY;
             }
-            this.view?.moveCamera(config);
+            this.moveCamera(config);
         }
     }, 10);
 
@@ -53,9 +53,8 @@ export class CameraSynchronizer {
         if (this.rect && this.remoteCamera && needMoveCamera) {
             const scale = this.rect.width / size.width;
             const nextScale = this.remoteCamera.scale * scale;
-            this.view?.moveCamera({
+            this.moveCamera({
                 scale: nextScale,
-                animationMode: AnimationMode.Continuous,
             })
         }
     }
@@ -63,5 +62,9 @@ export class CameraSynchronizer {
     public onLocalCameraUpdate(camera: ICamera) {
         this.saveCamera(camera);
         this.remoteCamera = camera;
+    }
+
+    private moveCamera(camera: Partial<Camera>) {
+        this.view?.moveCamera({ ...camera, animationMode: AnimationMode.Continuous });
     }
 }
