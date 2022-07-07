@@ -332,7 +332,9 @@ export class AppProxy implements PageRemoveService {
                     this.appResult = result;
                     appRegister.notifyApp(this.kind, "created", { appId, result });
                     this.fixMobileSize();
-                    this.setupDone();
+                    if (this.isAddApp) {
+                        this.setupDone();
+                    }
                 }, SETUP_APP_DELAY);
             });
             const box = this.boxManager?.createBox({

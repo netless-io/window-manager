@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { createRoom, gotoRoom, getWindow } from "./helper";
+import { createRoom, gotoRoom, getWindow, getPageState } from "./helper";
 
 test.describe("页面操作", () => {
     test.beforeEach(async ({ page }) => {
@@ -13,21 +13,21 @@ test.describe("页面操作", () => {
         await handle.evaluate(async window => {
             await window.manager.addPage();
         });
-        const pageState = await handle.evaluate(window => window.manager.pageState);
+        const pageState = await getPageState(handle)
         expect(pageState).toMatchObject({ index: 0, length: 2 });
 
         await handle.evaluate(async window => {
             await window.manager.nextPage()
         });
 
-        const pageState2 = await handle.evaluate(window => window.manager.pageState);
+        const pageState2 = await getPageState(handle)
         expect(pageState2).toMatchObject({ index: 1, length: 2 });
 
         await handle.evaluate(async window => {
             await window.manager.removePage(1)
         });
 
-        const pageState3 = await handle.evaluate(window => window.manager.pageState);
+        const pageState3 = await getPageState(handle)
         expect(pageState3).toMatchObject({ index: 0, length: 1 });
     })
 });

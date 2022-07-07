@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test"
-import { getWindow, gotoRoom, createRoom } from "./helper";
+import { getWindow, gotoRoom, createRoom, createApp } from "./helper";
 
 test.describe("应用注册", () => {
 
-    test("注册 CDN APP 所有端同步", async ({ page, browser }) => {
+    test.skip("注册 CDN APP 所有端同步", async ({ page, browser }) => {
         const { uuid, token } = await createRoom();
         await gotoRoom(page, uuid, token);
         const handle = await getWindow(page);
@@ -14,13 +14,7 @@ test.describe("应用注册", () => {
                 src: "https://netless-app.oss-cn-hangzhou.aliyuncs.com/@netless/app-countdown/0.0.2/dist/main.iife.js",
             });
         });
-
-        const appId = await handle.evaluate(async window => {
-            const manager = window.manager;
-            return await manager.addApp({
-                kind: "Countdown",
-            });
-        });
+        const appId = await createApp(handle, "Countdown");
         expect(appId).toBeDefined();
 
         const context2 = await browser.newContext();

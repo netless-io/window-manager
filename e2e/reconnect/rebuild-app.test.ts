@@ -1,6 +1,13 @@
-import { test, expect } from "@playwright/test"
-import { getWindow, gotoRoom, createRoom } from "../helper";
-
+import { test, expect } from "@playwright/test";
+import {
+    getWindow,
+    gotoRoom,
+    createRoom,
+    createApp,
+    queryAppLength,
+    getRoomPhase,
+    createAnotherPage,
+} from "../helper";
 
 test("断网重连-重建 APP", async ({ page, context, browser }) => {
     const { uuid, token } = await createRoom();
@@ -9,45 +16,30 @@ test("断网重连-重建 APP", async ({ page, context, browser }) => {
     const handle = await getWindow(page);
     await context.setOffline(true);
     const appsCount = await handle.evaluate(async window => {
-        return window.manager.queryAll().length
+        return window.manager.queryAll().length;
     });
     expect(appsCount).toBe(0);
 
     const waitPage1 = async () => {
         await page.waitForTimeout(50 * 1000);
-        const phase = await handle.evaluate(window => window.room.phase);
+        const phase = await getRoomPhase(handle);
         expect(phase).toBe("reconnecting");
 
         await context.setOffline(false);
         await page.waitForTimeout(10 * 1000);
-        const phase2 = await handle.evaluate(window => window.room.phase);
+        const phase2 = await getRoomPhase(handle);
         expect(phase2).toBe("connected");
 
-        const appsCount = await handle.evaluate(async window => {
-            return window.manager.queryAll().length
-        });
+        const appsCount = await queryAppLength(handle);
         expect(appsCount).toBe(1);
-    }
+    };
 
     const waitPage2 = async () => {
-        const context2 = await browser.newContext();
-        const page2 = await context2.newPage();
-        await gotoRoom(page2, uuid,token);
-        const handle2 = await getWindow(page2);
-        await handle2.evaluate(async window => {
-            const manager = window.manager;
-            return await manager.addApp({
-                kind: "Counter",
-            });
-        });
-        const appsCount2 = await handle2.evaluate(async window => {
-            return window.manager.queryAll().length;
-        });
+        const page2 = await createAnotherPage(browser, uuid, token);
+        await createApp(page2.handle, "Counter");
+        const appsCount2 = await queryAppLength(page2.handle);
         expect(appsCount2).toBe(1);
-    }
+    };
 
-    await Promise.all([
-        waitPage1(),
-        waitPage2(),
-    ]);
+    await Promise.all([waitPage1(), waitPage2()]);
 });
