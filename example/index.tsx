@@ -35,6 +35,7 @@ const mountManager = async (room, root) => {
         debug: true,
         cursor: true,
         // disableCameraTransform: true,
+        // fullscreen: true,
     } as MountParams)) as WindowManagerType;
 
     manager.emitter.on("ready", async () => {

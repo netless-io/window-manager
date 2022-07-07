@@ -66,7 +66,7 @@ export class ViewSync {
                     this.synchronizer.onRemoteSizeUpdate(size);
                 }
             }),
-            this.context.stageRect$.reaction(rect => {
+            this.context.stageRect$.subscribe(rect => {
                 if (rect) {
                     this.synchronizer.setRect(rect);
                 }

@@ -711,6 +711,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         }
     }
 
+    public get fullscreen(): TeleBoxFullscreen | undefined {
+        if (this.appManager) {
+            return this.appManager.boxManager?.teleBoxManager.fullscreen;
+        } else {
+            throw new Errors.AppManagerNotInitError();
+        }
+    }
+
     public get focused(): string | undefined {
         return this.attributes.focus;
     }
@@ -876,6 +884,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public setPrefersColorScheme(scheme: TeleBoxColorScheme): void {
         this.appManager?.boxManager?.setPrefersColorScheme(scheme);
+    }
+
+    public setFullscreen(fullscreen: TeleBoxFullscreen): void {
+        this.appManager?.boxManager?.teleBoxManager.setFullscreen(fullscreen);
     }
 
     public cleanCurrentScene(): void {
