@@ -48,7 +48,7 @@ import type {
  Rectangle} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
-import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
+import type { TeleBoxColorScheme, TeleBoxFullscreen, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
@@ -148,6 +148,7 @@ export type MountParams = {
     disableCameraTransform?: boolean;
     prefersColorScheme?: TeleBoxColorScheme;
     applianceIcons?: ApplianceIcons;
+    fullscreen?: TeleBoxFullscreen;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
@@ -252,6 +253,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             stageRatio: WindowManager.containerSizeRatio,
             containerStyle: params.containerStyle,
             stageStyle: params.stageStyle,
+            fullscreen: params.fullscreen,
         });
         manager.appManager?.setBoxManager(manager.boxManager);
         if (params.container) {

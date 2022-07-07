@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist/index.es";
-import type { MountParams, WindowManager as WindowManagerType } from "../dist";
+import type { MountParams, WindowManager as WindowManagerType } from "../dist/src";
 import { createStatic, createDynamic, createVideo, createSlide, createCounter, createBoard } from "./apps";
 import "../dist/style.css";
 import "./register";

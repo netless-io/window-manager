@@ -3,7 +3,7 @@ import { getWindow, gotoRoom, createRoom, createApp } from "../helper";
 import type { NetlessApp } from "../../dist/src";
 
 test.describe("NetlessApp", () => {
-    test("应用创建", async ({ page }) => {
+    test("应用接口", async ({ page }) => {
         const { uuid, token } = await createRoom();
         await gotoRoom(page, uuid, token);
         const handle = await getWindow(page);

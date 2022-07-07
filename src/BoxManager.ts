@@ -14,6 +14,7 @@ import type {
     TeleBoxColorScheme,
     TeleBoxRect,
     TeleBoxConfig,
+    TeleBoxFullscreen
 } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { NetlessApp } from "./typings";
@@ -51,6 +52,7 @@ export type CreateTeleBoxManagerConfig = {
     stageRatio?: number;
     containerStyle?: string;
     stageStyle?: string;
+    fullscreen?: TeleBoxFullscreen;
 };
 
 export type BoxManagerContext = {
@@ -260,6 +262,10 @@ export class BoxManager {
 
         if (createTeleBoxManagerConfig?.stageStyle) {
             initManagerState.stageStyle = createTeleBoxManagerConfig.stageStyle;
+        }
+
+        if (createTeleBoxManagerConfig?.fullscreen) {
+            initManagerState.fullscreen = createTeleBoxManagerConfig.fullscreen;
         }
 
         const manager = new TeleBoxManager(initManagerState);

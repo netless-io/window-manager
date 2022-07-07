@@ -11,7 +11,7 @@ import type {
     View,
 } from "white-web-sdk";
 import type { AppContext } from "./App";
-import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
+import type { ReadonlyTeleBox, TeleBoxRect, TeleBoxFullscreen } from "@netless/telebox-insider";
 import type { PageState } from "./Page";
 import type { Member } from "./Helper";
 
@@ -88,7 +88,7 @@ export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 export type { AppContext } from "./App/AppContext";
 export type { WhiteBoardView } from "./App";
-export type { ReadonlyTeleBox, TeleBoxRect };
+export type { ReadonlyTeleBox, TeleBoxRect, TeleBoxFullscreen };
 export type { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room, Player };
 export type { Storage, StorageStateChangedEvent, StorageStateChangedListener } from "./App/Storage";
 export * from "./Page";

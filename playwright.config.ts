@@ -13,6 +13,7 @@ const config: PlaywrightTestConfig = {
     headless: true,
   },
   timeout: 5 * 60 * 1000,
+  workers: 4,
   projects: [
     {
       name: 'chrome',
