@@ -7,13 +7,14 @@ import {
     reaction,
     unlistenDisposed,
     unlistenUpdated,
-    toJS,
+    toJS
 } from "white-web-sdk";
 import type {
     Room,
     SceneDefinition,
     View,
-    EventListener as WhiteEventListener
+    EventListener as WhiteEventListener,
+    Player
 } from "white-web-sdk";
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
@@ -90,6 +91,15 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
     public get view(): View | undefined {
         return this.appProxy.view;
     };
+
+    public get now(): number {
+        if (this.isReplay) {
+            const player = this.displayer as Player;
+            return player.beginTimestamp + player.progressTime;
+        } else {
+            return (this.displayer as Room).calibrationTimestamp;
+        }
+    }
 
     public createWhiteBoardView = (params?: CreateWhiteBoardViewParams): WhiteBoardView => {
         if (this.whiteBoardView) {

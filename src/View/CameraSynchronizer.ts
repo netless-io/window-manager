@@ -35,7 +35,7 @@ export class CameraSynchronizer {
             const nextScale = camera.scale * Math.min(wScale, hScale);
             const config: Partial<Camera> & { animationMode: AnimationMode } = {
                 scale: nextScale,
-                animationMode: AnimationMode.Continuous,
+                animationMode: AnimationMode.Immediately,
             }
             if (camera.centerX !== null) {
                 config.centerX = camera.centerX;
@@ -65,6 +65,6 @@ export class CameraSynchronizer {
     }
 
     private moveCamera(camera: Partial<Camera>) {
-        this.view?.moveCamera({ ...camera, animationMode: AnimationMode.Continuous });
+        this.view?.moveCamera({ ...camera, animationMode: AnimationMode.Immediately });
     }
 }
