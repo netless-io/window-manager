@@ -4,6 +4,7 @@
     - [view](#view)
     - [page](#page)
     - [storage](#storage)
+- [ui(box)](#box)
 - [events](#events)
 - [Advanced](#Advanced)
 
@@ -233,6 +234,52 @@ manager.addApp({
 
   context.dispatchMagixEvent("click", { data: "data" });
   ```
+
+<h2>UI (box)</h2>
+
+    box 是白板为所有应用默认创建的 UI
+    应用所有可以操作的 UI 部分都在 box 范围内
+
+- **context.getBox()**
+
+    获取 box
+    返回类型: `ReadonlyTeleBox`
+
+- **box.mountStyles()**
+
+    挂载样式到 `box`
+    参数: `string | HTMLStyleElement`
+
+    ```js
+    const box = context.getBox();
+    box.mountStyles(`
+        .app-span {
+            color: red;
+        }
+    `)
+    ```
+
+- **box.mountContent()**
+
+    挂载元素到 `box`
+    参数: `HTMLElement`
+
+    ```js
+    const box = context.getBox();
+    const content = document.createElement("div");
+    box.mountContent(context);
+    ```
+
+- **box.mountFooter()**
+
+    挂载元素到 `box` 的 `footer`
+    参数: `HTMLElement`
+
+    ```js
+    const box = context.getBox();
+    const footer = document.createElement("div");
+    box.mountFooter(context);
+    ```
 
 <h2 id="events">events</h2>
 
