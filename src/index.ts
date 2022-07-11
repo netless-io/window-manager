@@ -663,17 +663,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         }
     }
 
-    public get baseCamera$() {
+    public get baseCamera() {
         if (this.appManager) {
-            return this.appManager.mainViewProxy.camera$;
+            return this.appManager.mainViewProxy.camera$.value;
         } else {
             throw new Errors.AppManagerNotInitError();
         }
     }
 
-    public get baseSize$() {
+    public get baseSize() {
         if (this.appManager) {
-            return this.appManager.mainViewProxy.size$;
+            return this.appManager.mainViewProxy.size$.value;
         } else {
             throw new Errors.AppManagerNotInitError();
         }
