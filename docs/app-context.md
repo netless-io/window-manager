@@ -1,5 +1,8 @@
 ## AppContext
 
+    `AppContext` 是插件运行时传入的上下文
+    你可以通过此对象操作 APP 的 ui, 获取当前房间的状态, 以及订阅状态的变化
+
 - [api](#api)
     - [view](#view)
     - [page](#page)
@@ -331,6 +334,29 @@ manager.addApp({
         // { index: 0, length: 1 }
     });
     ```
+- **roomStageChange**
+
+    房间的状态变化时触发\
+    比如当教具切换时
+
+    ```js
+    context.emitter.on("roomStageChange", stage => {
+        if (state.memberState) {
+            console.log("appliance change to", state.memberState.currentApplianceName);
+        }
+    });
+    ```
+
+    或者是当前房间人数变化时
+
+    ```js
+     context.emitter.on("roomStageChange", stage => {
+        if (state.roomMembers) {
+            console.log("current room members change", state.roomMembers);
+        }
+    });
+    ```
+    详细状态的介绍请参考 https://developer.netless.link/javascript-zh/home/business-state-management
 
 <h2 id="Advanced">Advanced</h2>
 
