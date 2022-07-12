@@ -15,7 +15,9 @@ export default defineConfig(({ mode }) => {
                 inline: [
                   "@juggle/resize-observer"
                 ]
-            }
+            },
+            setupFiles: "./test/setup.ts",
+            include: ["test/**/*.test.ts"],
         },
         define: {
             __APP_VERSION__: JSON.stringify(version),
