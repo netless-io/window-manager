@@ -23,6 +23,17 @@
 ```
 
 
-### `APP` 迁移
+### `WindowManager.mount()` 迁移
 
+废弃 `chessboard` 属性
+
+添加: `containerStyle` 配置
+添加: `stageStyle` 配置
+添加: `fullscreen` 配置
+
+### `manager.setContainerSizeRatio()` 行为修改
+
+1.0 之前反复修改 `containerSizeRatio` 会导致内容一直变小
+
+1.0 之后重复修改 `containerSizeRatio` 不会导致内容一致缩小
 

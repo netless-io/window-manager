@@ -4,7 +4,7 @@ specifiers:
   '@juggle/resize-observer': ^3.3.1
   '@netless/app-docs-viewer': ^0.2.9
   '@netless/app-media-player': 0.1.2
-  '@netless/telebox-insider': 1.0.0-alpha.30
+  '@netless/telebox-insider': 1.0.0-alpha.31
   '@playwright/test': ^1.23.2
   '@rollup/plugin-commonjs': ^20.0.0
   '@rollup/plugin-node-resolve': ^13.0.4
@@ -37,7 +37,7 @@ specifiers:
   svelte: ^3.42.4
   typescript: ^4.5.5
   uuid: ^7.0.3
-  value-enhancer: ^1.3.0
+  value-enhancer: ^1.3.2
   video.js: '>=7'
   vite: ^2.5.3
   vite-plugin-dts: ^1.2.1
@@ -46,13 +46,13 @@ specifiers:
 
 dependencies:
   '@juggle/resize-observer': 3.3.1
-  '@netless/telebox-insider': 1.0.0-alpha.30
+  '@netless/telebox-insider': 1.0.0-alpha.31
   emittery: 0.11.0
   lodash: 4.17.21
   p-retry: 4.6.2
   side-effect-manager: 1.1.1
   uuid: 7.0.3
-  value-enhancer: 1.3.0
+  value-enhancer: 1.3.2
   video.js: 7.18.1
 
 devDependencies:
@@ -256,8 +256,8 @@ packages:
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
     dev: true
 
-  /@netless/telebox-insider/1.0.0-alpha.30:
-    resolution: {integrity: sha512-jafYe1iHxN7vWqGwt7bE/xTbFBCzqgZSpEi9UCjso3KXvdAH2WBjtWFv2CUkjzv5zmUvRaflo2vzhyzQyg8ihA==}
+  /@netless/telebox-insider/1.0.0-alpha.31:
+    resolution: {integrity: sha512-sG04zVn+aPol3/EmP3o2Leact06DOAOO9I6eDySecu7ikujq7+XykNqC+NOHJ4a9+/QehVBzGZHxglnVo3bV/w==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@types/shallowequal': 1.1.1
@@ -265,7 +265,7 @@ packages:
       shallowequal: 1.1.0
       side-effect-manager: 1.1.1
       stylefire: 7.0.3
-      value-enhancer: 1.3.0
+      value-enhancer: 1.3.2
     dev: false
 
   /@netless/xml-js/1.6.15:
@@ -4827,8 +4827,8 @@ packages:
     engines: {node: '>= 0.10'}
     dev: true
 
-  /value-enhancer/1.3.0:
-    resolution: {integrity: sha512-shI9N5ML4MGwD6bMu/My1l1+REFqhZGOuIjDN5Gf+k7gACfY2k8WtJEcqgdZMfepwivfhQxIfZp0riobUDZpDQ==}
+  /value-enhancer/1.3.2:
+    resolution: {integrity: sha512-RC+yfNMwuLZO2iDtHh4dxvtHP00DnSO0VARBkVoxT1eOwMJ/Rs5jKh6nBUcotWncJhjfGGhQE4SUK8goLEC5oQ==}
     dev: false
 
   /vanilla-lazyload/17.6.1:

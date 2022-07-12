@@ -1,7 +1,6 @@
-import { ViewMode, AnimationMode } from "white-web-sdk";
-import { CameraSynchronizer } from "./CameraSynchronizer";
+import { ViewMode, AnimationMode, Size } from "white-web-sdk";
+import { CameraSynchronizer, computedMinScale } from "./CameraSynchronizer";
 import { combine } from "value-enhancer";
-import { isEqual } from "lodash";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, View } from "white-web-sdk";
 import type { Val, ReadonlyVal } from "value-enhancer";
@@ -94,13 +93,11 @@ export class ViewSync {
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
         if (!camera) return;
-        this.synchronizer.onLocalCameraUpdate({ ...camera, id: this.context.uid });
-        const stage = this.context.stageRect$.value;
-        if (stage) {
-            const size = { width: stage.width, height: stage.height, id: this.context.uid };
-            if (!isEqual(size, this.context.size$.value)) {
-                this.context.storeSize(size);
-            }
+        if (this.context.size$.value && this.context.stageRect$.value) {
+            // 始终以远端的 size 为标准, 设置到 attributes 时根据尺寸的大小还原回去
+            const diffScale = computedMinScale(this.context.size$.value, this.context.stageRect$.value);
+            const remoteScale = camera.scale / diffScale;
+            this.synchronizer.onLocalCameraUpdate({ ...camera, scale: remoteScale, id: this.context.uid });
         }
     };
 

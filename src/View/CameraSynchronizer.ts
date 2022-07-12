@@ -1,7 +1,7 @@
 import { AnimationMode } from "white-web-sdk";
 import { isEqual, pick, throttle } from "lodash";
 import type { TeleBoxRect } from "@netless/telebox-insider";
-import type { Camera, View } from "white-web-sdk";
+import type { Camera, View, Size } from "white-web-sdk";
 import type { ICamera, ISize } from "../AttributesDelegate";
 
 export type SaveCamera = (camera: ICamera) => void;
@@ -30,12 +30,9 @@ export class CameraSynchronizer {
         this.remoteCamera = camera;
         this.remoteSize = size;
         if (this.remoteSize && this.rect) {
-            const wScale = this.rect.width / size.width;
-            const hScale = this.rect.height / size.height;
-            const nextScale = camera.scale * Math.min(wScale, hScale);
-            const config: Partial<Camera> & { animationMode: AnimationMode } = {
+            const nextScale = camera.scale * computedMinScale(size, this.rect);
+            const config: Partial<Camera> = {
                 scale: nextScale,
-                animationMode: AnimationMode.Immediately,
             }
             if (camera.centerX !== null) {
                 config.centerX = camera.centerX;
@@ -67,4 +64,10 @@ export class CameraSynchronizer {
     private moveCamera(camera: Partial<Camera>) {
         this.view?.moveCamera({ ...camera, animationMode: AnimationMode.Immediately });
     }
+}
+
+export const computedMinScale = (remoteSize: Size, currentSize: Size) => {
+    const wScale = currentSize.width / remoteSize.width;
+    const hScale = currentSize.height / remoteSize.height;
+    return Math.min(wScale, hScale);
 }

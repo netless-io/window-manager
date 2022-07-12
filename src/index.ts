@@ -9,7 +9,7 @@ import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants
 import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
+import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, Size, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, isNumber } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
@@ -136,8 +136,6 @@ export type MountParams = {
     containerSizeRatio?: number;
     /** @deprecated */
     chessboard?: boolean;
-    /** 是否高亮显示同步区域, 默认为 true */
-    highlightStage?: boolean;
     collectorContainer?: HTMLElement;
     collectorStyles?: Partial<CSSStyleDeclaration>;
     overwriteStyles?: string;
@@ -967,6 +965,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
 
     public setStageStyle(style: string) {
         this.boxManager?.teleBoxManager.setStageStyle(style);
+    }
+
+    public setBaseSize(size: Size) {
+        this.appManager?.mainViewProxy.setMainViewSize(size);
     }
 
     public createPPTHandler() {
