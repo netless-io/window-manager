@@ -16,7 +16,6 @@ import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
 import { setupBuiltin } from "./BuiltinApps";
-import "video.js/dist/video-js.css";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
 import {

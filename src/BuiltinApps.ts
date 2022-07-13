@@ -1,5 +1,5 @@
 import AppDocsViewer from "@netless/app-docs-viewer";
-import AppMediaPlayer from "@netless/app-media-player";
+import Plyr from "@netless/app-plyr";
 import { WindowManager } from "./index";
 
 export const setupBuiltin = () => {
@@ -8,17 +8,17 @@ export const setupBuiltin = () => {
         src: AppDocsViewer,
     });
     WindowManager.register({
-        kind: AppMediaPlayer.kind,
-        src: AppMediaPlayer,
+        kind: Plyr.kind,
+        src: Plyr,
     });
 };
 
 export const BuiltinApps = {
     DocsViewer: AppDocsViewer.kind as string,
-    MediaPlayer: AppMediaPlayer.kind as string,
+    MediaPlayer: Plyr.kind as string,
 };
 
 export const BuiltinAppsMap = {
     [BuiltinApps.DocsViewer]: AppDocsViewer,
-    [BuiltinApps.MediaPlayer]: AppMediaPlayer,
+    [BuiltinApps.MediaPlayer]: Plyr,
 }

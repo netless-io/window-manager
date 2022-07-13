@@ -2,9 +2,9 @@ lockfileVersion: 5.4
 
 specifiers:
   '@juggle/resize-observer': ^3.3.1
-  '@netless/app-docs-viewer': ^0.2.9
-  '@netless/app-media-player': 0.1.2
-  '@netless/telebox-insider': 1.0.0-alpha.31
+  '@netless/app-docs-viewer': ^0.3.0
+  '@netless/app-plyr': 0.2.0
+  '@netless/telebox-insider': 1.0.0-alpha.33
   '@playwright/test': ^1.23.2
   '@rollup/plugin-commonjs': ^20.0.0
   '@rollup/plugin-node-resolve': ^13.0.4
@@ -38,7 +38,6 @@ specifiers:
   typescript: ^4.5.5
   uuid: ^7.0.3
   value-enhancer: ^1.3.2
-  video.js: '>=7'
   vite: ^2.5.3
   vite-plugin-dts: ^1.2.1
   vitest: ^0.18.0
@@ -46,18 +45,17 @@ specifiers:
 
 dependencies:
   '@juggle/resize-observer': 3.3.1
-  '@netless/telebox-insider': 1.0.0-alpha.31
+  '@netless/telebox-insider': 1.0.0-alpha.33
   emittery: 0.11.0
   lodash: 4.17.21
   p-retry: 4.6.2
   side-effect-manager: 1.1.1
   uuid: 7.0.3
   value-enhancer: 1.3.2
-  video.js: 7.18.1
 
 devDependencies:
-  '@netless/app-docs-viewer': 0.2.9
-  '@netless/app-media-player': 0.1.2
+  '@netless/app-docs-viewer': 0.3.0
+  '@netless/app-plyr': 0.2.0
   '@playwright/test': 1.23.2
   '@rollup/plugin-commonjs': 20.0.0
   '@rollup/plugin-node-resolve': 13.1.3
@@ -118,13 +116,6 @@ packages:
       chalk: 2.4.2
       js-tokens: 4.0.0
     dev: true
-
-  /@babel/runtime/7.17.8:
-    resolution: {integrity: sha512-dQpEpK0O9o6lj6oPu0gRDbbnk+4LeHlNcBpspf6Olzt3GIX4P1lWF1gS+pHLDFlaJvbR6q7jCfQ08zA4QJBnmA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@babel/runtime/-/runtime-7.17.8.tgz}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      regenerator-runtime: 0.13.9
-    dev: false
 
   /@babel/runtime/7.18.6:
     resolution: {integrity: sha512-t9wi7/AW6XtKahAe20Yw0/mMljKq0B1r2fPdvaAdV/KPDZewFXdaaa6K7lxmZBZ8FBNpCiAT6iHPmd6QO9bKfQ==}
@@ -240,24 +231,24 @@ packages:
     resolution: {integrity: sha512-6Wci+Tp3CgPt/B9B0a3J4s3yMgLNSku6w5TV6mN+61C71UqsRBv2FUibBf3tPGlNxebgPHMEUzKpb1ggE8KCKw==}
     dev: true
 
-  /@netless/app-docs-viewer/0.2.9:
-    resolution: {integrity: sha512-yuhfQ02nr61polMq8s3OiIIvA85yonJwCckr/rPYCB8hm8YV9Di9cYb85fB8Wy3A3do/1UVfYHTWa6Vcge6fLw==}
+  /@netless/app-docs-viewer/0.3.0:
+    resolution: {integrity: sha512-L+637oRiLvROQzcppvod2Qwmri1qg0GBMuQKow1Qsrt4HT2KYjAXz8ShBELcUs/+ISgvsyont0CipiBrBlbYsA==}
     dependencies:
-      '@juggle/resize-observer': 3.3.1
-      debounce-fn: 5.1.0
-      vanilla-lazyload: 17.6.1
+      remitter: 0.2.6
+      value-enhancer: 1.3.2
+      vanilla-lazyload: 17.8.2
     dev: true
 
-  /@netless/app-media-player/0.1.2:
-    resolution: {integrity: sha512-C8ASXNqNIPWTTGuVWcZwIDSjfylm1nxR7rx8SLAOH5b4D1mPBNzSsOdpurWn2Wf8zhkUOdqhi/NeP0MzZd0+3w==}
+  /@netless/app-plyr/0.2.0:
+    resolution: {integrity: sha512-noeWWwcI1Qlkw9Zf/MJispYsH+WsTjETO8tUx/o6qJLHkf2wH+B0AZeL+/wy+bqzSOITg6yDnxWvNdxFuhDNUQ==}
     dev: true
 
   /@netless/canvas-polyfill/0.0.4:
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
     dev: true
 
-  /@netless/telebox-insider/1.0.0-alpha.31:
-    resolution: {integrity: sha512-sG04zVn+aPol3/EmP3o2Leact06DOAOO9I6eDySecu7ikujq7+XykNqC+NOHJ4a9+/QehVBzGZHxglnVo3bV/w==}
+  /@netless/telebox-insider/1.0.0-alpha.33:
+    resolution: {integrity: sha512-WWykQAFXtQH3zAbz16Rf4obOFe/oZudzidnrKdU1JC0r703gmGN0tyzc8ka2IrXVaknabMfcBKw2NxWY3H2XoA==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@types/shallowequal': 1.1.1
@@ -718,56 +709,11 @@ packages:
       eslint-visitor-keys: 2.1.0
     dev: true
 
-  /@videojs/http-streaming/2.13.1:
-    resolution: {integrity: sha512-1x3fkGSPyL0+iaS3/lTvfnPTtfqzfgG+ELQtPPtTvDwqGol9Mx3TNyZwtSTdIufBrqYRn7XybB/3QNMsyjq13A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@videojs/http-streaming/-/http-streaming-2.13.1.tgz}
-    engines: {node: '>=8', npm: '>=5'}
-    dependencies:
-      '@babel/runtime': 7.17.8
-      '@videojs/vhs-utils': 3.0.4
-      aes-decrypter: 3.1.2
-      global: 4.4.0
-      m3u8-parser: 4.7.0
-      mpd-parser: 0.21.0
-      mux.js: 6.0.1
-      video.js: 7.18.1
-    dev: false
-
-  /@videojs/vhs-utils/3.0.4:
-    resolution: {integrity: sha512-hui4zOj2I1kLzDgf8QDVxD3IzrwjS/43KiS8IHQO0OeeSsb4pB/lgNt1NG7Dv0wMQfCccUpMVLGcK618s890Yg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@videojs/vhs-utils/-/vhs-utils-3.0.4.tgz}
-    engines: {node: '>=8', npm: '>=5'}
-    dependencies:
-      '@babel/runtime': 7.17.8
-      global: 4.4.0
-      url-toolkit: 2.2.5
-    dev: false
-
-  /@videojs/vhs-utils/3.0.5:
-    resolution: {integrity: sha512-PKVgdo8/GReqdx512F+ombhS+Bzogiofy1LgAj4tN8PfdBx3HSS7V5WfJotKTqtOWGwVfSWsrYN/t09/DSryrw==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@videojs/vhs-utils/-/vhs-utils-3.0.5.tgz}
-    engines: {node: '>=8', npm: '>=5'}
-    dependencies:
-      '@babel/runtime': 7.17.8
-      global: 4.4.0
-      url-toolkit: 2.2.5
-    dev: false
-
-  /@videojs/xhr/2.6.0:
-    resolution: {integrity: sha512-7J361GiN1tXpm+gd0xz2QWr3xNWBE+rytvo8J3KuggFaLg+U37gZQ2BuPLcnkfGffy2e+ozY70RHC8jt7zjA6Q==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@videojs/xhr/-/xhr-2.6.0.tgz}
-    dependencies:
-      '@babel/runtime': 7.17.8
-      global: 4.4.0
-      is-function: 1.0.2
-    dev: false
-
   /@vitest/ui/0.14.2:
     resolution: {integrity: sha512-yV2paiv0/Obymx+9KV+KjM/FAbYF+PbnQiO2RFnZqDCgYwkkNmO1ZNNIetBeOzuNoi1BT1iPSKwtvL0PwCesDQ==}
     dependencies:
       sirv: 2.0.2
     dev: true
-
-  /@xmldom/xmldom/0.7.5:
-    resolution: {integrity: sha512-V3BIhmY36fXZ1OtVcI9W+FxQqxVLsPKcNjWigIaa81dLC9IolJl5Mt4Cvhmr0flUnjSpTdrbMTSbXqYqV5dT6A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@xmldom/xmldom/-/xmldom-0.7.5.tgz}
-    engines: {node: '>=10.0.0'}
-    dev: false
 
   /abab/2.0.5:
     resolution: {integrity: sha512-9IK9EadsbHo6jLWIpxpR6pL0sazTXV6+SQv25ZB+F7Bj9mJNaOc4nCRabwd5M/JwmUa8idz6Eci6eKfJryPs6Q==}
@@ -808,15 +754,6 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
     dev: true
-
-  /aes-decrypter/3.1.2:
-    resolution: {integrity: sha512-42nRwfQuPRj9R1zqZBdoxnaAmnIFyDi0MNyTVhjdFOd8fifXKKRfwIHIZ6AMn1or4x5WONzjwRTbTWcsIQ0O4A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/aes-decrypter/-/aes-decrypter-3.1.2.tgz}
-    dependencies:
-      '@babel/runtime': 7.17.8
-      '@videojs/vhs-utils': 3.0.5
-      global: 4.4.0
-      pkcs7: 1.0.4
-    dev: false
 
   /agent-base/6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -1509,13 +1446,6 @@ packages:
     resolution: {integrity: sha512-JLC809s6Y948/FuCZPm5IX8rRhQwOiyMb2TfVVQEixG7P8Lm/gt5S7yoQZmC8x1UehI9Pb7sksEt4xx14m+7Ug==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/dayjs/-/dayjs-1.11.0.tgz}
     dev: true
 
-  /debounce-fn/5.1.0:
-    resolution: {integrity: sha512-cVmH6CjQyBnlP3nD3OPJw/+Afvbm/XVEkRedSivSCCmRtJehXWrQyM6S8iorH7TrOikgmZ2hII6A1laSpfSuHQ==}
-    engines: {node: '>=12'}
-    dependencies:
-      mimic-fn: 4.0.0
-    dev: true
-
   /debug/3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
     peerDependencies:
@@ -1647,10 +1577,6 @@ packages:
       domelementtype: 2.2.0
       entities: 2.2.0
     dev: true
-
-  /dom-walk/0.1.2:
-    resolution: {integrity: sha512-6QvTW9mrGeIegrFXdtQi9pk7O/nSK6lSdXW2eqUspN5LWD7UTji2Fqw5V2YLjBpHEoU9Xl/eUWNpDeZvoyOv2w==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/dom-walk/-/dom-walk-0.1.2.tgz}
-    dev: false
 
   /domelementtype/1.3.1:
     resolution: {integrity: sha512-BSKB+TSpMpFI/HOxCNr1O8aMOTZ8hT3pM3GQ0w/mWRmkhEDSFJkkyzz4XQsBV44BChwGkrDfMyjVD0eA2aFV3w==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/domelementtype/-/domelementtype-1.3.1.tgz}
@@ -2439,13 +2365,6 @@ packages:
       ini: 2.0.0
     dev: true
 
-  /global/4.4.0:
-    resolution: {integrity: sha512-wv/LAoHdRE3BeTGz53FAamhGlPLhlssK45usmGFThIi4XqnBmjKQ16u+RNbP7WvigRZDxUsM0J3gcQ5yicaL0w==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/global/-/global-4.4.0.tgz}
-    dependencies:
-      min-document: 2.19.0
-      process: 0.11.10
-    dev: false
-
   /globals/13.13.0:
     resolution: {integrity: sha512-EQ7Q18AJlPwp3vUDL4mKA0KXrXyNIQyWon6T6XQiBQF0XHvRsiCSrWmmeATpUzdJN2HhWZU6Pdl0a9zdep5p6A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/globals/-/globals-13.13.0.tgz}
     engines: {node: '>=8'}
@@ -2629,10 +2548,6 @@ packages:
     resolution: {integrity: sha512-bup+4tap3Hympa+JBJUG7XuOsdNQ6fxt0MHyXMKuLBKn0OqsTfvUxkUrroEX1+B2VsSHvCjiIcZVxRtYa4nllA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/indexes-of/-/indexes-of-1.0.1.tgz}
     dev: true
 
-  /individual/2.0.0:
-    resolution: {integrity: sha512-pWt8hBCqJsUWI/HtcfWod7+N9SgAqyPEaF7JQjwzjn5vGrpg6aQ5qeAFQ7dx//UH4J1O+7xqew+gCeeFt6xN/g==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/individual/-/individual-2.0.0.tgz}
-    dev: false
-
   /inflight/1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/inflight/-/inflight-1.0.6.tgz}
     dependencies:
@@ -2735,10 +2650,6 @@ packages:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/is-fullwidth-code-point/-/is-fullwidth-code-point-3.0.0.tgz}
     engines: {node: '>=8'}
     dev: true
-
-  /is-function/1.0.2:
-    resolution: {integrity: sha512-lw7DUp0aWXYg+CBCN+JKkcE0Q2RayZnSvnZBlwgxHBQhqt5pZNVy4Ri7H9GmmXkdu7LUthszM+Tor1u/2iBcpQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/is-function/-/is-function-1.0.2.tgz}
-    dev: false
 
   /is-glob/4.0.3:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/is-glob/-/is-glob-4.0.3.tgz}
@@ -2976,10 +2887,6 @@ packages:
       verror: 1.10.0
     dev: true
 
-  /keycode/2.2.1:
-    resolution: {integrity: sha512-Rdgz9Hl9Iv4QKi8b0OlCRQEzp4AgVxyCtz5S/+VIHezDmrDhkp2N2TqBWOLz0/gbeREXOOiI9/4b8BY9uw2vFg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/keycode/-/keycode-2.2.1.tgz}
-    dev: false
-
   /kleur/4.1.4:
     resolution: {integrity: sha512-8QADVssbrFjivHWQU7KkMgptGTl6WAcSdlbBPY4uNF+mWr6DGcKrvY2w4FQJoXch7+fKMjj0dRrL75vk3k23OA==}
     engines: {node: '>=6'}
@@ -3128,14 +3035,6 @@ packages:
       yallist: 4.0.0
     dev: true
 
-  /m3u8-parser/4.7.0:
-    resolution: {integrity: sha512-48l/OwRyjBm+QhNNigEEcRcgbRvnUjL7rxs597HmW9QSNbyNvt+RcZ9T/d9vxi9A9z7EZrB1POtZYhdRlwYQkQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/m3u8-parser/-/m3u8-parser-4.7.0.tgz}
-    dependencies:
-      '@babel/runtime': 7.17.8
-      '@videojs/vhs-utils': 3.0.5
-      global: 4.4.0
-    dev: false
-
   /magic-string/0.25.9:
     resolution: {integrity: sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/magic-string/-/magic-string-0.25.9.tgz}
     dependencies:
@@ -3238,17 +3137,6 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /mimic-fn/4.0.0:
-    resolution: {integrity: sha512-vqiC06CuhBTUdZH+RYl8sFrL096vA45Ok5ISO6sE/Mr1jRbGH4Csnhi8f3wKVl7x8mO4Au7Ir9D3Oyv1VYMFJw==}
-    engines: {node: '>=12'}
-    dev: true
-
-  /min-document/2.19.0:
-    resolution: {integrity: sha512-9Wy1B3m3f66bPPmU5hdA4DR4PB2OfDU/+GS3yAB7IQozE3tqXaVv2zOjgla7MEGSRv95+ILmOuvhLkOK6wJtCQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/min-document/-/min-document-2.19.0.tgz}
-    dependencies:
-      dom-walk: 0.1.2
-    dev: false
-
   /minimatch/3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/minimatch/-/minimatch-3.1.2.tgz}
     dependencies:
@@ -3283,16 +3171,6 @@ packages:
     resolution: {integrity: sha512-pHZ/cySF00FVENDWIDzJyoObFahK6Eg4d0papqm6d7yMkxWTZ/S/csqJX1A3PsYy4t5k3z2QnlwuCfMW5lSEwA==}
     dev: true
 
-  /mpd-parser/0.21.0:
-    resolution: {integrity: sha512-NbpMJ57qQzFmfCiP1pbL7cGMbVTD0X1hqNgL0VYP1wLlZXLf/HtmvQpNkOA1AHkPVeGQng+7/jEtSvNUzV7Gdg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/mpd-parser/-/mpd-parser-0.21.0.tgz}
-    hasBin: true
-    dependencies:
-      '@babel/runtime': 7.17.8
-      '@videojs/vhs-utils': 3.0.5
-      '@xmldom/xmldom': 0.7.5
-      global: 4.4.0
-    dev: false
-
   /mrmime/1.0.1:
     resolution: {integrity: sha512-hzzEagAgDyoU1Q6yg5uI+AorQgdvMCur3FcKf7NhMKWsaYg+RnbTyHRa/9IlLF9rf455MOCtcqqrQQ83pPP7Uw==}
     engines: {node: '>=10'}
@@ -3305,15 +3183,6 @@ packages:
   /ms/2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
     dev: true
-
-  /mux.js/6.0.1:
-    resolution: {integrity: sha512-22CHb59rH8pWGcPGW5Og7JngJ9s+z4XuSlYvnxhLuc58cA1WqGDQPzuG8I+sPm1/p0CdgpzVTaKW408k5DNn8w==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/mux.js/-/mux.js-6.0.1.tgz}
-    engines: {node: '>=8', npm: '>=5'}
-    hasBin: true
-    dependencies:
-      '@babel/runtime': 7.17.8
-      global: 4.4.0
-    dev: false
 
   /nanoid/3.3.2:
     resolution: {integrity: sha512-CuHBogktKwpm5g2sRgv83jEy2ijFzBwMoYA60orPDR7ynsLijJDqgsi4RDGj3OJpy3Ieb+LYwiRmIOGyytgITA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/nanoid/-/nanoid-3.3.2.tgz}
@@ -3581,13 +3450,6 @@ packages:
     engines: {node: '>=6'}
     dev: true
     optional: true
-
-  /pkcs7/1.0.4:
-    resolution: {integrity: sha512-afRERtHn54AlwaF2/+LFszyAANTCggGilmcmILUzEjvs3XgFZT+xE6+QWQcAGmu4xajy+Xtj7acLOPdx5/eXWQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/pkcs7/-/pkcs7-1.0.4.tgz}
-    hasBin: true
-    dependencies:
-      '@babel/runtime': 7.17.8
-    dev: false
 
   /playwright-core/1.23.2:
     resolution: {integrity: sha512-UGbutIr0nBALDHWW/HcXfyK6ZdmefC99Moo4qyTr89VNIkYZuDrW8Sw554FyFUamcFSdKOgDPk6ECSkofGIZjQ==}
@@ -3963,11 +3825,6 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /process/0.11.10:
-    resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/process/-/process-0.11.10.tgz}
-    engines: {node: '>= 0.6.0'}
-    dev: false
-
   /progress/2.0.3:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/progress/-/progress-2.0.3.tgz}
     engines: {node: '>=0.4.0'}
@@ -4104,10 +3961,15 @@ packages:
 
   /regenerator-runtime/0.13.9:
     resolution: {integrity: sha512-p3VT+cOEgxFsRRA9X4lkI1E+k2/CtnKtU4gcxyaCUreilL/vqI6CdZ3wxVUx3UOUg+gnUOQQcRI7BmSI656MYA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/regenerator-runtime/-/regenerator-runtime-0.13.9.tgz}
+    dev: true
 
   /regexpp/3.2.0:
     resolution: {integrity: sha512-pq2bWo9mVD43nbts2wGv17XLiNLya+GklZ8kaDLV2Z08gDCsGpnKn9BFMepvWuHCbyVvY7J5o5+BVvoQbmlJLg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/regexpp/-/regexpp-3.2.0.tgz}
     engines: {node: '>=8'}
+    dev: true
+
+  /remitter/0.2.6:
+    resolution: {integrity: sha512-vg6psVwfJsg7zcX7HVJ0UxZiRc0V7EfFOOzcp6WAEP2Br0G75DEM5KUglyxyMuxG57ntrfEBzqP6Cd91Nf2CBw==}
     dev: true
 
   /request-progress/3.0.0:
@@ -4239,12 +4101,6 @@ packages:
       queue-microtask: 1.2.3
     dev: true
 
-  /rust-result/1.0.0:
-    resolution: {integrity: sha512-6cJzSBU+J/RJCF063onnQf0cDUOHs9uZI1oroSGnHOph+CQTIJ5Pp2hK5kEQq1+7yE/EEWfulSNXAQ2jikPthA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/rust-result/-/rust-result-1.0.0.tgz}
-    dependencies:
-      individual: 2.0.0
-    dev: false
-
   /rxjs/7.5.5:
     resolution: {integrity: sha512-sy+H0pQofO95VDmFLzyaw9xNJU4KTRSwQIGM6+iG3SypAtCiLDzpeG8sJrNCWn2Up9km+KhkvTdbkrdy+yzZdw==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/rxjs/-/rxjs-7.5.5.tgz}
     dependencies:
@@ -4254,12 +4110,6 @@ packages:
   /safe-buffer/5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/safe-buffer/-/safe-buffer-5.2.1.tgz}
     dev: true
-
-  /safe-json-parse/4.0.0:
-    resolution: {integrity: sha512-RjZPPHugjK0TOzFrLZ8inw44s9bKox99/0AZW9o/BEQVrJfhI+fIHMErnPyRa89/yRXUUr93q+tiN6zhoVV4wQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/safe-json-parse/-/safe-json-parse-4.0.0.tgz}
-    dependencies:
-      rust-result: 1.0.0
-    dev: false
 
   /safer-buffer/2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
@@ -4785,10 +4635,6 @@ packages:
       requires-port: 1.0.0
     dev: true
 
-  /url-toolkit/2.2.5:
-    resolution: {integrity: sha512-mtN6xk+Nac+oyJ/PrI7tzfmomRVNFIWKUbG8jdYFt52hxbiReFAXIjYskvu64/dvuW71IcB7lV8l0HvZMac6Jg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/url-toolkit/-/url-toolkit-2.2.5.tgz}
-    dev: false
-
   /url/0.11.0:
     resolution: {integrity: sha512-kbailJa29QrtXnxgq+DdCEGlbTeYM2eJUxsz6vjZavrCYPMIFHMKQmSKYAIuUK2i7hgPm28a8piX5NTUtM/LKQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/url/-/url-0.11.0.tgz}
     dependencies:
@@ -4829,10 +4675,9 @@ packages:
 
   /value-enhancer/1.3.2:
     resolution: {integrity: sha512-RC+yfNMwuLZO2iDtHh4dxvtHP00DnSO0VARBkVoxT1eOwMJ/Rs5jKh6nBUcotWncJhjfGGhQE4SUK8goLEC5oQ==}
-    dev: false
 
-  /vanilla-lazyload/17.6.1:
-    resolution: {integrity: sha512-Jn/WpWEIe+d6UUb8hw1qDO49W8lceFLW/ucWt8pdRcQvoQaucLtMnc9QHsm0Iz/xe4SCElEE2fyMZB8xC3e/6Q==}
+  /vanilla-lazyload/17.8.2:
+    resolution: {integrity: sha512-sz/dFM5tXi5LbDhx9l31bAdXXtYvKCZ2cCva4SgsKxFIHf0r/4j1HsnaDn60ga2DhbxLRtHh65J8JmHZHW0F8w==}
     dev: true
 
   /vendors/1.0.4:
@@ -4847,34 +4692,6 @@ packages:
       core-util-is: 1.0.2
       extsprintf: 1.3.0
     dev: true
-
-  /video.js/7.18.1:
-    resolution: {integrity: sha512-mnXdmkVcD5qQdKMZafDjqdhrnKGettZaGSVkExjACiylSB4r2Yt5W1bchsKmjFpfuNfszsMjTUnnoIWSSqoe/Q==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/video.js/-/video.js-7.18.1.tgz}
-    dependencies:
-      '@babel/runtime': 7.17.8
-      '@videojs/http-streaming': 2.13.1
-      '@videojs/vhs-utils': 3.0.5
-      '@videojs/xhr': 2.6.0
-      aes-decrypter: 3.1.2
-      global: 4.4.0
-      keycode: 2.2.1
-      m3u8-parser: 4.7.0
-      mpd-parser: 0.21.0
-      mux.js: 6.0.1
-      safe-json-parse: 4.0.0
-      videojs-font: 3.2.0
-      videojs-vtt.js: 0.15.3
-    dev: false
-
-  /videojs-font/3.2.0:
-    resolution: {integrity: sha512-g8vHMKK2/JGorSfqAZQUmYYNnXmfec4MLhwtEFS+mMs2IDY398GLysy6BH6K+aS1KMNu/xWZ8Sue/X/mdQPliA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/videojs-font/-/videojs-font-3.2.0.tgz}
-    dev: false
-
-  /videojs-vtt.js/0.15.3:
-    resolution: {integrity: sha512-5FvVsICuMRx6Hd7H/Y9s9GDeEtYcXQWzGMS+sl4UX3t/zoHp3y+isSfIPRochnTH7h+Bh1ILyC639xy9Z6kPag==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/videojs-vtt.js/-/videojs-vtt.js-0.15.3.tgz}
-    dependencies:
-      global: 4.4.0
-    dev: false
 
   /vite-plugin-dts/1.2.1_vite@2.8.6:
     resolution: {integrity: sha512-V59rsKQnPI6FTGybh/ED4+dyK3UeSkvC1CJzpuDNoXb7mKNUcWmg66EM0N5Ijoc8xDAfZIXYxQjg675YHIDvFw==}
