@@ -10,7 +10,7 @@ import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { AnimationMode, InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
-import { isEqual, isNull, isObject, isNumber, debounce } from "lodash";
+import { isEqual, isNull, isObject, isNumber } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -807,8 +807,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         return this.appManager?.closeApp(appId);
     }
 
-    public moveCamera = debounce((camera: Partial<Camera> & { animationMode?: AnimationMode } ): void => {
-        console.log("moveCamera", performance.now());
+    public moveCamera = (camera: Partial<Camera> & { animationMode?: AnimationMode } ): void => {
         const mainViewCamera = { ...this.mainView.camera };
         const nextCamera = { ...mainViewCamera, ...camera };
         if (isEqual(nextCamera, mainViewCamera)) return;
@@ -853,7 +852,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             this.mainView.callbacks.on("onCameraUpdated", onCameraUpdated);
             
         }
-    }, 400, { leading: true });
+    };
 
     public convertToPointInWorld(point: Point): Point {
         return this.mainView.convertToPointInWorld(point);
