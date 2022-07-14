@@ -9,7 +9,7 @@ import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants
 import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { AnimationMode, InvisiblePlugin, isPlayer, isRoom, RoomPhase, toJS, ViewMode } from "white-web-sdk";
+import { AnimationMode, InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, isNumber, isEmpty } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
