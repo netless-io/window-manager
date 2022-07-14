@@ -31,8 +31,8 @@ export class InvalidScenePath extends Error {
     override message = `[WindowManager]: ScenePath should start with "/"`;
 }
 
-export class BoxManagerNotFoundError extends Error {
-    override message = "[WindowManager]: boxManager not found";
+export class BoxManagerNotInitializeError extends Error {
+    override message = "[WindowManager]: boxManager need initialize";
 }
 
 export class BindContainerRoomPhaseInvalidError extends Error {

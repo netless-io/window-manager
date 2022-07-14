@@ -14,8 +14,9 @@ import type {
     TeleBoxColorScheme,
     TeleBoxRect,
     TeleBoxConfig,
-    TeleBoxFullscreen
-, TeleBoxManagerThemeConfig } from "@netless/telebox-insider";
+    TeleBoxFullscreen,
+    TeleBoxManagerThemeConfig,
+} from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
@@ -178,6 +179,9 @@ export class BoxManager {
             }),
             emitter.on("containerSizeRatioUpdate", ratio => {
                 this.teleBoxManager._stageRatio$.setValue(ratio);
+            }),
+            this.teleBoxManager._fullscreen$.reaction(fullscreen => {
+                callbacks.emit("fullscreenChange", fullscreen);
             }),
         ]);
     }

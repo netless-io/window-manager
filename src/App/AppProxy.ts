@@ -6,7 +6,7 @@ import { appRegister } from "../Register";
 import { ViewSync } from "../View/ViewSync"
 import { autorun, reaction, toJS } from "white-web-sdk";
 import { boxEmitter } from "../BoxEmitter";
-import { BoxManagerNotFoundError } from "../Utils/error";
+import { BoxManagerNotInitializeError } from "../Utils/error";
 import { calculateNextIndex } from "../Page";
 import { combine, Val, ValManager } from "value-enhancer";
 import { debounce, get, isEqual, isUndefined, omitBy } from "lodash";
@@ -312,7 +312,7 @@ export class AppProxy implements PageRemoveService {
     ) {
         log("setupApp", appId, app, options);
         if (!this.boxManager) {
-            throw new BoxManagerNotFoundError();
+            throw new BoxManagerNotInitializeError();
         }
         const context = new AppContext(this.manager, appId, this, appOptions);
         this.appContext = context;
