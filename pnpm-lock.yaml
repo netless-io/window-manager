@@ -4,7 +4,7 @@ specifiers:
   '@juggle/resize-observer': ^3.3.1
   '@netless/app-docs-viewer': ^0.3.0
   '@netless/app-plyr': 0.2.0
-  '@netless/telebox-insider': 1.0.0-alpha.33
+  '@netless/telebox-insider': 1.0.0-alpha.34
   '@playwright/test': ^1.23.2
   '@rollup/plugin-commonjs': ^20.0.0
   '@rollup/plugin-node-resolve': ^13.0.4
@@ -45,7 +45,7 @@ specifiers:
 
 dependencies:
   '@juggle/resize-observer': 3.3.1
-  '@netless/telebox-insider': 1.0.0-alpha.33
+  '@netless/telebox-insider': 1.0.0-alpha.34
   emittery: 0.11.0
   lodash: 4.17.21
   p-retry: 4.6.2
@@ -247,8 +247,8 @@ packages:
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
     dev: true
 
-  /@netless/telebox-insider/1.0.0-alpha.33:
-    resolution: {integrity: sha512-WWykQAFXtQH3zAbz16Rf4obOFe/oZudzidnrKdU1JC0r703gmGN0tyzc8ka2IrXVaknabMfcBKw2NxWY3H2XoA==}
+  /@netless/telebox-insider/1.0.0-alpha.34:
+    resolution: {integrity: sha512-jU/+CR1WTwrzk0Wx73LfXZkXXUuxIEsltLDUtr9LiGEeb57EoXxO2hbimR/3EebRBv760VVthsI8hDfabiqZYA==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@types/shallowequal': 1.1.1
