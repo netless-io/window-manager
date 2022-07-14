@@ -15,6 +15,8 @@ export enum Events {
     Refresh = "Refresh",
     InitMainViewCamera = "InitMainViewCamera",
     InvokeAttributesUpdateCallback = "InvokeAttributesUpdateCallback",
+    MoveCamera = "MoveCamera",
+    MoveCameraToContain = "moveCameraToContain",
 }
 
 export const MagixEventName = "__WindowManger";

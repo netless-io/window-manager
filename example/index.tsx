@@ -142,7 +142,7 @@ const joinRoom = async ref => {
             (window as any).room = room;
             return await mountManager(room, ref);
         });
-    }  
+    }
 };
 
 const destroy = () => {

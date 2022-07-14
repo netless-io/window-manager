@@ -2,9 +2,10 @@ import { callbacks } from "./callback";
 import { emitter } from "./InternalEmitter";
 import { Events, MagixEventName } from "./constants";
 import { setViewFocusScenePath } from "./Utils/Common";
-import type { Event } from "white-web-sdk";
+import type { AnimationMode, Camera, Event, Rectangle } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
+import { computedMinScale } from "./View/CameraSynchronizer";
 
 type SetAppFocusIndex = {
     type: "main" | "app";
@@ -73,6 +74,14 @@ export class AppListeners {
                     this.manager.attributesUpdateCallback(this.manager.attributes.apps);
                     break;
                 }
+                case Events.MoveCamera: {
+                    this.moveCameraHandler(data.payload);
+                    break;
+                }
+                case Events.MoveCameraToContain: {
+                    this.moveCameraToContainHandler(data.payload);
+                    break;
+                }
                 default:
                     break;
             }
@@ -124,5 +133,21 @@ export class AppListeners {
                 app.setSceneIndexWithoutSync(payload.index);
             }
         }
+    }
+
+    private moveCameraHandler = (payload: Camera) => {
+        const cameraPayload = payload;
+        if (payload.scale) {
+            const remoteSize = this.manager.mainViewProxy.size$.value;
+            const currentSize = this.manager.boxManager?.stageRect;
+            if (remoteSize && currentSize) {
+                cameraPayload.scale = payload.scale * computedMinScale(remoteSize, currentSize);
+            }
+        }
+        this.manager.mainView.moveCamera(cameraPayload);
+    }
+
+    private moveCameraToContainHandler = (payload: Rectangle & { animationMode?: AnimationMode }) => {
+        this.manager.mainView.moveCameraToContain(payload);
     }
 }

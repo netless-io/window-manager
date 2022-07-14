@@ -15,7 +15,7 @@ import type {
     TeleBoxRect,
     TeleBoxConfig,
     TeleBoxFullscreen
-} from "@netless/telebox-insider";
+, TeleBoxManagerThemeConfig } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
@@ -53,6 +53,9 @@ export type CreateTeleBoxManagerConfig = {
     containerStyle?: string;
     stageStyle?: string;
     fullscreen?: TeleBoxFullscreen;
+    defaultBoxBodyStyle?: string | null;
+    defaultBoxStageStyle?: string | null;
+    theme?: TeleBoxManagerThemeConfig;
 };
 
 export type BoxManagerContext = {
@@ -266,6 +269,18 @@ export class BoxManager {
 
         if (createTeleBoxManagerConfig?.fullscreen) {
             initManagerState.fullscreen = createTeleBoxManagerConfig.fullscreen;
+        }
+
+        if (createTeleBoxManagerConfig?.defaultBoxBodyStyle !== undefined) {
+            initManagerState.defaultBoxBodyStyle = createTeleBoxManagerConfig.defaultBoxBodyStyle;
+        }
+
+        if (createTeleBoxManagerConfig?.defaultBoxStageStyle !== undefined) {
+            initManagerState.defaultBoxStageStyle = createTeleBoxManagerConfig.defaultBoxStageStyle;
+        }
+
+        if (createTeleBoxManagerConfig?.theme) {
+            initManagerState.theme = createTeleBoxManagerConfig.theme;
         }
 
         const manager = new TeleBoxManager(initManagerState);

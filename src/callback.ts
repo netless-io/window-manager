@@ -1,8 +1,9 @@
 import Emittery from "emittery";
 import type { TeleBoxColorScheme, TELE_BOX_STATE } from "@netless/telebox-insider";
-import type { CameraState, SceneState, ViewVisionMode } from "white-web-sdk";
+import type { Camera, CameraState, SceneState, Size, ViewVisionMode } from "white-web-sdk";
 import type { LoadAppEvent } from "./Register";
 import type { PageState } from "./Page";
+import { ICamera, ISize } from "./AttributesDelegate";
 
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
@@ -21,6 +22,8 @@ export type PublicEvent = {
     sceneStateChange: SceneState;
     pageStateChange: PageState;
     appClose: { appId: string; kind: string, error?: Error };
+    baseCameraChange: ICamera;
+    baseSizeChange: ISize;
 };
 
 export type CallbacksType = Emittery<PublicEvent>;

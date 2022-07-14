@@ -9,8 +9,8 @@ import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants
 import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, Size, ViewMode } from "white-web-sdk";
-import { isEqual, isNull, isObject, isNumber } from "lodash";
+import { AnimationMode, InvisiblePlugin, isPlayer, isRoom, RoomPhase, toJS, ViewMode } from "white-web-sdk";
+import { isEqual, isNull, isObject, isNumber, isEmpty } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -44,14 +44,17 @@ import type {
     Player,
     ImageInformation,
     SceneState,
- Rectangle} from "white-web-sdk";
+    Rectangle,
+    Size
+} from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
-import type { TeleBoxColorScheme, TeleBoxFullscreen, TeleBoxState } from "@netless/telebox-insider";
+import type { TeleBoxColorScheme, TeleBoxFullscreen, TeleBoxManagerThemeConfig, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
+import { computedMinScale } from "./View/CameraSynchronizer";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -146,6 +149,12 @@ export type MountParams = {
     prefersColorScheme?: TeleBoxColorScheme;
     applianceIcons?: ApplianceIcons;
     fullscreen?: TeleBoxFullscreen;
+    /** Custom `style` attribute value for content area of all boxes. Can be overwritten by box. */
+    defaultBoxBodyStyle?: string | null;
+    /** Custom `style` attribute value for stage area of all boxes. Can be overwritten by box. */
+    defaultBoxStageStyle?: string | null;
+    /** Theme variable */
+    theme?: TeleBoxManagerThemeConfig;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
@@ -790,30 +799,86 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         return this.appManager?.closeApp(appId);
     }
 
-    public moveCamera(camera: Partial<Camera> ): void {
+    public moveCamera(camera: Partial<Camera> & { animationMode?: AnimationMode } ): void {
         const mainViewCamera = { ...this.mainView.camera };
         const nextCamera = { ...mainViewCamera, ...camera };
         if (isEqual(nextCamera, mainViewCamera)) return;
         if (!this.appManager) return;
-        this.appManager.mainViewProxy.storeCamera({
-            id: this.appManager.uid,
-            ...nextCamera
-        });
-    }
-
-    public moveCameraToContain(rectangle: Rectangle): void {
-        if (!this.appManager) return;
-        const mainViewSize = this.appManager.mainViewProxy.size$.value;
-        if (mainViewSize) {
-            const wScale = mainViewSize.width / rectangle.width;
-            const hScale = mainViewSize.height / rectangle.height;
-            const nextScale = Math.min(wScale, hScale);
+        if (camera.animationMode === AnimationMode.Immediately) {
             this.appManager.mainViewProxy.storeCamera({
                 id: this.appManager.uid,
-                scale: nextScale,
-                centerX: rectangle.originX,
-                centerY: rectangle.originY,
+                ...nextCamera
             });
+        } else {
+            const remoteCamera = this.appManager.mainViewProxy.size$.value;
+            const currentSize = this.boxManager?.stageRect;
+            let nextScale;
+            if (camera.scale &&  remoteCamera && currentSize) {
+                nextScale = camera.scale * computedMinScale(remoteCamera, currentSize);
+            }
+            if (nextScale) {
+                this.mainView.moveCamera({
+                    ...camera,
+                    scale: nextScale,
+                });
+            } else {
+                this.mainView.moveCamera(camera);
+            }
+            this.appManager.dispatchInternalEvent(Events.MoveCamera, camera);
+            setTimeout(() => {
+                if (!this.appManager) return;
+                this.appManager.mainViewProxy.storeCamera({
+                    id: this.appManager.uid,
+                    ...nextCamera
+                });
+            }, 200);
+        }
+    }
+
+    public moveCameraToContain(rectangle: Rectangle & { animationMode?: AnimationMode }): void {
+        if (!this.appManager) return;
+        const camera: Partial<Camera> = {};
+        if (isNumber(rectangle.originX)) {
+            camera.centerX = rectangle.originX;
+        }
+        if (isNumber(rectangle.originY)) {
+            camera.centerY = rectangle.originY;
+        }
+        if (rectangle.animationMode === AnimationMode.Immediately) {
+            this.appManager.mainViewProxy.storeSize({
+                id: this.appManager.uid,
+                width: rectangle.width,
+                height: rectangle.height,
+            });
+            this.mainView.moveCameraToContain(rectangle);
+            if (!isEmpty(camera) && this.appManager.mainViewProxy.camera$.value) {
+                this.appManager.mainViewProxy.storeCamera({
+                    ...this.appManager.mainViewProxy.camera$.value,
+                    id: this.appManager.uid,
+                    centerX: this.mainView.camera.centerX,
+                    centerY: this.mainView.camera.centerY
+                });
+            }
+        } else {
+            this.appManager.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
+            this.mainView.moveCameraToContain(rectangle);
+            setTimeout(() => {
+                if (!this.appManager) return;
+                this.appManager.mainViewProxy.storeSize({
+                    id: this.appManager.uid,
+                    width: rectangle.width,
+                    height: rectangle.height,
+                });
+
+                if (!isEmpty(camera) && this.appManager.mainViewProxy.camera$.value) {
+                    this.appManager.mainViewProxy.storeCamera({
+                        ...this.appManager.mainViewProxy.camera$.value,
+                        id: this.appManager.uid,
+                        centerX: this.mainView.camera.centerX,
+                        centerY: this.mainView.camera.centerY
+                    });
+                }
+            }, 200);
         }
     }
 
