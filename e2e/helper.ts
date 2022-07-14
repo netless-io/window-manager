@@ -2,14 +2,7 @@ import { request } from "@playwright/test";
 import type { Page, JSHandle, Browser } from "@playwright/test";
 
 export const getWindow = async (page: Page): Promise<JSHandle> => {
-    const handle = await page.evaluateHandle(() => ({ window }));
-    const properties = await handle.getProperties();
-    const window = properties.get("window");
-    if (window) {
-        return window;
-    } else {
-        throw new Error("window is not found");
-    }
+    return await page.evaluateHandle("window");
 };
 
 export const gotoRoom = async (page: Page, uuid: string, token: string) => {

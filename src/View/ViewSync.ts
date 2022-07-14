@@ -1,4 +1,4 @@
-import { ViewMode, AnimationMode, Size } from "white-web-sdk";
+import { ViewMode, AnimationMode } from "white-web-sdk";
 import { CameraSynchronizer, computedMinScale } from "./CameraSynchronizer";
 import { combine } from "value-enhancer";
 import { SideEffectManager } from "side-effect-manager";

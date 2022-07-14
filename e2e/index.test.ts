@@ -11,7 +11,7 @@ test.describe("正常流程", () => {
         const handle = await getWindow(page);
         await handle.evaluate(async window => {
             window.manager.queryAll().forEach(app => app.close())
-        });
+        })
         await page.waitForTimeout(1000);
     });
 

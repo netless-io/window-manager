@@ -48,11 +48,14 @@ export class CameraSynchronizer {
         this.remoteSize = size;
         const needMoveCamera = !isEqual(pick(this.rect, ["width", "height"]), pick(size, ["width", "height"]));
         if (this.rect && this.remoteCamera && needMoveCamera) {
-            const scale = this.rect.width / size.width;
-            const nextScale = this.remoteCamera.scale * scale;
-            this.moveCamera({
-                scale: nextScale,
-            })
+            if (!this.view) return;
+            const currentCamera = this.view.camera;
+            this.view?.moveCameraToContain({
+                width: size.width,
+                height: size.height,
+                originX: currentCamera.centerX - (size.width / 2),
+                originY: currentCamera.centerY - (size.height / 2),
+            });
         }
     }
 

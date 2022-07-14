@@ -10,7 +10,7 @@ import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { AnimationMode, InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
-import { isEqual, isNull, isObject, isNumber, isEmpty } from "lodash";
+import { isEqual, isNull, isObject, isNumber } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -44,7 +44,6 @@ import type {
     Player,
     ImageInformation,
     SceneState,
-    Rectangle,
     Size
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
@@ -835,52 +834,64 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         }
     }
 
-    public moveCameraToContain(rectangle: Rectangle & { animationMode?: AnimationMode }): void {
-        if (!this.appManager) return;
-        const camera: Partial<Camera> = {};
-        if (isNumber(rectangle.originX)) {
-            camera.centerX = rectangle.originX;
-        }
-        if (isNumber(rectangle.originY)) {
-            camera.centerY = rectangle.originY;
-        }
-        if (rectangle.animationMode === AnimationMode.Immediately) {
-            this.appManager.mainViewProxy.storeSize({
-                id: this.appManager.uid,
-                width: rectangle.width,
-                height: rectangle.height,
-            });
-            this.mainView.moveCameraToContain(rectangle);
-            if (!isEmpty(camera) && this.appManager.mainViewProxy.camera$.value) {
-                this.appManager.mainViewProxy.storeCamera({
-                    ...this.appManager.mainViewProxy.camera$.value,
-                    id: this.appManager.uid,
-                    centerX: this.mainView.camera.centerX,
-                    centerY: this.mainView.camera.centerY
-                });
-            }
-        } else {
-            this.appManager.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
-            this.mainView.moveCameraToContain(rectangle);
-            setTimeout(() => {
-                if (!this.appManager) return;
-                this.appManager.mainViewProxy.storeSize({
-                    id: this.appManager.uid,
-                    width: rectangle.width,
-                    height: rectangle.height,
-                });
+    // public moveCameraToContain(rectangle: Rectangle & { animationMode?: AnimationMode }): void {
+    //     this.setBaseSize(rectangle);
+    //     const centerX = rectangle.originX + (rectangle.width / 2);
+    //     const centerY = rectangle.originY + (rectangle.height / 2);
+    //     setTimeout(() => {
+    //         this.moveCamera({ centerX, centerY, animationMode: rectangle.animationMode });
+    //     }, 500);
+    //     // if (!this.appManager) return;
+    //     // const camera: Partial<Camera> = {};
+    //     // if (isNumber(rectangle.originX)) {
+    //     //     camera.centerX = rectangle.originX;
+    //     // }
+    //     // if (isNumber(rectangle.originY)) {
+    //     //     camera.centerY = rectangle.originY;
+    //     // }
+    //     // if (rectangle.animationMode === AnimationMode.Immediately) {
+    //     //     this.appManager.mainViewProxy.storeSize({
+    //     //         id: this.appManager.uid,
+    //     //         width: rectangle.width,
+    //     //         height: rectangle.height,
+    //     //     });
+    //     //     this.mainView.moveCameraToContain(rectangle);
+    //     //     if (!isEmpty(camera) && this.appManager.mainViewProxy.camera$.value) {
+    //     //         this.appManager.mainViewProxy.storeCamera({
+    //     //             ...this.appManager.mainViewProxy.camera$.value,
+    //     //             id: this.appManager.uid,
+    //     //             centerX: this.mainView.camera.centerX,
+    //     //             centerY: this.mainView.camera.centerY
+    //     //         });
+    //     //     }
+    //     // } else {
+    //     //     this.appManager.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
+    //     //     this.mainView.moveCameraToContain(rectangle);
+    //     //     if (!this.baseCamera) return;
+    //     //     const remoteSize = rectangle;
+    //     //     const currentSize = this.boxManager?.stageRect;
+    //     //     if (!currentSize) return;
+    //     //     const nextScale = this.baseCamera.scale * computedMinScale(remoteSize, currentSize);
+    //     //     setTimeout(() => {
+    //     //         if (!this.appManager) return;
+    //     //         this.appManager.mainViewProxy.storeSize({
+    //     //             id: this.appManager.uid,
+    //     //             width: rectangle.width,
+    //     //             height: rectangle.height,
+    //     //         });
 
-                if (!isEmpty(camera) && this.appManager.mainViewProxy.camera$.value) {
-                    this.appManager.mainViewProxy.storeCamera({
-                        ...this.appManager.mainViewProxy.camera$.value,
-                        id: this.appManager.uid,
-                        centerX: this.mainView.camera.centerX,
-                        centerY: this.mainView.camera.centerY
-                    });
-                }
-            }, 200);
-        }
-    }
+    //     //         if (!isEmpty(camera) && this.appManager.mainViewProxy.camera$.value) {
+    //     //             this.appManager.mainViewProxy.storeCamera({
+    //     //                 ...this.appManager.mainViewProxy.camera$.value,
+    //     //                 id: this.appManager.uid,
+    //     //                 centerX: this.mainView.camera.centerX,
+    //     //                 centerY: this.mainView.camera.centerY,
+    //     //                 scale: nextScale
+    //     //             });
+    //     //         }
+    //     //     }, 500);
+    //     // }
+    // }
 
     public convertToPointInWorld(point: Point): Point {
         return this.mainView.convertToPointInWorld(point);
