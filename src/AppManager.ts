@@ -472,16 +472,25 @@ export class AppManager {
             if (appIds.length === 0) {
                 this.appCreateQueue.emitReady();
             }
-            const appsWithCreatedAt = appIds.map(appId => {
+            let appsWithCreatedAt = appIds.map(appId => {
                 if (apps[appId].setup) {
                     return {
                         id: appId,
                         createdAt: apps[appId].createdAt,
                     };
                 } else {
-                    return {}
+                    return {};
                 }
             });
+            // 兼容 1.0 之前版本的回放, 回放时直接过判断 setup 直接创建 app
+            if (this.isReplay) {
+                appsWithCreatedAt = appIds.map(appId => {
+                    return {
+                        id: appId,
+                        createdAt: apps[appId].createdAt,
+                    };
+                });
+            }
             for (const { id } of orderBy(appsWithCreatedAt, "createdAt", "asc")) {
                 if (id && !this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
