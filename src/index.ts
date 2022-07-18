@@ -135,18 +135,18 @@ export type MountParams = {
     container?: HTMLElement;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
-    /** @deprecated */
-    chessboard?: boolean;
     collectorContainer?: HTMLElement;
     collectorStyles?: Partial<CSSStyleDeclaration>;
     overwriteStyles?: string;
-    containerStyle?: string;
-    stageStyle?: string;
     cursor?: boolean;
     debug?: boolean;
     disableCameraTransform?: boolean;
     prefersColorScheme?: TeleBoxColorScheme;
+    /** @deprecated */
+    chessboard?: boolean;
     applianceIcons?: ApplianceIcons;
+    containerStyle?: string;
+    stageStyle?: string;
     fullscreen?: TeleBoxFullscreen;
     /** Custom `style` attribute value for content area of all boxes. Can be overwritten by box. */
     defaultBoxBodyStyle?: string | null;

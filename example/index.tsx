@@ -88,9 +88,9 @@ const mountManager = async (room, root) => {
         console.log("pageStateChange", state);
     });
 
-    manager.emitter.on("baseCameraChange", camera => {
-        console.log("baseCameraChange", camera);
-    });
+    // manager.emitter.on("baseCameraChange", camera => {
+        // console.log("baseCameraChange", camera);
+    // });
 };
 
 const replay = () => {

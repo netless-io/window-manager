@@ -66,6 +66,13 @@ test.describe("视角同步", () => {
         });
         await page.waitForTimeout(1000);
         const camera1 = await handle.evaluate(w => w.manager.mainView.camera);
+        const originSize = page2.page.viewportSize();
+        if (originSize) {
+            await page2.page.setViewportSize({ width: originSize.width + 200, height: originSize.height + 200 });
+            const resizedCamera = await page2.handle.evaluate(w => w.manager.mainView.camera);
+            expect(camera1.scale).toBeLessThan(resizedCamera.scale);
+            await page2.page.setViewportSize({ width: originSize.width, height: originSize.height });
+        }
         const camera2 = await page2.handle.evaluate(w => w.manager.mainView.camera);
         expect(camera1).toEqual(camera2);
         await page.close();

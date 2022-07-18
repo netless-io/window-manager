@@ -1,7 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@netless/app-slide': ^0.2.0
+  '@netless/app-slide': ^0.2.2
   '@netless/video-js-plugin': ^0.3.7
   normalize.css: ^8.0.1
   p-queue: ^7.1.0
@@ -12,7 +12,7 @@ specifiers:
   white-web-sdk: npm:white-web-sdk-esm@2.16.24
 
 dependencies:
-  '@netless/app-slide': 0.2.0
+  '@netless/app-slide': 0.2.2
   '@netless/video-js-plugin': 0.3.8_bsbjo3bce2xgq2fleqqtxcorju
   normalize.css: 8.0.1
   p-queue: 7.2.0
@@ -37,8 +37,8 @@ packages:
     resolution: {integrity: sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==}
     dev: false
 
-  /@netless/app-slide/0.2.0:
-    resolution: {integrity: sha512-kKJyTVLE4pWLzhjllw7tNEZ42ghBgBiSMA1HtsUbzTBRHb2869oD/Jd+nLW9i59411yyg9TCF9hJckamozHbew==}
+  /@netless/app-slide/0.2.2:
+    resolution: {integrity: sha512-2+EFJUT5PHDbcgfIP1P2/BKE/c/I+Etr9YD0y4zSym2UoqS3GyZWgQLIES1d2nQVnaRomOjppighlbNZ/ccbZA==}
     dev: false
 
   /@netless/canvas-polyfill/0.0.4:
@@ -213,6 +213,7 @@ packages:
 
   /core-js/3.21.1:
     resolution: {integrity: sha512-FRq5b/VMrWlrmCzwRrpDYNxyHP9BcAZC+xHJaqTgIE5091ZV1NTmyh0sGOg5XqpnHvR0svdy0sv1gWA1zmhxig==}
+    deprecated: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
     requiresBuild: true
     dev: false
 
