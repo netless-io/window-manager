@@ -261,6 +261,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             containerStyle: params.containerStyle,
             stageStyle: params.stageStyle,
             fullscreen: params.fullscreen,
+            theme: params.theme,
         });
         manager.appManager?.setBoxManager(manager.boxManager);
         if (params.container) {
