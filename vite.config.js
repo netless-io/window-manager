@@ -5,8 +5,8 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
 import { omit } from "lodash";
 
-export default defineConfig(({ mode }) => {
-    const isProd = mode === "production";
+export default defineConfig(() => {
+    // const isProd = mode === "production";
 
     return {
         test: {
@@ -40,7 +40,8 @@ export default defineConfig(({ mode }) => {
                 entry: path.resolve(__dirname, "src/index.ts"),
                 formats: ["es", "umd", "cjs"],
                 name: "WindowManager",
-                fileName: "index"
+                fileName: "index",
+
             },
             outDir: "dist",
             rollupOptions: {
@@ -49,7 +50,7 @@ export default defineConfig(({ mode }) => {
                     ...peerDependencies,
                 }),
             },
-            minify: isProd
+            minify: false
         },
     };
 })

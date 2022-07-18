@@ -171,21 +171,30 @@ const cleanCurrentScene = (manager: WindowManager) => {
     manager.cleanCurrentScene()
 }
 
+const moveScale = (manager: WindowManager) => {
+    const nextScale = manager.baseCamera.scale + 0.5;
+    manager.moveCamera({ scale: nextScale });
+}
+
 const App = () => {
     const [pageState, setPageState] = useState({});
     const ref = useRef();
+    const [scale, setScale] = useState(1);
 
     useEffect(() => {
         joinRoom(ref.current).then(() => {
             if (manager) {
                 setPageState(manager.pageState);
+                setScale(manager.baseCamera?.scale);
+                manager.emitter.on("baseCameraChange", camera => {
+                    setScale(camera.scale);
+                });
                 return manager.emitter.on("pageStateChange", state => {
                     setPageState(state);
                 });
             }
         });
     }, [ref]);
-    
 
     return (
         <div className="app">
@@ -234,6 +243,11 @@ const App = () => {
                     清屏
                 </button>
                 <span>{pageState.index}/{pageState.length}</span>
+                <br />
+                <span>{Number(scale).toFixed(2)}</span>
+                <button className="side-button" onClick={() => moveScale(manager)}>
+                    scale
+                </button>
             </div>
         </div>
     );

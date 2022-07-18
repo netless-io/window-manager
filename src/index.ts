@@ -185,6 +185,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     private static params?: MountParams;
 
     private cameraUpdating = 0;
+    private nextCamera: Camera | null = null;
 
     public containerSizeRatio = WindowManager.containerSizeRatio;
 
@@ -834,26 +835,31 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
                 this.mainView.moveCamera(camera);
             }
             this.appManager.dispatchInternalEvent(Events.MoveCamera, camera);
-            const onCameraUpdated = () => {
-                if (this.cameraUpdating) {
-                    clearTimeout(this.cameraUpdating);
-                }
-                this.cameraUpdating = setTimeout(() => {
-                    this.mainView.callbacks.off("onCameraUpdated", onCameraUpdated);
-                    clearTimeout(this.cameraUpdating);
-                    this.cameraUpdating = 0;
-                    if (!this.appManager) return;
-                    this.appManager.mainViewProxy.storeCamera({
-                        id: this.appManager.uid,
-                        ...nextCamera
-                    });
-                }, 50);
-            }
-            this.mainView.callbacks.off("onCameraUpdated", onCameraUpdated);
-            this.mainView.callbacks.on("onCameraUpdated", onCameraUpdated);
-            
+            this.mainView.callbacks.off("onCameraUpdated", this.onCameraUpdated);
+            clearTimeout(this.cameraUpdating);
+            this.cameraUpdating = 0;
+            this.mainView.callbacks.on("onCameraUpdated", this.onCameraUpdated);
+            this.nextCamera = nextCamera;
         }
     };
+
+    private onCameraUpdated = () => {
+        if (this.cameraUpdating) {
+            clearTimeout(this.cameraUpdating);
+            this.cameraUpdating = 0;
+        }
+        this.cameraUpdating = setTimeout(() => {
+            this.mainView.callbacks.off("onCameraUpdated", this.onCameraUpdated);
+            clearTimeout(this.cameraUpdating);
+            this.cameraUpdating = 0;
+            if (!this.appManager || !this.nextCamera) return;
+            this.appManager.mainViewProxy.storeCamera({
+                id: this.appManager.uid,
+                ...this.nextCamera
+            });
+            this.nextCamera = null;
+        }, 50);
+    }
 
     public convertToPointInWorld(point: Point): Point {
         return this.mainView.convertToPointInWorld(point);
