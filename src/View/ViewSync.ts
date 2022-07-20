@@ -30,7 +30,25 @@ export class ViewSync {
     private synchronizer: CameraSynchronizer;
 
     constructor(private context: ViewSyncContext) {
-        this.synchronizer = new CameraSynchronizer((camera: ICamera) => {
+        this.synchronizer = this.createSynchronizer();
+        this.bindView(this.context.view$.value);
+        this.sem.add(() => [
+            this.subscribeView(),
+            this.subscribeCamera(),
+            this.subscribeSize(),
+            this.subscribeStageRect(),
+        ]);
+        const camera$size$ = combine([this.context.camera$, this.context.size$]);
+        camera$size$.reaction(([camera, size]) => {
+            if (camera && size) {
+                this.synchronizer.onRemoteUpdate(camera, size);
+                camera$size$.destroy();
+            }
+        });
+    }
+
+    private createSynchronizer = () => {
+        return new CameraSynchronizer((camera: ICamera) => {
             this.context.camera$.setValue(camera, true);
             const notStoreCamera =
                 this.context.viewMode$ && this.context.viewMode$.value === ViewMode.Freedom;
@@ -40,42 +58,44 @@ export class ViewSync {
                 this.context.storeCamera(camera);
             }
         });
-        this.bindView(this.context.view$.value);
-        this.sem.add(() => [
-            this.context.view$.subscribe(view => {
-                const currentCamera = this.context.camera$.value;
-                if (currentCamera && this.context.size$.value) {
-                    view?.moveCamera({
-                        scale: 1,
-                        animationMode: AnimationMode.Immediately,
-                    });
-                    this.synchronizer.onRemoteUpdate(currentCamera, this.context.size$.value);
-                }
+    }
 
-                this.bindView(view);
-            }),
-            this.context.camera$.subscribe((camera, skipUpdate) => {
-                const size = this.context.size$.value;
-                if (camera && size && !skipUpdate) {
-                    this.synchronizer.onRemoteUpdate(camera, size);
-                }
-            }),
-            this.context.size$.subscribe(size => {
-                if (size) {
-                    this.synchronizer.onRemoteSizeUpdate(size);
-                }
-            }),
-            this.context.stageRect$.subscribe(rect => {
-                if (rect) {
-                    this.synchronizer.setRect(rect);
-                }
-            })
-        ]);
-        const camera$size$ = combine([this.context.camera$, this.context.size$]);
-        camera$size$.reaction(([camera, size]) => {
+    private subscribeView = () => {
+        return this.context.view$.subscribe(view => {
+            const currentCamera = this.context.camera$.value;
+            if (currentCamera && this.context.size$.value) {
+                view?.moveCamera({
+                    scale: 1,
+                    animationMode: AnimationMode.Immediately,
+                });
+                this.synchronizer.onRemoteUpdate(currentCamera, this.context.size$.value);
+            }
+            this.bindView(view);
+        });
+    }
+
+    private subscribeCamera = () => {
+        return this.context.camera$.subscribe((camera, skipUpdate) => {
+            if (skipUpdate) return;
+            const size = this.context.size$.value;
             if (camera && size) {
                 this.synchronizer.onRemoteUpdate(camera, size);
-                camera$size$.destroy();
+            }
+        });
+    }
+
+    private subscribeSize = () => {
+        return this.context.size$.subscribe(size => {
+            if (size) {
+                this.synchronizer.onRemoteSizeUpdate(size);
+            }
+        });
+    }
+
+    private subscribeStageRect = () => {
+        return this.context.stageRect$.subscribe(rect => {
+            if (rect) {
+                this.synchronizer.setRect(rect);
             }
         });
     }
