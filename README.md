@@ -1,214 +1,240 @@
 # WindowManager
 
-- 目录
-  - [概念](docs/concept.md)
+[中文](./README.zh-cn.md)
+
+`WindowManager` is a window management system based on `white-web-sdk` `InvisiblePlugin` implementation.
+
+This application provides the following.
+
+1. provides `NetlessApp` plug-in `API` system
+2. support `APP` to open as a window
+3. support application synchronization in each end
+4. cursor synchronization
+5. view angle following
+
+## Content list
+  - [Install](#Install)
+  - [QuickStart](#QuickStart)
+  - [concept](docs/concept.md)
   - [references](docs/api.md)
-  - [从白板迁移](docs/migrate.md)
-  - [回放](docs/replay.md)
-  - [进阶使用](docs/advanced.md)
-    - [视角跟随](docs/advanced.md#view-mode)
-  - [开发自定义 APP](docs/develop-app.md)
-## MainView
+  - [migration from whiteboard](docs/migrate.md)
+  - [replay](docs/replay.md)
+  - [advanced use](docs/advanced.md)
+    - [view-follow](docs/advanced.md#view-mode)
+  - [Develop custom APP](docs/develop-app.md)
 
-`MainView` 也就是主白板, 是垫在所有窗口下面的主白板
+## Install
 
-因为多窗口的原因，所以抽象出来一个主白板, 并且把以前部分对 `room` 的操作, 迁移到对 `mainView` 操作
+pnpm
+```sh
+$ pnpm install @netless/window-manager
+```
+yarn
+```sh
+$ yarn install @netless/window-manager
+```
 
-### 快速开始
+## QuickStart
 
 ```javascript
-import { WhiteWebSdk } from "white-web-sdk";
+import { White-WebSdk } from "white-web-sdk";
 import { WindowManager, BuiltinApps } from "@netless/window-manager";
 import "@netless/window-manager/dist/style.css";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: "appIdentifier",
-    useMobXState: true // 请确保打开这个选项
+    useMobXState: true // make sure this option is turned on
 });
 
 sdk.joinRoom({
     uuid: "room uuid",
     roomToken: "room token",
     invisiblePlugins: [WindowManager],
-    useMultiViews: true, // 多窗口必须用开启 useMultiViews
-    disableMagixEventDispatchLimit: true, // 请确保打开这个选项
+    useMultiViews: true, // Multi-window must be enabled with useMultiViews
+    disableMagixEventDispatchLimit: true, // Make sure this option is turned on
 }).then(async room => {
     const manager = await WindowManager.mount(
         room,
         container
-        // 完整配置见下方
+        // See below for full configuration
     );
 });
 ```
 
-[mount 完整参数](docs/api.md#mount)
+[mount full parameter](docs/api.md#mount)
+
+> ``containerSizeRatio`` In order to ensure that the window is displayed at different resolutions, the whiteboard can only be synchronized in the same scale area
 
 
-> `containerSizeRatio` 为了保证窗口在不同分辨率下显示效果, 白板在相同的比例区域才能进行同步
+## MainView
 
-> `chessboard` 当挂载的区域不完全符合比例时, 白板会在挂载的 dom 中划分一个符合比例的区域出来, 此时多出来的部分会默认显示为棋盘透明背景
+`MainView`, the main whiteboard, is the main whiteboard that sits underneath all windows.
+
+Because of the multiple windows, we abstracted out a main whiteboard, and migrated some of the previous operations on `room` to `mainView` operations
+
+
 
 ### `collector`
 
-> `collector` 就是窗口最小化时的图标, 默认大小 `width: 40px;` `height: 40px;`
+> `collector` is the icon when the window is minimized, default size `width: 40px;` `height: 40px;`
 
 
-### 光标同步
+### Cursor synchronization
 
-> 原本的 `SDK` 中的 `cursorAdapter` 在多窗口中不可用, 如需要光标同步功能需要在 `manager` 中开启 `cursor` 选项
+> The original `cursorAdapter` in `SDK` is not available in multi-window, if you need cursor synchronization, you need to enable `cursor` option in `manager`.
 
 ```typescript
 sdk.joinRoom({
-    // cursorAdapter: cursorAdapter, 原本开启 sdk 中的 cursorAdapter 需要关闭
+    // cursorAdapter: cursorAdapter, the original cursorAdapter in sdk needs to be turned off
     userPayload: {
-        userId: "用户 id",
-        cursorName: "光标名称",
-        avatar: "用户头像链接",
+        userId: "user id",
+        cursorName: "cursor name",
+        avatar: "User avatar link",
     },
 });
 
 WindowManager.mount({
-    cursor: true, // 开启光标同步
+    cursor: true, // turn on cursor synchronization
 });
 ```
 
 ## APP
 
-静态和动态 PPT 是作为 `App` 插入到白板, 并持久化到白板中
+Static and dynamic PPTs are inserted into the whiteboard as `App`, and persisted to the whiteboard
 
-`App` 或会在页面刷新时自动创建出来, 不需要重复插入
+`App` may be created automatically when the page is refreshed, no need to insert it repeatedly
 
-如果 `App` 需要 `scenePath` 时，那么一个 `scenePath` 只能同时打开一个，要求为 `App` 实例唯一
+If the `App` requires a `scenePath`, then a `scenePath` can only be opened at the same time, requiring a unique `App` instance
 
-### 添加静态/动态 PPT 到白板上
+### Add static/dynamic PPT to whiteboard
 
 ```javascript
 const appId = await manager.addApp({
     kind: BuiltinApps.DocsViewer,
     options: {
         scenePath: "/docs-viewer",
-        title: "docs1", // 可选
-        scenes: [], // SceneDefinition[] 静态/动态 Scene 数据
+        title: "docs1", // optional
+        scenes: [], // SceneDefinition[] Static/Dynamic Scene data
     },
 });
 ```
 
-### 添加音视频到白板
+### Add audio and video to the whiteboard
 
 ```javascript
 const appId = await manager.addApp({
     kind: BuiltinApps.MediaPlayer,
     options: {
-        title: "test.mp3", // 可选
+        title: "test.mp3", // optional
     },
     attributes: {
-        src: "xxxx", // 音视频 url
+        src: "xxxx", // audio/video url
     },
 });
 ```
 
-### 设置跟随模式
+### Set follow mode
 
-只有广播端也就是老师需要设置跟随模式, 其他端的主白板都会跟随广播端的视角
+Only the broadcast side, i.e. the teacher, needs to set the follow mode, the other side of the main whiteboard will follow the view of the broadcast side
 
-> 注意 `manager` 的 `setViewMode` 不能和 `room.setViewMode` 同时使用
+> Note that `manager`'s `setViewMode` cannot be used at the same time as `room.setViewMode`.
 
 ```javascript
-manager.setViewMode("broadcaster"); // 开启跟随模式
-manager.setViewMode("freedom"); // 关闭跟随模式
+manager.setViewMode("broadcaster"); // turn on follow mode
+manager.setViewMode("freedom"); // turn off follow mode
 ```
 
-获取当前的 `broadcaster` ID
+Get the current `broadcaster` ID
 ```javascript
 manager.broadcaster
 ```
 
-### 设置所有 `app` 的 `readonly`
+### Set `readonly` for all `app`s
 
 ```javascript
-manager.setReadonly(true); // 所有窗口变成 readonly 状态
-manager.setReadonly(false); // 解锁设置的 readonly, 注意如果当前白板的 isWritable 为 false 以白板的状态为最高优先级
+manager.setReadonly(true); // all windows become readonly
+manager.setReadonly(false); // unlock the readonly setting, note that if the current whiteboard isWritable is false, the whiteboard's state is the highest priority
 ```
 
-### 切换 `mainView` 为可写状态
+### Toggle `mainView` to writable state
 
 ```javascript
 manager.switchMainViewToWriter();
 ```
 
-### 切换 `mainView` `scenePath`
+### Switch `mainView` `scenePath`
 
-切换主白板的 `ScenePath` 并把主白板设置为可写状态
+Switch the `ScenePath` of the main whiteboard and set the main whiteboard to writable state
 
 ```javascript
 manager.setMainViewScenePath(scenePath);
 ```
 
-### 切换 `mainView` `sceneIndex`
+### toggle `mainView` `sceneIndex`
 
-切换主白板的 `SceneIndex` 并把主白板设置为可写状态
+Toggles the `SceneIndex` of the main whiteboard and sets the main whiteboard to writable state
 
 ```javascript
 manager.setMainViewSceneIndex(sceneIndex);
 ```
 
-### 获取 `mainView` `scenePath`
+### Get the `mainView` `scenePath`
 
 ```javascript
 manager.getMainViewScenePath();
 ```
 
-### 获取 `mainView` `sceneIndex`
+### Get `mainView` `sceneIndex`
 
 ```javascript
 manager.getMainViewSceneIndex();
 ```
 
-### 监听 `mainView` 的 `mode`
+### Listen to the `mainView` `mode`
 
 ```javascript
 manager.emitter.on("mainViewModeChange", mode => {
-    // mode 类型为 ViewVisionMode
+    // mode type is ViewVisionMode
 });
 ```
 
-### 监听窗口最大化最小化
+### Listening for window maximization and minimization
 
 ```javascript
 manager.emitter.on("boxStateChange", state => {
     if (state === "maximized") {
-        // 最大化
+        // maximize
     }
     if (state === "minimized") {
-        // 最小化
+        // minimized
     }
     if (state === "normal") {
-        // 恢复正常
+        // return to normal
     }
 });
 ```
 
-### 监听 `broadcaster` 变化
+### Listening for `broadcaster` changes
 ```javascript
 manager.emitter.on("broadcastChange", id => {
-    // broadcast id 进行了改变
+    // broadcast id changed
 })
 
 ```
 
-### 关闭 `App`
+### Close the `App`
 
 ```javascript
 manager.closeApp(appId);
 ```
 
-## 手动销毁 `WindowManager`
+## Manually destroy `WindowManager`
 
 ```javascript
 manager.destroy();
 ```
 
-## 开发流程
+## Development process
 
 ```bash
 pnpm install
