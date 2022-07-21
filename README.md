@@ -1,6 +1,18 @@
 # WindowManager
 
-- 目录
+`WindowManager` 是一个基于 `white-web-sdk` `InvisiblePlugin` 实现的窗口管理系统.
+
+本应用提供了以下内容：
+
+1. 提供 `NetlessApp` 插件 `API` 系统
+2. 支持 `APP` 以窗口的形式打开
+3. 支持应用在各个端的同步
+4. 光标同步
+5. 视角跟随
+
+## 内容列表
+  - [安装](#安装)
+  - [快速开始](#快速开始)
   - [概念](docs/concept.md)
   - [references](docs/api.md)
   - [从白板迁移](docs/migrate.md)
@@ -8,11 +20,17 @@
   - [进阶使用](docs/advanced.md)
     - [视角跟随](docs/advanced.md#view-mode)
   - [开发自定义 APP](docs/develop-app.md)
-## MainView
 
-`MainView` 也就是主白板, 是垫在所有窗口下面的主白板
+## 安装
 
-因为多窗口的原因，所以抽象出来一个主白板, 并且把以前部分对 `room` 的操作, 迁移到对 `mainView` 操作
+pnpm
+```sh
+$ pnpm install @netless/window-manager
+```
+yarn
+```sh
+$ yarn install @netless/window-manager
+```
 
 ### 快速开始
 
@@ -43,10 +61,16 @@ sdk.joinRoom({
 
 [mount 完整参数](docs/api.md#mount)
 
-
 > `containerSizeRatio` 为了保证窗口在不同分辨率下显示效果, 白板在相同的比例区域才能进行同步
 
-> `chessboard` 当挂载的区域不完全符合比例时, 白板会在挂载的 dom 中划分一个符合比例的区域出来, 此时多出来的部分会默认显示为棋盘透明背景
+
+## MainView
+
+`MainView` 也就是主白板, 是垫在所有窗口下面的主白板
+
+因为多窗口的原因，所以抽象出来一个主白板, 并且把以前部分对 `room` 的操作, 迁移到对 `mainView` 操作
+
+
 
 ### `collector`
 
