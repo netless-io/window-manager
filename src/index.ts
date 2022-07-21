@@ -539,12 +539,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     public async addPage(params?: AddPageParams): Promise<void> {
         if (this.appManager) {
             const after = params?.after;
-            const scene = params?.scene;
+            const scene = params?.scene || {};
+            const scenes = Array.isArray(scene) ? scene : [scene];
             if (after) {
                 const nextIndex = this.mainViewSceneIndex + 1;
-                this.room.putScenes(ROOT_DIR, [scene || {}], nextIndex);
+                this.room.putScenes(ROOT_DIR, scenes, nextIndex);
             } else {
-                this.room.putScenes(ROOT_DIR, [scene || {}]);
+                this.room.putScenes(ROOT_DIR, scenes);
             }
         }
     }

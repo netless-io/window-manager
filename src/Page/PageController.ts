@@ -2,7 +2,7 @@ import type { SceneDefinition } from "white-web-sdk";
 
 export type AddPageParams = {
     after?: boolean;
-    scene?: SceneDefinition;
+    scene?: SceneDefinition | SceneDefinition[];
 };
 
 export type PageState = {
