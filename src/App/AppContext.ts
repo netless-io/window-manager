@@ -180,10 +180,11 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
         return this.manager.members$.value;
     }
 
-    public get currentMember(): Member {
+    //** currentMember is undefined in read-only and replay mode. */
+    public get currentMember(): Member | undefined {
         const self = findMemberByUid(this.room, this.manager.uid);
         if (!self) {
-            throw new Error(`Member ${this.manager.uid} not found.`);
+            return undefined;
         }
         return {
             uid: this.manager.uid,

@@ -88,6 +88,10 @@ const mountManager = async (room, root) => {
         console.log("pageStateChange", state);
     });
 
+    manager.emitter.on("boxStateChange", boxState => {
+        console.log("boxStateChange", boxState);
+    })
+
     // manager.emitter.on("baseCameraChange", camera => {
         // console.log("baseCameraChange", camera);
     // });
