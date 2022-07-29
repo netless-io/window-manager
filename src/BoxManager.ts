@@ -108,6 +108,18 @@ export class BoxManager {
             callbacks.emit("prefersColorSchemeChange", colorScheme);
         });
 
+        // ppt 在最小化后刷新恢复正常大小，拿不到正确的宽高，需要手动触发一下窗口的 resize
+        this.teleBoxManager._minimized$.reaction(minimized => {
+            if (!minimized) {
+                setTimeout(() => {
+                    const offset = 0.001 * (Math.random() > 0.5 ? 1 : -1);
+                    this.teleBoxManager.boxes.forEach(box => {
+                        box.resize(box.intrinsicWidth + offset, box.intrinsicHeight + offset, true);
+                    });
+                }, 400);
+            }
+        });
+
         // events.on 的值则会根据 skipUpdate 来决定是否触发回调
         this.teleBoxManager.events.on("minimized", minimized => {
             this.context.safeSetAttributes({ minimized });
@@ -120,14 +132,6 @@ export class BoxManager {
                     this.context.setAppFocus(topBox.id);
                     this.focusBox({ appId: topBox.id }, false);
                 }
-                // ppt 在最小化后刷新恢复正常大小，拿不到正确的宽高，需要手动触发一下窗口的 resize
-                setTimeout(() => {
-                    this.teleBoxManager.boxes.forEach(box => {
-                        const width = box.width;
-                        const height = box.height;
-                        box._size$.setValue({ width: width + 0.001, height:  height + 0.001 }, true);
-                    });
-                }, 100);
             }
         });
         this.teleBoxManager.events.on("maximized", maximized => {
