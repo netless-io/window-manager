@@ -473,7 +473,8 @@ export class AppManager {
                 this.appCreateQueue.emitReady();
             }
             let appsWithCreatedAt = appIds.map(appId => {
-                if (apps[appId].setup) {
+                // 兼容 1.0 之前创建的应用
+                if (apps[appId].setup === true || apps[appId].setup === undefined) {
                     return {
                         id: appId,
                         createdAt: apps[appId].createdAt,
