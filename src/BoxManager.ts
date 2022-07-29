@@ -120,6 +120,14 @@ export class BoxManager {
                     this.context.setAppFocus(topBox.id);
                     this.focusBox({ appId: topBox.id }, false);
                 }
+                // ppt 在最小化后刷新恢复正常大小，拿不到正确的宽高，需要手动触发一下窗口的 resize
+                setTimeout(() => {
+                    this.teleBoxManager.boxes.forEach(box => {
+                        const width = box.width;
+                        const height = box.height;
+                        box._size$.setValue({ width: width + 0.001, height:  height + 0.001 }, true);
+                    });
+                }, 100);
             }
         });
         this.teleBoxManager.events.on("maximized", maximized => {
