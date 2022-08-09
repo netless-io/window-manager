@@ -841,7 +841,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
             this.cameraUpdating = 0;
             this.mainView.callbacks.on("onCameraUpdated", this.onCameraUpdated);
             if (nextScale) {
-                this.nextCamera = { ...nextCamera, scale: nextScale };
+                this.nextCamera = nextCamera;
             }
         }
     };
