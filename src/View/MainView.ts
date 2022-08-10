@@ -39,7 +39,9 @@ export class MainViewProxy {
         });
         this.sideEffectManager.add(() => {
             return emitter.on("startReconnect", () => {
-                this.mainView.release();
+                if (!this.didRelease) {
+                    this.mainView.release();
+                }
             });
         });
     }
