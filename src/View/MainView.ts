@@ -119,9 +119,6 @@ export class MainViewProxy {
     public onUpdateContainerSizeRatio = () => {
         const size = this.store.getMainViewSize();
         this.sizeChangeHandler(size);
-        if (size.id === this.manager.uid) {
-            this.setCameraAndSize();
-        }
     }
 
     public get view(): View {
