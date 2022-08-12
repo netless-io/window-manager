@@ -1,3 +1,5 @@
+import type { AppRegister } from "./index";
+
 const DatabaseName = "__WindowManagerAppCache";
 
 let db: IDBDatabase;
@@ -5,27 +7,37 @@ let store: IDBObjectStore;
 
 export type Item = {
     kind: string;
+    url: string;
     sourceCode: string;
 }
 
-export const initDb = async () => {
+export const initDb = async (appRegister: AppRegister) => {
     db = await createDb();
+    const items = await queryAll(db);
+    items.forEach(item => {
+        appRegister.downloaded.set(item.kind, item.url);
+    });
 }
 
-export const setItem = (key: string, val: any) => {
+export const setItem = (kind: string, url: string, val: any) => {
     if (!db) return;
-    return addRecord(db, { kind: key, sourceCode: val })
+    return addRecord(db, { kind, url, sourceCode: val })
 };
 
-export const getItem = async (key: string): Promise<Item | null> => {
+export const getItem = async (kind: string): Promise<Item | null> => {
     if (!db) return null;
-    return await query(db, key);
+    return await query(db, kind);
 };
 
 export const removeItem = (key: string) => {
     if (!db) return;
     return deleteRecord(db, key);
 };
+
+export const getAll = () => {
+    if (!db) return;
+    return queryAll(db);
+}
 
 function createDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -62,6 +74,15 @@ function query<T>(db: IDBDatabase, val: string): Promise<T | null> {
             }
         }
     })
+}
+
+function queryAll(db: IDBDatabase): Promise<Item[]> {
+    return new Promise((resolve, reject) => {
+        const index = db.transaction(["apps"]).objectStore("apps").index("kind");
+        const request = index.getAll();
+        request.onerror = e => reject(e);
+        request.onsuccess = () => resolve(request.result);
+    });
 }
 
 function addRecord(db: IDBDatabase, payload: any): Promise<void> {

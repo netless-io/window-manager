@@ -166,6 +166,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     public static debug = false;
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     private static isCreated = false;
+    public static registry = appRegister;
 
     public version = __APP_VERSION__;
     public dependencies = __APP_DEPENDENCIES__;
@@ -198,14 +199,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     public static async mount(params: MountParams): Promise<WindowManager> {
         const room = params.room;
         WindowManager.container = params.container;
-
         const debug = params.debug;
-
         const cursor = params.cursor;
         WindowManager.params = params;
         WindowManager.displayer = params.room;
-        checkVersion();
         let manager: WindowManager | undefined = undefined;
+
+        checkVersion();
         if (isRoom(room)) {
             if (room.phase !== RoomPhase.Connected) {
                 throw new Error("[WindowManager]: Room only Connected can be mount");
@@ -273,7 +273,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
         emitter.emit("onCreated");
         WindowManager.isCreated = true;
         try {
-            await initDb();
+            await initDb(appRegister);
         } catch (error) {
             console.warn("[WindowManager]: indexedDB open failed");
             console.log(error);

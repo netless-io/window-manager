@@ -1,6 +1,7 @@
 import Emittery from "emittery";
 import { loadApp } from "./loader";
 import type { NetlessApp, RegisterEvents, RegisterParams } from "../typings";
+import { removeItem } from "./storage";
 
 export type LoadAppEvent = {
     kind: string;
@@ -11,11 +12,12 @@ export type LoadAppEvent = {
 export type SyncRegisterAppPayload =  { kind: string, src: string, name: string | undefined };
 export type SyncRegisterApp = (payload: SyncRegisterAppPayload) => void;
 
-class AppRegister {
+export class AppRegister {
     public kindEmitters: Map<string, Emittery<RegisterEvents>> = new Map();
     public registered: Map<string, RegisterParams> = new Map();
     public appClassesCache: Map<string, Promise<NetlessApp>> = new Map();
     public appClasses: Map<string, () => Promise<NetlessApp>> = new Map();
+    public downloaded: Map<string, string> = new Map();
 
     private syncRegisterApp: SyncRegisterApp | null = null;
 
@@ -74,10 +76,23 @@ class AppRegister {
         }
     }
 
+    public downloadApp(kind: string) {
+        const src = this.registered.get(kind);
+        if (src && typeof src.src === "string") {
+            return loadApp(src.src, src.kind, src.name)
+        }
+    }
+
+    public async removeDownloaded(kind: string) {
+        await removeItem(kind);
+        this.downloaded.delete(kind);
+    }
+
     public unregister(kind: string) {
         this.appClasses.delete(kind);
         this.appClassesCache.delete(kind);
         this.registered.delete(kind);
+        this.removeDownloaded(kind);
         const kindEmitter = this.kindEmitters.get(kind);
         if (kindEmitter) {
             kindEmitter.clearListeners();

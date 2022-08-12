@@ -1,19 +1,20 @@
 import { callbacks } from "../callback";
 import { getItem, setItem } from "./storage";
 import type { NetlessApp } from "../typings";
+import { appRegister } from ".";
 
 const Prefix = "NetlessApp";
 
 const TIMEOUT = 10000; // 下载 script 10 秒超时
 
-export const getScript = async (url: string): Promise<string> => {
-    const item = await getItem(url);
+export const getScript = async (kind: string, url: string): Promise<string> => {
+    const item = await getItem(kind);
     if (item) {
         return item.sourceCode;
     } else {
         const result = await fetchWithTimeout(url, { timeout: TIMEOUT });
         const text = await result.text();
-        await setItem(url, text);
+        await setItem(kind, url, text);
         return text;
     }
 };
@@ -28,6 +29,15 @@ export const executeScript = (text: string, appName: string): NetlessApp => {
     return result;
 };
 
+const emitSuccess = (kind: string, url: string) => {
+    callbacks.emit("loadApp", { kind, status: "success" });
+    appRegister.downloaded.set(kind, url);
+};
+
+const emitFailed = (kind: string, reason: string) => {
+    callbacks.emit("loadApp", { kind, status: "failed", reason, });
+};
+
 export const loadApp = async (
     url: string,
     key: string,
@@ -36,14 +46,14 @@ export const loadApp = async (
     const appName = name || Prefix + key;
     callbacks.emit("loadApp", { kind: key, status: "start" });
     try {
-        const text = await getScript(url);
+        const text = await getScript(key, url);
         if (!text || text.length === 0) {
-            callbacks.emit("loadApp", { kind: key, status: "failed", reason: "script is empty." });
+            emitFailed(key, "script is empty");
             return;
         }
         try {
             const result = executeScript(text, appName);
-            callbacks.emit("loadApp", { kind: key, status: "success" });
+            emitSuccess(key, url);
             return result;
         } catch (error: any) {
             if (error.message.includes("Can only have one anonymous define call per script file")) {
@@ -54,15 +64,16 @@ export const loadApp = async (
                     delete define.amd;
                 }
                 const result = executeScript(text, appName);
-                callbacks.emit("loadApp", { kind: key, status: "success" });
+                emitSuccess(key, url);
                 return result;
             }
-            callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
+            emitFailed(key, error.message);
         }
     } catch (error: any) {
-        callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
+        emitFailed(key, error.message);
     }
 };
+
 
 async function fetchWithTimeout(resource: string, options: RequestInit & { timeout: number }) {
     const { timeout = 10000 } = options;
