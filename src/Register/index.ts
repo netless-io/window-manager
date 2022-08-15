@@ -31,12 +31,19 @@ class AppRegister {
         this.appClassesCache.delete(params.kind);
         this.registered.set(params.kind, params);
 
-        const srcOrAppOrFunction = params.src;
+        const paramSrc = params.src;
+        let srcOrAppOrFunction: () => Promise<NetlessApp>;
         let downloadApp: () => Promise<NetlessApp>;
 
-        if (typeof srcOrAppOrFunction === "string") {
+        if (typeof paramSrc === "string") {
+            srcOrAppOrFunction = () => loadApp(paramSrc, params.kind, params.name);
+            if (this.syncRegisterApp) {
+                this.syncRegisterApp({ kind: params.kind, src: paramSrc, name: params.name });
+            }
+        }
+        if (typeof paramSrc === "function") {
             downloadApp = async () => {
-                let appClass = (await loadApp(srcOrAppOrFunction, params.kind, params.name)) as any;
+                let appClass = await srcOrAppOrFunction() as any;
                 if (appClass) {
                     if (appClass.__esModule) {
                         appClass = appClass.default;
@@ -48,15 +55,10 @@ class AppRegister {
                     );
                 }
             };
-            if (this.syncRegisterApp) {
-                this.syncRegisterApp({ kind: params.kind, src: srcOrAppOrFunction, name: params.name });
-            }
-        } else if (typeof srcOrAppOrFunction === "function") {
-            downloadApp = srcOrAppOrFunction;
-        } else {
-            downloadApp = async () => srcOrAppOrFunction;
         }
-
+        if (typeof paramSrc === "object") {
+            downloadApp = async () => paramSrc;
+        }
         this.appClasses.set(params.kind, async () => {
             let app = this.appClassesCache.get(params.kind);
             if (!app) {

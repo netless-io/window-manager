@@ -28,41 +28,45 @@ export const executeScript = (text: string, appName: string): NetlessApp => {
     return result;
 };
 
-export const loadApp = async (
-    url: string,
-    key: string,
-    name?: string
-): Promise<NetlessApp | undefined> => {
+export const loadApp = async (url: string, key: string, name?: string): Promise<NetlessApp> => {
     const appName = name || Prefix + key;
     callbacks.emit("loadApp", { kind: key, status: "start" });
+
+    let text: string;
     try {
-        const text = await getScript(url);
+        text = await getScript(url);
         if (!text || text.length === 0) {
             callbacks.emit("loadApp", { kind: key, status: "failed", reason: "script is empty." });
-            return;
+            throw new Error("[WindowManager]: script is empty.");
         }
-        try {
+    } catch (error) {
+        callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
+        throw error;
+    }
+    return getResult(text, appName, key);
+};
+
+const getResult = (text: string, appName: string, key: string): NetlessApp => {
+    try {
+        const result = executeScript(text, appName);
+        callbacks.emit("loadApp", { kind: key, status: "success" });
+        return result;
+    } catch (error: any) {
+        if (error.message.includes("Can only have one anonymous define call per script file")) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const define = window.define;
+            if ("function" == typeof define && define.amd) {
+                delete define.amd;
+            }
             const result = executeScript(text, appName);
             callbacks.emit("loadApp", { kind: key, status: "success" });
             return result;
-        } catch (error: any) {
-            if (error.message.includes("Can only have one anonymous define call per script file")) {
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const define = window.define;
-                if ("function" == typeof define && define.amd) {
-                    delete define.amd;
-                }
-                const result = executeScript(text, appName);
-                callbacks.emit("loadApp", { kind: key, status: "success" });
-                return result;
-            }
-            callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
         }
-    } catch (error: any) {
         callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
+        throw error;
     }
-};
+}
 
 async function fetchWithTimeout(resource: string, options: RequestInit & { timeout: number }) {
     const { timeout = 10000 } = options;
