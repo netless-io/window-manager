@@ -1,3 +1,7 @@
+## 0.4.39 (2022-08-11)
+
+- 类型: `Register` 支持 `dynamic import`
+
 ## 0.4.38 (2022-08-11)
 
 - 修复: `setContainerSizeRatio` 动态修改比例重复调用会缩小 `camera` 的问题
