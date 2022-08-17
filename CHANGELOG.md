@@ -1,3 +1,8 @@
+## 0.4.40 (2022-08-12)
+
+- 修复: 适配 `white-web-sdk@2.16.33` 的 `InvisiblePlugin` 类型
+- 修复: 修复加载 `url` 的问题
+
 ## 0.4.39 (2022-08-11)
 
 - 类型: `Register` 支持 `dynamic import`

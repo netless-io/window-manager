@@ -188,6 +188,7 @@ export class AppProxy implements PageRemoveService {
                 this.setViewFocusScenePath();
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
+                    console.log("setup app", app);
                     const result = await app.setup(context);
                     this.appResult = result;
                     appRegister.notifyApp(this.kind, "created", { appId, result });

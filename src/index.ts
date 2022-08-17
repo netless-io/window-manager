@@ -142,7 +142,7 @@ export type MountParams = {
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
 
-export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> implements PageController {
+export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> implements PageController {
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
@@ -218,7 +218,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
                         throw new Error();
                     }
                 },
-                { retries: 10 }
+                { retries: 10 } as any,
             );
         }
 

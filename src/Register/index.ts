@@ -32,18 +32,23 @@ class AppRegister {
         this.registered.set(params.kind, params);
 
         const paramSrc = params.src;
-        let srcOrAppOrFunction: () => Promise<NetlessApp>;
         let downloadApp: () => Promise<NetlessApp>;
 
         if (typeof paramSrc === "string") {
-            srcOrAppOrFunction = () => loadApp(paramSrc, params.kind, params.name);
+            downloadApp = async () => {
+                const result = await loadApp(paramSrc, params.kind, params.name) as any;
+                if (result.__esModule) {
+                    return result.default;
+                }
+                return result;
+            };
             if (this.syncRegisterApp) {
                 this.syncRegisterApp({ kind: params.kind, src: paramSrc, name: params.name });
             }
         }
         if (typeof paramSrc === "function") {
             downloadApp = async () => {
-                let appClass = await srcOrAppOrFunction() as any;
+                let appClass = await paramSrc() as any;
                 if (appClass) {
                     if (appClass.__esModule) {
                         appClass = appClass.default;
@@ -51,7 +56,7 @@ class AppRegister {
                     return appClass;
                 } else {
                     throw new Error(
-                        `[WindowManager]: load remote script failed, ${srcOrAppOrFunction}`
+                        `[WindowManager]: load remote script failed, ${paramSrc}`
                     );
                 }
             };

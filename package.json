@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.4.39",
+  "version": "0.4.40",
   "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -61,6 +61,6 @@
     "typescript": "^4.5.5",
     "vite": "^2.5.3",
     "vitest": "^0.14.1",
-    "white-web-sdk": "2.16.10"
+    "white-web-sdk": "2.16.33"
   }
 }
