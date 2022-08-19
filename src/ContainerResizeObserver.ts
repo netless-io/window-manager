@@ -39,7 +39,9 @@ export class ContainerResizeObserver {
         });
 
         this.disposer = this.emitter.on("containerSizeRatioUpdate", () => {
-            this.updateSizer(container.getBoundingClientRect(), sizer, wrapper);
+            const containerRect = container.getBoundingClientRect();
+            this.updateSizer(containerRect, sizer, wrapper);
+            this.emitter.emit("playgroundSizeChange", containerRect);
         });
 
         this.containerResizeObserver.observe(container);
