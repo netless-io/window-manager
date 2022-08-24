@@ -50,7 +50,7 @@ class AppRegister {
             downloadApp = async () => {
                 let appClass = await paramSrc() as any;
                 if (appClass) {
-                    if (appClass.__esModule) {
+                    if (appClass.__esModule || appClass.default) {
                         appClass = appClass.default;
                     }
                     return appClass;
