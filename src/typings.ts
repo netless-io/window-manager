@@ -72,7 +72,11 @@ export type RegisterEvents<SetupResult = any> = {
 
 export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any> = {
     kind: string;
-    src: NetlessApp<Attributes, SetupResult> | string | (() => Promise<NetlessApp<Attributes, SetupResult>>);
+    src:
+        | NetlessApp<Attributes, SetupResult>
+        | string
+        | (() => Promise<NetlessApp<Attributes, SetupResult>>)
+        | (() => Promise<{ default: NetlessApp<Attributes, SetupResult> }>);
     appOptions?: AppOptions | (() => AppOptions);
     addHooks?: (emitter: Emittery<RegisterEvents<SetupResult>>) => void;
     /** dynamic load app package name */
