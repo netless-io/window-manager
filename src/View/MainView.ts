@@ -118,6 +118,7 @@ export class MainViewProxy {
 
     public start() {
         if (this.started) return;
+        this.removeCameraListener();
         this.addCameraListener();
         this.addCameraReaction();
         this.started = true;
@@ -279,7 +280,6 @@ export class MainViewProxy {
     };
 
     public stop() {
-        this.removeCameraListener();
         this.manager.refresher.remove(Fields.MainViewCamera);
         this.manager.refresher.remove(Fields.MainViewSize);
         this.started = false;
