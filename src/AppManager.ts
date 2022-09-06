@@ -376,8 +376,8 @@ export class AppManager {
     private onBoxMove = (payload: BoxMovePayload) => {
         this.dispatchInternalEvent(Events.AppMove, payload);
         this.store.updateAppState(payload.appId, AppAttributes.Position, {
-            x: payload.x,
-            y: payload.y,
+            x: isNaN(payload.x) ? 0 : payload.x,
+            y: isNaN(payload.y) ? 0 : payload.y,
         });
     };
 

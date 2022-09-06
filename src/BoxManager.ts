@@ -355,7 +355,7 @@ export class BoxManager {
     public moveBox({ appId, x, y }: MoveBoxParams): void {
         const box = this.getBox(appId);
         if (box) {
-            box._intrinsicCoord$.setValue({ x, y}, true);
+            box._intrinsicCoord$.setValue({ x, y }, true);
         }
     }
 
