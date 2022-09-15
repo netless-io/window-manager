@@ -1,4 +1,4 @@
-import { AnimationMode, reaction } from "white-web-sdk";
+import { AnimationMode, reaction, ViewMode } from "white-web-sdk";
 import { callbacks } from "../callback";
 import { createView } from "./ViewManager";
 import { debounce, get, isEmpty, isEqual } from "lodash";
@@ -16,6 +16,7 @@ export class MainViewProxy {
     private mainViewIsAddListener = false;
     private mainView: View;
     private store = this.manager.store;
+    private viewMode = this.manager.windowManger.viewMode;
 
     private sideEffectManager = new SideEffectManager();
 
@@ -57,6 +58,7 @@ export class MainViewProxy {
     }
 
     public ensureCameraAndSize() {
+        if (this.viewMode !== ViewMode.Broadcaster) return;
         if (!this.mainViewCamera || !this.mainViewSize) {
             this.manager.dispatchInternalEvent(Events.InitMainViewCamera);
             this.setCameraAndSize();
@@ -112,7 +114,7 @@ export class MainViewProxy {
     };
 
     public sizeChangeHandler = debounce((size: Size) => {
-        if (size) {
+        if (size && this.viewMode === ViewMode.Broadcaster) {
             this.moveCameraToContian(size);
             this.moveCamera(this.mainViewCamera);
         }
@@ -171,6 +173,7 @@ export class MainViewProxy {
     }
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
+        if (this.viewMode === ViewMode.Follower) return;
         this.store.setMainViewCamera({ ...camera, id: this.manager.uid });
         if (!isEqual(this.mainViewSize, { ...this.mainView.size, id: this.manager.uid })) {
             this.setMainViewSize(this.view.size);
@@ -256,6 +259,10 @@ export class MainViewProxy {
         this.manager.refresher?.remove(Fields.MainViewCamera);
         this.manager.refresher?.remove(Fields.MainViewSize);
         this.started = false;
+    }
+
+    public setViewMode = (mode:ViewMode) => {
+        this.viewMode = mode;
     }
 
     public destroy() {

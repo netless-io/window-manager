@@ -9,17 +9,17 @@ specifiers:
   react-dom: ^17.0.2
   video.js: ^7.14.3
   vite: ^2.7.13
-  white-web-sdk: ^2.16.33
+  white-web-sdk: ^2.16.35
 
 dependencies:
   '@netless/app-slide': 0.2.0
-  '@netless/video-js-plugin': 0.3.8_m3wpfnrxge7rwfplslndxc36oq
+  '@netless/video-js-plugin': 0.3.8_k7mj3iejzulbtzi27qu2reg4xa
   normalize.css: 8.0.1
   p-queue: 7.2.0
   react: 17.0.2
   react-dom: 17.0.2_react@17.0.2
   video.js: 7.18.1
-  white-web-sdk: 2.16.33
+  white-web-sdk: 2.16.35
 
 devDependencies:
   vite: 2.8.6
@@ -45,7 +45,7 @@ packages:
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
     dev: false
 
-  /@netless/video-js-plugin/0.3.8_m3wpfnrxge7rwfplslndxc36oq:
+  /@netless/video-js-plugin/0.3.8_k7mj3iejzulbtzi27qu2reg4xa:
     resolution: {integrity: sha512-xCLfL8ISjPD5XQbeGWT/pwKdWXqYXmaEXiP4jcX8oaR83+vJo463znIg2JW8EXHkTq7KRrYnZqqlQdI6It4L+A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@netless/video-js-plugin/-/video-js-plugin-0.3.8.tgz}
     peerDependencies:
       react: '>=16'
@@ -56,7 +56,7 @@ packages:
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
       video.js: 7.18.1
-      white-web-sdk: 2.16.33
+      white-web-sdk: 2.16.35
     dev: false
 
   /@netless/xml-js/1.6.15:
@@ -115,9 +115,11 @@ packages:
     resolution: {integrity: sha512-UxDxWn7dl97rKVeVS61vErvw086aCYhDLyvRQZ5Rk65rZKepaFdm53GeqXaKBuOhED4e9uWq34IC3TdSdJJ2Gw==}
     dev: false
 
-  /@videojs/http-streaming/2.13.1:
+  /@videojs/http-streaming/2.13.1_video.js@7.18.1:
     resolution: {integrity: sha512-1x3fkGSPyL0+iaS3/lTvfnPTtfqzfgG+ELQtPPtTvDwqGol9Mx3TNyZwtSTdIufBrqYRn7XybB/3QNMsyjq13A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@videojs/http-streaming/-/http-streaming-2.13.1.tgz}
     engines: {node: '>=8', npm: '>=5'}
+    peerDependencies:
+      video.js: ^6 || ^7
     dependencies:
       '@babel/runtime': 7.17.8
       '@videojs/vhs-utils': 3.0.4
@@ -854,7 +856,7 @@ packages:
     resolution: {integrity: sha512-mnXdmkVcD5qQdKMZafDjqdhrnKGettZaGSVkExjACiylSB4r2Yt5W1bchsKmjFpfuNfszsMjTUnnoIWSSqoe/Q==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/video.js/-/video.js-7.18.1.tgz}
     dependencies:
       '@babel/runtime': 7.17.8
-      '@videojs/http-streaming': 2.13.1
+      '@videojs/http-streaming': 2.13.1_video.js@7.18.1
       '@videojs/vhs-utils': 3.0.5
       '@videojs/xhr': 2.6.0
       aes-decrypter: 3.1.2
@@ -902,8 +904,8 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /white-web-sdk/2.16.33:
-    resolution: {integrity: sha512-vv33tvdKXRgaKh5oOJV8FEMd5eb64Jywfe61OcwExX78zt9szH951NHnuwhqdsk8BAH1XwyJ6DcpAhCwXp8F4Q==}
+  /white-web-sdk/2.16.35:
+    resolution: {integrity: sha512-HgpTTPN0np9/4UWDVBFV05bpfEBHyN0mseXKdUjS+31VcjbvLhbeX7kSM3wRAEkh7svmzZAAUhOWwBHD14MACA==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@netless/canvas-polyfill': 0.0.4

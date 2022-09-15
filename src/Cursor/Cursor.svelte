@@ -15,12 +15,16 @@
     export let color: string;
     export let cursorTagBackgroundColor: string;
     export let opacity: number;
+    export let pencilEraserSize: number;
 
     $: hasName = !isEmpty(cursorName);
     $: hasTagName = !isEmpty(tagName);
     $: hasAvatar = !isEmpty(avatar);
     $: display = visible ? "initial" : "none";
     $: isLaserPointer = appliance === ApplianceNames.laserPointer;
+    $: isLaserPointerPencilEraser = isLaserPointer || appliance === ApplianceNames.pencilEraser;
+    $: offset = isLaserPointerPencilEraser ? "netless-window-manager-laserPointer-pencilEraser-offset" : "";
+    $: pencilEraserSize3ImageOffset = pencilEraserSize === 3 ? "netless-window-manager-pencilEraser-3-offset" : "";
 
     const computedAvatarStyle = () => {
         return Object.entries({
@@ -40,7 +44,7 @@
     style="transform: translateX({x}px) translateY({y}px);display: {display}"
 >   
     {#if !isLaserPointer}
-        <div class="netless-window-manager-cursor-name">
+        <div class="netless-window-manager-cursor-name {offset} {pencilEraserSize3ImageOffset}">
             <div
                 class={theme}
                 style="background-color: {backgroundColor};color: {color};opacity: {opacity}"
@@ -63,6 +67,6 @@
         </div>
     {/if}
     <div class="cursor-image-wrapper">
-        <img class="netless-window-manager-cursor-{appliance}-image" {src} alt={appliance} />
+        <img class="netless-window-manager-cursor-{appliance}-image {pencilEraserSize3ImageOffset}" {src} alt={appliance} />
     </div>
 </div>

@@ -600,6 +600,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
             this.appManager?.mainViewProxy.stop();
         }
         this.viewMode = mode;
+        this.appManager?.mainViewProxy.setViewMode(mode);
     }
 
     public setBoxState(boxState: TeleBoxState): void {

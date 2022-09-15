@@ -80,7 +80,7 @@ export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any
 
 export type AppListenerKeys = keyof AppEmitterEvent;
 
-export type ApplianceIcons = Partial<Record<ApplianceNames, string>>;
+export type ApplianceIcons = Partial<Record<`${ApplianceNames}` | string, string>>;
 
 export type { AppContext } from "./App/AppContext";
 export type { ReadonlyTeleBox, TeleBoxRect };
