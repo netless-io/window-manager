@@ -754,6 +754,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         return this.appManager?.closeApp(appId);
     }
 
+    /**
+     * 切换 focus 到指定的 app, 并且把这个 app 放到最前面
+     */
+    public focusApp(appId: string) {
+        const box = this.boxManager?.getBox(appId);
+        if (box) {
+            this.boxManager?.focusBox({ appId }, false);
+            // 1.0 版本这里会有正式的 api
+            (this.boxManager?.teleBoxManager as any).makeBoxTop(box, false);
+        }
+    }
+
     public moveCamera(
         camera: Partial<Camera> & { animationMode?: AnimationMode | undefined }
     ): void {

@@ -10,6 +10,7 @@
   - [实例方法](#instance-methods)
     - [`addApp`](#addApp)
     - [`closeApp`](#closeApp)
+    - [`focusApp`](#focusApp)
     - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
     - [`setBoxState`](#setBoxState)
     - [`cleanCurrentScene`](#cleanCurrentScene)
@@ -141,6 +142,14 @@ const appId = await manager.addApp({
 
 ```typescript
 manager.closeApp(appId)
+```
+
+<h3 id="focusApp">focusApp</h3>
+
+> 切换当前 `focus` 的 `app`, 并把此 `app` 置为最前
+
+```typescript
+manager.focusApp(appId)
 ```
 
 <h3 id="setMainViewSceneIndex">setMainViewSceneIndex</h3>
