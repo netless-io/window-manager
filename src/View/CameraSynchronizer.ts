@@ -14,9 +14,9 @@ export class CameraSynchronizer {
 
     constructor(protected saveCamera: SaveCamera) {}
 
-    public setRect = (rect: TeleBoxRect) => {
+    public setRect = (rect: TeleBoxRect, updateCamera = true) => {
         this.rect = rect;
-        if (this.remoteCamera && this.remoteSize) {
+        if (this.remoteCamera && this.remoteSize && updateCamera) {
             this.onRemoteUpdate(this.remoteCamera, this.remoteSize);
         }
     }
@@ -40,6 +40,7 @@ export class CameraSynchronizer {
             if (camera.centerY !== null) {
                 config.centerY = camera.centerY;
             }
+            console.trace("moveCamera");
             this.moveCamera(config);
         }
     }, 10);

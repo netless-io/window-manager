@@ -47,6 +47,10 @@ export class ViewSync {
         });
     }
 
+    private get isBroadcastMode() {
+        return this.context.viewMode$?.value === ViewMode.Broadcaster;
+    }
+
     private createSynchronizer = () => {
         return new CameraSynchronizer((camera: ICamera) => {
             this.context.camera$.setValue(camera, true);
@@ -86,7 +90,7 @@ export class ViewSync {
 
     private subscribeSize = () => {
         return this.context.size$.subscribe(size => {
-            if (size) {
+            if (size && this.isBroadcastMode) {
                 this.synchronizer.onRemoteSizeUpdate(size);
             }
         });
@@ -95,7 +99,7 @@ export class ViewSync {
     private subscribeStageRect = () => {
         return this.context.stageRect$.subscribe(rect => {
             if (rect) {
-                this.synchronizer.setRect(rect);
+                this.synchronizer.setRect(rect, this.isBroadcastMode);
             }
         });
     }
@@ -113,6 +117,7 @@ export class ViewSync {
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
         if (!camera) return;
+        if (!this.isBroadcastMode) return;
         if (this.context.size$.value && this.context.stageRect$.value) {
             // 始终以远端的 size 为标准, 设置到 attributes 时根据尺寸的大小还原回去
             const diffScale = computedMinScale(this.context.size$.value, this.context.stageRect$.value);
