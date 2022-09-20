@@ -9,13 +9,14 @@ import type {
     SceneDefinition,
     SceneState,
     View,
+    ViewMode,
 } from "white-web-sdk";
 import type { AppContext } from "./App";
 import type { ReadonlyTeleBox, TeleBoxRect, TeleBoxFullscreen } from "@netless/telebox-insider";
 import type { PageState } from "./Page";
 import type { Member } from "./Helper";
 
-export interface NetlessApp<Attributes = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
+export interface NetlessApp<Attributes extends Record<string, any> = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
@@ -70,7 +71,7 @@ export type RegisterEvents<SetupResult = any> = {
     focus: RegisterEventData;
 };
 
-export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any> = {
+export type RegisterParams<AppOptions = any, SetupResult = any, Attributes extends Record<string, any> = any> = {
     kind: string;
     src:
         | NetlessApp<Attributes, SetupResult>
@@ -89,6 +90,8 @@ export type AppListenerKeys = keyof AppEmitterEvent;
 export type ApplianceIcons = Partial<Record<ApplianceNames, string>>;
 
 export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
+
+export type ManagerViewMode = `${ViewMode}` | "scroll";
 
 export type { AppContext } from "./App/AppContext";
 export type { WhiteBoardView } from "./App";

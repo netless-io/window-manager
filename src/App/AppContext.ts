@@ -36,7 +36,7 @@ export type CreateWhiteBoardViewParams = {
     syncCamera?: boolean;
 }
 
-export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any> {
+export class AppContext<TAttributes extends Record<string, any> = any, TMagixEventPayloads = any, TAppOptions = any> {
     public readonly emitter: Emittery<AppEmitterEvent<TAttributes>>;
     public readonly mobxUtils = {
         autorun,
@@ -235,7 +235,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
      * @param defaultState Default state for initial storage creation.
      * @returns
      */
-    public createStorage = <TState>(storeId: string, defaultState?: TState): Storage<TState> => {
+    public createStorage = <TState extends Record<string, any>>(storeId: string, defaultState?: TState): Storage<TState> => {
         const storage = new Storage(this, storeId, defaultState);
         this.emitter.on("destroy", () => {
             storage.destroy();

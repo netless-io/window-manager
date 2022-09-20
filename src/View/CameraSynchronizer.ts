@@ -1,7 +1,7 @@
 import { AnimationMode } from "white-web-sdk";
-import { isEqual, pick, throttle } from "lodash";
+import { isEmpty, isEqual, pick, throttle } from "lodash";
 import type { TeleBoxRect } from "@netless/telebox-insider";
-import type { Camera, View, Size } from "white-web-sdk";
+import type { View, Size } from "white-web-sdk";
 import type { ICamera, ISize } from "../AttributesDelegate";
 
 export type SaveCamera = (camera: ICamera) => void;
@@ -11,6 +11,7 @@ export class CameraSynchronizer {
     public remoteSize?: ISize;
     protected rect?: TeleBoxRect;
     protected view?: View;
+    protected scale = 1;
 
     constructor(protected saveCamera: SaveCamera) {}
 
@@ -30,20 +31,12 @@ export class CameraSynchronizer {
         this.remoteCamera = camera;
         this.remoteSize = size;
         if (this.remoteSize && this.rect) {
-            const nextScale = camera.scale * computedMinScale(size, this.rect);
-            const config: Partial<Camera> = {
-                scale: nextScale,
-            }
-            if (camera.centerX !== null) {
-                config.centerX = camera.centerX;
-            }
-            if (camera.centerY !== null) {
-                config.centerY = camera.centerY;
-            }
-            console.trace("moveCamera");
-            this.moveCamera(config);
+            requestAnimationFrame(() => {
+                this.moveCameraToContian(size);
+                this.moveCamera(camera);
+            });
         }
-    }, 10);
+    }, 32);
 
     public onRemoteSizeUpdate(size: ISize) {
         this.remoteSize = size;
@@ -65,13 +58,31 @@ export class CameraSynchronizer {
         this.remoteCamera = camera;
     }
 
-    private moveCamera(camera: Partial<Camera>) {
-        this.view?.moveCamera({ ...camera, animationMode: AnimationMode.Immediately });
+    private moveCameraToContian(size: Size): void {
+        if (!isEmpty(size) && this.view) {
+            this.view.moveCameraToContain({
+                width: size.width,
+                height: size.height,
+                originX: -size.width / 2,
+                originY: -size.height / 2,
+                animationMode: AnimationMode.Immediately,
+            });
+            this.scale = this.view.camera.scale;
+        }
+    }
+
+    private moveCamera(camera: ICamera): void {
+        if (!isEmpty(camera) && this.view && camera.centerX && camera.centerY) {
+            if (isEqual(camera, this.view.camera)) return;
+            const { centerX, centerY, scale } = camera;
+            const needScale = scale * (this.scale || 1);
+            this.view.moveCamera({
+                centerX: centerX,
+                centerY: centerY,
+                scale: needScale,
+                animationMode: AnimationMode.Immediately,
+            });
+        }
     }
 }
 
-export const computedMinScale = (remoteSize: Size, currentSize: Size) => {
-    const wScale = currentSize.width / remoteSize.width;
-    const hScale = currentSize.height / remoteSize.height;
-    return Math.min(wScale, hScale);
-}

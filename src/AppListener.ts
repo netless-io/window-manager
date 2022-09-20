@@ -5,7 +5,6 @@ import { setViewFocusScenePath } from "./Utils/Common";
 import type { AnimationMode, Camera, Event, Rectangle } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
-import { computedMinScale } from "./View/CameraSynchronizer";
 
 type SetAppFocusIndex = {
     type: "main" | "app";
@@ -136,15 +135,7 @@ export class AppListeners {
     }
 
     private moveCameraHandler = (payload: Camera) => {
-        const cameraPayload = payload;
-        if (payload.scale) {
-            const remoteSize = this.manager.mainViewProxy.size$.value;
-            const currentSize = this.manager.boxManager?.stageRect;
-            if (remoteSize && currentSize) {
-                cameraPayload.scale = payload.scale * computedMinScale(remoteSize, currentSize);
-            }
-        }
-        this.manager.mainView.moveCamera(cameraPayload);
+        this.manager.mainView.moveCamera(payload);
     }
 
     private moveCameraToContainHandler = (payload: Rectangle & { animationMode?: AnimationMode }) => {

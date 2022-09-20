@@ -1,11 +1,13 @@
-import { ViewMode, AnimationMode } from "white-web-sdk";
-import { CameraSynchronizer, computedMinScale } from "./CameraSynchronizer";
+import { AnimationMode, ViewMode } from "white-web-sdk";
+import { CameraSynchronizer } from "./CameraSynchronizer";
 import { combine } from "value-enhancer";
+import { isEqual } from "lodash";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, View } from "white-web-sdk";
 import type { Val, ReadonlyVal } from "value-enhancer";
 import type { ICamera, ISize } from "../AttributesDelegate";
 import type { TeleBoxRect } from "@netless/telebox-insider";
+import type { ManagerViewMode } from "../typings";
 
 export type ViewSyncContext = {
     uid: string;
@@ -16,7 +18,7 @@ export type ViewSyncContext = {
 
     stageRect$: ReadonlyVal<TeleBoxRect>;
 
-    viewMode$?: Val<ViewMode>;
+    viewMode$?: Val<ManagerViewMode>;
 
     storeCamera: (camera: ICamera) => void;
 
@@ -62,7 +64,7 @@ export class ViewSync {
                 this.context.storeCamera(camera);
             }
         });
-    }
+    };
 
     private subscribeView = () => {
         return this.context.view$.subscribe(view => {
@@ -76,7 +78,7 @@ export class ViewSync {
             }
             this.bindView(view);
         });
-    }
+    };
 
     private subscribeCamera = () => {
         return this.context.camera$.subscribe((camera, skipUpdate) => {
@@ -86,7 +88,7 @@ export class ViewSync {
                 this.synchronizer.onRemoteUpdate(camera, size);
             }
         });
-    }
+    };
 
     private subscribeSize = () => {
         return this.context.size$.subscribe(size => {
@@ -94,7 +96,7 @@ export class ViewSync {
                 this.synchronizer.onRemoteSizeUpdate(size);
             }
         });
-    }
+    };
 
     private subscribeStageRect = () => {
         return this.context.stageRect$.subscribe(rect => {
@@ -102,7 +104,7 @@ export class ViewSync {
                 this.synchronizer.setRect(rect, this.isBroadcastMode);
             }
         });
-    }
+    };
 
     public bindView = (view?: View) => {
         if (!view) return;
@@ -118,11 +120,13 @@ export class ViewSync {
     private onCameraUpdatedByDevice = (camera: Camera) => {
         if (!camera) return;
         if (!this.isBroadcastMode) return;
-        if (this.context.size$.value && this.context.stageRect$.value) {
-            // 始终以远端的 size 为标准, 设置到 attributes 时根据尺寸的大小还原回去
-            const diffScale = computedMinScale(this.context.size$.value, this.context.stageRect$.value);
-            const remoteScale = camera.scale / diffScale;
-            this.synchronizer.onLocalCameraUpdate({ ...camera, scale: remoteScale, id: this.context.uid });
+        const { size$, stageRect$, view$ } = this.context;
+        if (size$.value && stageRect$.value && view$.value) {
+            this.synchronizer.onLocalCameraUpdate({ ...camera, id: this.context.uid });
+            const newSize = { ...view$.value.size, id: this.context.uid };
+            if (!isEqual(size$.value, newSize)) {
+                this.context.storeSize(newSize);
+            }
         }
     };
 

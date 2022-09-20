@@ -30,7 +30,8 @@ export const onObjectByEvent = (event: UpdateEventKind) => {
     };
 };
 
-export const safeListenPropsUpdated = <T>(
+// eslint-disable-next-line @typescript-eslint/ban-types
+export const safeListenPropsUpdated = <T extends Object>(
     getProps: () => T,
     callback: AkkoObjectUpdatedListener<T>,
     onDestroyed?: (props: unknown) => void

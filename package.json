@@ -66,6 +66,6 @@
     "vite": "^2.5.3",
     "vite-plugin-dts": "^1.2.1",
     "vitest": "^0.18.0",
-    "white-web-sdk": "2.16.26"
+    "white-web-sdk": "^2.16.35"
   }
 }

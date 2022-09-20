@@ -93,6 +93,7 @@ export class MainViewProxy {
                 id: this.manager.uid,
                 ...this.view.camera
             });
+            // FIX 没有 mainViewSize 需要初始化一个 baseSize
             const stageRect = this.manager.boxManager?.stageRect;
             if (stageRect && !this.mainViewSize) {
                 this.storeSize({

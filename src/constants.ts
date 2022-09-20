@@ -64,3 +64,6 @@ export const INIT_DIR = "/init";
 export const SETUP_APP_DELAY = 50;
 
 export const MAX_PAGE_SIZE = 500;
+
+export const SCROLL_MODE_BASE_WIDTH = 1600;
+export const SCROLL_MODE_BASE_HEIGHT = SCROLL_MODE_BASE_WIDTH * 3;

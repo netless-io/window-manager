@@ -9,8 +9,8 @@ import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants
 import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { AnimationMode, InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
-import { isEqual, isNull, isObject, isNumber } from "lodash";
+import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
+import { isEqual, isNull, isObject, isNumber, omit, debounce } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -44,22 +44,24 @@ import type {
     Player,
     ImageInformation,
     SceneState,
-    Size
+    Size,
+    AnimationMode, 
+    Rectangle,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
-import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
+import type { ApplianceIcons, ManagerViewMode, NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxFullscreen, TeleBoxManager, TeleBoxManagerThemeConfig, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
-import { computedMinScale } from "./View/CameraSynchronizer";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
     boxState: TELE_BOX_STATE;
     maximized?: boolean;
     minimized?: boolean;
+    scrollTop?: number;
     [key: string]: any;
 };
 
@@ -154,11 +156,15 @@ export type MountParams = {
     defaultBoxStageStyle?: string | null;
     /** Theme variable */
     theme?: TeleBoxManagerThemeConfig;
+    /** ScrollMode BaseWidth */
+    scrollModeWidth?: number;
+    /** ScrollMode BaseHeight */
+    scrollModeHeight?: number;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
 
-export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> implements PageController {
+export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> implements PageController {
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static playground?: HTMLElement;
@@ -177,16 +183,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     public emitter: Emittery<PublicEvent> = callbacks;
     public appManager?: AppManager;
     public cursorManager?: CursorManager;
-    public viewMode = ViewMode.Broadcaster;
-    public viewMode$ = new Val<ViewMode>(ViewMode.Broadcaster);
+    public viewMode: ManagerViewMode = ViewMode.Broadcaster;
+    public viewMode$ = new Val<ManagerViewMode>(ViewMode.Broadcaster);
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
-
-    private cameraUpdating = 0;
-    private nextCamera: Camera | null = null;
 
     public containerSizeRatio = WindowManager.containerSizeRatio;
 
@@ -373,7 +376,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     /**
      * 注册插件
      */
-    public static register<AppOptions = any, SetupResult = any, Attributes = any>(
+    public static register<AppOptions = any, SetupResult = any, Attributes extends Record<string, any> = any>(
         params: RegisterParams<AppOptions, SetupResult, Attributes>
     ): Promise<void> {
         return appRegister.register(params);
@@ -612,16 +615,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     /**
      * 设置 ViewMode
      */
-    public setViewMode(mode: ViewMode): void {
+    public setViewMode(mode: ManagerViewMode): void {
         log("setViewMode", mode);
         const mainViewProxy = this.appManager?.mainViewProxy;
         if (mode === ViewMode.Broadcaster) {
             if (this.canOperate) {
                 mainViewProxy?.storeCurrentCamera();
+                mainViewProxy?.storeCurrentSize();
             }
             mainViewProxy?.start();
         }
-        if (mode === ViewMode.Freedom) {
+        if (mode === ViewMode.Freedom || mode === "scroll") {
             mainViewProxy?.stop();
         }
         this.viewMode = mode;
@@ -811,57 +815,32 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes> imple
     }
 
     public moveCamera = (camera: Partial<Camera> & { animationMode?: AnimationMode } ): void => {
+        const pureCamera = omit(camera, ["animationMode"]);
         const mainViewCamera = { ...this.mainView.camera };
-        const nextCamera = { ...mainViewCamera, ...camera };
-        if (isEqual(nextCamera, mainViewCamera)) return;
-        if (!this.appManager) return;
-        if (camera.animationMode === AnimationMode.Immediately) {
-            this.appManager.mainViewProxy.storeCamera({
-                id: this.appManager.uid,
-                ...nextCamera
-            });
-        } else {
-            const remoteCamera = this.appManager.mainViewProxy.size$.value;
-            const currentSize = this.boxManager?.stageRect;
-            let nextScale;
-            if (camera.scale &&  remoteCamera && currentSize) {
-                nextScale = camera.scale * computedMinScale(remoteCamera, currentSize);
-            }
-            if (nextScale) {
-                this.mainView.moveCamera({
-                    ...camera,
-                    scale: nextScale,
-                });
-            } else {
-                this.mainView.moveCamera(camera);
-            }
-            this.appManager.dispatchInternalEvent(Events.MoveCamera, camera);
-            this.mainView.callbacks.off("onCameraUpdated", this.onCameraUpdated);
-            clearTimeout(this.cameraUpdating);
-            this.cameraUpdating = 0;
-            this.mainView.callbacks.on("onCameraUpdated", this.onCameraUpdated);
-            if (nextScale) {
-                this.nextCamera = nextCamera;
-            }
-        }
+        if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
+        this.debouncedStoreCamera();
+        this.mainView.moveCamera(camera);
+        this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
     };
 
-    private onCameraUpdated = () => {
-        if (this.cameraUpdating) {
-            clearTimeout(this.cameraUpdating);
-            this.cameraUpdating = 0;
-        }
-        this.cameraUpdating = setTimeout(() => {
-            this.mainView.callbacks.off("onCameraUpdated", this.onCameraUpdated);
-            clearTimeout(this.cameraUpdating);
-            this.cameraUpdating = 0;
-            if (!this.appManager || !this.nextCamera) return;
-            this.appManager.mainViewProxy.storeCamera({
-                id: this.appManager.uid,
-                ...this.nextCamera
-            });
-            this.nextCamera = null;
-        }, 50);
+    public moveCameraToContain(
+        rectangle: Rectangle &
+            Readonly<{
+                animationMode?: AnimationMode;
+            }>
+    ): void {
+        this.debouncedStoreCamera();
+        this.mainView.moveCameraToContain(rectangle);
+        this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
+    }
+
+    private debouncedStoreCamera = () => {
+        const storeCamera = debounce(() => {
+            this.appManager?.mainViewProxy.storeCurrentCamera();
+            this.appManager?.mainViewProxy.storeCurrentSize();
+            this.mainView.callbacks.off("onCameraUpdated", storeCamera);
+        }, 200);
+        this.mainView.callbacks.on("onCameraUpdated", storeCamera);
     }
 
     public convertToPointInWorld(point: Point): Point {
