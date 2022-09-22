@@ -32,9 +32,13 @@ export class CursorManager {
     private store = this.manager.store;
     public applianceIcons: ApplianceIcons = ApplianceMap;
 
+    public get playground$() {
+        return this.manager.windowManger.playground$;
+    }
+
     constructor(private manager: AppManager, private enableCursor: boolean, applianceIcons?: ApplianceIcons) {
         this.roomMembers = this.manager.room?.state.roomMembers;
-        const playground = WindowManager.playground;
+        const playground = this.playground$.value;
         if (playground) {
             this.setupWrapper(playground);
         }
@@ -65,7 +69,7 @@ export class CursorManager {
     private initCursorInstance = (uid: string) => {
         let cursorInstance = this.cursorInstances.get(uid);
         if (!cursorInstance) {
-            cursorInstance = new Cursor(this.manager, uid, this, WindowManager.playground);
+            cursorInstance = new Cursor(this.manager, uid, this, this.playground$.value);
             this.cursorInstances.set(uid, cursorInstance);
         }
         return cursorInstance;

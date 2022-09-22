@@ -187,7 +187,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public cursorManager?: CursorManager;
     public viewMode: ManagerViewMode = ViewMode.Broadcaster;
     public viewMode$ = new Val<ManagerViewMode>(ViewMode.Broadcaster);
-    public playground$ = new Val<HTMLElement | null>(null);
+    public playground$ = new Val<HTMLElement | undefined>(undefined);
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
 
