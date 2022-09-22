@@ -25,6 +25,7 @@ const isWritable = url.get("isWritable");
 const isReplay = url.get("isReplay");
 const roomUUID = url.get("uuid");
 const roomToken = url.get("roomToken");
+const viewMode = url.get("viewMode") || "broadcaster";
 
 let manager: WindowManagerType;
 
@@ -35,7 +36,7 @@ const mountManager = async (room, root) => {
         debug: true,
         cursor: true,
         disableCameraTransform: true,
-        // viewMode: "scroll"
+        viewMode: viewMode
         // fullscreen: true,
     } as MountParams)) as WindowManagerType;
 

@@ -185,7 +185,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public emitter: Emittery<PublicEvent> = callbacks;
     public appManager?: AppManager;
     public cursorManager?: CursorManager;
-    public viewMode: ManagerViewMode = ViewMode.Broadcaster;
     public viewMode$ = new Val<ManagerViewMode>(ViewMode.Broadcaster);
     public playground$ = new Val<HTMLElement | undefined>(undefined);
     public isReplay = isPlayer(this.displayer);
@@ -638,7 +637,6 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         if (mode === ViewMode.Freedom || mode === "scroll") {
             mainViewProxy?.stop();
         }
-        this.viewMode = mode;
         this.viewMode$.setValue(mode);
     }
 
@@ -725,6 +723,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
 
     public get darkMode(): boolean {
         return Boolean(this.appManager?.boxManager?.darkMode);
+    }
+
+    public get viewMode() {
+        return this.viewMode$.value;
     }
 
     public get prefersColorScheme(): TeleBoxColorScheme | undefined {

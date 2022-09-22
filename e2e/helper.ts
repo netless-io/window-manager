@@ -5,8 +5,12 @@ export const getWindow = async (page: Page): Promise<JSHandle> => {
     return await page.evaluateHandle("window");
 };
 
-export const gotoRoom = async (page: Page, uuid: string, token: string) => {
-    await page.goto(`/?uuid=${uuid}&roomToken=${token}`);
+export const gotoRoom = async (page: Page, uuid: string, token: string, viewMode?: string) => {
+    let url = `/?uuid=${uuid}&roomToken=${token}`;
+    if (viewMode) {
+        url += `&viewMode=${viewMode}`;
+    }
+    await page.goto(url);
     await page.waitForTimeout(2000);
 };
 
@@ -67,10 +71,26 @@ export const getRoomPhase = (handle: JSHandle) => {
     });
 };
 
-export const createAnotherPage = async (browser: Browser, uuid: string, token: string) => {
+export const createAnotherPage = async (browser: Browser, uuid: string, token: string, viewMode?: string) => {
     const context = await browser.newContext();
     const page = await context.newPage();
-    await gotoRoom(page, uuid, token);
+    await gotoRoom(page, uuid, token, viewMode);
     const handle = await getWindow(page);
     return { page, handle };
+}
+
+export const drawLine = async (page: Page) => {
+    const size = page.viewportSize();
+    if (!size) return;
+    const x = size.width / 2;
+    const y = size.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 50, y + 50);
+    await page.mouse.move(x + 100, y + 100);
+    await page.mouse.up();
+
+    // 笔画只有画的端跟接收端会有细微的不同,刷新后笔迹才相同
+    await page.reload();
+    await page.waitForTimeout(2000);
 }
