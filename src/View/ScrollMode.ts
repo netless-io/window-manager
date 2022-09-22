@@ -129,17 +129,6 @@ export class ScrollMode {
             })
         );
 
-        this.sideEffect.push(
-            scale$.reaction(scale => {
-                if (scale > 0) {
-                    this.sideEffect.flush("initScroll");
-                    // XXX: wait window-manager's sync behavior then we reset the camera
-                    this.sideEffect.setTimeout(this.initScroll, 0);
-                }
-            }),
-            "initScroll"
-        );
-
         const maxScrollPage$ = combine([this._size$, this._scale$], ([size, scale]) => {
             const halfWbHeight = size.height / 2 / scale;
             return (this.baseHeight - halfWbHeight) / halfWbHeight / 2 - 0.51;
@@ -160,6 +149,7 @@ export class ScrollMode {
         this.sideEffect.push(
             this.scrollState$.subscribe(state => callbacks.emit("scrollStateChange", state))
         );
+        this.initScroll();
     }
 
     private initScroll = (): void => {
