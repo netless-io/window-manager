@@ -149,7 +149,16 @@ export class ScrollMode {
         this.sideEffect.push(
             this.scrollState$.subscribe(state => callbacks.emit("scrollStateChange", state))
         );
-        this.initScroll();
+
+        this.sideEffect.push(
+            combine([this._size$, this._scale$]).subscribe(([size, scale]) => {
+                if (size.height > 0 && scale > 0) {
+                    this.initScroll();
+                    this.sideEffect.flush("initScroll");
+                }
+            }),
+            "initScroll"
+        );
     }
 
     private initScroll = (): void => {
