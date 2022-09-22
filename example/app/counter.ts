@@ -4,10 +4,8 @@ import { WindowManager } from "../../dist/index.es";
 export const Counter: NetlessApp<{ count: number }> = {
     kind: "Counter",
     setup: context => {
-        const storage = context.storage;
+        const storage = context.createStorage<{ count: number }>("counter", { count: 0 });
         // 初始化值，只会在相应的 key 不存在 storage.state 的时候设置值
-        storage.ensureState({ count: 0 });
-
         const box = context.box; // box 为这个应用打开的窗口
 
         const container = document.createElement("div");
@@ -17,7 +15,7 @@ export const Counter: NetlessApp<{ count: number }> = {
         box.mountStage(container);
 
         // 监听 state 的修改, 自己和其他人的修改都会触发这个回调
-        storage.addStateChangedListener(diff => {
+        storage.on("stateChanged", diff => {
             if (diff.count) {
                 countDom.innerText = diff.count.newValue.toString();
             }

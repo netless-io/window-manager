@@ -283,6 +283,8 @@ manager.callbacks.on(events, listener)
 | ready                    | undefined      |         | 当所有 APP 创建完毕时触发      ｜
 | sceneStateChange         | SceneState     |         | 当 sceneState 修改时触发     |
 | pageStateChange          | PageState      |         |                            ｜
+| scrollStateChange        | ScrollState    |         | 当在 `ScrollState` 变化时触发 |
+| userScroll               | void           |         | 当用户主动滚动时触发           |
 
 ```ts
 type LoadAppEvent = {
@@ -297,4 +299,12 @@ type PageState = {
     index: number;
     length: number;
 }
+```
+
+```ts
+type ScrollState = {
+    scrollTop: number;
+    page: number;
+    maxScrollPage: number;
+};
 ```

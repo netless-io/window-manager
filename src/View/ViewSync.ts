@@ -1,6 +1,6 @@
 import { AnimationMode, ViewMode } from "white-web-sdk";
 import { CameraSynchronizer } from "./CameraSynchronizer";
-import { combine } from "value-enhancer";
+import { combine, derive } from "value-enhancer";
 import { isEqual } from "lodash";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, View } from "white-web-sdk";
@@ -30,6 +30,7 @@ export type ViewSyncContext = {
 export class ViewSync {
     private sem = new SideEffectManager();
     private synchronizer: CameraSynchronizer;
+    private needRecoverCamera$?: ReadonlyVal<boolean>;
 
     constructor(private context: ViewSyncContext) {
         this.synchronizer = this.createSynchronizer();
@@ -40,9 +41,12 @@ export class ViewSync {
             this.subscribeSize(),
             this.subscribeStageRect(),
         ]);
+        if (context.viewMode$) {
+            this.needRecoverCamera$ = derive(context.viewMode$, mode => mode !== "scroll");
+        }
         const camera$size$ = combine([this.context.camera$, this.context.size$]);
         camera$size$.reaction(([camera, size]) => {
-            if (camera && size) {
+            if (camera && size && this.needRecoverCamera$?.value) {
                 this.synchronizer.onRemoteUpdate(camera, size);
                 camera$size$.destroy();
             }
@@ -69,7 +73,7 @@ export class ViewSync {
     private subscribeView = () => {
         return this.context.view$.subscribe(view => {
             const currentCamera = this.context.camera$.value;
-            if (currentCamera && this.context.size$.value) {
+            if (currentCamera && this.context.size$.value && this.needRecoverCamera$?.value) {
                 view?.moveCamera({
                     scale: 1,
                     animationMode: AnimationMode.Immediately,

@@ -55,6 +55,7 @@ import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
+import type { ScrollState } from "./View/ScrollMode";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -160,6 +161,7 @@ export type MountParams = {
     scrollModeWidth?: number;
     /** ScrollMode BaseHeight */
     scrollModeHeight?: number;
+    viewMode?: ManagerViewMode;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter });
@@ -185,6 +187,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public cursorManager?: CursorManager;
     public viewMode: ManagerViewMode = ViewMode.Broadcaster;
     public viewMode$ = new Val<ManagerViewMode>(ViewMode.Broadcaster);
+    public playground$ = new Val<HTMLElement | null>(null);
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
 
@@ -252,7 +255,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         }
         manager.containerSizeRatio = WindowManager.containerSizeRatio;
         await manager.ensureAttributes();
-
+        if (params.viewMode) {
+            manager.viewMode$.setValue(params.viewMode);
+        }
         manager.appManager = new AppManager(manager);
         manager._pageState = new PageStateImpl(manager.appManager);
         manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor), params.applianceIcons);
@@ -271,6 +276,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         if (params.container) {
             manager.bindContainer(params.container);
         }
+
+        if (params.scrollModeWidth && params.scrollModeHeight) {
+            manager.appManager.scrollBaseSize$.setValue({ width: params.scrollModeWidth, height: params.scrollModeHeight });
+        } 
 
         replaceRoomFunction(room, manager);
         emitter.emit("onCreated");
@@ -351,6 +360,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
                 if (WindowManager.playground) {
                     this.cursorManager?.setupWrapper(WindowManager.playground);
+                    this.playground$.setValue(WindowManager.playground);
                 }
                
             }
@@ -784,6 +794,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         } else {
             throw new Errors.AppManagerNotInitError();
         }
+    }
+
+    public get scrollState(): ScrollState | undefined {
+        return this.appManager?.scrollMode?.scrollState$.value;
     }
 
     public get teleboxManager(): TeleBoxManager {

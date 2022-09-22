@@ -40,7 +40,7 @@ import type {
     ScenesCallbacksNode,
     SceneState,
     RoomState,
-} from "white-web-sdk";
+ Size} from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 import type {
     BoxClosePayload,
@@ -50,6 +50,7 @@ import type {
     BoxStateChangePayload,
 } from "./BoxEmitter";
 import type { Member } from "./Helper";
+import { ScrollMode } from "./View/ScrollMode";
 
 export class AppManager {
     public displayer: Displayer;
@@ -64,18 +65,22 @@ export class AppManager {
 
     private appListeners: AppListeners;
     public boxManager?: BoxManager;
+    public scrollMode?: ScrollMode;
+    public scrollBaseSize$ = new Val<Size | null>(null);
 
     private callbacksNode: ScenesCallbacksNode | null = null;
     private appCreateQueue = new AppCreateQueue();
     private sceneIndex$ = new Val<number | undefined>(undefined);
     private focused$ = new Val<string | undefined>(undefined);
     public members$ = new Val<Member[]>([]);
+    public isWritable$ = new Val<boolean>(Boolean(this.room?.isWritable));
 
     private sideEffectManager = new SideEffectManager();
 
     public sceneState: SceneState | null = null;
 
     public rootDirRemoving = false;
+
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
@@ -123,6 +128,17 @@ export class AppManager {
             this.safeUpdateAttributes([Fields.Registered, payload.kind], payload);
         });
         this.members$.setValue(serializeRoomMembers(this.displayer.state.roomMembers));
+
+        emitter.on("mainViewMounted", () => {
+            this.windowManger.viewMode$.subscribe(viewMode => {
+                const playground = this.windowManger.playground$.value;
+                if (viewMode === "scroll" && playground) {
+                    const scrollMode = new ScrollMode(this);
+                    this.scrollMode = scrollMode;
+                    scrollMode.setRoot(playground);
+                }
+            });
+        });
     }
 
     private onRemoveScenes = async (params: RemoveSceneParams) => {
@@ -581,6 +597,7 @@ export class AppManager {
     public bindMainView(divElement: HTMLDivElement, disableCameraTransform: boolean) {
         const mainView = this.mainViewProxy.view;
         mainView.disableCameraTransform = disableCameraTransform;
+        console.log("bindMainView", mainView.disableCameraTransform);
         // 延迟挂载 mainView 的 dom, 避免因为同步 camera 的闪动
         wait(30).then(() => {
             mainView.divElement = divElement;
@@ -713,6 +730,7 @@ export class AppManager {
             }
         }
         emitter.emit("writableChange", isWritable);
+        this.isWritable$.setValue(isWritable);
     };
 
     public safeSetAttributes(attributes: any) {

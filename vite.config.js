@@ -32,7 +32,7 @@ export default defineConfig(() => {
                     useVitePreprocess: true,
                 },
             }),
-            dts()
+            dts(),
         ],
         build: {
             lib: {

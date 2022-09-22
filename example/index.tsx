@@ -34,7 +34,8 @@ const mountManager = async (room, root) => {
         containerSizeRatio: 9 / 16,
         debug: true,
         cursor: true,
-        // disableCameraTransform: true,
+        disableCameraTransform: true,
+        // viewMode: "scroll"
         // fullscreen: true,
     } as MountParams)) as WindowManagerType;
 
@@ -91,7 +92,12 @@ const mountManager = async (room, root) => {
     manager.emitter.on("boxStateChange", boxState => {
         console.log("boxStateChange", boxState);
     })
-
+    manager.emitter.on("userScroll", () => {
+        // console.log("onUserScroll");
+    });
+    manager.emitter.on("scrollStateChange", state => {
+        console.log("scrollStateChange", state);
+    })
     // manager.emitter.on("baseCameraChange", camera => {
         // console.log("baseCameraChange", camera);
     // });

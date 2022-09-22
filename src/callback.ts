@@ -4,6 +4,7 @@ import type { CameraState, SceneState, ViewVisionMode } from "white-web-sdk";
 import type { LoadAppEvent } from "./Register";
 import type { PageState } from "./Page";
 import type { ICamera, ISize } from "./AttributesDelegate";
+import type { ScrollState } from "./View/ScrollMode";
 
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
@@ -25,6 +26,8 @@ export type PublicEvent = {
     baseCameraChange: ICamera;
     baseSizeChange: ISize;
     fullscreenChange: TeleBoxFullscreen;
+    userScroll: undefined;
+    scrollStateChange: ScrollState;
 };
 
 export type CallbacksType = Emittery<PublicEvent>;

@@ -9,17 +9,15 @@ specifiers:
   react-dom: ^17.0.2
   video.js: ^7.14.3
   vite: ^2.7.13
-  white-web-sdk: npm:white-web-sdk-esm@2.16.24
 
 dependencies:
   '@netless/app-slide': 0.2.2
-  '@netless/video-js-plugin': 0.3.8_bsbjo3bce2xgq2fleqqtxcorju
+  '@netless/video-js-plugin': 0.3.8_msg4urus2smvmky5d64fd4fedy
   normalize.css: 8.0.1
   p-queue: 7.2.0
   react: 17.0.2
   react-dom: 17.0.2_react@17.0.2
   video.js: 7.18.1
-  white-web-sdk: /white-web-sdk-esm/2.16.24
 
 devDependencies:
   vite: 2.8.6
@@ -33,19 +31,11 @@ packages:
       regenerator-runtime: 0.13.9
     dev: false
 
-  /@juggle/resize-observer/3.3.1:
-    resolution: {integrity: sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==}
-    dev: false
-
   /@netless/app-slide/0.2.2:
     resolution: {integrity: sha512-2+EFJUT5PHDbcgfIP1P2/BKE/c/I+Etr9YD0y4zSym2UoqS3GyZWgQLIES1d2nQVnaRomOjppighlbNZ/ccbZA==}
     dev: false
 
-  /@netless/canvas-polyfill/0.0.4:
-    resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
-    dev: false
-
-  /@netless/video-js-plugin/0.3.8_bsbjo3bce2xgq2fleqqtxcorju:
+  /@netless/video-js-plugin/0.3.8_msg4urus2smvmky5d64fd4fedy:
     resolution: {integrity: sha512-xCLfL8ISjPD5XQbeGWT/pwKdWXqYXmaEXiP4jcX8oaR83+vJo463znIg2JW8EXHkTq7KRrYnZqqlQdI6It4L+A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@netless/video-js-plugin/-/video-js-plugin-0.3.8.tgz}
     peerDependencies:
       react: '>=16'
@@ -56,68 +46,13 @@ packages:
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
       video.js: 7.18.1
-      white-web-sdk: /white-web-sdk-esm/2.16.24
     dev: false
 
-  /@netless/xml-js/1.6.15:
-    resolution: {integrity: sha512-e0emMs7YtDB/ATUns1SJ61R9n9nfVvwwFodoc539Qt0ScksaCLCaFWgpEbLloj9sr60ry6Xd8QFHKULFIZB6zA==}
-    hasBin: true
-    dev: false
-
-  /@protobufjs/aspromise/1.1.2:
-    resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
-    dev: false
-
-  /@protobufjs/base64/1.1.2:
-    resolution: {integrity: sha512-AZkcAA5vnN/v4PDqKyMR5lx7hZttPDgClv83E//FMNhR2TMcLUhfRUBHCmSl0oi9zMgDDqRUJkSxO3wm85+XLg==}
-    dev: false
-
-  /@protobufjs/codegen/2.0.4:
-    resolution: {integrity: sha512-YyFaikqM5sH0ziFZCN3xDC7zeGaB/d0IUb9CATugHWbd1FRFwWwt4ld4OYMPWu5a3Xe01mGAULCdqhMlPl29Jg==}
-    dev: false
-
-  /@protobufjs/eventemitter/1.1.0:
-    resolution: {integrity: sha512-j9ednRT81vYJ9OfVuXG6ERSTdEL1xVsNgqpkxMsbIabzSo3goCjDIveeGv5d03om39ML71RdmrGNjG5SReBP/Q==}
-    dev: false
-
-  /@protobufjs/fetch/1.1.0:
-    resolution: {integrity: sha512-lljVXpqXebpsijW71PZaCYeIcE5on1w5DlQy5WH6GLbFryLUrBD4932W/E2BSpfRJWseIL4v/KPgBFxDOIdKpQ==}
-    dependencies:
-      '@protobufjs/aspromise': 1.1.2
-      '@protobufjs/inquire': 1.1.0
-    dev: false
-
-  /@protobufjs/float/1.0.2:
-    resolution: {integrity: sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ==}
-    dev: false
-
-  /@protobufjs/inquire/1.1.0:
-    resolution: {integrity: sha512-kdSefcPdruJiFMVSbn801t4vFK7KB/5gd2fYvrxhuJYg8ILrmn9SKSX2tZdV6V+ksulWqS7aXjBcRXl3wHoD9Q==}
-    dev: false
-
-  /@protobufjs/path/1.1.2:
-    resolution: {integrity: sha512-6JOcJ5Tm08dOHAbdR3GrvP+yUUfkjG5ePsHYczMFLq3ZmMkAD98cDgcT2iA1lJ9NVwFd4tH/iSSoe44YWkltEA==}
-    dev: false
-
-  /@protobufjs/pool/1.1.0:
-    resolution: {integrity: sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw==}
-    dev: false
-
-  /@protobufjs/utf8/1.1.0:
-    resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
-    dev: false
-
-  /@types/long/4.0.1:
-    resolution: {integrity: sha512-5tXH6Bx/kNGd3MgffdmP4dy2Z+G4eaXw0SE81Tq3BNadtnMR5/ySMzX4SLEzHJzSmPNn4HIdpQsBvXMUykr58w==}
-    dev: false
-
-  /@types/node/17.0.23:
-    resolution: {integrity: sha512-UxDxWn7dl97rKVeVS61vErvw086aCYhDLyvRQZ5Rk65rZKepaFdm53GeqXaKBuOhED4e9uWq34IC3TdSdJJ2Gw==}
-    dev: false
-
-  /@videojs/http-streaming/2.13.1:
+  /@videojs/http-streaming/2.13.1_video.js@7.18.1:
     resolution: {integrity: sha512-1x3fkGSPyL0+iaS3/lTvfnPTtfqzfgG+ELQtPPtTvDwqGol9Mx3TNyZwtSTdIufBrqYRn7XybB/3QNMsyjq13A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/@videojs/http-streaming/-/http-streaming-2.13.1.tgz}
     engines: {node: '>=8', npm: '>=5'}
+    peerDependencies:
+      video.js: ^6 || ^7
     dependencies:
       '@babel/runtime': 7.17.8
       '@videojs/vhs-utils': 3.0.4
@@ -167,88 +102,6 @@ packages:
       '@videojs/vhs-utils': 3.0.5
       global: 4.4.0
       pkcs7: 1.0.4
-    dev: false
-
-  /atob/2.1.2:
-    resolution: {integrity: sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==}
-    engines: {node: '>= 4.5.0'}
-    hasBin: true
-    dev: false
-
-  /bezier-js/2.6.1:
-    resolution: {integrity: sha512-jelZM33eNzcZ9snJ/5HqJLw3IzXvA8RFcBjkdOB8SDYyOvW8Y2tTosojAiBTnD1MhbHoWUYNbxUXxBl61TxbRg==}
-    dev: false
-
-  /color-convert/1.9.3:
-    resolution: {integrity: sha512-QfAUtd+vFdAtFQcC8CCyYt1fYWxSqAiK2cSD6zDB8N3cpsEBAvRxp9zOGg6G/SHHJYAT88/az/IuDGALsNVbGg==}
-    dependencies:
-      color-name: 1.1.3
-    dev: false
-
-  /color-name/1.1.3:
-    resolution: {integrity: sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==}
-    dev: false
-
-  /color-name/1.1.4:
-    resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
-    dev: false
-
-  /color-string/1.9.0:
-    resolution: {integrity: sha512-9Mrz2AQLefkH1UvASKj6v6hj/7eWgjnT/cVsR8CumieLoT+g900exWeNogqtweI8dxloXN9BDQTYro1oWu/5CQ==}
-    dependencies:
-      color-name: 1.1.4
-      simple-swizzle: 0.2.2
-    dev: false
-
-  /color/3.2.1:
-    resolution: {integrity: sha512-aBl7dZI9ENN6fUGC7mWpMTPNHmWUSNan9tuWN6ahh5ZLNk9baLJOnSMlrQkHcrfFgz2/RigjUVAjdx36VcemKA==}
-    dependencies:
-      color-convert: 1.9.3
-      color-string: 1.9.0
-    dev: false
-
-  /complex.js/2.1.0:
-    resolution: {integrity: sha512-RdcrDz7YynXp/YXGwXIZ4MtmxXXniT5WmLFRX93cuXUX+0geWAqB8l1BoLXF+3BkzviVzHlpw27P9ow7MvlcmA==}
-    dev: false
-
-  /core-js/3.21.1:
-    resolution: {integrity: sha512-FRq5b/VMrWlrmCzwRrpDYNxyHP9BcAZC+xHJaqTgIE5091ZV1NTmyh0sGOg5XqpnHvR0svdy0sv1gWA1zmhxig==}
-    deprecated: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
-    requiresBuild: true
-    dev: false
-
-  /decimal.js/10.3.1:
-    resolution: {integrity: sha512-V0pfhfr8suzyPGOx3nmq4aHqabehUZn6Ch9kyFpV79TGDTWFmHqUqXdabR7QHqxzrYolF4+tVmJhUG4OURg5dQ==}
-    dev: false
-
-  /decode-uri-component/0.2.0:
-    resolution: {integrity: sha512-hjf+xovcEn31w/EUYdTXQh/8smFL/dzYjohQGEIgjyNavaJfBY2p5F527Bo1VPATxv0VYTUC2bOcXvqFwk78Og==}
-    engines: {node: '>=0.10'}
-    dev: false
-
-  /detect-hover/1.0.3:
-    resolution: {integrity: sha512-HtLoY+tClgYucJNiovNICGWFp9nOGVmHY44s7L62iPqORXM9vujeWFaVcqtA7XRvp/2Y+4RBUfHbDKFGN+xxZQ==}
-    dev: false
-
-  /detect-it/3.0.7:
-    resolution: {integrity: sha512-RxpgcdbatUX6epJE09K16iJqF7x6iEcEdoL18FR2zpBO4JhnL7aMOAUoUEyexdtbWOSfTmoDWmeD6mwRBQyRXg==}
-    dependencies:
-      detect-hover: 1.0.3
-      detect-passive-events: 1.0.5
-      detect-pointer: 1.0.3
-      detect-touch-events: 2.0.2
-    dev: false
-
-  /detect-passive-events/1.0.5:
-    resolution: {integrity: sha512-foW7Q35wwOCxVzW0xLf5XeB5Fhe7oyRgvkBYdiP9IWgLMzjqUqTvsJv9ymuEWGjY6AoDXD3OC294+Z9iuOw0QA==}
-    dev: false
-
-  /detect-pointer/1.0.3:
-    resolution: {integrity: sha512-d0o/Puo3fiGSCXy6H039h9Kwz+mmYCGKZ/qtPFnpN3WfsumjC1C9b5KKvRu+aYnfdI8peqN/iAe7dPd85qIt2g==}
-    dev: false
-
-  /detect-touch-events/2.0.2:
-    resolution: {integrity: sha512-g8GWBkJLiIDRJfRXEdrd1wMXpNyGId2DkbfuwFahSb4OCvn717hyRJtAcEDISfp3zkwEhZ4Y4woHPA6DeyB3Fw==}
     dev: false
 
   /dom-walk/0.1.2:
@@ -463,16 +316,8 @@ packages:
       esbuild-windows-arm64: 0.14.28
     dev: true
 
-  /escape-latex/1.2.0:
-    resolution: {integrity: sha512-nV5aVWW1K0wEiUIEdZ4erkGGH8mDxGyxSeqPzRNtWP7ataw+/olFObw7hujFWlVjNsaDFw5VZ5NzVSIqRgfTiw==}
-    dev: false
-
   /eventemitter3/4.0.7:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/eventemitter3/-/eventemitter3-4.0.7.tgz}
-    dev: false
-
-  /fraction.js/4.2.0:
-    resolution: {integrity: sha512-MhLuK+2gUcnZe8ZHlaaINnQLl0xRIGRfcGk2yl8xoQAfHrSsL3rYu6FCmBdkdbhc9EPlwyGHewaRsvwRMJtAlA==}
     dev: false
 
   /fsevents/2.3.2:
@@ -505,10 +350,6 @@ packages:
     resolution: {integrity: sha512-pWt8hBCqJsUWI/HtcfWod7+N9SgAqyPEaF7JQjwzjn5vGrpg6aQ5qeAFQ7dx//UH4J1O+7xqew+gCeeFt6xN/g==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/individual/-/individual-2.0.0.tgz}
     dev: false
 
-  /is-arrayish/0.3.2:
-    resolution: {integrity: sha512-eVRqCvVlZbuw3GrM63ovNSNAeA1K16kaR/LRY/92w0zxQ5/1YzwblUX652i4Xs9RwAGjW9d9y6X88t8OaAJfWQ==}
-    dev: false
-
   /is-core-module/2.8.1:
     resolution: {integrity: sha512-SdNCUs284hr40hFTFP6l0IfZ/RSrMXF3qgoRHd3/79unUTvrFO/JoXwkGm+5J/Oe3E/b5GsnG330uUNgRpu1PA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/is-core-module/-/is-core-module-2.8.1.tgz}
     dependencies:
@@ -519,20 +360,12 @@ packages:
     resolution: {integrity: sha512-lw7DUp0aWXYg+CBCN+JKkcE0Q2RayZnSvnZBlwgxHBQhqt5pZNVy4Ri7H9GmmXkdu7LUthszM+Tor1u/2iBcpQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/is-function/-/is-function-1.0.2.tgz}
     dev: false
 
-  /javascript-natural-sort/0.7.1:
-    resolution: {integrity: sha512-nO6jcEfZWQXDhOiBtG2KvKyEptz7RVbpGP4vTD2hLBdmNQSsCiicO2Ioinv6UI4y9ukqnBpy+XZ9H6uLNgJTlw==}
-    dev: false
-
   /js-tokens/4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/js-tokens/-/js-tokens-4.0.0.tgz}
     dev: false
 
   /keycode/2.2.1:
     resolution: {integrity: sha512-Rdgz9Hl9Iv4QKi8b0OlCRQEzp4AgVxyCtz5S/+VIHezDmrDhkp2N2TqBWOLz0/gbeREXOOiI9/4b8BY9uw2vFg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/keycode/-/keycode-2.2.1.tgz}
-    dev: false
-
-  /long/4.0.0:
-    resolution: {integrity: sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==}
     dev: false
 
   /loose-envify/1.4.0:
@@ -550,30 +383,10 @@ packages:
       global: 4.4.0
     dev: false
 
-  /mathjs/10.4.3:
-    resolution: {integrity: sha512-C50lWorCOplBec9Ik5fzhHuOx4G4+mtdz3r1G2I1/r8yj+CpYFXLXNqTdg59oKmIF1tKcIzpxlC4s2dGL7f3pg==}
-    engines: {node: '>= 12'}
-    hasBin: true
-    dependencies:
-      '@babel/runtime': 7.17.8
-      complex.js: 2.1.0
-      decimal.js: 10.3.1
-      escape-latex: 1.2.0
-      fraction.js: 4.2.0
-      javascript-natural-sort: 0.7.1
-      seedrandom: 3.0.5
-      tiny-emitter: 2.1.0
-      typed-function: 2.1.0
-    dev: false
-
   /min-document/2.19.0:
     resolution: {integrity: sha512-9Wy1B3m3f66bPPmU5hdA4DR4PB2OfDU/+GS3yAB7IQozE3tqXaVv2zOjgla7MEGSRv95+ILmOuvhLkOK6wJtCQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/min-document/-/min-document-2.19.0.tgz}
     dependencies:
       dom-walk: 0.1.2
-    dev: false
-
-  /mobx/6.5.0:
-    resolution: {integrity: sha512-pHZ/cySF00FVENDWIDzJyoObFahK6Eg4d0papqm6d7yMkxWTZ/S/csqJX1A3PsYy4t5k3z2QnlwuCfMW5lSEwA==}
     dev: false
 
   /mpd-parser/0.21.0:
@@ -652,59 +465,6 @@ packages:
     engines: {node: '>= 0.6.0'}
     dev: false
 
-  /prop-types/15.8.1:
-    resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-      react-is: 16.13.1
-    dev: false
-
-  /protobufjs/6.11.2:
-    resolution: {integrity: sha512-4BQJoPooKJl2G9j3XftkIXjoC9C0Av2NOrWmbLWT1vH32GcSUHjM0Arra6UfTsVyfMAuFzaLucXn1sadxJydAw==}
-    hasBin: true
-    requiresBuild: true
-    dependencies:
-      '@protobufjs/aspromise': 1.1.2
-      '@protobufjs/base64': 1.1.2
-      '@protobufjs/codegen': 2.0.4
-      '@protobufjs/eventemitter': 1.1.0
-      '@protobufjs/fetch': 1.1.0
-      '@protobufjs/float': 1.0.2
-      '@protobufjs/inquire': 1.1.0
-      '@protobufjs/path': 1.1.2
-      '@protobufjs/pool': 1.1.0
-      '@protobufjs/utf8': 1.1.0
-      '@types/long': 4.0.1
-      '@types/node': 17.0.23
-      long: 4.0.0
-    dev: false
-
-  /query-string/5.1.1:
-    resolution: {integrity: sha512-gjWOsm2SoGlgLEdAGt7a6slVOk9mGiXmPFMqrEhLQ68rhQuBnpfs3+EmlvqKyxnCo9/PPlF+9MtY02S1aFg+Jw==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      decode-uri-component: 0.2.0
-      object-assign: 4.1.1
-      strict-uri-encode: 1.1.0
-    dev: false
-
-  /querystringify/2.2.0:
-    resolution: {integrity: sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ==}
-    dev: false
-
-  /react-dom/16.14.0_react@16.14.0:
-    resolution: {integrity: sha512-1gCeQXDLoIqMgqD3IO2Ah9bnf0w9kzhwN5q4FGnHZ67hBm9yePzB5JJAIQCc8x3pFnNlwFq4RidZggNAAkzWWw==}
-    peerDependencies:
-      react: ^16.14.0
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-      prop-types: 15.8.1
-      react: 16.14.0
-      scheduler: 0.19.1
-    dev: false
-
   /react-dom/17.0.2_react@17.0.2:
     resolution: {integrity: sha512-s4h96KtLDUQlsENhMn1ar8t2bEa+q/YAtj8pPPdIjPDGBDIVNsrD9aXNWqspUe6AzKCIG0C1HZZLqLV7qpOBGA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/react-dom/-/react-dom-17.0.2.tgz}
     peerDependencies:
@@ -714,19 +474,6 @@ packages:
       object-assign: 4.1.1
       react: 17.0.2
       scheduler: 0.20.2
-    dev: false
-
-  /react-is/16.13.1:
-    resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
-    dev: false
-
-  /react/16.14.0:
-    resolution: {integrity: sha512-0X2CImDkJGApiAlcf0ODKIneSwBPhqJawOa5wCtKbu7ZECrmS26NvtSILynQ66cgkT/RJ4LidJOc3bUESwmU8g==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-      prop-types: 15.8.1
     dev: false
 
   /react/17.0.2:
@@ -739,10 +486,6 @@ packages:
 
   /regenerator-runtime/0.13.9:
     resolution: {integrity: sha512-p3VT+cOEgxFsRRA9X4lkI1E+k2/CtnKtU4gcxyaCUreilL/vqI6CdZ3wxVUx3UOUg+gnUOQQcRI7BmSI656MYA==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/regenerator-runtime/-/regenerator-runtime-0.13.9.tgz}
-    dev: false
-
-  /requires-port/1.0.0:
-    resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
     dev: false
 
   /resolve/1.22.0:
@@ -774,13 +517,6 @@ packages:
       rust-result: 1.0.0
     dev: false
 
-  /scheduler/0.19.1:
-    resolution: {integrity: sha512-n/zwRWRYSUj0/3g/otKDRPMh6qv2SYMWNq85IEa8iZyAv8od9zDYpGSnpBEjNgcMNq6Scbu5KfIPxNF72R/2EA==}
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-    dev: false
-
   /scheduler/0.20.2:
     resolution: {integrity: sha512-2eWfGgAqqWFGqtdMmcL5zCMK1U8KlXv8SQFGglL3CEtd0aDVDWgeF/YoCmvln55m5zSk3J/20hTaSBeSObsQDQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/scheduler/-/scheduler-0.20.2.tgz}
     dependencies:
@@ -788,69 +524,25 @@ packages:
       object-assign: 4.1.1
     dev: false
 
-  /seedrandom/3.0.5:
-    resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
-    dev: false
-
-  /simple-swizzle/0.2.2:
-    resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==}
-    dependencies:
-      is-arrayish: 0.3.2
-    dev: false
-
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/source-map-js/-/source-map-js-1.0.2.tgz}
     engines: {node: '>=0.10.0'}
     dev: true
-
-  /spark-md5/3.0.2:
-    resolution: {integrity: sha512-wcFzz9cDfbuqe0FZzfi2or1sgyIrsDwmPwfZC4hiNidPdPINjeUwNfv5kldczoEAcjl9Y1L3SM7Uz2PUEQzxQw==}
-    dev: false
-
-  /strict-uri-encode/1.1.0:
-    resolution: {integrity: sha512-R3f198pcvnB+5IpnBlRkphuE9n46WyVl8I39W/ZUTZLz4nqSP/oLYUrcnJrw462Ds8he4YKMov2efsTIw1BDGQ==}
-    engines: {node: '>=0.10.0'}
-    dev: false
 
   /supports-preserve-symlinks-flag/1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz}
     engines: {node: '>= 0.4'}
     dev: true
 
-  /textarea-caret-ts/4.1.1:
-    resolution: {integrity: sha512-kEL3aQ99r8jJR2RfB6g74LEzrt9NTXkyjPvvP3vzhNkQ+zAaXitKCq8BUEueepULWCCxtpRaRjtnYHaR45FDMg==}
-    dev: false
-
-  /tiny-emitter/2.1.0:
-    resolution: {integrity: sha512-NB6Dk1A9xgQPMoGqC5CVXn123gWyte215ONT5Pp5a0yt4nlEoO1ZWeCwpncaekPHXO60i47ihFnZPiRPjRMq4Q==}
-    dev: false
-
-  /typed-function/2.1.0:
-    resolution: {integrity: sha512-bctQIOqx2iVbWGDGPWwIm18QScpu2XRmkC19D8rQGFsjKSgteq/o1hTZvIG/wuDq8fanpBDrLkLq+aEN/6y5XQ==}
-    engines: {node: '>= 10'}
-    dev: false
-
-  /url-parse/1.5.10:
-    resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
-    dependencies:
-      querystringify: 2.2.0
-      requires-port: 1.0.0
-    dev: false
-
   /url-toolkit/2.2.5:
     resolution: {integrity: sha512-mtN6xk+Nac+oyJ/PrI7tzfmomRVNFIWKUbG8jdYFt52hxbiReFAXIjYskvu64/dvuW71IcB7lV8l0HvZMac6Jg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/url-toolkit/-/url-toolkit-2.2.5.tgz}
-    dev: false
-
-  /uuid/7.0.3:
-    resolution: {integrity: sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==}
-    hasBin: true
     dev: false
 
   /video.js/7.18.1:
     resolution: {integrity: sha512-mnXdmkVcD5qQdKMZafDjqdhrnKGettZaGSVkExjACiylSB4r2Yt5W1bchsKmjFpfuNfszsMjTUnnoIWSSqoe/Q==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/video.js/-/video.js-7.18.1.tgz}
     dependencies:
       '@babel/runtime': 7.17.8
-      '@videojs/http-streaming': 2.13.1
+      '@videojs/http-streaming': 2.13.1_video.js@7.18.1
       '@videojs/vhs-utils': 3.0.5
       '@videojs/xhr': 2.6.0
       aes-decrypter: 3.1.2
@@ -897,27 +589,3 @@ packages:
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
-
-  /white-web-sdk-esm/2.16.24:
-    resolution: {integrity: sha512-eDRHAtn5NhA8Dl6u9oZg5S3sM+2sfs/7hyxjt0YaHLB4EouA3HWtFLADtsthNLgA8uP6ZLXmVTmaMjCHfDPJ6g==}
-    dependencies:
-      '@juggle/resize-observer': 3.3.1
-      '@netless/canvas-polyfill': 0.0.4
-      '@netless/xml-js': 1.6.15
-      atob: 2.1.2
-      bezier-js: 2.6.1
-      color: 3.2.1
-      core-js: 3.21.1
-      detect-it: 3.0.7
-      eventemitter3: 4.0.7
-      mathjs: 10.4.3
-      mobx: 6.5.0
-      protobufjs: 6.11.2
-      query-string: 5.1.1
-      react: 16.14.0
-      react-dom: 16.14.0_react@16.14.0
-      spark-md5: 3.0.2
-      textarea-caret-ts: 4.1.1
-      url-parse: 1.5.10
-      uuid: 7.0.3
-    dev: false

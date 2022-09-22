@@ -1,4 +1,4 @@
-import type { WindowManager } from "../dist";
+import type { WindowManager } from "../dist/src";
 import { BuiltinApps } from "../dist/index.es";
 import * as docs from "./docs.json";
 

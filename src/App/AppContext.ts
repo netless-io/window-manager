@@ -1,5 +1,4 @@
 import { BoxNotCreatedError } from "../Utils/error";
-import { Storage } from "./Storage";
 import {
     autorun,
     listenDisposed,
@@ -9,6 +8,7 @@ import {
     unlistenUpdated,
     toJS
 } from "white-web-sdk";
+import { Storage } from "@netless/synced-store";
 import type {
     Room,
     SceneDefinition,
@@ -30,6 +30,7 @@ import { WhiteBoardView } from "./WhiteboardView";
 import { findMemberByUid } from "../Helper";
 import { MAX_PAGE_SIZE } from "../constants";
 import { isBoolean, isNumber } from "lodash";
+import { Val } from "value-enhancer";
 
 export type CreateWhiteBoardViewParams = {
     size?: number;
@@ -224,21 +225,31 @@ export class AppContext<TAttributes extends Record<string, any> = any, TMagixEve
     /** Main Storage for attributes. */
     public get storage(): Storage<TAttributes> {
         if (!this._storage) {
-            this._storage = new Storage(this);
+            this._storage = this.createStorage(this.appId, this.getAttributes());
         }
         return this._storage;
     }
 
-    /**
+        /**
      * Create separated storages for flexible state management.
-     * @param storeId Namespace for the storage. Storages of the same namespace share the same data.
+     * @param namespace Namespace for the storage. Storages of the same namespace share the same data.
      * @param defaultState Default state for initial storage creation.
      * @returns
      */
-    public createStorage = <TState extends Record<string, any>>(storeId: string, defaultState?: TState): Storage<TState> => {
-        const storage = new Storage(this, storeId, defaultState);
+    public createStorage = <TState extends Record<string, any>>(namespace: string, defaultState?: TState): Storage<TState> => {
+        const isWritable$ = new Val(this.isWritable);
+        const plugin$ = new Val(this.manager.windowManger);
+        const storage = new Storage({
+            plugin$,
+            isWritable$,
+            namespace,
+            defaultState: defaultState
+        });
+        this.emitter.on("writableChange", writable => {
+            isWritable$.setValue(writable);
+        })
         this.emitter.on("destroy", () => {
-            storage.destroy();
+            storage.disconnect();
         });
         return storage;
     };
