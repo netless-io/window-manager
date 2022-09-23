@@ -136,6 +136,9 @@ export class AppManager {
                     const scrollMode = new ScrollMode(this);
                     this.scrollMode = scrollMode;
                     scrollMode.setRoot(playground);
+                } else {
+                    this.scrollMode?.dispose();
+                    this.scrollMode = undefined;
                 }
             });
         });

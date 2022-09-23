@@ -201,6 +201,15 @@ export class ScrollMode {
 
     public dispose(): void {
         this.sideEffect.flushAll();
+        this.scrollStorage.disconnect();
+        this._root$.destroy();
+        this._scale$.destroy();
+        this._scrollTop$.destroy();
+        this._whiteboard$.destroy();
+        this.scrollState$.destroy();
+        this._page$.destroy();
+        this._size$.destroy();
+        this._mainView$.destroy();
     }
 
     private getWhiteboardElement = (root: HTMLElement | null): HTMLElement | null => {
