@@ -3,8 +3,9 @@ import { CameraSynchronizer } from "./CameraSynchronizer";
 import { combine, derive } from "value-enhancer";
 import { isEqual } from "lodash";
 import { SideEffectManager } from "side-effect-manager";
+import { Val } from "value-enhancer";
 import type { Camera, View } from "white-web-sdk";
-import type { Val, ReadonlyVal } from "value-enhancer";
+import type { ReadonlyVal } from "value-enhancer";
 import type { ICamera, ISize } from "../AttributesDelegate";
 import type { TeleBoxRect } from "@netless/telebox-insider";
 import type { ManagerViewMode } from "../typings";
@@ -43,6 +44,8 @@ export class ViewSync {
         ]);
         if (context.viewMode$) {
             this.needRecoverCamera$ = derive(context.viewMode$, mode => mode !== "scroll");
+        } else {
+            this.needRecoverCamera$ = new Val(true);
         }
         const camera$size$ = combine([this.context.camera$, this.context.size$]);
         camera$size$.reaction(([camera, size]) => {

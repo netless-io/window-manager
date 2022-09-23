@@ -114,7 +114,7 @@ export class AppProxy implements PageRemoveService {
             emitter.on("memberStateChange", this.onMemberStateChange)
         );
         this.sideEffectManager.add(() => [
-            this.syncCamera$.reaction(syncCamera => {
+            this.syncCamera$.subscribe(syncCamera => {
                 if (!syncCamera) {
                     if (this.viewSync) {
                         this.viewSync.destroy();
