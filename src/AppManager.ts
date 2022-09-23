@@ -876,5 +876,6 @@ export class AppManager {
         this.sceneIndex$.destroy();
         this.focused$.destroy();
         this.members$.destroy();
+        this.scrollMode?.dispose();
     }
 }
