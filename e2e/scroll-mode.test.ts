@@ -22,7 +22,7 @@ test.describe("scroll mode", () => {
         expect(viewMode).toBe("scroll");
     });
 
-    test.only("sync", async ({ page, browser }) => {
+    test("sync", async ({ page, browser }) => {
         await gotoRoom(page, uuid, token, "scroll");
         await drawLine(page);
         await page.mouse.wheel(200, 150);

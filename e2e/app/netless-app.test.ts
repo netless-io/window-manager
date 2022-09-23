@@ -16,6 +16,11 @@ test.describe("NetlessApp", () => {
                     const div = document.createElement("div");
                     div.className = "Test-APP";
                     context.box.mountStage(div);
+                    const storage = context.createStorage("test", { count: 1 });
+                    storage.on("stateChanged", diff => {
+                        console.log("stateChanged", diff);
+                    });
+                    storage.setState({ count: 10 });
                 }
             }
             window.WindowManager.register({
