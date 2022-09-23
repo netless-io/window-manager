@@ -75,6 +75,10 @@ export class AppContext<TAttributes extends Record<string, any> = any, TMagixEve
         return this.appProxy.status === "destroyed";
     }
 
+    public get attributes(): TAttributes {
+        return this.appProxy.attributes;
+    }
+
     /** @deprecated Use context.storage.state instead. */
     public getAttributes = (): TAttributes | undefined => {
         return this.appProxy.attributes;
@@ -220,17 +224,7 @@ export class AppContext<TAttributes extends Record<string, any> = any, TMagixEve
             : this.appOptions;
     };
 
-    private _storage?: Storage<TAttributes>;
-
-    /** Main Storage for attributes. */
-    public get storage(): Storage<TAttributes> {
-        if (!this._storage) {
-            this._storage = this.createStorage(this.appId, this.getAttributes());
-        }
-        return this._storage;
-    }
-
-        /**
+    /**
      * Create separated storages for flexible state management.
      * @param namespace Namespace for the storage. Storages of the same namespace share the same data.
      * @param defaultState Default state for initial storage creation.
