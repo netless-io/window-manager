@@ -119,6 +119,20 @@
     margin-top: 3px;
 }
 
+.netless-window-manager-cursor-pencilEraser-image {
+    margin-left: -22px;
+    margin-top: 3px;
+}
+
+.netless-window-manager-laserPointer-pencilEraser-offset {
+    margin-left: -18px;
+}
+
+.netless-window-manager-pencilEraser-3-offset {
+    margin-top: -14px;
+    margin-left: -6px;
+}
+
 .netless-window-manager-cursor-name {
     width: 100%;
     height: 48px;

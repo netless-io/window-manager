@@ -157,14 +157,21 @@ export class Cursor {
             cursorTagBackgroundColor: this.memberCursorTagBackgroundColor,
             opacity: this.memberOpacity,
             tagName: this.memberTagName,
+            pencilEraserSize: this.member?.memberState.pencilEraserSize,
         };
     }
 
     private getIcon() {
         if (this.member) {
             const icons = this.cursorManager.applianceIcons;
-            const applianceSrc = icons[this.memberApplianceName || ApplianceNames.shape];
-            return applianceSrc || icons[ApplianceNames.shape];
+            let applianceSrc = icons[ApplianceNames.shape];
+            if (this.memberApplianceName === ApplianceNames.pencilEraser) {
+                const size = this.member?.memberState.pencilEraserSize || 1;
+                applianceSrc = icons[`${this.memberApplianceName}${size}`];
+            } else {
+                applianceSrc = icons[this.memberApplianceName || ApplianceNames.shape];
+            }
+            return applianceSrc;
         }
     }
 

@@ -87,7 +87,7 @@ export type RegisterParams<AppOptions = any, SetupResult = any, Attributes exten
 
 export type AppListenerKeys = keyof AppEmitterEvent;
 
-export type ApplianceIcons = Partial<Record<ApplianceNames, string>>;
+export type ApplianceIcons = Partial<Record<`${ApplianceNames}` | string, string>>;
 
 export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 

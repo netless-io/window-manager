@@ -5,6 +5,9 @@ import eraser from "../image/eraser-cursor.png";
 import shape from "../image/shape-cursor.svg";
 import text from "../image/text-cursor.svg";
 import laser from "../image/laser-pointer-cursor.svg";
+import pencilEraser1 from "../image/pencil-eraser-1.svg";
+import pencilEraser2 from "../image/pencil-eraser-2.svg";
+import pencilEraser3 from "../image/pencil-eraser-3.svg";
 
 export const ApplianceMap: {
     [key: string]: string;
@@ -15,4 +18,7 @@ export const ApplianceMap: {
     [ApplianceNames.shape]: shape,
     [ApplianceNames.text]: text,
     [ApplianceNames.laserPointer]: laser,
+    ["pencilEraser1"]: pencilEraser1,
+    ["pencilEraser2"]: pencilEraser2,
+    ["pencilEraser3"]: pencilEraser3,
 };
