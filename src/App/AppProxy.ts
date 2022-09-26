@@ -328,12 +328,18 @@ export class AppProxy implements PageRemoveService {
                 this.setViewFocusScenePath();
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
-                    const result = await app.setup(context);
-                    this.appResult = result;
-                    appRegister.notifyApp(this.kind, "created", { appId, result });
-                    this.fixMobileSize();
-                    if (this.isAddApp) {
-                        this.setupDone();
+                    try {
+                        const result = await app.setup(context);
+                        this.appResult = result;
+                        appRegister.notifyApp(this.kind, "created", { appId, result });
+                        this.fixMobileSize();
+                        if (this.isAddApp) {
+                            this.setupDone();
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        this.setupFailed();
+                        this.destroy(false, true, true);
                     }
                 }, SETUP_APP_DELAY);
             });
@@ -355,7 +361,6 @@ export class AppProxy implements PageRemoveService {
                     width: this.box.intrinsicWidth,
                     height: this.box.intrinsicHeight,
                 });
-                this.boxManager.focusBox({ appId }, false);
             }
         } catch (error: any) {
             console.error(error);
@@ -701,6 +706,13 @@ export class AppProxy implements PageRemoveService {
     private setupDone = () => {
         this.store.updateAppAttributes(this.id, "setup", true);
         this.manager.dispatchInternalEvent(Events.InvokeAttributesUpdateCallback);
+        if (this.boxManager && this.box) {
+            this.boxManager.focusBox({ appId: this.id }, false);
+        }
+    }
+
+    private setupFailed = () => {
+        this.store.cleanAppAttributes(this.id);
     }
 
     public close(): Promise<void> {

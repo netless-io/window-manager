@@ -2,8 +2,8 @@ lockfileVersion: 5.4
 
 specifiers:
   '@juggle/resize-observer': ^3.3.1
-  '@netless/app-docs-viewer': ^0.3.3
-  '@netless/app-plyr': 0.2.2
+  '@netless/app-docs-viewer': ^1.0.0-canary.3
+  '@netless/app-plyr': ^0.2.3
   '@netless/synced-store': ^2.0.7
   '@netless/telebox-insider': 1.0.0-alpha.37
   '@playwright/test': ^1.23.2
@@ -56,8 +56,8 @@ dependencies:
   value-enhancer: 1.3.2
 
 devDependencies:
-  '@netless/app-docs-viewer': 0.3.3
-  '@netless/app-plyr': 0.2.2
+  '@netless/app-docs-viewer': 1.0.0-canary.3
+  '@netless/app-plyr': 0.2.3
   '@playwright/test': 1.23.2
   '@rollup/plugin-commonjs': 20.0.0
   '@rollup/plugin-node-resolve': 13.1.3
@@ -250,16 +250,17 @@ packages:
     resolution: {integrity: sha512-6Wci+Tp3CgPt/B9B0a3J4s3yMgLNSku6w5TV6mN+61C71UqsRBv2FUibBf3tPGlNxebgPHMEUzKpb1ggE8KCKw==}
     dev: true
 
-  /@netless/app-docs-viewer/0.3.3:
-    resolution: {integrity: sha512-yrc79e4oPKSNRackRjupkNp3Qvhrk9rETCf03FL1GlnrSE+GKtoZStRF4D7L6/214Gh930qjaEAOSF9BvkabLg==}
+  /@netless/app-docs-viewer/1.0.0-canary.3:
+    resolution: {integrity: sha512-EvUTJ+OWv8u0OT3iRpC3D7vQMnfkUK1hFAgwtTuIoequBwUWIm1d9rTyjldYdKIgEJgOS+gaTikzu9Fg3D9PSw==}
     dependencies:
-      remitter: 0.2.6
+      remitter: 0.2.9
+      side-effect-manager: 1.2.1
       value-enhancer: 1.3.2
-      vanilla-lazyload: 17.8.2
+      vanilla-lazyload: 17.8.3
     dev: true
 
-  /@netless/app-plyr/0.2.2:
-    resolution: {integrity: sha512-bB/xQMMb7bUcr3SH7Sb7/orYyzoeWgADX8vQWNskvQuiX7uIvFHZSZSG2ld+Idmjiqjo7zU6L1bUMAMshLu5/g==}
+  /@netless/app-plyr/0.2.3:
+    resolution: {integrity: sha512-qwl/oi1YZqdRmAPjdr6QpgQziQfOD+Mzy8Wh3IM7YY17zvJtL7A9HjuTsAkseZ22knsC1W4vaeDKDo52rW8ykg==}
     dev: true
 
   /@netless/canvas-polyfill/0.0.4:
@@ -3969,6 +3970,11 @@ packages:
 
   /remitter/0.2.6:
     resolution: {integrity: sha512-vg6psVwfJsg7zcX7HVJ0UxZiRc0V7EfFOOzcp6WAEP2Br0G75DEM5KUglyxyMuxG57ntrfEBzqP6Cd91Nf2CBw==}
+    dev: false
+
+  /remitter/0.2.9:
+    resolution: {integrity: sha512-VlXdiDJZ17WJ75QjWmyaUkz2gR+CjlUejNyoNYVajnY+pMvzBbbRspibFhhev3szN9XWmTQBs9R4nGXrz8jrFQ==}
+    dev: true
 
   /request-progress/3.0.0:
     resolution: {integrity: sha512-MnWzEHHaxHO2iWiQuHrUPBi/1WeBf5PkxQqNyNvLl9VAYSdXkP8tQ3pBSeCPD+yw0v0Aq1zosWLz0BdeXpWwZg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/request-progress/-/request-progress-3.0.0.tgz}
@@ -4186,7 +4192,6 @@ packages:
 
   /side-effect-manager/1.2.1:
     resolution: {integrity: sha512-RBosCqit8LYMfrEXBt+4klzwWi3faGy4vfXNmUFZhgJY/oY6ZqF7RyUxWOJb0EUfA3jsY3juvFBJHYTk1q/3RQ==}
-    dev: false
 
   /signal-exit/3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npm.taobao.org/signal-exit/-/signal-exit-3.0.7.tgz}
@@ -4683,8 +4688,8 @@ packages:
   /value-enhancer/1.3.2:
     resolution: {integrity: sha512-RC+yfNMwuLZO2iDtHh4dxvtHP00DnSO0VARBkVoxT1eOwMJ/Rs5jKh6nBUcotWncJhjfGGhQE4SUK8goLEC5oQ==}
 
-  /vanilla-lazyload/17.8.2:
-    resolution: {integrity: sha512-sz/dFM5tXi5LbDhx9l31bAdXXtYvKCZ2cCva4SgsKxFIHf0r/4j1HsnaDn60ga2DhbxLRtHh65J8JmHZHW0F8w==}
+  /vanilla-lazyload/17.8.3:
+    resolution: {integrity: sha512-0eYjhkSkfP/JCDIzVpmgnh9I3XKAA8/i/6FpRrH8qjcC+nHv5mYZ6DQZUIGU16TqJei23hHl0J/Zuv/zmCC2Zw==}
     dev: true
 
   /vendors/1.0.4:
