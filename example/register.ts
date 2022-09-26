@@ -1,4 +1,4 @@
-import { WindowManager } from "../dist/index.es";
+import { WindowManager } from "../dist/index";
 import "./app/counter";
 import { Board } from "./app/board";
 

@@ -4,6 +4,7 @@ import { combine, derive, Val } from "value-enhancer";
 import { createScrollStorage } from "../storage";
 import { SCROLL_MODE_BASE_HEIGHT, SCROLL_MODE_BASE_WIDTH } from "../constants";
 import { SideEffectManager } from "side-effect-manager";
+import { round } from "lodash";
 import type { ReadonlyVal } from "value-enhancer";
 import type { AppManager } from "../AppManager";
 import type { ScrollStorage } from "../storage";
@@ -138,9 +139,9 @@ export class ScrollMode {
             [this._scrollTop$, this._page$, maxScrollPage$],
             ([scrollTop, page, maxScrollPage]) => {
                 return {
-                    scrollTop,
-                    page,
-                    maxScrollPage,
+                    scrollTop: round(scrollTop, 2),
+                    page: round(page, 2),
+                    maxScrollPage: round(maxScrollPage, 2),
                 };
             }
         );

@@ -14,12 +14,18 @@ test.describe("scroll mode", () => {
     test("init", async ({ page }) => {
         await gotoRoom(page, uuid, token, "scroll");
         const handle = await getWindow(page);
+        await page.waitForTimeout(1000);
 
         const camera = await handle.evaluate(w => w.manager.mainView.camera);
         expect(camera).toBeDefined();
         expect(camera.centerY).toBeGreaterThan(100);
+
         const viewMode = await handle.evaluate(w => w.manager.viewMode);
         expect(viewMode).toBe("scroll");
+
+        const scrollState = await handle.evaluate(w => w.manager.scrollState);
+        expect(scrollState).toBeDefined();
+        expect(scrollState.page).toBe(0);
     });
 
     test("sync", async ({ page, browser }) => {

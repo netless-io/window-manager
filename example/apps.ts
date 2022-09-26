@@ -1,5 +1,5 @@
 import type { WindowManager } from "../dist/src";
-import { BuiltinApps } from "../dist/index.es";
+import { BuiltinApps } from "../dist/index";
 import * as docs from "./docs.json";
 
 export const createCounter = (manager: WindowManager) => {
