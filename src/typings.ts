@@ -101,4 +101,4 @@ export * from "./Page";
 export * from "./Utils/error";
 export type { Member } from "./Helper";
 export type { TeleBoxManager, TeleBoxManagerQueryConfig } from "@netless/telebox-insider";
-export type { Storage, StorageConfig } from "@netless/synced-store";
+export type { Storage, StorageConfig, StorageEventData } from "@netless/synced-store";
