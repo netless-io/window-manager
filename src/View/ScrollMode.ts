@@ -44,7 +44,8 @@ export class ScrollMode {
     constructor(private manager: AppManager) {
         this._root$ = new Val<HTMLElement | null>(null);
         this._mainView$ = new Val<View>(this.manager.mainView);
-        this._mainView$.value.disableCameraTransform = true;
+        // 滚动模式下确保 disableCameraTransform 为 false, 否则触摸屏无法滚动
+        this._mainView$.value.disableCameraTransform = false;
 
         if (manager.scrollBaseSize$?.value) {
             this.baseWidth = manager.scrollBaseSize$.value.width;

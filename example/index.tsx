@@ -35,7 +35,7 @@ const mountManager = async (room, root) => {
         containerSizeRatio: 9 / 16,
         debug: true,
         cursor: true,
-        disableCameraTransform: true,
+        // disableCameraTransform: true,
         viewMode: viewMode
         // fullscreen: true,
     } as MountParams)) as WindowManagerType;
