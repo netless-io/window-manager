@@ -8,6 +8,7 @@ export type AddPageParams = {
 export type PageState = {
     index: number;
     length: number;
+    pages: string[];
 };
 
 export interface PageController {

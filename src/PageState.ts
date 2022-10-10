@@ -18,11 +18,18 @@ export class PageStateImpl {
         return this.manager?.mainViewScenesLength || 0;
     }
 
+    public getPages() {
+        return this.manager.callbacksNode?.scenes.map(sceneName => {
+            return `${this.manager.callbacksNode?.path}${sceneName}`;
+        }) || [];
+    }
+
     public toObject(): PageState {
         const index = this.index >= this.length ? this.length - 1 : this.index;
         return {
             index,
             length: this.length,
+            pages: this.getPages(),
         };
     }
 }

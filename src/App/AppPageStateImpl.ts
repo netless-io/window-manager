@@ -59,6 +59,9 @@ export class AppPageStateImpl {
         return {
             index: this.view?.focusSceneIndex || 0,
             length: this.sceneNode?.scenes.length || 0,
+            pages: this.sceneNode?.scenes.map(name => {
+                return `${this.scenePath}/${name}`;
+            }) || [],
         };
     }
 

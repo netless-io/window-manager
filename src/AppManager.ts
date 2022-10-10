@@ -68,7 +68,7 @@ export class AppManager {
     public scrollMode?: ScrollMode;
     public scrollBaseSize$ = new Val<Size | null>(null);
 
-    private callbacksNode: ScenesCallbacksNode | null = null;
+    public callbacksNode: ScenesCallbacksNode | null = null;
     private appCreateQueue = new AppCreateQueue();
     private sceneIndex$ = new Val<number | undefined>(undefined);
     private focused$ = new Val<string | undefined>(undefined);

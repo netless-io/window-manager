@@ -83,7 +83,6 @@ export class WhiteBoardView implements PageController {
         const scenes = Array.isArray(scene) ? scene : [scene || {}];
         if (after) {
             const nextIndex = this.pageState.index + 1;
-            
             putScenes(this.appContext.room, scenePath, scenes, nextIndex);
         } else {
             putScenes(this.appContext.room, scenePath, scenes);
