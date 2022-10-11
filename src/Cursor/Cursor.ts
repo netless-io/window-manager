@@ -167,7 +167,7 @@ export class Cursor {
             } else {
                 applianceSrc = icons[this.memberApplianceName || ApplianceNames.shape];
             }
-            return applianceSrc;
+            return applianceSrc || icons[ApplianceNames.shape];
         }
     }
 
