@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.4.45",
+  "version": "0.4.46",
   "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
