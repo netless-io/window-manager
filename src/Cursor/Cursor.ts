@@ -164,14 +164,14 @@ export class Cursor {
     private getIcon() {
         if (this.member) {
             const icons = this.cursorManager.applianceIcons;
-            let applianceSrc = icons[ApplianceNames.shape];
+            let applianceSrc;
             if (this.memberApplianceName === ApplianceNames.pencilEraser) {
                 const size = this.member?.memberState.pencilEraserSize || 1;
                 applianceSrc = icons[`${this.memberApplianceName}${size}`];
             } else {
                 applianceSrc = icons[this.memberApplianceName || ApplianceNames.shape];
             }
-            return applianceSrc;
+            return applianceSrc || icons[ApplianceNames.shape];
         }
     }
 
