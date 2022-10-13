@@ -1,3 +1,7 @@
+## 0.4.49 (2022-10-13)
+
+- 修复: 切换 `viewMode` 为 `freedom` 总是同步远端的 `camera`
+
 ## 0.4.48 (2022-10-13)
 
 - 修复: 切换 `viewMode` 为 `freedom` 后再切换回 `follower` 没有跟随的问题
