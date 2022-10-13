@@ -15,7 +15,7 @@ export type WhiteBoardViewRect = Omit<ISize, "id">;
 
 export class WhiteBoardView implements PageController {
     public readonly pageState$: ReadonlyVal<PageState>;
-    public readonly baseCamera$: ReadonlyVal<WhiteBoardViewCamera>;
+    public readonly camera$: ReadonlyVal<WhiteBoardViewCamera>;
     public readonly baseRect$: ReadonlyVal<WhiteBoardViewRect | undefined>;
 
     constructor(
@@ -31,7 +31,7 @@ export class WhiteBoardView implements PageController {
         const camera$ = new Val<WhiteBoardViewCamera>(pickCamera(this.view.camera));
         this.baseRect$ = baseRect$;
         this.pageState$ = pageState$;
-        this.baseCamera$ = camera$;
+        this.camera$ = camera$;
         this.appProxy.sideEffectManager.add(() => [
             appProxy.appEmitter.on("pageStateChange", pageState => pageState$.setValue(pageState)),
             appProxy.camera$.subscribe(camera => {

@@ -49,11 +49,6 @@ export class MainViewProxy {
                 }
             }
         }));
-        this.camera$.reaction(camera => {
-            if (camera) {
-                callbacks.emit("baseCameraChange", camera);
-            }
-        });
         this.size$.reaction(size => {
             if (size) {
                 callbacks.emit("baseSizeChange", size);

@@ -627,8 +627,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public setViewMode(mode: ManagerViewMode): void {
         log("setViewMode", mode);
         const mainViewProxy = this.appManager?.mainViewProxy;
-        if (mode === ViewMode.Broadcaster) {
-            if (this.canOperate) {
+        if (mode === ViewMode.Broadcaster || mode === ViewMode.Follower) {
+            if (this.canOperate && mode === ViewMode.Broadcaster) {
                 mainViewProxy?.storeCurrentCamera();
                 mainViewProxy?.storeCurrentSize();
             }
@@ -851,14 +851,18 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     }
 
     private debouncedStoreCamera = () => {
-        const storeCamera = debounce(() => {
+        const cameraListener = debounce(() => {
             this.appManager?.mainViewProxy.saveToCamera$();
-            this.appManager?.mainViewProxy.storeCurrentCamera();
-            this.appManager?.mainViewProxy.storeCurrentSize();
-            this.mainView.callbacks.off("onCameraUpdated", storeCamera);
-        }, 200);
-        this.mainView.callbacks.on("onCameraUpdated", storeCamera);
+            this.storeCamera();
+            this.mainView.callbacks.off("onCameraUpdated", cameraListener);
+        }, 50);
+        this.mainView.callbacks.on("onCameraUpdated", cameraListener);
     }
+
+    private storeCamera = debounce(() => {
+        this.appManager?.mainViewProxy.storeCurrentCamera();
+        this.appManager?.mainViewProxy.storeCurrentSize();
+    }, 300);
 
     public convertToPointInWorld(point: Point): Point {
         return this.mainView.convertToPointInWorld(point);

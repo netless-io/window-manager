@@ -3,7 +3,7 @@ import type { TeleBoxColorScheme, TeleBoxFullscreen, TELE_BOX_STATE } from "@net
 import type { CameraState, SceneState, ViewVisionMode } from "white-web-sdk";
 import type { LoadAppEvent } from "./Register";
 import type { PageState } from "./Page";
-import type { ICamera, ISize } from "./AttributesDelegate";
+import type { ISize } from "./AttributesDelegate";
 import type { ScrollState } from "./View/ScrollMode";
 
 export type PublicEvent = {
@@ -23,7 +23,6 @@ export type PublicEvent = {
     sceneStateChange: SceneState;
     pageStateChange: PageState;
     appClose: { appId: string; kind: string, error?: Error };
-    baseCameraChange: ICamera;
     baseSizeChange: ISize;
     fullscreenChange: TeleBoxFullscreen;
     userScroll: undefined;

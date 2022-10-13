@@ -183,8 +183,8 @@ const cleanCurrentScene = (manager: WindowManager) => {
     manager.cleanCurrentScene()
 }
 
-const moveScale = (manager: WindowManager) => {
-    const nextScale = manager.baseCamera.scale + 0.5;
+const moveScale = (manager: WindowManager, step: number) => {
+    const nextScale = manager.camera.scale + step;
     manager.moveCamera({ scale: nextScale });
 }
 
@@ -197,8 +197,8 @@ const App = () => {
         joinRoom(ref.current).then(() => {
             if (manager) {
                 setPageState(manager.pageState);
-                setScale(manager.baseCamera?.scale);
-                manager.emitter.on("baseCameraChange", camera => {
+                setScale(manager.camera?.scale);
+                manager.emitter.on("cameraStateChange", camera => {
                     setScale(camera.scale);
                 });
                 return manager.emitter.on("pageStateChange", state => {
@@ -257,8 +257,11 @@ const App = () => {
                 <span>{pageState.index}/{pageState.length}</span>
                 <br />
                 <span>{Number(scale).toFixed(2)}</span>
-                <button className="side-button" onClick={() => moveScale(manager)}>
-                    scale
+                <button className="side-button" onClick={() => moveScale(manager, 0.3)}>
+                    scale +
+                </button>
+                <button className="side-button" onClick={() => moveScale(manager, -0.3)}>
+                    scale -
                 </button>
             </div>
         </div>

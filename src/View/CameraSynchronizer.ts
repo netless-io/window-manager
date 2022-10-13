@@ -75,7 +75,7 @@ export class CameraSynchronizer {
     }
 
     private moveCamera(camera: ICamera): void {
-        if (!isEmpty(camera) && this.view && camera.centerX && camera.centerY) {
+        if (!isEmpty(camera) && this.view && camera.centerX != null && camera.centerY != null) {
             if (isEqual(camera, this.view.camera)) return;
             const { centerX, centerY, scale } = camera;
             const needScale = scale * (this.scale || 1);
