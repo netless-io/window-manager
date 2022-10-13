@@ -10,6 +10,7 @@ import type { PositionType } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import { ApplianceMap } from "./icons";
+import { findMemberByUid } from "../Helper";
 
 export type EventType = {
     type: PositionType;
@@ -113,7 +114,8 @@ export class CursorManager {
     }, 48);
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
-        if (this.wrapperRect && this.manager.canOperate) {
+        const self = findMemberByUid(this.manager.room, this.manager.uid);
+        if (this.wrapperRect && this.manager.canOperate && this.canMoveCursor(self)) {
             const view = event.type === "main" ? this.manager.mainView : this.focusView;
             const point = this.getPoint(view, clientX, clientY);
             if (point) {

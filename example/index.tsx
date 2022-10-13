@@ -23,6 +23,7 @@ const search = window.location.search;
 const url = new URLSearchParams(search);
 const isWritable = url.get("isWritable");
 const isReplay = url.get("isReplay");
+const cursor = url.get("cursor") === "false" ? false : true;
 
 let manager: WindowManagerType;
 
@@ -33,7 +34,7 @@ const mountManager = async (room, root) => {
         containerSizeRatio: 9 / 16,
         chessboard: true,
         debug: true,
-        cursor: true,
+        cursor,
     } as MountParams)) as WindowManagerType;
 
     manager.emitter.on("ready", async () => {

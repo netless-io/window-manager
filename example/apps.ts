@@ -11,10 +11,10 @@ export const createHelloWorld = (manager: WindowManager) => {
     });
 };
 
-export const createCounter = (manager: WindowManager) => {
+export const createCounter = async (manager: WindowManager) => {
     manager.addApp({
         kind: "Counter"
-    })
+    });
 };
 
 export const createStatic = (manager: WindowManager) => {

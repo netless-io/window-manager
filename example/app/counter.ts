@@ -54,6 +54,8 @@ export const Counter: NetlessApp<{ count: number }> = {
             decButton.removeEventListener("click", decButtonOnClick);
             event1Disposer();
         });
+
+        return storage;
     },
 };
 
