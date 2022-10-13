@@ -89,10 +89,9 @@ export class ViewSync {
 
     private subscribeCamera = () => {
         return this.context.camera$.subscribe((camera, skipUpdate) => {
-            if (skipUpdate) return;
             const size = this.context.size$.value;
             if (camera && size) {
-                this.synchronizer.onRemoteUpdate(camera, size);
+                this.synchronizer.onRemoteUpdate(camera, size, skipUpdate);
             }
         });
     };

@@ -26,6 +26,7 @@ const isReplay = url.get("isReplay");
 const roomUUID = url.get("uuid");
 const roomToken = url.get("roomToken");
 const viewMode = url.get("viewMode") || "broadcaster";
+const cursor = url.get("cursor") === "false" ? false : true;
 
 let manager: WindowManagerType;
 
@@ -34,7 +35,7 @@ const mountManager = async (room, root) => {
         room,
         containerSizeRatio: 9 / 16,
         debug: true,
-        cursor: true,
+        cursor,
         // disableCameraTransform: true,
         viewMode: viewMode
         // fullscreen: true,

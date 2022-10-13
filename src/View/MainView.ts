@@ -130,6 +130,11 @@ export class MainViewProxy {
         this.manager.refresher.add(Fields.MainViewSize, this.sizeReaction);
     };
 
+    public saveToCamera$ = () => {
+        const camera = { ...this.view.camera, id: this.manager.uid };
+        this.camera$.setValue(camera, true);
+    }
+
     public storeCurrentCamera = () => {
         const iCamera = this.view.camera;
         this.storeCamera({

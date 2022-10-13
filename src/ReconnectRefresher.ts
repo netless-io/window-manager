@@ -83,7 +83,7 @@ export class ReconnectRefresher {
         this._onReconnected();
     }
 
-    public add(id: string, func: any) {
+    public add(id: string, func: any): () => void {
         const disposer = this.disposers.get(id);
         if (disposer && isFunction(disposer)) {
             disposer();

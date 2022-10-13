@@ -852,6 +852,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
 
     private debouncedStoreCamera = () => {
         const storeCamera = debounce(() => {
+            this.appManager?.mainViewProxy.saveToCamera$();
             this.appManager?.mainViewProxy.storeCurrentCamera();
             this.appManager?.mainViewProxy.storeCurrentSize();
             this.mainView.callbacks.off("onCameraUpdated", storeCamera);

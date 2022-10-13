@@ -27,15 +27,16 @@ export class CameraSynchronizer {
     }
 
     // 远端 Camera 或者 size 更新
-    public onRemoteUpdate = throttle((camera: ICamera, size: ISize) => {
+    public onRemoteUpdate = throttle((camera: ICamera, size: ISize, skipUpdate = false) => {
         this.remoteCamera = camera;
         this.remoteSize = size;
-        if (this.remoteSize && this.rect) {
-            requestAnimationFrame(() => {
-                this.moveCameraToContian(size);
+        if (skipUpdate) return;;
+        requestAnimationFrame(() => {
+            if (this.remoteSize && this.rect) {
+                this.moveCameraToContian(this.remoteSize);
                 this.moveCamera(camera);
-            });
-        }
+            }
+        });
     }, 32);
 
     public onRemoteSizeUpdate(size: ISize) {
@@ -49,7 +50,9 @@ export class CameraSynchronizer {
                 height: size.height,
                 originX: currentCamera.centerX - (size.width / 2),
                 originY: currentCamera.centerY - (size.height / 2),
+                animationMode: AnimationMode.Immediately,
             });
+            this.moveCamera(this.remoteCamera);
         }
     }
 

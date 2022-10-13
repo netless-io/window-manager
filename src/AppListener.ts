@@ -135,7 +135,13 @@ export class AppListeners {
     }
 
     private moveCameraHandler = (payload: Camera) => {
-        this.manager.mainView.moveCamera(payload);
+        const size$ = this.manager.mainViewProxy.size$;
+        if (size$.value) {
+            const size = this.manager.mainView.size;
+            const diff = Math.max(size.height / size$.value.height, size.width / size$.value.width);
+            const nextCamera = { ...payload, scale: payload.scale * diff };
+            this.manager.mainView.moveCamera(nextCamera);
+        }
     }
 
     private moveCameraToContainHandler = (payload: Rectangle & { animationMode?: AnimationMode }) => {
