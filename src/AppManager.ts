@@ -33,10 +33,10 @@ import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
 import type {
     Displayer,
-    DisplayerState,
     Room,
     ScenesCallbacksNode,
     SceneState,
+    RoomState,
 } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 import type {
@@ -646,7 +646,7 @@ export class AppManager {
         }
     }
 
-    private displayerStateListener = (state: Partial<DisplayerState>) => {
+    private displayerStateListener = (state: Partial<RoomState>) => {
         const sceneState = state.sceneState;
         if (sceneState) {
             const scenePath = sceneState.scenePath;
