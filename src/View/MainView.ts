@@ -83,8 +83,8 @@ export class MainViewProxy {
     }
 
     public start() {
-        if (this.started) return;
         this.sizeChangeHandler(this.mainViewSize);
+        if (this.started) return;
         this.addCameraListener();
         this.addCameraReaction();
         this.started = true;
@@ -114,7 +114,7 @@ export class MainViewProxy {
     };
 
     public sizeChangeHandler = debounce((size: Size) => {
-        if (size && this.viewMode === ViewMode.Broadcaster) {
+        if (size) {
             this.moveCameraToContian(size);
             this.moveCamera(this.mainViewCamera);
         }
