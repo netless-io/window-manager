@@ -590,8 +590,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
      * 设置 ViewMode
      */
     public setViewMode(mode: ViewMode): void {
-        if (mode === ViewMode.Broadcaster) {
-            if (this.canOperate) {
+        if (mode === ViewMode.Broadcaster || mode === ViewMode.Follower) {
+            if (this.canOperate && mode === ViewMode.Broadcaster) {
                 this.appManager?.mainViewProxy.setCameraAndSize();
             }
             this.appManager?.mainViewProxy.start();
