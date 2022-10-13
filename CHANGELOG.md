@@ -1,6 +1,6 @@
 ## 0.4.49 (2022-10-13)
 
-- 增强: 切换 `viewMode` 为 `freedom` 总是同步远端的 `camera`
+- 增强: 切换 `viewMode` 为 `follower` 总是同步远端的 `camera`
 
 ## 0.4.48 (2022-10-13)
 
