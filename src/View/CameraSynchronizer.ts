@@ -12,6 +12,7 @@ export class CameraSynchronizer {
     protected rect?: TeleBoxRect;
     protected view?: View;
     protected scale = 1;
+    protected cameraUpdating = false;
 
     constructor(protected saveCamera: SaveCamera) {}
 

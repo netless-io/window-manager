@@ -12,6 +12,7 @@ import { ViewSync } from "./ViewSync";
 import type { ICamera, ISize } from "../AttributesDelegate";
 import type { Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
+import type { MoveCameraParams } from "../typings";
 
 export class MainViewProxy {
     private started = false;
@@ -24,6 +25,7 @@ export class MainViewProxy {
     public camera$ = new Val<ICamera | undefined>(undefined);
     public size$ = new Val<ISize | undefined>(undefined);
     public view$ = new Val<View | undefined>(undefined);
+    private cameraUpdatePromise?: Promise<boolean>;
 
     public viewSync?: ViewSync;
 
@@ -100,6 +102,43 @@ export class MainViewProxy {
         }
     }
 
+    public moveCamera = (camera: MoveCameraParams) => {
+        this.debouncedStoreCamera();
+        this.moveCameraToPromise(camera);
+    };
+
+    public moveCameraToPromise = (camera: MoveCameraParams) => {
+        const promise = new Promise<boolean>((resolve) => {
+            const cameraListener = debounce(() => {
+                this.mainView.callbacks.off("onCameraUpdated", cameraListener);
+                this.cameraUpdatePromise = undefined;
+                resolve(true);
+            }, 50);
+            this.mainView.callbacks.on("onCameraUpdated", cameraListener);
+            this.mainView.moveCamera(camera);
+        });
+        this.cameraUpdatePromise = promise;
+        return promise;
+    }
+
+    private debouncedStoreCamera = () => {
+        this.storeCurrentSize();
+        const cameraListener = debounce(() => {
+            this.saveToCamera$();
+            this.storeCurrentCameraSize();
+            this.mainView.callbacks.off("onCameraUpdated", cameraListener);
+        }, 50);
+        this.mainView.callbacks.on("onCameraUpdated", cameraListener);
+    }
+
+    private storeCurrentCameraSize = debounce(async () => {
+        if (this.cameraUpdatePromise) {
+            await this.cameraUpdatePromise;
+        }
+        this.storeCurrentCamera();
+        this.storeCurrentSize();
+    }, 500);
+
     private get mainViewCamera() {
         return this.store.getMainViewCamera();
     }
@@ -141,11 +180,14 @@ export class MainViewProxy {
     public storeCurrentSize = () => {
         const rect = this.manager.boxManager?.stageRect;
         if (rect) {
-            this.storeSize({
+            const size = {
                 id: this.manager.uid,
                 width: rect.width,
                 height: rect.height
-            });
+            }
+            if (!isEqual(size, this.mainViewSize)) {
+                this.storeSize(size);
+            }
         }
     }
 

@@ -2,6 +2,7 @@ import type Emittery from "emittery";
 import type {
     AnimationMode,
     ApplianceNames,
+    Camera,
     Displayer,
     DisplayerState,
     Player,
@@ -92,6 +93,8 @@ export type ApplianceIcons = Partial<Record<`${ApplianceNames}` | string, string
 export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 export type ManagerViewMode = `${ViewMode}` | "scroll";
+
+export type MoveCameraParams = Partial<Camera> & { animationMode?: AnimationMode };
 
 export type { AppContext } from "./App/AppContext";
 export type { WhiteBoardView } from "./App";

@@ -10,7 +10,7 @@ import { emitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
-import { isEqual, isNull, isObject, isNumber, omit, debounce } from "lodash";
+import { isEqual, isNull, isObject, isNumber, omit } from "lodash";
 import { log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
@@ -49,7 +49,7 @@ import type {
     Rectangle,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
-import type { ApplianceIcons, ManagerViewMode, NetlessApp, RegisterParams } from "./typings";
+import type { ApplianceIcons, ManagerViewMode, MoveCameraParams, NetlessApp, RegisterParams } from "./typings";
 import type { TeleBoxColorScheme, TeleBoxFullscreen, TeleBoxManager, TeleBoxManagerThemeConfig, TeleBoxState } from "@netless/telebox-insider";
 import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
@@ -830,14 +830,13 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         return this.appManager?.closeApp(appId);
     }
 
-    public moveCamera = (camera: Partial<Camera> & { animationMode?: AnimationMode } ): void => {
+    public moveCamera = (camera: MoveCameraParams): void => {
         const pureCamera = omit(camera, ["animationMode"]);
         const mainViewCamera = { ...this.mainView.camera };
         if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
-        this.debouncedStoreCamera();
-        this.mainView.moveCamera(camera);
+        this.appManager?.mainViewProxy.moveCamera(camera);
         this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
-    };
+    }
 
     public moveCameraToContain(
         rectangle: Rectangle &
@@ -845,24 +844,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
                 animationMode?: AnimationMode;
             }>
     ): void {
-        this.debouncedStoreCamera();
+        // this.debouncedStoreCamera();
         this.mainView.moveCameraToContain(rectangle);
         this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
     }
-
-    private debouncedStoreCamera = () => {
-        const cameraListener = debounce(() => {
-            this.appManager?.mainViewProxy.saveToCamera$();
-            this.storeCamera();
-            this.mainView.callbacks.off("onCameraUpdated", cameraListener);
-        }, 50);
-        this.mainView.callbacks.on("onCameraUpdated", cameraListener);
-    }
-
-    private storeCamera = debounce(() => {
-        this.appManager?.mainViewProxy.storeCurrentCamera();
-        this.appManager?.mainViewProxy.storeCurrentSize();
-    }, 300);
 
     public convertToPointInWorld(point: Point): Point {
         return this.mainView.convertToPointInWorld(point);
