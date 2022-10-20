@@ -76,6 +76,7 @@ export class ScrollMode {
 
         this.sideEffect.add(() => {
             const onCameraUpdated = (camera: Camera): void => {
+                if (!this.manager.canOperate) return;
                 const halfWbHeight = size$.value.height / 2 / scale$.value;
                 const scrollTop = camera.centerY;
                 this.scrollStorage.setState({
