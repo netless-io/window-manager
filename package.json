@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "1.0.0-canary.65",
+  "version": "1.0.0-canary.66",
   "description": "",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@netless/app-docs-viewer": "^1.0.0-canary.3",
-    "@netless/app-plyr": "^0.2.3",
+    "@netless/app-plyr": "^0.2.4",
     "@playwright/test": "^1.23.2",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
