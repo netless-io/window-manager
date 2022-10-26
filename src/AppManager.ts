@@ -3,7 +3,7 @@ import { AppCreateQueue } from "./Utils/AppCreateQueue";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./App";
 import { appRegister } from "./Register";
-import { autorun, isPlayer, isRoom, ScenePathType, toJS } from "white-web-sdk";
+import { autorun, isPlayer, isRoom, ScenePathType, toJS, UpdateEventKind } from "white-web-sdk";
 import { boxEmitter } from "./BoxEmitter";
 import { calculateNextIndex } from "./Page";
 import { callbacks } from "./callback";
@@ -12,7 +12,7 @@ import { emitter } from "./InternalEmitter";
 import { Fields, store } from "./AttributesDelegate";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
-import { onObjectRemoved, safeListenPropsUpdated } from "./Utils/Reactive";
+import { safeListenPropsUpdated } from "./Utils/Reactive";
 import { reconnectRefresher, WindowManager } from "./index";
 import { RedoUndo } from "./RedoUndo";
 import { serializeRoomMembers } from "./Helper";
@@ -40,7 +40,8 @@ import type {
     ScenesCallbacksNode,
     SceneState,
     RoomState,
- Size} from "white-web-sdk";
+    Size,
+} from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 import type {
     BoxClosePayload,
@@ -80,7 +81,6 @@ export class AppManager {
     public sceneState: SceneState | null = null;
 
     public rootDirRemoving = false;
-
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
@@ -438,9 +438,14 @@ export class AppManager {
 
     public addAppCloseListener = () => {
         this.refresher?.add("appsClose", () => {
-            return onObjectRemoved(this.attributes.apps, () => {
-                this.onAppDelete(this.attributes.apps);
-            });
+            return safeListenPropsUpdated(
+                () => this.attributes.apps,
+                events => {
+                    if (events.some(e => e.kind === UpdateEventKind.Removed)) {
+                        this.onAppDelete(this.attributes.apps);
+                    }
+                }
+            );
         });
     };
 

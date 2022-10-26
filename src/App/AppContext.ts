@@ -236,7 +236,7 @@ export class AppContext<TAttributes extends Record<string, any> = any, TMagixEve
         const storage = new Storage({
             plugin$,
             isWritable$,
-            namespace,
+            namespace: `${this.appId}:${namespace}`,
             defaultState: defaultState
         });
         this.emitter.on("writableChange", writable => {
