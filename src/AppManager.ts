@@ -395,8 +395,8 @@ export class AppManager {
     private onBoxMove = (payload: BoxMovePayload) => {
         this.dispatchInternalEvent(Events.AppMove, payload);
         this.store.updateAppState(payload.appId, AppAttributes.Position, {
-            x: isNaN(payload.x) ? 0 : payload.x,
-            y: isNaN(payload.y) ? 0 : payload.y,
+            x: payload.x || 0,
+            y: payload.y || 0,
         });
     };
 
@@ -653,8 +653,8 @@ export class AppManager {
             const box = appProxy.box;
             boxEmitter.emit("move", {
                 appId: appProxy.id,
-                x: box?.intrinsicX,
-                y: box?.intrinsicY,
+                x: box.intrinsicX || 0,
+                y: box.intrinsicY || 0,
             });
             this.store.updateAppState(appProxy.id, AppAttributes.ZIndex, box.zIndex);
         }

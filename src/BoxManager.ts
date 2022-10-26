@@ -331,8 +331,8 @@ export class BoxManager {
             if (state.size) {
                 box._intrinsicSize$.setValue(state.size, true);
             }
-            if (state.position) {
-                box._intrinsicCoord$.setValue(state.position, true);
+            if (state.position && state.position.x !== undefined && state.position.y !== undefined) {
+                box._intrinsicCoord$.setValue({ x: state.position.x, y: state.position.y }, true);
             }
             if (state.zIndex) {
                 box._zIndex$.setValue(state.zIndex, true);
