@@ -784,6 +784,9 @@ export class AppManager {
         });
         this.mainViewProxy.onReconnect();
         await Promise.all(reconnected);
+        if (this.callbacksNode) {
+            this.onSceneChange(this.callbacksNode);
+        }
     }
 
     public notifyContainerRectUpdate(rect: TeleBoxRect) {
