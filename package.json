@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.4.49",
+  "version": "0.4.50",
   "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -15,9 +15,8 @@
     "lint": "eslint --ext .ts,.tsx,.svelte . && prettier --check .",
     "test": "vitest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "l1shen <lishen1635@gmail.com> (https://github.com/l1shen)",
+  "license": "MIT",
   "peerDependencies": {
     "white-web-sdk": "^2.16.0"
   },
@@ -32,7 +31,7 @@
     "video.js": ">=7"
   },
   "devDependencies": {
-    "@netless/app-docs-viewer": "^0.2.9",
+    "@netless/app-docs-viewer": "^0.2.10",
     "@netless/app-media-player": "0.1.0-beta.5",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",

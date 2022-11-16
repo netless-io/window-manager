@@ -1,6 +1,7 @@
-## Unreleased
+## 0.4.50 (2022-11-16)
 
 - 修复: 重连后 `pageStage.length` 没有刷新的问题
+- 新增: docs viewer 增加导出 pdf 功能
 
 ## 0.4.49 (2022-10-13)
 
