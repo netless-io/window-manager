@@ -22,6 +22,7 @@ This application provides the following.
   - [advanced use](docs/advanced.md)
     - [view-follow](docs/advanced.md#view-mode)
   - [Develop custom APP](docs/develop-app.md)
+  - [Export PDF](docs/export-pdf.md)
 
 ## Install
 
