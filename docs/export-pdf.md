@@ -1,12 +1,18 @@
 # 导出 PDF
 
+此功能需要额外安装 `jspdf` 依赖才能使用
+
+```
+npm install jspdf@2.5.1
+```
+
 ### 支持的 app 及版本
 
 1. @netless/app-slide  `0.2.23` 及以上版本支持保存动态 ppt 板书
 
 2. @netless/app-docs-viewer  `0.2.10` 及以上版本支持保存 pdf 板书, **注意** app-docs-viewer 中可以展示静态 ppt, pdf, 动态 ppt. 其中只有 pdf 文件支持保存板书
 
-   @netless/window-manager `0.4.50` 起内置
+   对应 @netless/window-manager `0.4.50` 及以上
 
 ### 发起保存板书任务
 
