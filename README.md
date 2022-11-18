@@ -88,8 +88,7 @@ Because of the multiple windows, we abstracted out a main whiteboard, and migrat
 sdk.joinRoom({
     // cursorAdapter: cursorAdapter, the original cursorAdapter in sdk needs to be turned off
     userPayload: {
-        userId: "user id",
-        cursorName: "cursor name",
+        nickName: "cursor name",
         avatar: "User avatar link",
     },
 });

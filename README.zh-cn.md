@@ -62,8 +62,7 @@ sdk.joinRoom({
 sdk.joinRoom({
     // cursorAdapter: cursorAdapter, 原本开启 sdk 中的 cursorAdapter 需要关闭
     userPayload: {
-        userId: "用户 id",
-        cursorName: "光标名称",
+        nickName: "光标名称",
         avatar: "用户头像链接",
     },
 });
