@@ -5,7 +5,7 @@ import { emitter } from "../InternalEmitter";
 import { SideEffectManager } from "side-effect-manager";
 import { throttle } from "lodash";
 import { WindowManager } from "../index";
-import type { CursorMovePayload , ApplianceIcons} from "../index";
+import type { CursorMovePayload, ApplianceIcons } from "../index";
 import type { PositionType } from "../AttributesDelegate";
 import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
@@ -107,11 +107,33 @@ export class CursorManager {
     }
 
     private mouseMoveListener = throttle((event: PointerEvent) => {
-        if (event.pointerType === "touch") {
+        const isTouch = event.pointerType === "touch";
+        if (isTouch) {
             if (!event.isPrimary) return;
         }
-        this.updateCursor(this.getType(event), event.clientX, event.clientY);
+        const type = this.getType(event);
+        this.updateCursor(type, event.clientX, event.clientY);
+        isTouch && this.showPencilEraserIfNeeded(type, event.clientX, event.clientY);
     }, 48);
+
+    private showPencilEraserIfNeeded(event: EventType, clientX: number, clientY: number) {
+        const self = findMemberByUid(this.manager.room, this.manager.uid);
+        const isPencilEraser = self?.memberState.currentApplianceName === ApplianceNames.pencilEraser;
+        if (this.wrapperRect && this.manager.canOperate && this.canMoveCursor(self) && isPencilEraser) {
+            const view = event.type === "main" ? this.manager.mainView : this.focusView;
+            const point = this.getPoint(view, clientX, clientY);
+            if (point) {
+                this.onCursorMove({
+                    uid: this.manager.uid,
+                    position: {
+                        x: point.x,
+                        y: point.y,
+                        type: event.type,
+                    },
+                });
+            }
+        }
+    }
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         const self = findMemberByUid(this.manager.room, this.manager.uid);
