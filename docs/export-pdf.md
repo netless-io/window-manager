@@ -14,6 +14,8 @@ npm install jspdf@2.5.1
 
    对应 @netless/window-manager `0.4.50` 及以上
 
+3. white-web-sdk  `2.16.37` 及以上
+
 ### 发起保存板书任务
 
 通过 `window.postMessage` 发事件来发起保存板书任务, 注意不要在任务尚未完成之前重复发送该事件.
@@ -29,7 +31,7 @@ window.postMessage({
 
 任务进度也通过 message 事件传递, 你需要在发起任务之前监听任务进度事件, 实例代码如下所示.
 其中 data.result 只有在任务成功时候才有值, 任务失败或者任务进行中都为 Null.
-如果下载任务失败, 则 progress 为 100 但是 result 为 Null.
+**如果下载任务失败, 则 progress 为 100 但是 result 为 Null.**
 
 ```js
 window.addEventListener("message", evt => {
