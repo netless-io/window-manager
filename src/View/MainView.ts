@@ -59,6 +59,8 @@ export class MainViewProxy {
     }
 
     public createViewSync = () => {
+        // 滚动模式下，不需要同步
+        if (this.manager.windowManger.viewMode$.value === 'scroll') return
         if (this.manager.boxManager && !this.viewSync) {
             this.viewSync = new ViewSync({
                 uid: this.manager.uid,

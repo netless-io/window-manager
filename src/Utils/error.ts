@@ -38,3 +38,7 @@ export class BoxManagerNotInitializeError extends Error {
 export class BindContainerRoomPhaseInvalidError extends Error {
     override message = "[WindowManager]: room phase only Connected can be bindContainer";
 }
+
+export class InvalidViewModeError extends Error {
+    override message = "[WindowManager]: scroll mode cannot be switched to other viewMode";
+}

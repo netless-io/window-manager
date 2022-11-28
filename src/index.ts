@@ -626,6 +626,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
      */
     public setViewMode(mode: ManagerViewMode): void {
         log("setViewMode", mode);
+        if (this.viewMode$.value === 'scroll' && mode !== 'scroll') {
+            throw new Errors.InvalidViewModeError();
+        }
         const mainViewProxy = this.appManager?.mainViewProxy;
         if (mode === ViewMode.Broadcaster || mode === ViewMode.Follower) {
             if (this.canOperate && mode === ViewMode.Broadcaster) {
