@@ -3,7 +3,6 @@ import { Cursor } from "./Cursor";
 import { CursorState, Events } from "../constants";
 import { emitter } from "../InternalEmitter";
 import { SideEffectManager } from "side-effect-manager";
-import { throttle } from "lodash";
 import { WindowManager } from "../index";
 import type { CursorMovePayload, ApplianceIcons } from "../index";
 import type { PositionType } from "../AttributesDelegate";
@@ -106,15 +105,27 @@ export class CursorManager {
         return this.manager.focusApp?.view;
     }
 
-    private mouseMoveListener = throttle((event: PointerEvent) => {
-        const isTouch = event.pointerType === "touch";
-        if (isTouch) {
-            if (!event.isPrimary) return;
-        }
+    private mouseMoveListener_ = (event: PointerEvent, isTouch: boolean) => {
         const type = this.getType(event);
         this.updateCursor(type, event.clientX, event.clientY);
         isTouch && this.showPencilEraserIfNeeded(type, event.clientX, event.clientY);
-    }, 48);
+    }
+
+    private mouseMoveTimer = 0;
+    private mouseMoveListener = (event: PointerEvent) => {
+        const isTouch = event.pointerType === "touch";
+        if (isTouch && !event.isPrimary) return;
+
+        const now = Date.now()
+        if (now - this.mouseMoveTimer > 48) {
+            this.mouseMoveTimer = now;
+            this.mouseMoveListener_(event, isTouch);
+        }
+    }
+
+    private mouseLeaveListener = () => {
+        this.hideCursor(this.manager.uid);
+    }
 
     private showPencilEraserIfNeeded(event: EventType, clientX: number, clientY: number) {
         const self = findMemberByUid(this.manager.room, this.manager.uid);
@@ -185,10 +196,6 @@ export class CursorManager {
                 return { type: "main" };
             }
         }
-    };
-
-    private mouseLeaveListener = () => {
-        this.hideCursor(this.manager.uid);
     };
 
     public updateContainerRect() {
