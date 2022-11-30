@@ -1,10 +1,10 @@
 import { getVersionNumber, wait } from "./Utils/Common";
 import { log } from "./Utils/log";
 import { REQUIRE_VERSION } from "./constants";
+import type { Room, RoomMember } from "white-web-sdk";
 import { WhiteVersion } from "white-web-sdk";
 import { WhiteWebSDKInvalidError } from "./Utils/error";
 import { WindowManager } from "./index";
-import type { Room } from "white-web-sdk";
 
 export const setupWrapper = (
     root: HTMLElement
@@ -43,9 +43,17 @@ export const checkVersion = () => {
 };
 
 export const findMemberByUid = (room: Room | undefined, uid: string) => {
-    const roomMembers = room?.state.roomMembers;
-    return roomMembers?.find(member => member.payload?.uid === uid);
-};
+    const roomMembers = room?.state.roomMembers || [];
+    let maxMemberId = 0;
+    let result: RoomMember | undefined = undefined;
+    for (const member of roomMembers) {
+        if (member.payload?.uid === uid && maxMemberId < member.memberId) {
+            maxMemberId = member.memberId;
+            result = member;
+        }
+    }
+    return result;
+}
 
 export const createInvisiblePlugin = async (room: Room) => {
     try {
