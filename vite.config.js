@@ -36,7 +36,9 @@ export default defineConfig(({ mode }) => {
                 entry: path.resolve(__dirname, "src/index.ts"),
                 formats: ["es", "umd", "cjs"],
                 name: "WindowManager",
-                fileName: "index"
+                fileName: (moduleType) => {
+                    return moduleType === "es" ? "index.mjs" : "index.js";
+                }
             },
             outDir: "dist",
             sourcemap: true,
