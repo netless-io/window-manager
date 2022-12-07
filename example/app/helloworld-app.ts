@@ -1,5 +1,5 @@
 import type { AppContext } from "../../dist";
-import { WindowManager } from "../../dist/index.es";
+import { WindowManager } from "../../dist";
 
 interface HelloWorldAttributes {
     a?: number;
@@ -31,19 +31,19 @@ export const HelloWorldApp = async () => {
             //     context.storage.setState({ a: 2, b: c });
             //     context.storage.setState({ a: 2, b: c });
             // }
-            console.log("HelloWorldApp pageState", context.pageState)
+            console.log("HelloWorldApp pageState", context.pageState);
             console.log("helloworld options", context.getAppOptions());
 
             context.emitter.on("pageStateChange", pageState => {
-                console.log("HelloWorldApp pageState change", pageState)
-            })
+                console.log("HelloWorldApp pageState change", pageState);
+            });
             // context.addMagixEventListener("event1", message => {
             //     console.log("MagixEvent", message);
             // });
             // context.dispatchMagixEvent("event1", { count: 1 });
             context.mountView(context.getBox().$content);
             context.emitter.on("destroy", () => console.log("[HelloWorld]: destroy"));
-   
+
             return "Hello World Result";
         },
     };

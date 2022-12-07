@@ -1,9 +1,17 @@
 import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
-import { BuiltinApps, WindowManager } from "../dist/index.es";
+import { BuiltinApps, WindowManager } from "../dist";
 import type { MountParams, WindowManager as WindowManagerType } from "../dist";
-import { createStatic, createDynamic, createHelloWorld, createVideo, createSlide, createCounter, createBoard } from "./apps";
+import {
+    createStatic,
+    createDynamic,
+    createHelloWorld,
+    createVideo,
+    createSlide,
+    createCounter,
+    createBoard,
+} from "./apps";
 import "../dist/style.css";
 import "./register";
 import "./index.css";
@@ -125,27 +133,29 @@ const joinRoom = ref => {
     if (isReplay) {
         replay();
     } else {
-        return sdk.joinRoom({
-            uuid: import.meta.env.VITE_ROOM_UUID,
-            roomToken: import.meta.env.VITE_ROOM_TOKEN,
-            invisiblePlugins: [WindowManager as any],
-            useMultiViews: true,
-            userPayload: {
-                userId: "111",
-                cursorName: uid,
-                avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
-            },
-            isWritable: !(isWritable === "false"),
-            cursorAdapter: undefined,
-            uid: uid,
-            disableMagixEventDispatchLimit: true,
-            disableNewPencil: false,
-            floatBar: true,
-        }).then(async room => {
-            (window as any).room = room;
-            return await mountManager(room, ref);
-        });
-    }  
+        return sdk
+            .joinRoom({
+                uuid: import.meta.env.VITE_ROOM_UUID,
+                roomToken: import.meta.env.VITE_ROOM_TOKEN,
+                invisiblePlugins: [WindowManager as any],
+                useMultiViews: true,
+                userPayload: {
+                    userId: "111",
+                    cursorName: uid,
+                    avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
+                },
+                isWritable: !(isWritable === "false"),
+                cursorAdapter: undefined,
+                uid: uid,
+                disableMagixEventDispatchLimit: true,
+                disableNewPencil: false,
+                floatBar: true,
+            })
+            .then(async room => {
+                (window as any).room = room;
+                return await mountManager(room, ref);
+            });
+    }
 };
 
 const destroy = () => {
@@ -167,8 +177,8 @@ const nextPage = (manager: WindowManager) => {
 const addPage = (manager: WindowManager) => manager.addPage();
 
 const cleanCurrentScene = (manager: WindowManager) => {
-    manager.cleanCurrentScene()
-}
+    manager.cleanCurrentScene();
+};
 
 const App = () => {
     const [pageState, setPageState] = useState({});
@@ -184,7 +194,6 @@ const App = () => {
             }
         });
     }, [ref]);
-    
 
     return (
         <div className="app">
@@ -234,7 +243,9 @@ const App = () => {
                 <button className="side-button" onClick={() => cleanCurrentScene(manager)}>
                     清屏
                 </button>
-                <span>{pageState.index}/{pageState.length}</span>
+                <span>
+                    {pageState.index}/{pageState.length}
+                </span>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import type { WindowManager } from "../dist";
-import { BuiltinApps } from "../dist/index.es";
+import { BuiltinApps } from "../dist";
 import * as docs from "./docs.json";
 
 export const createHelloWorld = (manager: WindowManager) => {
@@ -13,20 +13,19 @@ export const createHelloWorld = (manager: WindowManager) => {
 
 export const createCounter = async (manager: WindowManager) => {
     manager.addApp({
-        kind: "Counter"
+        kind: "Counter",
     });
 };
 
 export const createStatic = (manager: WindowManager) => {
-    return manager
-        .addApp({
-            kind: BuiltinApps.DocsViewer,
-            options: {
-                scenePath: "/test5",
-                title: "ppt1",
-                scenes: docs.staticDocs,
-            },
-        })
+    return manager.addApp({
+        kind: BuiltinApps.DocsViewer,
+        options: {
+            scenePath: "/test5",
+            title: "ppt1",
+            scenes: docs.staticDocs,
+        },
+    });
 };
 export const createDynamic = (manager: WindowManager) => {
     return manager.addApp({
@@ -66,6 +65,6 @@ export const createBoard = (manager: WindowManager) => {
         kind: "Board",
         options: {
             scenePath: "/board1",
-        }
+        },
     });
-}
+};

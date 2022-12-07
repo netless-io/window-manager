@@ -1,4 +1,4 @@
-import { WindowManager } from "../dist/index.es";
+import { WindowManager } from "../dist";
 import "./app/helloworld-app";
 import "./app/counter";
 import { Board } from "./app/board";
@@ -24,7 +24,7 @@ WindowManager.register({
     kind: "GeoGebra",
     src: "https://netless-app.oss-cn-hangzhou.aliyuncs.com/@netless/app-geogebra/0.0.4/dist/main.iife.js",
     appOptions: {
-      HTML5Codebase: "https://flat-storage-cn-hz.whiteboard.agora.io/GeoGebra/HTML5/5.0/web3d",
+        HTML5Codebase: "https://flat-storage-cn-hz.whiteboard.agora.io/GeoGebra/HTML5/5.0/web3d",
     },
 });
 
@@ -35,5 +35,5 @@ WindowManager.register({
 
 WindowManager.register({
     kind: "Board",
-    src: Board
+    src: Board,
 });
