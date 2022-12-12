@@ -23,6 +23,7 @@ import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
 import type { AppState } from "./App/type";
+import { ReadonlyVal } from "value-enhancer";
 
 export { TELE_BOX_STATE };
 
@@ -218,7 +219,7 @@ export class BoxManager {
         return this.teleBoxManager.stageRect;
     }
 
-    public get stageRect$() {
+    public get stageRect$(): ReadonlyVal<TeleBoxRect, any> {
         return this.teleBoxManager._stageRect$;
     }
 

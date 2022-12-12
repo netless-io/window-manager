@@ -24,6 +24,9 @@ describe("CameraSynchronizer", () => {
                 delete (camera as any).animationMode;
                 Object.assign(view.camera as any, camera);
             }),
+            moveCameraToContain: vi.fn(rect => {
+                void rect;
+            }),
             camera: {
                 centerX: 0,
                 centerY: 0,

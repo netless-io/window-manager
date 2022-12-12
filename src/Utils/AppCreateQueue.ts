@@ -10,7 +10,7 @@ export class AppCreateQueue {
     public isEmit = false;
 
     private initInterval() {
-        return setInterval(() => {
+        return window.setInterval(() => {
             this.invoke();
         }, 50);
     }

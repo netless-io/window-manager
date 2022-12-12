@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { getWindow, gotoRoom, createRoom, createApp } from "../helper";
-import type { NetlessApp } from "../../dist/src";
+import type { NetlessApp } from "../../dist";
 
 test.describe("NetlessApp", () => {
     test("应用接口", async ({ page }) => {

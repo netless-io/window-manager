@@ -1,12 +1,12 @@
 import path from "path";
 import dts from 'vite-plugin-dts'
 import { defineConfig } from 'vitest/config'
-import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
 import { omit } from "lodash";
 
-export default defineConfig(() => {
+export default defineConfig(async () => {
     // const isProd = mode === "production";
+    const { svelte, vitePreprocess } = await import("@sveltejs/vite-plugin-svelte");
 
     return {
         test: {
@@ -28,9 +28,7 @@ export default defineConfig(() => {
         plugins: [
             svelte({
                 emitCss: false,
-                experimental: {
-                    useVitePreprocess: true,
-                },
+                preprocess: vitePreprocess(),
             }),
             dts(),
         ],

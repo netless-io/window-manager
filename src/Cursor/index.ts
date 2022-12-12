@@ -11,6 +11,7 @@ import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import { ApplianceMap } from "./icons";
 import { findMemberByUid } from "../Helper";
+import { Val } from "value-enhancer";
 
 export type EventType = {
     type: PositionType;
@@ -33,7 +34,7 @@ export class CursorManager {
     private store = this.manager.store;
     public applianceIcons: ApplianceIcons = ApplianceMap;
 
-    public get playground$() {
+    public get playground$(): Val<HTMLElement | undefined, any> {
         return this.manager.windowManger.playground$;
     }
 
