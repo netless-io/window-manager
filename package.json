@@ -21,14 +21,14 @@
   "author": "",
   "license": "ISC",
   "peerDependencies": {
-    "white-web-sdk": "^2.16.0",
-    "jspdf": "*"
+    "white-web-sdk": "^2.16.0"
   },
   "dependencies": {
     "@juggle/resize-observer": "^3.4.0",
     "@netless/synced-store": "^2.0.7",
     "@netless/telebox-insider": "1.0.0-alpha.37",
     "emittery": "^0.11.0",
+    "jspdf": "^2.5.1",
     "lodash": "^4.17.21",
     "p-retry": "^5.1.2",
     "side-effect-manager": "^1.2.1",
