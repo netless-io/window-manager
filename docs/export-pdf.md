@@ -30,8 +30,8 @@ window.postMessage({
 ### 获取任务进度
 
 任务进度也通过 message 事件传递, 你需要在发起任务之前监听任务进度事件, 实例代码如下所示.
-其中 data.result 只有在任务成功时候才有值, 任务失败或者任务进行中都为 Null.
-**如果下载任务失败, 则 progress 为 100 但是 result 为 Null.**
+其中 data.result 只有在任务成功时候才有值, 任务失败或者任务进行中都为 null.
+**如果下载任务失败, 则 progress 为 100 但是 result 为 null.**
 
 ```js
 window.addEventListener("message", evt => {
@@ -41,8 +41,8 @@ window.addEventListener("message", evt => {
         // data.type: 固定值 "@netless/_result_save_pdf_"
         // data.appId: 指明是哪次下载任务, 与发起保存板书时候传递的 appId 值一致
         // data.progress: 下载进度,  0 ~ 100
-        // data.result: ArrayBuffer 或者 Null, 值为板书的 pdf 文件内容, 仅当下载进度 100 时才有值.
-        //              获取到 ArrayBuffer 后需要自行完成下载到本地的逻辑.
+        // data.result: { pdf: ArrayBuffer {}, title: "a.pptx" } 或者 null, 为板书的 pdf 文件内容,
+        //              仅当下载进度 100 时才有值. 获取到 ArrayBuffer 后需要自行完成下载到本地的逻辑.
     }
 });
 ```
