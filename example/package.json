@@ -19,6 +19,6 @@
     "video.js": "^7.14.3"
   },
   "devDependencies": {
-    "vite": "^4.0.0"
+    "vite": "^4.0.1"
   }
 }

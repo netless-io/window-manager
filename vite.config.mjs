@@ -1,20 +1,18 @@
 import path from "path";
-import dts from 'vite-plugin-dts'
-import { defineConfig } from 'vitest/config'
-import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
-import { omit } from "lodash";
+import dts from "vite-plugin-dts";
+import { svelte, vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+import { defineConfig } from "vitest/config";
+import { dependencies, peerDependencies, version, devDependencies } from "./package.json";
+import lodash from "lodash";
 
-export default defineConfig(async () => {
+export default defineConfig(() => {
     // const isProd = mode === "production";
-    const { svelte, vitePreprocess } = await import("@sveltejs/vite-plugin-svelte");
 
     return {
         test: {
             environment: "jsdom",
             deps: {
-                inline: [
-                  "@juggle/resize-observer"
-                ]
+                inline: ["@juggle/resize-observer"],
             },
             setupFiles: "./test/setup.ts",
             include: ["test/**/*.test.ts"],
@@ -22,7 +20,9 @@ export default defineConfig(async () => {
         define: {
             __APP_VERSION__: JSON.stringify(version),
             __APP_DEPENDENCIES__: JSON.stringify({
-                dependencies, peerDependencies, devDependencies
+                dependencies,
+                peerDependencies,
+                devDependencies,
             }),
         },
         plugins: [
@@ -39,16 +39,15 @@ export default defineConfig(async () => {
                 formats: ["es", "umd", "cjs"],
                 name: "WindowManager",
                 fileName: "index",
-
             },
             outDir: "dist",
             rollupOptions: {
                 external: Object.keys({
-                    ...omit(dependencies, ["@netless/telebox-insider"]),
+                    ...lodash.omit(dependencies, ["@netless/telebox-insider"]),
                     ...peerDependencies,
                 }),
             },
-            minify: false
+            minify: false,
         },
     };
-})
+});
