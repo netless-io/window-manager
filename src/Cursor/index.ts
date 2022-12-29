@@ -117,9 +117,13 @@ export class CursorManager {
         this.updateCursor(this.getType(event), event.clientX, event.clientY);
     }, 48);
 
+    private shouldBroadcast() {
+        return this.manager.canOperate && this.manager.room?.disableDeviceInputs === false;
+    }
+
     private updateCursor(event: EventType, clientX: number, clientY: number) {
         const self = findMemberByUid(this.manager.room, this.manager.uid);
-        if (this.wrapperRect && this.manager.canOperate && this.canMoveCursor(self)) {
+        if (this.wrapperRect && this.shouldBroadcast() && this.canMoveCursor(self)) {
             const view = event.type === "main" ? this.manager.mainView : this.focusView;
             const point = this.getPoint(view, clientX, clientY);
             if (point) {
