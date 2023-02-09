@@ -1,11 +1,5 @@
-import type { SvelteComponent } from "svelte";
+/// <reference types="svelte" />
+/// <reference types="vite/client" />
 
-declare module "*.svelte" {
-    const app: SvelteComponent;
-    export default app;
-}
-
-declare global {
-    const __APP_VERSION__: string;
-    const __APP_DEPENDENCIES__: Record<string, string>;
-}
+declare const __APP_VERSION__: string;
+declare const __APP_DEPENDENCIES__: Record<string, string>;
