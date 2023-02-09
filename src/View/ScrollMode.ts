@@ -227,12 +227,12 @@ export class ScrollMode {
 
     private onWheel = (ev: WheelEvent): void => {
         const target = ev.target as HTMLElement | null;
-        if (this.shouldBroadcast() && this._whiteboard$.value?.contains(target)) {
+        if (this._whiteboard$.value?.contains(target)) {
             ev.preventDefault();
             ev.stopPropagation();
             const dy = ev.deltaY || 0;
             const { width } = this._size$.value;
-            if (dy && width > 0) {
+            if (this.shouldBroadcast() && dy && width > 0) {
                 const halfWbHeight = this._size$.value.height / 2 / this._scale$.value;
                 const scrollTop = this._scrollTop$.value + dy / this._scale$.value;
                 this.scrollStorage.setState({
