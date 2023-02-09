@@ -26,16 +26,19 @@ export class ScrollMode {
     private readonly _root$: Val<HTMLElement | null>;
     private readonly _whiteboard$: ReadonlyVal<HTMLElement | null>;
     private readonly _scrollTop$: Val<number>;
-    public readonly _page$: ReadonlyVal<number>;
+    private readonly _page$: ReadonlyVal<number>;
     private readonly _scale$: ReadonlyVal<number>;
     private readonly _size$: Val<Size>;
-    private readonly _mainView$: Val<View>;
 
     private baseWidth = SCROLL_MODE_BASE_WIDTH;
     private baseHeight = SCROLL_MODE_BASE_HEIGHT;
 
-    public scrollStorage: ScrollStorage;
+    public readonly scrollStorage: ScrollStorage;
     public readonly scrollState$: ReadonlyVal<ScrollState>;
+
+    get mainView() {
+        return this.manager.mainView;
+    }
 
     public setRoot(root: HTMLElement): void {
         this._root$.setValue(root);
@@ -43,9 +46,8 @@ export class ScrollMode {
 
     constructor(private manager: AppManager) {
         this._root$ = new Val<HTMLElement | null>(null);
-        this._mainView$ = new Val<View>(this.manager.mainView);
         // 滚动模式下确保 disableCameraTransform 为 false, 否则触摸屏无法滚动
-        this._mainView$.value.disableCameraTransform = false;
+        this.mainView.disableCameraTransform = false;
 
         if (manager.scrollBaseSize$?.value) {
             this.baseWidth = manager.scrollBaseSize$.value.width;
@@ -69,9 +71,9 @@ export class ScrollMode {
         this._size$ = size$;
         this.sideEffect.add(() => {
             const onSizeUpdated = size$.setValue.bind(size$);
-            onSizeUpdated(this._mainView$.value.size);
-            this._mainView$.value.callbacks.on("onSizeUpdated", onSizeUpdated);
-            return () => this._mainView$.value.callbacks.off("onSizeUpdated", onSizeUpdated);
+            onSizeUpdated(this.mainView.size);
+            this.mainView.callbacks.on("onSizeUpdated", onSizeUpdated);
+            return () => this.mainView.callbacks.off("onSizeUpdated", onSizeUpdated);
         });
 
         this.sideEffect.add(() => {
@@ -84,9 +86,9 @@ export class ScrollMode {
                 });
                 callbacks.emit("userScroll");
             };
-            this._mainView$.value.callbacks.on("onCameraUpdatedByDevice", onCameraUpdated);
+            this.mainView.callbacks.on("onCameraUpdatedByDevice", onCameraUpdated);
             return () =>
-                this._mainView$.value.callbacks.off("onCameraUpdatedByDevice", onCameraUpdated);
+                this.mainView.callbacks.off("onCameraUpdatedByDevice", onCameraUpdated);
         });
 
         const scale$ = derive(size$, size => size.width / this.baseWidth);
@@ -174,7 +176,7 @@ export class ScrollMode {
     };
 
     private updateScroll(scrollTop: number): void {
-        this._mainView$.value.moveCamera({
+        this.mainView.moveCamera({
             centerY: scrollTop,
             animationMode: AnimationMode.Immediately,
         });
@@ -182,7 +184,7 @@ export class ScrollMode {
 
     private updateBound(scrollTop: number, { height }: Size, scale: number): void {
         if (scale > 0) {
-            this._mainView$.value.moveCameraToContain({
+            this.mainView.moveCameraToContain({
                 originX: 0,
                 originY: scrollTop - height / scale / 2,
                 width: this.baseWidth,
@@ -190,7 +192,7 @@ export class ScrollMode {
                 animationMode: AnimationMode.Immediately,
             });
 
-            this._mainView$.value.setCameraBound({
+            this.mainView.setCameraBound({
                 damping: 1,
                 maxContentMode: () => scale,
                 minContentMode: () => scale,
@@ -212,7 +214,6 @@ export class ScrollMode {
         this.scrollState$.destroy();
         this._page$.destroy();
         this._size$.destroy();
-        this._mainView$.destroy();
     }
 
     private getWhiteboardElement = (root: HTMLElement | null): HTMLElement | null => {
@@ -220,9 +221,13 @@ export class ScrollMode {
         return root && root.querySelector(className);
     };
 
+    private shouldBroadcast() {
+        return this.manager.canOperate && this.manager.room?.disableDeviceInputs === false;
+    }
+
     private onWheel = (ev: WheelEvent): void => {
         const target = ev.target as HTMLElement | null;
-        if (this.manager.canOperate && this._whiteboard$.value?.contains(target)) {
+        if (this.shouldBroadcast() && this._whiteboard$.value?.contains(target)) {
             ev.preventDefault();
             ev.stopPropagation();
             const dy = ev.deltaY || 0;
