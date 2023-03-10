@@ -164,7 +164,7 @@ export class AppContext<TAttributes extends Record<string, any> = any, TMagixEve
 
     /** Get App writable status. */
     public get isWritable(): boolean {
-        return this.manager.canOperate && !this.destroyed;
+        return this.appProxy.isWritable && !this.destroyed;
     };
 
     /** Get the App Window UI box. */
