@@ -1,7 +1,7 @@
 ## Advanced usage
 
 - Table of contents
-   - [Undo Redo] (#redo-undo)
+   - [Undo Redo](#redo-undo)
    - [clean screen](#clean-current-scene)
    - [Judging whether to open a certain APP](#has-kind)
    - [page controller](#page-control)
