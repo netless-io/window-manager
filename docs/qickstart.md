@@ -39,7 +39,7 @@ const manager = await sdk.mount({
          roomToken: "room token",
      },
      mountParams: {
-         container: document. getElementById("container")
+         container: document.getElementById("container")
      }
 })
 ```

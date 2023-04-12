@@ -86,7 +86,7 @@ manager.emitter.on("pageStateChange", state => {
 Previous/Next/Add a page
 
 ```ts
-manager. nextPage()
+manager.nextPage()
 manager.prevPage()
 manager. addPage()
 ```
@@ -117,11 +117,11 @@ manager. addPage()
 
 ```ts
 // Determine whether the current is maximized
-if (manager. boxState === "maximized") {
+if (manager.boxState === "maximized") {
      // The value of `focused` will vary depending on the currently focused app
      const app = manager. queryOne(manager. focused)
      // Only apps with a view can insert pictures, apps like video and audio do not have a view
-     if (app. view) {
+     if (app.view) {
          var imageInformation = {
              uuid: uuid,
              centerX: centerX,

@@ -33,17 +33,17 @@ const appId = await manager.addApp({
 
 ## Query all apps
 ```typescript
-const apps = manager. queryAll();
+const apps = manager.queryAll();
 ```
 
 ## Query a single APP
 ```typescript
-const app = manager. queryOne(appId);
+const app = manager.queryOne(appId);
 ```
 
 ## Close App
 ```typescript
-manager. closeApp(appId);
+manager.closeApp(appId);
 ```
 
 ## events

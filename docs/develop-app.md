@@ -20,12 +20,12 @@ const HelloWorld: NetlessApp = {
      },
 };
 
-WindowManager. register({
-     kind: Hello World. kind,
+WindowManager.register({
+     kind: Hello World.kind,
      src: Hello World,
 });
 
-manager. addApp({
+manager.addApp({
      kind: "Hello World",
      options: {
          scenePath: "/hello-world", // If you need to use the whiteboard in the app, you must declare scenePath
@@ -45,7 +45,7 @@ const Counter: NetlessApp<{ count: number }> = {
          const box = context.getBox(); // box is the window opened for this application
          const $content = box.$content // Get the content of the window
 
-         const countDom = document. createElement("div");
+         const countDom = document.createElement("div");
          countDom.innerText = storage.state.count.toString();
          $content.appendChild(countDom);
 
@@ -59,7 +59,7 @@ const Counter: NetlessApp<{ count: number }> = {
              }
          });
 
-         const incButton = document. createElement("button");
+         const incButton = document.createElement("button");
          incButton.innerText = "Inc";
          const incButtonOnClick = () => {
              storage.setState({ count: storage.state.count + 1 });
@@ -67,7 +67,7 @@ const Counter: NetlessApp<{ count: number }> = {
          incButton.addEventListener("click", incButtonOnClick);
          $content.appendChild(incButton);
 
-         const decButton = document. createElement("button");
+         const decButton = document.createElement("button");
          decButton.innerText = "Dec";
          const decButtonOnClick = () => {
              storage.setState({ count: storage.state.count - 1 });

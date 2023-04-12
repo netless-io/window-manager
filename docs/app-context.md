@@ -65,7 +65,7 @@
 
 When the application wants a whiteboard that can be drawn on, the following interface can be used
 
-- **context. mountView()**
+- **context.mountView()**
 
      Mount the whiteboard to the specified dom
 
@@ -87,7 +87,7 @@ manager. addApp({
 
 The whiteboard has the concept of multiple pages, which can be added, switched, and deleted through the following interfaces
 
-- **context. addPage()**
+- **context.addPage()**
 
      Add a page to `view`
 
@@ -97,7 +97,7 @@ The whiteboard has the concept of multiple pages, which can be added, switched, 
      context.addPage({ scene: { name: "page2" } }) // pass in page information
      ```
 
-- **context. nextPage()**
+- **context.nextPage()**
 
      previous page
 
@@ -112,7 +112,7 @@ The whiteboard has the concept of multiple pages, which can be added, switched, 
      ```ts
      context.prevPage();
      ```
-- **context. removePage()**
+- **context.removePage()**
 
      delete a page
 
@@ -179,9 +179,9 @@ Store and synchronize state, and send a collection of events
    Type: `Partial<State>`
 
    ```js
-   storage. state; // { a: 1 }
-   storage. ensureState({ a: 0, b: 0 });
-   storage. state; // { a: 1, b: 0 }
+   storage.state; // { a: 1 }
+   storage.ensureState({ a: 0, b: 0 });
+   storage.state; // { a: 1, b: 0 }
    ```
 
 - **storage.setState(partialState)**
@@ -197,7 +197,7 @@ Store and synchronize state, and send a collection of events
    Type: `Partial<State>`
 
    ```js
-   storage. state; //=> { count: 0, a: 1 }
+   storage.state; //=> { count: 0, a: 1 }
    storage.setState({ count: storage.state.count + 1, b: 2 });
    storage.state; //=> { count: 1, a: 1, b: 2 }
    ```
@@ -215,7 +215,7 @@ Store and synchronize state, and send a collection of events
    });
    ```
 
-- **context. dispatchMagixEvent(event, payload)**
+- **context.dispatchMagixEvent(event, payload)**
 
    Broadcast event messages to other clients
 
@@ -243,12 +243,12 @@ Store and synchronize state, and send a collection of events
      box is the default UI created by whiteboard for all apps
      All operable UI parts of the application are within the bounds of the box
 
-- **context. getBox()**
+- **context.getBox()**
 
      get box
      Return type: `ReadonlyTeleBox`
 
-- **box. mountStyles()**
+- **box.mountStyles()**
 
      Mount styles to `box`
      Parameters: `string | HTMLStyleElement`
@@ -262,7 +262,7 @@ Store and synchronize state, and send a collection of events
      `)
      ```
 
-- **box. mountContent()**
+- **box.mountContent()**
 
      Mount element to `box`
      Parameters: `HTMLElement`
@@ -273,7 +273,7 @@ Store and synchronize state, and send a collection of events
      box. mountContent(context);
      ```
 
-- **box. mountFooter()**
+- **box.mountFooter()**
 
      Mount element to `footer` of `box`
      Parameters: `HTMLElement`
@@ -360,7 +360,7 @@ Store and synchronize state, and send a collection of events
 
 <h2 id="Advanced">Advanced</h2>
 
-- **context. getView()**
+- **context.getView()**
 
      Get `view` instance
 

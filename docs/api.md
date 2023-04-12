@@ -143,7 +143,7 @@ For specific parameters, please refer to the requirements of `APP` itself
 > Close any open `APP`
 
 ```typescript
-manager. closeApp(appId)
+manager.closeApp(appId)
 ```
 
 <h3 id="focusApp">focusApp</h3>
@@ -151,7 +151,7 @@ manager. closeApp(appId)
 > Switch the `app` of the current `focus`, and set this `app` to the front
 
 ```typescript
-manager. focusApp(appId)
+manager.focusApp(appId)
 ```
 
 <h3 id="setMainViewSceneIndex">setMainViewSceneIndex</h3>
@@ -183,7 +183,7 @@ manager.cleanCurrentScene()
 > Redo the last operation on the currently focused view
 
 ```ts
-manager. redo()
+manager.redo()
 ```
 
 <h3 id="undo">undo</h3>
@@ -199,7 +199,7 @@ manager.undo()
 > Switch main whiteboard to next page
 
 ```ts
-const success = await manager. nextPage()
+const success = await manager.nextPage()
 if (!success) {
      // reached the last page
 }
@@ -240,7 +240,7 @@ const success = await manager.removePage(1) // can delete the specified index
 > Refreshes `manager` internal state for `copy` `attributes` from other rooms
 
 ```ts
-manager. refresh()
+manager.refresh()
 ```
 
 <h3 id="setContainerSizeRatio">setContainerSizeRatio</h3>

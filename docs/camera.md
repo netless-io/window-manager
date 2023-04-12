@@ -28,7 +28,7 @@ manager.mainView.callbacks.on("onSizeUpdated", camera => {
 
 ## Move `camera` via `api`
 ```typescript
-manager. moveCamera(camera)
+manager.moveCamera(camera)
 ```
 
 ## Set view bounds

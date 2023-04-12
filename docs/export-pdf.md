@@ -22,7 +22,7 @@ Launch the save board writing task with a `window.postMessage` event, and be car
 
 ```js
 window.postMessage({
-    type: "@netless/_request_save_pdf_".
+    type: "@netless/_request_save_pdf_",
     appId: /* windowManager.addApp return value, specify which window to save the board writing, */
 })
 ```
@@ -36,13 +36,12 @@ The data.result will only have a value if the task succeeds, and will be null if
 ```js
 window.addEventListener("message", evt => {
     if (evt.data.type === "@netless/_result_save_pdf_") {
-        console.log(evt.data).
+        console.log(evt.data),
         // data contains the following properties
         // data.type: fixed value "@netless/_result_save_pdf_"
         // data.appId: specifies which download task, same as the appId value passed when the board writing was saved
         // data.progress: progress of the download, 0 ~ 100
         // data.result: { pdf: ArrayBuffer {}, title: "a.pptx" } or null, the contents of the pdf file for the board writing.
         // value only when the download progresses to 100. After getting the ArrayBuffer you need to complete the logic of downloading to local.
-    }); }
-}).
+    }}); 
 ```
