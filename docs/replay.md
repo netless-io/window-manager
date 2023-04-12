@@ -26,11 +26,11 @@ sdk.replayRoom({
      useMultiViews: true, // Multi-window must be enabled useMultiViews
 }).then(player => {
     player.callbacks.on("onPhaseChanged", async (phase) => {
-        if (phase === PlayerPhase. Playing) {
+        if (phase === PlayerPhase.Playing) {
             if (manager) return;
              manager = await WindowManager.mount({
                  room: player,
-                 container: document. getElementById("container")
+                 container: document.getElementById("container")
              });
         }
     })

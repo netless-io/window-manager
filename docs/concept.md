@@ -1,6 +1,6 @@
-# concept
+# Concept
 
-## sync zone
+## Sync Zone
 
 On devices with different resolutions, if we want to see the same area and window, we need to maintain the same ratio on all devices.
 

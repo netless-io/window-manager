@@ -65,8 +65,8 @@ parameter
 | cursor                 | [optional] boolean                      | false   | Turn on cursor sync                       |
 | disableCameraTransform | [optional] boolean                      |         | Disable camera movement for the main whiteboard                   |
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
-| debug                  | [optional] boolean                      | false   | print log information   
-| applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           
+| debug                  | [optional] boolean                      | false   | print log information   |
+| applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           |
 
 
 <h3 id="register">WindowManager. register</h3>
@@ -75,20 +75,20 @@ parameter
 
 ```typescript
 WindowManager. register({
-     kind: "hello World",
-     src: NetlessApp,
-     appOptions: () => "appOptions",
-     addHooks: (emitter) => {
-          emitter.on("created", result => {
-             console.log("HelloWordResult", result);
-         });
-         emitter.on("focus", result => {
-             console.log("HelloWorld focus", result);
-         })
-         emitter.on("destroy", result => {
-             console.log("HelloWorld destroy", result);
-         })
-     }
+    kind: "hello World",
+    src: NetlessApp,
+    appOptions: () => "appOptions",
+    addHooks: (emitter) => {
+        emitter.on("created", result => {
+            console.log("HelloWordResult", result);
+        });
+        emitter.on("focus", result => {
+            console.log("HelloWorld focus", result);
+        })
+        emitter.on("destroy", result => {
+            console.log("HelloWorld destroy", result);
+        })
+    }
 })
 ```
 
@@ -206,6 +206,7 @@ if (!success) {
 ```
 
 <h3 id="prevPage">prevPage</h3>
+
 > Switch main whiteboard to previous page
 
 ```ts

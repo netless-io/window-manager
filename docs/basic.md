@@ -6,7 +6,7 @@
 import { BuiltinApps } from "@netless/window-manager";
 
 const appId = await manager.addApp({
-     kind: BuiltinApps. DocsViewer,
+     kind: BuiltinApps.DocsViewer,
      options: {
          scenePath: "/docs-viewer", // define the scenePath where the ppt is located
          title: "docs1", // optional
@@ -20,7 +20,7 @@ const appId = await manager.addApp({
 import { BuiltinApps } from "@netless/window-manager";
 
 const appId = await manager.addApp({
-     kind: BuiltinApps. MediaPlayer,
+     kind: BuiltinApps.MediaPlayer,
      options: {
          title: "test.mp3", // optional
      },
@@ -57,7 +57,7 @@ manager.emitter.on("boxStateChange", state => {
 
 ### Camera follow mode
 ```typescript
-manager. emitter. on("broadcastChange", state => {
+manager.emitter.on("broadcastChange", state => {
      // state: number | undefined
 });
 ```

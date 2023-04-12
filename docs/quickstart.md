@@ -2,21 +2,21 @@
 
 ## Install
 Install `WindowManager` via `npm` or `yarn`.
-```shell
+```bash
 # npm
 $ npm install @netless/window-manager
 
-#yarn
+# yarn
 $ yarn add @netless/window-manager
 ```
 
-quote
+Import:
 ```typescript
 import { WhiteWindowSDK } from "@netless/window-manager";
 import "@netless/window-manager/dist/style.css";
 ```
 
-## start using
+## Start using
 
 ### Prepare container
 Create a container for mounting in the page

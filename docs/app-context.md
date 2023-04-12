@@ -1,14 +1,14 @@
-##AppContext
+## AppContext
 
-     `AppContext` is the context passed in when the plugin runs
-     You can operate the ui of the APP through this object, get the status of the current room, and subscribe to the status change
+`AppContext` is the context passed in when the plugin runs.
+You can operate the ui of the APP through this object, get the status of the current room, and subscribe to the status change.
 
-- [api](#api)
-     - [view](#view)
-     - [page](#page)
-     - [storage](#storage)
-- [ui(box)](#box)
-- [events](#events)
+- [API](#api)
+     - [View](#view)
+     - [Page](#page)
+     - [Storage](#storage)
+- [UI (box)](#box)
+- [Events](#events)
 - [Advanced](#Advanced)
 
 <h2 id="api">API</h2>
@@ -58,7 +58,7 @@
      const box = context.getBox();
 
      box.$content; // main element of the box
-     box. $footer;
+     box.$footer;
      ```
 
 <h3 id="view">Mount whiteboard</h3>
@@ -75,7 +75,7 @@ When the application wants a whiteboard that can be drawn on, the following inte
 
 **Note** When calling `addApp` of `manager`, you must fill in `scenePath` to use `view`
 ```ts
-manager. addApp({
+manager.addApp({
      kind: "xxx",
      options: { // optional configuration
          scenePath: "/example-path"
@@ -102,7 +102,7 @@ The whiteboard has the concept of multiple pages, which can be added, switched, 
      previous page
 
      ```ts
-     context. nextPage();
+     context.nextPage();
      ```
 
 - **context.prevPage()**
@@ -129,8 +129,8 @@ The whiteboard has the concept of multiple pages, which can be added, switched, 
      ```ts
      context.pageState;
      // {
-     // index: number,
-     // length: number,
+     //    index: number,
+     //    length: number,
      // }
      ```
 
@@ -190,7 +190,7 @@ Store and synchronize state, and send a collection of events
 
    When setting a field to `undefined`, it will be removed from `storage.state`.
 
-   > - The time required for state synchronization and the network state are related to the data size. It is recommended to only store necessary data in the state.
+   > The time required for state synchronization and the network state are related to the data size. It is recommended to only store necessary data in the state.
 
    **partialState**
 
@@ -225,7 +225,7 @@ Store and synchronize state, and send a collection of events
 
 - **context.addMagixEventListener(event, listener)**
 
-   It is triggered when receiving messages from other clients (when other clients call 'context.dispatchMagixEvent()`)
+   It is triggered when receiving messages from other clients (when other clients call `context.dispatchMagixEvent()`)
 
    Returns: `() => void` a disposer function.
 
@@ -240,8 +240,8 @@ Store and synchronize state, and send a collection of events
 
 <h2>UI (box)</h2>
 
-     box is the default UI created by whiteboard for all apps
-     All operable UI parts of the application are within the bounds of the box
+Box is the default UI created by whiteboard for all apps.
+All operable UI parts of the application are within the bounds of the box.
 
 - **context.getBox()**
 
@@ -291,7 +291,7 @@ Store and synchronize state, and send a collection of events
      Sent when the app is closed
 
      ```ts
-     context. emitter. on("destroy", () => {
+     context.emitter.on("destroy", () => {
          // release your listeners
      });
      ```
@@ -311,7 +311,7 @@ Store and synchronize state, and send a collection of events
      Triggered when the current app gains or loses focus
 
      ```ts
-     context. emitter. on("focus", focus => {
+     context.emitter.on("focus", focus => {
          //
      });
      ```
@@ -365,5 +365,5 @@ Store and synchronize state, and send a collection of events
      Get `view` instance
 
      ```ts
-     const view = context. getView();
+     const view = context.getView();
      ```

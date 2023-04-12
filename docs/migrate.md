@@ -14,9 +14,9 @@ It will cause some methods and `state` on the following `room` to fail
 > In order to use `manager` to replace some methods on `room`, it can directly take effect on `mainView`
 
 - `room.disableCameraTransform`
-- `room. moveCamera`
+- `room.moveCamera`
 - `room.moveCameraToContain`
-- `room. convertToPointInWorld`
+- `room.convertToPointInWorld`
 - `room.setCameraBound`
 
 `camera`
@@ -35,7 +35,7 @@ Monitor main whiteboard `size` changes
 
 ```javascript
 manager.mainView.callbacks.on("onSizeUpdated", size => {
-     console. log(size);
+     console.log(size);
 });
 ```
 
