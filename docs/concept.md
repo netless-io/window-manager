@@ -1,9 +1,10 @@
-# 概念
+# concept
 
-## 同步区域
+## sync zone
 
-在不同分辨率的设备上，想要看到相同的区域和窗口，我们就需要在所有设备保持一个相同的比例。
+On devices with different resolutions, if we want to see the same area and window, we need to maintain the same ratio on all devices.
 
-所以 `WindowManager` 有一个 `containerSizeRatio` 的选项来配置白板的宽高比，默认为 `9 / 16`
+So `WindowManager` has a `containerSizeRatio` option to configure the aspect ratio of the whiteboard, the default is `9 / 16`
 
-如果外层给到 `WindowManager` 宽高并不是完美适配这个宽高比的话, `WindowManger` 会自动在内部算出一个适配这个比例的最大宽高，然后填充上去，这时在内部就会有一些区域不能操作
+If the width and height given to WindowManager by the outer layer do not perfectly fit this aspect ratio, WindowManger will automatically calculate a maximum width and height that fits this ratio internally, and then fill it in. At this time, there will be some internal areas that cannot be operated
+

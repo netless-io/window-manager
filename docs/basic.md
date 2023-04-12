@@ -1,64 +1,63 @@
-# 基础教程
-`WindowManager` 内置了 `DocsViewer` 和 `MediaPlayer` 用来播放 PPT 和音视频
+# Basic Tutorial
+`WindowManager` has built-in `DocsViewer` and `MediaPlayer` to play PPT and audio and video
 
-## 打开动态/静态 PPT
+## Open dynamic/static PPT
 ```typescript
 import { BuiltinApps } from "@netless/window-manager";
 
 const appId = await manager.addApp({
-    kind: BuiltinApps.DocsViewer,
-    options: {
-        scenePath: "/docs-viewer", // 定义 ppt 所在的 scenePath
-        title: "docs1", // 可选
-        scenes: [], // SceneDefinition[] 静态/动态 Scene 数据
-    },
+     kind: BuiltinApps. DocsViewer,
+     options: {
+         scenePath: "/docs-viewer", // define the scenePath where the ppt is located
+         title: "docs1", // optional
+         scenes: [], // SceneDefinition[] static/dynamic Scene data
+     },
 });
 ```
 
-## 打开音视频
+## Open audio and video
 ```typescript
 import { BuiltinApps } from "@netless/window-manager";
 
 const appId = await manager.addApp({
-    kind: BuiltinApps.MediaPlayer,
-    options: {
-        title: "test.mp3", // 可选
-    },
-    attributes: {
-        src: "xxxx", // 音视频 url
-    },
+     kind: BuiltinApps. MediaPlayer,
+     options: {
+         title: "test.mp3", // optional
+     },
+     attributes: {
+         src: "xxxx", // audio and video url
+     },
 });
 ```
  
 
-## 查询所有的 App
+## Query all apps
 ```typescript
-const apps = manager.queryAll();
+const apps = manager. queryAll();
 ```
 
-## 查询单个 APP
+## Query a single APP
 ```typescript
-const app = manager.queryOne(appId);
-``` 
+const app = manager. queryOne(appId);
+```
 
-## 关闭 App
+## Close App
 ```typescript
-manager.closeApp(appId);
+manager. closeApp(appId);
 ```
 
 ## events
 
-### 窗口最小化最大化
+### Minimize and maximize the window
 ```typescript
 manager.emitter.on("boxStateChange", state => {
-    // maximized | minimized | normal
+     // maximized | minimized | normal
 });
 ```
 
-### 视角跟随模式
+### Camera follow mode
 ```typescript
-manager.emitter.on("broadcastChange", state => {
-    // state: number | undefined
+manager. emitter. on("broadcastChange", state => {
+     // state: number | undefined
 });
 ```
-

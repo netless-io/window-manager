@@ -1,60 +1,58 @@
+### Precautions
 
-### 注意事项
+Multi-window mode must enable whiteboard `useMultiViews` and `useMobXState` options
 
-多窗口模式必须开启白板的 `useMultiViews` 和 `useMobXState` 选项
+It will cause some methods and `state` on the following `room` to fail
 
-会造成原本以下 `room` 上的一些方法和 `state` 失效
+`method`
 
-`方法`
+- `room.bindHtmlElement()` is replaced by `WindowManager.mount()`
+- There is no replacement for `room.scalePptToFit()`, calling `scalePptToFit` is no longer recommended
+- `room.setScenePath()` is replaced by `manager.setMainViewScenePath()`
+- `room.setSceneIndex()` is replaced by `manager.setMainViewSceneIndex()`
 
--   `room.bindHtmlElement()` 用 `WindowManager.mount()` 代替
--   `room.scalePptToFit()` 暂无代替,不再推荐调用 `scalePptToFit`
--   `room.setScenePath()` 用 `manager.setMainViewScenePath()` 代替
--   `room.setSceneIndex()` 用 `manager.setMainViewSceneIndex()` 代替
+> In order to use `manager` to replace some methods on `room`, it can directly take effect on `mainView`
 
-> 为了方便使用 `manager` 替换了 `room` 上的一些方法可以直接对 `mainView` 生效
-
--   `room.disableCameraTransform`
--   `room.moveCamera`
--   `room.moveCameraToContain`
--   `room.convertToPointInWorld`
--   `room.setCameraBound`
+- `room.disableCameraTransform`
+- `room. moveCamera`
+- `room.moveCameraToContain`
+- `room. convertToPointInWorld`
+- `room.setCameraBound`
 
 `camera`
 
--   `room.state.cameraState` 用 `manager.mainView.camera` 和 `manager.mainView.size` 代替
+- `room.state.cameraState` is replaced by `manager.mainView.camera` and `manager.mainView.size`
 
-想要监听主白板 `camera` 的变化, 请使用如下方式代替
+If you want to monitor the main whiteboard `camera` changes, please use the following method instead
 
 ```javascript
 manager.mainView.callbacks.on("onCameraUpdated", camera => {
-    console.log(camera);
+     console.log(camera);
 });
 ```
 
-监听主白板 `size` 变化
+Monitor main whiteboard `size` changes
 
 ```javascript
 manager.mainView.callbacks.on("onSizeUpdated", size => {
-    console.log(size);
+     console. log(size);
 });
 ```
 
 <br>
 
-## `white-web-sdk` 从 `2.15.x` 迁移至 `2.16.x`
+## `white-web-sdk` migrated from `2.15.x` to `2.16.x`
 
 ### `room.setMemberState`
 
-此方法在开启多窗口时要等待 `WindowManager` 挂载完成后才可以直接调用。
+This method can be called directly after waiting for `WindowManager` to be mounted when multi-window is enabled.
 
-或者使用 `manager.mainView.setMemberState` 代替
+Or use `manager.mainView.setMemberState` instead
 
 <br>
 
-### `room.pptPreviousStep` `room.pptNextStep` 切换上下页
+### `room.pptPreviousStep` `room.pptNextStep` Switch to the next page
 
-因为窗口实现机制的改变, `pptPreviousStep` 和 `pptNextStep` 不再生效
+`pptPreviousStep` and `pptNextStep` no longer work due to changes in window implementation
 
-如果需要切换主白板的上下页, 请使用 `manager.nextPage` 和 `manager.prevPage`
-
+If you need to switch the top and bottom pages of the main whiteboard, please use `manager.nextPage` and `manager.prevPage`

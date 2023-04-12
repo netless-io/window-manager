@@ -1,53 +1,52 @@
-# 视角
-在多窗口模式下, 可以同时存在多块白板，但是大多数情况下用户都只需要对主白板也就是 `mainView` 进行操作
+# view angle
+In multi-window mode, multiple whiteboards can exist at the same time, but in most cases users only need to operate on the main whiteboard, which is `mainView`
 
 
-## 获取 `mainView` 的 `camera`
+## Get `camera` of `mainView`
 ```typescript
 manager.mainView.camera
 ```
 
-## 获取 `mainView` 的 `size`
+## Get `size` of `mainView`
 ```typescript
 manager.mainView.size
 ```
 
-## 监听 `mainView` 的 `camera` 变化
+## Monitor `camera` changes in `mainView`
 ```typescript
 manager.mainView.callbacks.on("onCameraUpdated", camera => {
-    // 更新后的 camera
+     // updated camera
 })
 ```
 
-## 监听 `mainView` 的 `size` 的变化
+## Monitor the change of `size` of `mainView`
 ```typescript
 manager.mainView.callbacks.on("onSizeUpdated", camera => {
-    // 更新后的 size
+     // updated size
 })
 ```
 
-## 通过 `api` 移动 `camera`
+## Move `camera` via `api`
 ```typescript
-manager.moveCamera(camera)
+manager. moveCamera(camera)
 ```
 
-## 设置视角边界
-把所有人的视角限制在以世界坐标 (0, 0) 为中心，宽为 1024，高为 768 的矩形之中。
+## Set view bounds
+Limit everyone's viewing angle to a rectangle centered at world coordinates (0, 0) with a width of 1024 and a height of 768.
 ```typescript
 manager.setCameraBound({
-    centerX: 0,
-    centerY: 0,
-    width: 1024,
-    height: 768,
+     centerX: 0,
+     centerY: 0,
+     width: 1024,
+     height: 768,
 })
 ```
 
-## 禁止/允许 `mainView` `camera` 的移动，缩放
+## Prohibit/allow movement and scaling of `mainView` `camera`
 ```typescript
-// 禁止 `camera` 移动,缩放
+// Prohibit `camera` from moving and zooming
 manager.mainView.disableCameraTransform = false
 
-// 恢复 `camera` 移动,缩放
+// restore `camera` movement, scaling
 manager.mainView.disableCameraTransform = true
 ```
-
