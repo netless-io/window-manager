@@ -1,369 +1,369 @@
 ## AppContext
 
-    `AppContext` 是插件运行时传入的上下文
-    你可以通过此对象操作 APP 的 ui, 获取当前房间的状态, 以及订阅状态的变化
+`AppContext` is the context passed in when the plugin runs.
+You can operate the ui of the APP through this object, get the status of the current room, and subscribe to the status change.
 
-- [api](#api)
-    - [view](#view)
-    - [page](#page)
-    - [storage](#storage)
-- [ui(box)](#box)
-- [events](#events)
+- [API](#api)
+     - [View](#view)
+     - [Page](#page)
+     - [Storage](#storage)
+- [UI (box)](#box)
+- [Events](#events)
 - [Advanced](#Advanced)
 
 <h2 id="api">API</h2>
 
 - **context.appId**
 
-    插入 `app` 时生成的唯一 ID
+     Unique ID generated when inserting `app`
 
-    ```ts
-    const appId = context.appId;
-    ```
+     ```ts
+     const appId = context.appId;
+     ```
 
 - **context.isReplay**
     
-    类型: `boolean`
+     Type: `boolean`
     
-    当前是否回放模式
+     Whether the current playback mode
 
 - **context.getDisplayer()**
 
-    在默认情况下 `Displayer` 为白板的 `room` 实例
+     By default `Displayer` is the `room` instance of the whiteboard
 
-    回放时则为 `Player` 实例
+     A `Player` instance during playback
 
-    ```ts
-    const displayer = context.getDisplayer();
+     ```ts
+     const displayer = context.getDisplayer();
 
-    assert(displayer, room); // 互动房间
-    assert(displayer, player); // 回放房间
-    ```
+     assert(displayer, room); // interactive room
+     assert(displayer, player); // playback room
+     ```
 
 
 - **context.getIsWritable()**
 
-    获取当前状态是否可写\
-    可以通过监听 `writableChange` 事件获取可写状态的改变
+     Get whether the current state is writable\
+     You can get the change of writable state by listening to `writableChange` event
 
-    ```ts
-    const isWritable = context.getIsWritable();
-    ```
+     ```ts
+     const isWritable = context.getIsWritable();
+     ```
 
 - **context.getBox()**
 
-    获取当前 app 的 box
+     Get the box of the current app
 
-    ```ts
-    const box = context.getBox();
+     ```ts
+     const box = context.getBox();
 
-    box.$content; // box 的 main element
-    box.$footer;
-    ```
+     box.$content; // main element of the box
+     box.$footer;
+     ```
 
-<h3 id="view">挂载白板</h3>
+<h3 id="view">Mount whiteboard</h3>
 
-当应用想要一个可以涂画的白板，可以使用以下接口
+When the application wants a whiteboard that can be drawn on, the following interface can be used
 
 - **context.mountView()**
 
-    挂载白板到指定 dom
+     Mount the whiteboard to the specified dom
 
-    ```ts
-    context.mountView(element);
-    ```
+     ```ts
+     context.mountView(element);
+     ```
 
-**注意** 在调用 `manager` 的 `addApp` 时必须填写 `scenePath` 才可以使用 `view`
+**Note** When calling `addApp` of `manager`, you must fill in `scenePath` to use `view`
 ```ts
 manager.addApp({
-    kind: "xxx",
-    options: { // 可选配置
-        scenePath: "/example-path"
-    }
+     kind: "xxx",
+     options: { // optional configuration
+         scenePath: "/example-path"
+     }
 })
 ```
 
 <h3 id="page">Page</h3>
 
-白板有多页的概念, 可以通过以下接口添加，切换，以及删除
+The whiteboard has the concept of multiple pages, which can be added, switched, and deleted through the following interfaces
 
 - **context.addPage()**
 
-    添加一页至 `view`
+     Add a page to `view`
 
-    ```ts
-    context.addPage() // 默认在最后添加一页
-    context.addPage({ after: true }) // 在当前页后添加一页
-    context.addPage({ scene: { name: "page2" } }) // 传入 page 信息
-    ```
+     ```ts
+     context.addPage() // add a page at the end by default
+     context.addPage({ after: true }) // add a page after the current page
+     context.addPage({ scene: { name: "page2" } }) // pass in page information
+     ```
 
 - **context.nextPage()**
 
-    上一页
+     previous page
 
-    ```ts
-    context.nextPage();
-    ```
+     ```ts
+     context.nextPage();
+     ```
 
 - **context.prevPage()**
 
-    下一页
+     next page
 
-    ```ts
-    context.prevPage();
-    ```
+     ```ts
+     context.prevPage();
+     ```
 - **context.removePage()**
 
-    删除一页
+     delete a page
 
-    ```ts
-    context.removePage() // 默认删除当前页
-    context.removePage(1) // 也可以指定 index 删除
-    ```
+     ```ts
+     context.removePage() // delete the current page by default
+     context.removePage(1) // You can also specify index to delete
+     ```
 
 - **context.pageState**
 
-    获取当前所在的 `index` 和一共有多少页\
-    当想要监听 `pageState` 的变化时, 可以监听 `pageStateChange` 事件获取最新的 `pageState`
+     Get the current `index` and how many pages there are\
+     When you want to monitor the change of `pageState`, you can listen to the `pageStateChange` event to get the latest `pageState`
 
-    ```ts
-    context.pageState;
-    // {
-    //     index: number,
-    //     length: number,
-    // }
-    ```
+     ```ts
+     context.pageState;
+     // {
+     //    index: number,
+     //    length: number,
+     // }
+     ```
 
 <h3 id="storage">storage</h3>
 
-存储和同步状态，以及发送事件的一系列集合
+Store and synchronize state, and send a collection of events
 
 - **context.storage**
 
-    默认创建的 storage 实例
+     Storage instance created by default
 
-    ```ts
-    context.storage
-    ```
+     ```ts
+     context.storage
+     ```
 
 - **context.createStorage(namespace)**
 
-    同时你也可以创建多个 `storage` 实例
+     At the same time you can also create multiple `storage` instances
     
-    返回: `Storage<State>`
+     Returns: `Storage<State>`
 
-    ```ts
-    type State = { count: number };
-    const defaultState = { count: 0 };
-    const storage = context.createStorage<State>("store1", defaultState);
-    ```
+     ```ts
+     type State = { count: number };
+     const defaultState = { count: 0 };
+     const storage = context.createStorage<State>("store1", defaultState);
+     ```
 
 - **storage.state**
 
-  类型: `State`\
-  默认值: `defaultState`
+   Type: `State`\
+   Default: `defaultState`
 
-  在所有客户端之间同步的状态，调用 `storage.setState()` 来改变它。
+   State synchronized between all clients, call `storage.setState()` to change it.
 
 - **storage.ensureState(partialState)**
 
-  确保 `storage.state` 包含某些初始值，类似于执行了：
+   Make sure `storage.state` contains some initial values, something like doing:
 
-  ```js
-  // 这段代码不能直接运行，因为 app.state 是只读的
-  storage.state = { ...partialState, ...storage.state };
-  ```
+   ```js
+   // This code cannot be run directly because app.state is read-only
+   storage.state = { ...partialState, ...storage.state };
+   ```
 
-  **partialState**
+   **partialState**
 
-  类型: `Partial<State>`
+   Type: `Partial<State>`
 
-  ```js
-  storage.state; // { a: 1 }
-  storage.ensureState({ a: 0, b: 0 });
-  storage.state; // { a: 1, b: 0 }
-  ```
+   ```js
+   storage.state; // { a: 1 }
+   storage.ensureState({ a: 0, b: 0 });
+   storage.state; // { a: 1, b: 0 }
+   ```
 
 - **storage.setState(partialState)**
 
-  和 React 的 `setState` 类似，更新 `storage.state` 并同步到所有客户端。
+   Similar to React's `setState`, update `storage.state` and sync to all clients.
 
-  当设置某个字段为 `undefined` 时，它会被从 `storage.state` 里删除。
+   When setting a field to `undefined`, it will be removed from `storage.state`.
 
-  > - 状态同步所需的时间和网络状态与数据大小有关，建议只在 state 里存储必须的数据。
+   > The time required for state synchronization and the network state are related to the data size. It is recommended to only store necessary data in the state.
 
-  **partialState**
+   **partialState**
 
-  类型: `Partial<State>`
+   Type: `Partial<State>`
 
-  ```js
-  storage.state; //=> { count: 0, a: 1 }
-  storage.setState({ count: storage.state.count + 1, b: 2 });
-  storage.state; //=> { count: 1, a: 1, b: 2 }
-  ```
+   ```js
+   storage.state; //=> { count: 0, a: 1 }
+   storage.setState({ count: storage.state.count + 1, b: 2 });
+   storage.state; //=> { count: 1, a: 1, b: 2 }
+   ```
 
 - **storage.addStateChangedListener(listener)**
 
-  它在有人调用 `storage.setState()` 后触发 (包含当前 `storage`)
+   It fires after someone calls `storage.setState()` (including the current `storage`)
 
-  返回: `() => void`
+   return: `() => void`
 
-  ```js
-  const disposer = storage.addStateChangedListener(diff => {
-    console.log("state changed", diff.oldValue, diff.newValue);
-    disposer(); // remove listener by calling disposer
-  });
-  ```
+   ```js
+   const disposer = storage.addStateChangedListener(diff => {
+     console.log("state changed", diff.oldValue, diff.newValue);
+     disposer(); // remove listener by calling disposer
+   });
+   ```
 
 - **context.dispatchMagixEvent(event, payload)**
 
-  向其他客户端广播事件消息
+   Broadcast event messages to other clients
 
-  ```js
-  context.dispatchMagixEvent("click", { data: "data" });
-  ```
+   ```js
+   context.dispatchMagixEvent("click", { data: "data" });
+   ```
 
 - **context.addMagixEventListener(event, listener)**
 
-  当接收来自其他客户端的消息时(当其他客户端调用'context.dispatchMagixEvent()`时), 它会被触发
+   It is triggered when receiving messages from other clients (when other clients call `context.dispatchMagixEvent()`)
 
-  返回: `() => void` a disposer function.
+   Returns: `() => void` a disposer function.
 
-  ```js
-  const disposer = context.addMagixEventListener("click", ({ payload }) => {
-    console.log(payload.data);
-    disposer();
-  });
+   ```js
+   const disposer = context.addMagixEventListener("click", ({ payload }) => {
+     console.log(payload.data);
+     disposer();
+   });
 
-  context.dispatchMagixEvent("click", { data: "data" });
-  ```
+   context.dispatchMagixEvent("click", { data: "data" });
+   ```
 
 <h2>UI (box)</h2>
 
-    box 是白板为所有应用默认创建的 UI
-    应用所有可以操作的 UI 部分都在 box 范围内
+Box is the default UI created by whiteboard for all apps.
+All operable UI parts of the application are within the bounds of the box.
 
 - **context.getBox()**
 
-    获取 box
-    返回类型: `ReadonlyTeleBox`
+     get box
+     Return type: `ReadonlyTeleBox`
 
 - **box.mountStyles()**
 
-    挂载样式到 `box`
-    参数: `string | HTMLStyleElement`
+     Mount styles to `box`
+     Parameters: `string | HTMLStyleElement`
 
-    ```js
-    const box = context.getBox();
-    box.mountStyles(`
-        .app-span {
-            color: red;
-        }
-    `)
-    ```
+     ```js
+     const box = context. getBox();
+     box. mountStyles(`
+         .app-span {
+             color: red;
+         }
+     `)
+     ```
 
 - **box.mountContent()**
 
-    挂载元素到 `box`
-    参数: `HTMLElement`
+     Mount element to `box`
+     Parameters: `HTMLElement`
 
-    ```js
-    const box = context.getBox();
-    const content = document.createElement("div");
-    box.mountContent(context);
-    ```
+     ```js
+     const box = context. getBox();
+     const content = document. createElement("div");
+     box. mountContent(context);
+     ```
 
 - **box.mountFooter()**
 
-    挂载元素到 `box` 的 `footer`
-    参数: `HTMLElement`
+     Mount element to `footer` of `box`
+     Parameters: `HTMLElement`
 
-    ```js
-    const box = context.getBox();
-    const footer = document.createElement("div");
-    box.mountFooter(context);
-    ```
+     ```js
+     const box = context. getBox();
+     const footer = document. createElement("div");
+     box. mountFooter(context);
+     ```
 
 <h2 id="events">events</h2>
 
 - **destroy**
 
-    app 被关闭时发送
+     Sent when the app is closed
 
-    ```ts
-    context.emitter.on("destroy", () => {
-        // release your listeners
-    });
-    ```
+     ```ts
+     context.emitter.on("destroy", () => {
+         // release your listeners
+     });
+     ```
 
 - **writableChange**
 
-    白板可写状态切换时触发
+     Triggered when the whiteboard's writable state is switched
 
-    ```ts
-    context.emitter.on("writableChange", isWritable => {
-        //
-    });
-    ```
+     ```ts
+     context.emitter.on("writableChange", isWritable => {
+         //
+     });
+     ```
 
 - **focus**
 
-    当前 app 获得焦点或者失去焦点时触发
+     Triggered when the current app gains or loses focus
 
-    ```ts
-    context.emitter.on("focus", focus => {
-        //
-    });
-    ```
+     ```ts
+     context.emitter.on("focus", focus => {
+         //
+     });
+     ```
 
 - **pageStateChange**
 
-    `PageState`
+     `PageState`
 
-    ```ts
-    type PateState {
-        index: number;
-        length: number;
-    }
-    ```
+     ```ts
+     type PateState {
+         index: number;
+         length: number;
+     }
+     ```
 
-    当前页数和总页数变化时触发
+     Triggered when the current page number and the total page number change
 
-    ```ts
-    context.emitter.on("pageStateChange", pageState => {
-        // { index: 0, length: 1 }
-    });
-    ```
+     ```ts
+     context.emitter.on("pageStateChange", pageState => {
+         // { index: 0, length: 1 }
+     });
+     ```
 - **roomStageChange**
 
-    房间的状态变化时触发\
-    比如当教具切换时
+     Triggered when the state of the room changes\
+     For example, when teaching aids are switched
 
-    ```js
-    context.emitter.on("roomStageChange", stage => {
-        if (state.memberState) {
-            console.log("appliance change to", state.memberState.currentApplianceName);
-        }
-    });
-    ```
-
-    或者是当前房间人数变化时
-
-    ```js
+     ```js
      context.emitter.on("roomStageChange", stage => {
-        if (state.roomMembers) {
-            console.log("current room members change", state.roomMembers);
-        }
-    });
-    ```
-    详细状态的介绍请参考 https://developer.netless.link/javascript-zh/home/business-state-management
+         if (state. memberState) {
+             console.log("appliance change to", state.memberState.currentApplianceName);
+         }
+     });
+     ```
+
+     or when the number of people in the current room changes
+
+     ```js
+      context.emitter.on("roomStageChange", stage => {
+         if (state. roomMembers) {
+             console.log("current room members change", state.roomMembers);
+         }
+     });
+     ```
+     For detailed status introduction, please refer to https://developer.netless.link/javascript-zh/home/business-state-management
 
 <h2 id="Advanced">Advanced</h2>
 
 - **context.getView()**
 
-    获取 `view` 实例
+     Get `view` instance
 
-    ```ts
-    const view = context.getView();
-    ```
+     ```ts
+     const view = context.getView();
+     ```

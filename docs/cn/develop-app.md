@@ -1,12 +1,12 @@
-# Develop custom APP
+# 开发自定义 APP
 
--   [AppContext](./app-context.md)
+- [AppContext](./app-context.md)
 
 ## official apps https://github.com/netless-io/netless-app
 
 ## app-with-whiteboard
 
-If you need to mount a whiteboard in the app, please refer to [board.tsx](https://github.com/netless-io/window-manager/blob/master/example/app/board.tsx)
+如果需要 app 中挂载白板请参考 [board.tsx](https://github.com/netless-io/window-manager/blob/master/example/app/board.tsx)
 
 <br>
 
@@ -14,9 +14,9 @@ If you need to mount a whiteboard in the app, please refer to [board.tsx](https:
 import type { NetlessApp, AppContext } from "@netless/window-manager";
 
 const HelloWorld: NetlessApp = {
-    kind: "Hello World",
+    kind: "HelloWorld",
     setup: (context: AppContext) => {
-        context.mountView(context.getBox().$content); // optional: mount the View to the box
+        context.mountView(context.getBox().$content); // 可选: 挂载 View 到 box 上
     },
 };
 
@@ -26,9 +26,9 @@ WindowManager.register({
 });
 
 manager.addApp({
-    kind: "Hello World",
+    kind: "HelloWorld",
     options: {
-        scenePath: "/hello-world", // If you need to use the whiteboard in the app, you must declare scenePath
+        scenePath: "/hello-world", // 如果需要在 App 中使用白板则必须声明 scenePath
     },
 });
 ```
@@ -38,21 +38,21 @@ manager.addApp({
 ```ts
 const Counter: NetlessApp<{ count: number }> = {
     kind: "Counter",
-    setup: context => {
+    setup: (context) => {
         const storage = context.storage;
         storage.ensureState({ count: 0 });
 
-        const box = context.getBox(); // box is the window opened for this application
-        const $content = box.$content; // Get the content of the window
+        const box = context.getBox(); // box 为这个应用打开的窗口
+        const $content = box.$content // 获取窗口的 content
 
         const countDom = document.createElement("div");
         countDom.innerText = storage.state.count.toString();
         $content.appendChild(countDom);
 
-        // Listen for state change callbacks
+        // 监听 state 变化回调
         storage.addStateChangedListener(diff => {
             if (diff.count) {
-                // diff will give newValue and oldValue
+                // diff 会给出 newValue 和 oldValue
                 console.log(diff.count.newValue);
                 console.log(diff.count.oldValue);
                 countDom.innerText = diff.count.newValue.toString();
@@ -63,7 +63,7 @@ const Counter: NetlessApp<{ count: number }> = {
         incButton.innerText = "Inc";
         const incButtonOnClick = () => {
             storage.setState({ count: storage.state.count + 1 });
-        };
+        }
         incButton.addEventListener("click", incButtonOnClick);
         $content.appendChild(incButton);
 
@@ -71,24 +71,24 @@ const Counter: NetlessApp<{ count: number }> = {
         decButton.innerText = "Dec";
         const decButtonOnClick = () => {
             storage.setState({ count: storage.state.count - 1 });
-        };
+        }
         decButton.addEventListener("click", decButtonOnClick);
         $content.appendChild(decButton);
 
-        // listen for events
+            // 监听事件
         const event1Disposer = context.addMagixEventListener("event1", msg => {
             console.log("event1", msg);
         });
 
-        // Send a message to other people who have the app open
+        // 向打开 app 的其他人发送消息
         context.dispatchMagixEvent("event1", { count: 10 });
 
-        // When the application is destroyed, pay attention to clean up the listener
+        // 应用销毁时, 注意清理掉监听器
         context.emitter.on("destroy", () => {
             incButton.removeEventListener("click", incButtonOnClick);
             decButton.removeEventListener("click", decButtonOnClick);
             event1Disposer();
         });
-    },
-};
+    }
+}
 ```

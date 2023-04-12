@@ -1,30 +1,30 @@
-## How to customize maximized `titleBar`
+## 如何自定义最大化 `titleBar`
 
-Get and subscribe to all `box`
+获取并订阅所有的 `box`
 
 ```js
 manager.boxManager.teleboxManager.boxes$.subscribe(boxes => {
-     // boxes are all windows, trigger when windows are added and deleted
+    // boxes 为所有的窗口，当窗口添加和删除时都会触发
 })
 ```
 
-Toggle `focus` of `box`
+切换 `box` 的 `focus`
 ```js
 manager.boxManager.teleBoxManager.focusBox(box)
 ```
 
-close a `box`
+关闭某个 `box`
 ```js
 manager.boxManager.teleBoxManager.remove(box)
 ```
 
-Toggle maximized state
+切换最大化状态
 ```js
 manager.boxManager.teleBoxManager.setMaximized(false)
 manager.boxManager.teleBoxManager.setMaximized(true)
 ```
 
-Toggle minimized state
+切换最小化状态
 ```js
 manager.boxManager.teleBoxManager.setMinimized(true)
 manager.boxManager.teleBoxManager.setMaximized(false)
