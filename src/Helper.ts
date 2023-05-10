@@ -32,8 +32,16 @@ export const checkVersion = () => {
 };
 
 export const findMemberByUid = (room: Room | undefined, uid: string) => {
-    const roomMembers = room?.state.roomMembers;
-    return roomMembers?.find(member => member.payload?.uid === uid);
+    const roomMembers = room?.state.roomMembers || [];
+    let maxMemberId = -1; // 第一个进入房间的用户 memberId 是 0
+    let result: RoomMember | undefined = undefined;
+    for (const member of roomMembers) {
+        if (member.payload?.uid === uid && maxMemberId < member.memberId) {
+            maxMemberId = member.memberId;
+            result = member;
+        }
+    }
+    return result;
 };
 
 export type Member = RoomMember & { uid: string };
