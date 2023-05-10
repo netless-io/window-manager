@@ -9,6 +9,7 @@
     - [视角跟随](docs/advanced.md#view-mode)
   - [开发自定义 APP](docs/develop-app.md)
   - [导出 PDF](docs/export-pdf.md)
+  - [Changelog](./CHANGELOG.md)
 ## MainView
 
 `MainView` 也就是主白板, 是垫在所有窗口下面的主白板
