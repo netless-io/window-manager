@@ -44,7 +44,7 @@ export const checkVersion = () => {
 
 export const findMemberByUid = (room: Room | undefined, uid: string) => {
     const roomMembers = room?.state.roomMembers || [];
-    let maxMemberId = 0;
+    let maxMemberId = -1; // 第一个进入房间的用户 memberId 是 0
     let result: RoomMember | undefined = undefined;
     for (const member of roomMembers) {
         if (member.payload?.uid === uid && maxMemberId < member.memberId) {
