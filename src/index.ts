@@ -861,6 +861,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     }
 
     public cleanCurrentScene(): void {
+        log("clean current scene");
         this.focusedView?.cleanCurrentScene();
     }
 

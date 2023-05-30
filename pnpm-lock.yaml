@@ -1,4 +1,8 @@
-lockfileVersion: '6.0'
+lockfileVersion: '6.1'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
 dependencies:
   '@juggle/resize-observer':
@@ -28,8 +32,8 @@ dependencies:
 
 devDependencies:
   '@netless/app-docs-viewer':
-    specifier: ^0.2.11
-    version: 0.2.11(jspdf@2.5.1)
+    specifier: ^0.2.12
+    version: 0.2.12(jspdf@2.5.1)
   '@netless/app-media-player':
     specifier: 0.1.0-beta.5
     version: 0.1.0-beta.5
@@ -231,8 +235,8 @@ packages:
   /@juggle/resize-observer@3.3.1:
     resolution: {integrity: sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==, tarball: https://registry.npm.taobao.org/@juggle/resize-observer/-/resize-observer-3.3.1.tgz}
 
-  /@netless/app-docs-viewer@0.2.11(jspdf@2.5.1):
-    resolution: {integrity: sha512-9jU10+CV4fAm/UQ11hz3ZzvkSQPaTUoNfw7srHmASsZYg2VQsNYeieF45tOJoRTJ0WZyEBD005px4QIZglqtVQ==}
+  /@netless/app-docs-viewer@0.2.12(jspdf@2.5.1):
+    resolution: {integrity: sha512-FN9Lomk5puQ7N812ugiPbKf75pvSyZurpmxNWJEqJt76mVo2YBpyZiDd7O+bgOb2XLfjfMYhD7XHWZYWd4dpqg==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
