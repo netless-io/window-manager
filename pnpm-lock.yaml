@@ -1,4 +1,8 @@
-lockfileVersion: '6.0'
+lockfileVersion: '6.1'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
 dependencies:
   '@juggle/resize-observer':
@@ -34,8 +38,8 @@ dependencies:
 
 devDependencies:
   '@netless/app-docs-viewer':
-    specifier: 1.0.0-canary.5
-    version: 1.0.0-canary.5
+    specifier: 1.0.0-canary.6
+    version: 1.0.0-canary.6
   '@netless/app-plyr':
     specifier: ^0.2.4
     version: 0.2.4
@@ -529,8 +533,8 @@ packages:
     resolution: {integrity: sha512-9b8mPpKrfeGRuhFH5iO1iwCLeIIsV6+H1sRfxbkoGXIyQE2BTsPd9zqSqQJ+pv5sJ/hT5M1zvOFL02MnEezFug==}
     dev: true
 
-  /@netless/app-docs-viewer@1.0.0-canary.5:
-    resolution: {integrity: sha512-QmO+cWgttMFDYPBWXX7oOpBO9mitz9FsfK+SfdBUROlY3MYXhCVMXBaCRXlx/nW7k2VtFPFkKbkXBdAYkMU/sw==}
+  /@netless/app-docs-viewer@1.0.0-canary.6:
+    resolution: {integrity: sha512-2E6+UkbD+7YOXD8XRfqbIAfKd6p/i7FgfUcBKK5M09RO6JLSpa/gQ/oi5GgG4NxMW+GQU8JsUm9RbAtOLJ30qA==}
     dependencies:
       jspdf: 2.5.1
       remitter: 0.2.9
