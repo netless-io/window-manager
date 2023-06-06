@@ -1,3 +1,7 @@
+## 0.4.58 (2023-06-06)
+
+- 升级 @netless/app-docs-viewer@0.2.13
+
 ## 0.4.57 (2023-05-30)
 
 - 升级 @netless/app-docs-viewer@0.2.12
