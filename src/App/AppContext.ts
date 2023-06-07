@@ -29,7 +29,7 @@ import type {
 } from "./MagixEvent";
 import type { AddPageParams, PageController, PageState } from "../Page";
 
-export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOptions = any>
+export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any, TAppOptions = any>
     implements PageController
 {
     public readonly emitter: Emittery<AppEmitterEvent<TAttributes>>;
@@ -158,7 +158,7 @@ export class AppContext<TAttributes = any, TMagixEventPayloads = any, TAppOption
      * @param defaultState Default state for initial storage creation.
      * @returns
      */
-    public createStorage = <TState>(storeId: string, defaultState?: TState): Storage<TState> => {
+    public createStorage = <TState extends {}>(storeId: string, defaultState?: TState): Storage<TState> => {
         const storage = new Storage(this, storeId, defaultState);
         this.emitter.on("destroy", () => {
             storage.destroy();

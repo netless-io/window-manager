@@ -105,6 +105,11 @@ export const entireScenes = (displayer: Displayer) => {
 };
 
 export const putScenes = (room: Room | undefined, path: string, scenes: SceneDefinition[], index?: number) => {
+    for (let i = 0; i < scenes.length; ++i) {
+        if (scenes[i].name?.includes('/')) {
+            throw new Error("scenes name can not have '/'");
+        }
+    }
     return room?.putScenes(path, scenes, index);
 }
 
