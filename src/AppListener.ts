@@ -134,12 +134,24 @@ export class AppListeners {
         }
     }
 
-    private moveCameraHandler = (payload: Camera) => {
+    private moveCameraHandler = (payload: Partial<Camera>) => {
         const size$ = this.manager.mainViewProxy.size$;
+        // 'size' 存在表示白板已经可见，此时 moveCamera 才有意义
         if (size$.value) {
-            const size = this.manager.mainView.size;
-            const diff = Math.max(size.height / size$.value.height, size.width / size$.value.width);
-            const nextCamera = { ...payload, scale: payload.scale * diff };
+            const nextCamera = { ...payload };
+
+            // 如果远端移动视角带有缩放，调整以符合本地视角
+            if (nextCamera.scale) {
+                const size = this.manager.mainView.size;
+                const diff = Math.max(size.height / size$.value.height, size.width / size$.value.width);
+                nextCamera.scale *= diff;
+            }
+
+            // 有可能传了个 scale = 0, 规避这些无效值
+            else {
+                delete nextCamera.scale;
+            }
+
             this.manager.mainView.moveCamera(nextCamera);
         }
     }
