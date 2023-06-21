@@ -108,6 +108,9 @@ export class BoxManager {
         const { emitter, callbacks, boxEmitter } = context;
         this.teleBoxManager = this.setupBoxManager(createTeleBoxManagerConfig);
         this.sideEffectManager.add(() => [
+            this.teleBoxManager.onValChanged("rootRect", rect => {
+                emitter.emit("playgroundSizeChange", rect);
+            }),
             // 使用 _xxx$.reaction 订阅修改的值, 不管有没有 skipUpdate, 修改值都会触发回调
             this.teleBoxManager.onValChanged("state", state => {
                 callbacks.emit("boxStateChange", state);
