@@ -218,7 +218,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
                         throw new Error();
                     }
                 },
-                { retries: 10 } as any,
+                // 1s, 2s, 4s, 5s, 5s, 5s, 5s, 5s, 5s
+                { retries: 10, maxTimeout: 5000 } as any
             );
         }
 
