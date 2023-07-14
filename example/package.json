@@ -17,7 +17,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "video.js": "^7.14.3",
-    "white-web-sdk": "^2.16.37"
+    "white-web-sdk": "^2.16.42"
   },
   "devDependencies": {
     "jspdf": "^2.5.1",

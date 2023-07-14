@@ -1,4 +1,4 @@
-lockfileVersion: '6.1'
+lockfileVersion: '6.0'
 
 settings:
   autoInstallPeers: true
@@ -32,8 +32,8 @@ dependencies:
 
 devDependencies:
   '@netless/app-docs-viewer':
-    specifier: ^0.2.13
-    version: 0.2.13(jspdf@2.5.1)
+    specifier: ^0.2.14
+    version: 0.2.14(jspdf@2.5.1)
   '@netless/app-media-player':
     specifier: 0.1.0-beta.5
     version: 0.1.0-beta.5
@@ -122,8 +122,8 @@ devDependencies:
     specifier: ^0.14.1
     version: 0.14.1(@vitest/ui@0.14.1)(jsdom@19.0.0)(less@4.1.2)
   white-web-sdk:
-    specifier: 2.16.33
-    version: 2.16.33
+    specifier: 2.16.42
+    version: 2.16.42
 
 packages:
 
@@ -235,8 +235,8 @@ packages:
   /@juggle/resize-observer@3.3.1:
     resolution: {integrity: sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==, tarball: https://registry.npm.taobao.org/@juggle/resize-observer/-/resize-observer-3.3.1.tgz}
 
-  /@netless/app-docs-viewer@0.2.13(jspdf@2.5.1):
-    resolution: {integrity: sha512-6Vw5EXcK1AlUlvsPvzX+kFpT8wQDxSUl434f/dI47gk+mqjy+g0mkipnlJvGsiXV0Hmagx2piDr/r0XVaY5sVg==}
+  /@netless/app-docs-viewer@0.2.14(jspdf@2.5.1):
+    resolution: {integrity: sha512-iiVMfRFri2t9pCfDfMcYuiat4yK95zZPFQgfP3V/fZR9C9ih79f7dL+Oydxp+FLtuRkZitbJMRtHxfWJGL5Y7g==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
@@ -268,8 +268,8 @@ packages:
       value-enhancer: 0.0.8
     dev: false
 
-  /@netless/xml-js@1.6.15:
-    resolution: {integrity: sha512-e0emMs7YtDB/ATUns1SJ61R9n9nfVvwwFodoc539Qt0ScksaCLCaFWgpEbLloj9sr60ry6Xd8QFHKULFIZB6zA==}
+  /@netless/xml-js@1.6.16:
+    resolution: {integrity: sha512-QnSH8y3j3DDEW0S3MalYBmR0opeyaecAkzx0ocKYncMDiOdQkhByJgD7AVhXQqH8bA/PVHU0VFP445AbJq6fDQ==}
     hasBin: true
     dev: true
 
@@ -4955,12 +4955,12 @@ packages:
       isexe: 2.0.0
     dev: true
 
-  /white-web-sdk@2.16.33:
-    resolution: {integrity: sha512-vv33tvdKXRgaKh5oOJV8FEMd5eb64Jywfe61OcwExX78zt9szH951NHnuwhqdsk8BAH1XwyJ6DcpAhCwXp8F4Q==}
+  /white-web-sdk@2.16.42:
+    resolution: {integrity: sha512-yhuqkzvDCfdpCuLdCeYSUjkTrrrbXEAo8rvIvdwG6yxZ9x4MdSlQ+xMyAV9pwtvGvep8Uh7PVpfTu5PEfvKQdQ==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@netless/canvas-polyfill': 0.0.4
-      '@netless/xml-js': 1.6.15
+      '@netless/xml-js': 1.6.16
       atob: 2.1.2
       bezier-js: 2.6.1
       bowser: 2.11.0
