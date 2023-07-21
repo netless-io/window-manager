@@ -1,3 +1,8 @@
+## 0.4.60 (2023-07-21)
+
+- 升级 @netless/app-docs-viewer@0.2.15
+  - 修复 `scenes[0].name` 不为 `1` 时导出 PDF 功能异常
+
 ## 0.4.59 (2023-07-14)
 
 - 升级 @netless/app-docs-viewer@0.2.14
