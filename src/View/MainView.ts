@@ -10,7 +10,7 @@ import { SideEffectManager } from "side-effect-manager";
 import { Val } from "value-enhancer";
 import { ViewSync } from "./ViewSync";
 import type { ICamera, ISize } from "../AttributesDelegate";
-import type { Size, View } from "white-web-sdk";
+import type { Room, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { MoveCameraParams } from "../typings";
 
@@ -320,9 +320,22 @@ export class MainViewProxy {
         this.view.callbacks.off("onSizeUpdated", this.onCameraOrSizeUpdated);
     }
 
+    private _syncMainViewTimer = 0;
     private onCameraOrSizeUpdated = () => {
         callbacks.emit("cameraStateChange", this.cameraState);
+        // sdk >= 2.16.43 的 syncMainView() 可以写入当前 main view 的 camera, 以修复复制粘贴元素的位置
+        // 注意到这个操作会发送信令，应当避免频繁调用
+        if (this.manager.room && (this.manager.room as any).syncMainView) {
+            clearTimeout(this._syncMainViewTimer);
+            this._syncMainViewTimer = setTimeout(this.syncMainView, 100, this.manager.room);
+        }
     };
+
+    private syncMainView = (room: Room) => {
+        if (room.isWritable) {
+            room.syncMainView(this.mainView);
+        }
+    }
 
     public stop() {
         this.manager.refresher.remove(Fields.MainViewCamera);
