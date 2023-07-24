@@ -11,7 +11,7 @@ import type { Point, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import { ApplianceMap } from "./icons";
 import { findMemberByUid } from "../Helper";
-import { Val } from "value-enhancer";
+import type { Val } from "value-enhancer";
 
 export type EventType = {
     type: PositionType;

@@ -8,7 +8,7 @@ import { round } from "lodash";
 import type { ReadonlyVal } from "value-enhancer";
 import type { AppManager } from "../AppManager";
 import type { ScrollStorage } from "../storage";
-import type { Camera, Size, View } from "white-web-sdk";
+import type { Camera, Size } from "white-web-sdk";
 
 function clamp(x: number, min: number, max: number): number {
     return x < min ? min : x > max ? max : x;

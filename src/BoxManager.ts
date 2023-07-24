@@ -23,7 +23,7 @@ import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
 import type { AppState } from "./App/type";
-import { ReadonlyVal } from "value-enhancer";
+import type { ReadonlyVal } from "value-enhancer";
 
 export { TELE_BOX_STATE };
 
