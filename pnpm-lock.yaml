@@ -122,8 +122,8 @@ devDependencies:
     specifier: ^0.14.1
     version: 0.14.1(@vitest/ui@0.14.1)(jsdom@19.0.0)(less@4.1.2)
   white-web-sdk:
-    specifier: 2.16.42
-    version: 2.16.42
+    specifier: 2.16.43
+    version: 2.16.43
 
 packages:
 
@@ -519,6 +519,7 @@ packages:
 
   /@types/raf@3.4.0:
     resolution: {integrity: sha512-taW5/WYqo36N7V39oYyHP9Ipfd5pNFvGTIQsNGj86xV88YQ7GnI30/yMfKDF7Zgin0m3e+ikX88FvImnK4RjGw==}
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -903,6 +904,7 @@ packages:
   /base64-arraybuffer@1.0.2:
     resolution: {integrity: sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==}
     engines: {node: '>= 0.6.0'}
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -1262,6 +1264,7 @@ packages:
 
   /css-line-break@2.1.0:
     resolution: {integrity: sha512-FHcKFCZcAha3LwfVBhCQbW2nCNbkZXn7KVUJcsT5/P8YmfsVja0FMPJr0B903j/E69HUphKiV9iQArX8SDYA4w==}
+    requiresBuild: true
     dependencies:
       utrie: 1.0.2
     dev: true
@@ -2504,6 +2507,7 @@ packages:
   /iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==, tarball: https://registry.npm.taobao.org/iconv-lite/-/iconv-lite-0.4.24.tgz}
     engines: {node: '>=0.10.0'}
+    requiresBuild: true
     dependencies:
       safer-buffer: 2.1.2
     dev: true
@@ -3502,6 +3506,7 @@ packages:
   /pify@4.0.1:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==, tarball: https://registry.npm.taobao.org/pify/-/pify-4.0.1.tgz}
     engines: {node: '>=6'}
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -3924,6 +3929,7 @@ packages:
 
   /prr@1.0.1:
     resolution: {integrity: sha512-yPw4Sng1gWghHQWj0B3ZggWUm4qVbPwPFcRG8KyxiU7J2OHFSoEHKS+EZ3fv5l1t9CyCiop6l/ZYeWbrgoQejw==, tarball: https://registry.npm.taobao.org/prr/-/prr-1.0.1.tgz}
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -3992,6 +3998,7 @@ packages:
 
   /raf@3.4.1:
     resolution: {integrity: sha512-Sq4CW4QhwOHE8ucn6J34MqtZCeWFP2aQSmrlroYgqAV1PjStIhJXxYuTgUIfkEk7zTLjmIjLmU5q+fbD1NnOJA==}
+    requiresBuild: true
     dependencies:
       performance-now: 2.1.0
     dev: true
@@ -4101,6 +4108,7 @@ packages:
   /rgbcolor@1.0.1:
     resolution: {integrity: sha512-9aZLIrhRaD97sgVhtJOW6ckOEh6/GnvQtdVNfdZ6s67+3/XwLS9lBcQYzEEhYVeUowN7pRzMLsyGhK2i/xvWbw==}
     engines: {node: '>= 0.8.15'}
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -4208,6 +4216,7 @@ packages:
   /semver@5.7.1:
     resolution: {integrity: sha512-sauaDf/PZdVgrLTNYHRtpXa1iRiKcaebiKQ1BJdpQlWH2lCvexQdX55snPFyK7QzpudqbCI0qXFfOasHdyNDGQ==, tarball: https://registry.npm.taobao.org/semver/-/semver-5.7.1.tgz}
     hasBin: true
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -4349,6 +4358,7 @@ packages:
   /stackblur-canvas@2.5.0:
     resolution: {integrity: sha512-EeNzTVfj+1In7aSLPKDD03F/ly4RxEuF/EX0YcOG0cKoPXs+SLZxDawQbexQDBzwROs4VKLWTOaZQlZkGBFEIQ==}
     engines: {node: '>=0.1.14'}
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -4471,6 +4481,7 @@ packages:
   /svg-pathdata@6.0.3:
     resolution: {integrity: sha512-qsjeeq5YjBZ5eMdFuUa4ZosMLxgr5RZ+F+Y1OrDhuOCEInRMA3x74XdBtggJcj9kOeInz0WE+LgCPDkZFlBYJw==}
     engines: {node: '>=12.0.0'}
+    requiresBuild: true
     dev: true
     optional: true
 
@@ -4512,6 +4523,7 @@ packages:
 
   /text-segmentation@1.0.3:
     resolution: {integrity: sha512-iOiPUo/BGnZ6+54OsWxZidGCsdU8YbE4PSpdPinp7DeMtUJNJBoJ/ouUSTJjHkh1KntHaltHl/gDs2FC4i5+Nw==}
+    requiresBuild: true
     dependencies:
       utrie: 1.0.2
     dev: true
@@ -4736,6 +4748,7 @@ packages:
 
   /utrie@1.0.2:
     resolution: {integrity: sha512-1MLa5ouZiOmQzUbjbu9VmjLzn1QLXBhwpUa7kdLUQK+KQ5KA9I1vk5U4YHe/X2Ch7PYnJfWuWT+VbuxbGwljhw==}
+    requiresBuild: true
     dependencies:
       base64-arraybuffer: 1.0.2
     dev: true
@@ -4955,8 +4968,8 @@ packages:
       isexe: 2.0.0
     dev: true
 
-  /white-web-sdk@2.16.42:
-    resolution: {integrity: sha512-yhuqkzvDCfdpCuLdCeYSUjkTrrrbXEAo8rvIvdwG6yxZ9x4MdSlQ+xMyAV9pwtvGvep8Uh7PVpfTu5PEfvKQdQ==}
+  /white-web-sdk@2.16.43:
+    resolution: {integrity: sha512-jDNcUQnyN8E83GzdZE+kBa07ZfTP4Socr0trDcK5ex1GMpDa/qta7YLNfusdo+blWICUFAZG74Q28Iu+YrNZWw==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@netless/canvas-polyfill': 0.0.4

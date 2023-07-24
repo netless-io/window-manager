@@ -10,7 +10,7 @@ dependencies:
     version: 0.2.24(jspdf@2.5.1)
   '@netless/video-js-plugin':
     specifier: ^0.3.7
-    version: 0.3.8(react-dom@17.0.2)(react@17.0.2)(video.js@7.18.1)(white-web-sdk@2.16.42)
+    version: 0.3.8(react-dom@17.0.2)(react@17.0.2)(video.js@7.18.1)(white-web-sdk@2.16.43)
   normalize.css:
     specifier: ^8.0.1
     version: 8.0.1
@@ -27,8 +27,8 @@ dependencies:
     specifier: ^7.14.3
     version: 7.18.1
   white-web-sdk:
-    specifier: ^2.16.42
-    version: 2.16.42
+    specifier: ^2.16.43
+    version: 2.16.43
 
 devDependencies:
   jspdf:
@@ -65,7 +65,7 @@ packages:
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
     dev: false
 
-  /@netless/video-js-plugin@0.3.8(react-dom@17.0.2)(react@17.0.2)(video.js@7.18.1)(white-web-sdk@2.16.42):
+  /@netless/video-js-plugin@0.3.8(react-dom@17.0.2)(react@17.0.2)(video.js@7.18.1)(white-web-sdk@2.16.43):
     resolution: {integrity: sha512-xCLfL8ISjPD5XQbeGWT/pwKdWXqYXmaEXiP4jcX8oaR83+vJo463znIg2JW8EXHkTq7KRrYnZqqlQdI6It4L+A==, tarball: https://registry.npm.taobao.org/@netless/video-js-plugin/-/video-js-plugin-0.3.8.tgz}
     peerDependencies:
       react: '>=16'
@@ -76,7 +76,7 @@ packages:
       react: 17.0.2
       react-dom: 17.0.2(react@17.0.2)
       video.js: 7.18.1
-      white-web-sdk: 2.16.42
+      white-web-sdk: 2.16.43
     dev: false
 
   /@netless/xml-js@1.6.16:
@@ -137,6 +137,7 @@ packages:
 
   /@types/raf@3.4.0:
     resolution: {integrity: sha512-taW5/WYqo36N7V39oYyHP9Ipfd5pNFvGTIQsNGj86xV88YQ7GnI30/yMfKDF7Zgin0m3e+ikX88FvImnK4RjGw==}
+    requiresBuild: true
     optional: true
 
   /@videojs/http-streaming@2.13.1(video.js@7.18.1):
@@ -203,6 +204,7 @@ packages:
   /base64-arraybuffer@1.0.2:
     resolution: {integrity: sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==}
     engines: {node: '>= 0.6.0'}
+    requiresBuild: true
     optional: true
 
   /bezier-js@2.6.1:
@@ -272,6 +274,7 @@ packages:
 
   /css-line-break@2.1.0:
     resolution: {integrity: sha512-FHcKFCZcAha3LwfVBhCQbW2nCNbkZXn7KVUJcsT5/P8YmfsVja0FMPJr0B903j/E69HUphKiV9iQArX8SDYA4w==}
+    requiresBuild: true
     dependencies:
       utrie: 1.0.2
     optional: true
@@ -718,6 +721,7 @@ packages:
 
   /performance-now@2.1.0:
     resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
+    requiresBuild: true
     optional: true
 
   /picocolors@1.0.0:
@@ -788,6 +792,7 @@ packages:
 
   /raf@3.4.1:
     resolution: {integrity: sha512-Sq4CW4QhwOHE8ucn6J34MqtZCeWFP2aQSmrlroYgqAV1PjStIhJXxYuTgUIfkEk7zTLjmIjLmU5q+fbD1NnOJA==}
+    requiresBuild: true
     dependencies:
       performance-now: 2.1.0
     optional: true
@@ -855,6 +860,7 @@ packages:
   /rgbcolor@1.0.1:
     resolution: {integrity: sha512-9aZLIrhRaD97sgVhtJOW6ckOEh6/GnvQtdVNfdZ6s67+3/XwLS9lBcQYzEEhYVeUowN7pRzMLsyGhK2i/xvWbw==}
     engines: {node: '>= 0.8.15'}
+    requiresBuild: true
     optional: true
 
   /rollup@2.70.1:
@@ -913,6 +919,7 @@ packages:
   /stackblur-canvas@2.5.0:
     resolution: {integrity: sha512-EeNzTVfj+1In7aSLPKDD03F/ly4RxEuF/EX0YcOG0cKoPXs+SLZxDawQbexQDBzwROs4VKLWTOaZQlZkGBFEIQ==}
     engines: {node: '>=0.1.14'}
+    requiresBuild: true
     optional: true
 
   /strict-uri-encode@1.1.0:
@@ -928,10 +935,12 @@ packages:
   /svg-pathdata@6.0.3:
     resolution: {integrity: sha512-qsjeeq5YjBZ5eMdFuUa4ZosMLxgr5RZ+F+Y1OrDhuOCEInRMA3x74XdBtggJcj9kOeInz0WE+LgCPDkZFlBYJw==}
     engines: {node: '>=12.0.0'}
+    requiresBuild: true
     optional: true
 
   /text-segmentation@1.0.3:
     resolution: {integrity: sha512-iOiPUo/BGnZ6+54OsWxZidGCsdU8YbE4PSpdPinp7DeMtUJNJBoJ/ouUSTJjHkh1KntHaltHl/gDs2FC4i5+Nw==}
+    requiresBuild: true
     dependencies:
       utrie: 1.0.2
     optional: true
@@ -962,6 +971,7 @@ packages:
 
   /utrie@1.0.2:
     resolution: {integrity: sha512-1MLa5ouZiOmQzUbjbu9VmjLzn1QLXBhwpUa7kdLUQK+KQ5KA9I1vk5U4YHe/X2Ch7PYnJfWuWT+VbuxbGwljhw==}
+    requiresBuild: true
     dependencies:
       base64-arraybuffer: 1.0.2
     optional: true
@@ -1023,8 +1033,8 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-  /white-web-sdk@2.16.42:
-    resolution: {integrity: sha512-yhuqkzvDCfdpCuLdCeYSUjkTrrrbXEAo8rvIvdwG6yxZ9x4MdSlQ+xMyAV9pwtvGvep8Uh7PVpfTu5PEfvKQdQ==}
+  /white-web-sdk@2.16.43:
+    resolution: {integrity: sha512-jDNcUQnyN8E83GzdZE+kBa07ZfTP4Socr0trDcK5ex1GMpDa/qta7YLNfusdo+blWICUFAZG74Q28Iu+YrNZWw==}
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@netless/canvas-polyfill': 0.0.4

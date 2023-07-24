@@ -1,3 +1,7 @@
+## Unreleased
+
+- 修复: 复制粘贴元素位置不对的问题, 此修复需要 white-web-sdk >= 2.16.43 才能工作
+
 ## 0.4.60 (2023-07-21)
 
 - 升级 @netless/app-docs-viewer@0.2.15
