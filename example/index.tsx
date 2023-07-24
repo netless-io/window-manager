@@ -11,6 +11,7 @@ import {
     createSlide,
     createCounter,
     createBoard,
+    createIframe,
 } from "./apps";
 import "../dist/style.css";
 import "./register";
@@ -227,6 +228,9 @@ const App = () => {
                 </button>
                 <button className="side-button" onClick={() => createVideo(manager)}>
                     视频
+                </button>
+                <button className="side-button" onClick={() => createIframe(manager)}>
+                    Iframe Bridge
                 </button>
                 <button className="side-button" onClick={replay}>
                     回放

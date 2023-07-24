@@ -14,7 +14,7 @@ import type { AppContext } from "./App";
 import type { ReadonlyTeleBox, TeleBoxRect } from "@netless/telebox-insider";
 import type { PageState } from "./Page";
 
-export interface NetlessApp<Attributes = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
+export interface NetlessApp<Attributes extends {} = any, MagixEventPayloads = any, AppOptions = any, SetupResult = any> {
     kind: string;
     config?: {
         /** Box width relative to whiteboard. 0~1. Default 0.5. */
@@ -65,7 +65,7 @@ export type RegisterEvents<SetupResult = any> = {
     focus: RegisterEventData;
 };
 
-export type RegisterParams<AppOptions = any, SetupResult = any, Attributes = any> = {
+export type RegisterParams<AppOptions = any, SetupResult = any, Attributes extends {} = any> = {
     kind: string;
     src:
         | NetlessApp<Attributes, SetupResult>
