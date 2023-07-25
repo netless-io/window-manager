@@ -187,14 +187,16 @@ export class IframeBridge {
 
     const wrapperDidMountListener = () => {
       this.getIframe()
-      this.listenIframe(options);
+      this.listenIframe(this.attributes);
       this.listenDisplayerState();
       IframeBridge.emitter.emit(IframeEvents.GetRootRect);
     };
 
     if (this.getIframe()) {
       wrapperDidMountListener();
-    } else {
+    }
+    // Code below will never be executed, just copying the old code...
+    else {
       const didMount = this.sideEffectManager.addDisposer(IframeBridge.emitter.on(DomEvents.WrapperDidMount, () => {
         wrapperDidMountListener();
         this.sideEffectManager.flush(didMount);
@@ -347,10 +349,8 @@ export class IframeBridge {
 
   private listenDisplayerState(): void {
     if (this.isReplay) {
-      let firstPlay = false;
       if ((this.displayer as any)._phase === PlayerPhase.Playing) {
         this.computedStyleAndIframeDisplay();
-        firstPlay = true;
       }
       this.sideEffectManager.add(() => {
         this.displayer.callbacks.on("onPhaseChanged", this.onPhaseChangedListener);
@@ -451,6 +451,7 @@ export class IframeBridge {
   }
 
   private messageListener(event: MessageEvent): void {
+    log("<<<", JSON.stringify(event.data));
     if (event.origin !== this.iframeOrigin) {
       return;
     }
@@ -547,22 +548,14 @@ export class IframeBridge {
 
   private handleNextPage(): void {
     if (this.manager.canOperate) {
-      const nextPageNum = this.currentPage + 1;
-      if (nextPageNum > this.totalPage) {
-        return;
-      }
-      (this.displayer as any).setSceneIndex(nextPageNum - 1);
+      this.manager.nextPage();
       this.dispatchMagixEvent(IframeEvents.NextPage, {});
     }
   }
 
   private handlePrevPage(): void {
     if (this.manager.canOperate) {
-      const prevPageNum = this.currentPage - 1;
-      if (prevPageNum < 0) {
-        return;
-      }
-      (this.displayer as any).setSceneIndex(prevPageNum - 1);
+      this.manager.prevPage();
       this.dispatchMagixEvent(IframeEvents.PrevPage, {});
     }
   }
@@ -573,9 +566,8 @@ export class IframeBridge {
       if (!Number.isSafeInteger(page) || page <= 0) {
         return;
       }
-      const index = page - 1;
-      (this.displayer as any).setSceneIndex(index);
-      this.dispatchMagixEvent(IframeEvents.PageTo, index);
+      this.manager.setMainViewSceneIndex(page - 1);
+      this.dispatchMagixEvent(IframeEvents.PageTo, page - 1);
     }
   }
 

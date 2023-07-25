@@ -16,6 +16,7 @@ import {
 import "../dist/style.css";
 import "./register";
 import "./index.css";
+import { DefaultHotKeys } from "white-web-sdk";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
@@ -151,6 +152,13 @@ const joinRoom = ref => {
                 disableMagixEventDispatchLimit: true,
                 disableNewPencil: false,
                 floatBar: true,
+                hotKeys: {
+                    ...DefaultHotKeys,
+                    changeToClick: "c",
+                    changeToSelector: "s",
+                    changeToPencil: "p",
+                    changeToEraser: "e",
+                },
             })
             .then(async room => {
                 (window as any).room = room;
@@ -189,6 +197,7 @@ const App = () => {
         joinRoom(ref.current).then(() => {
             if (manager) {
                 setPageState(manager.pageState);
+                createIframe(manager);
                 return manager.emitter.on("pageStateChange", state => {
                     setPageState(state);
                 });

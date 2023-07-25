@@ -220,8 +220,12 @@ export class AttributesDelegate {
 
     public setIframeBridge(data: any) {
         if (isObject(data)) {
+            const oldState = this.getIframeBridge();
             for (const key in data) {
-                this.context.safeUpdateAttributes([Fields.IframeBridge, key], (data as any)[key]);
+                const value = (data as any)[key];
+                if (oldState[key] !== value) {
+                    this.context.safeUpdateAttributes([Fields.IframeBridge, key], value);
+                }
             }
         }
     }
