@@ -1,5 +1,5 @@
 import { AppAttributes } from "./constants";
-import { get, pick } from "lodash";
+import { get, isObject, pick } from "lodash";
 import { setViewFocusScenePath } from "./Utils/Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
 import type { Camera, Size, View } from "white-web-sdk";
@@ -18,6 +18,7 @@ export enum Fields {
     CursorState = "cursorState",
     FullPath = "fullPath",
     Registered = "registered",
+    IframeBridge = "iframeBridge",
 }
 
 export type Apps = {
@@ -210,6 +211,22 @@ export class AttributesDelegate {
         const scenePath = this.getMainViewScenePath();
         if (scenePath) {
             setViewFocusScenePath(mainView, scenePath);
+        }
+    }
+
+    public getIframeBridge() {
+        return get(this.attributes, [Fields.IframeBridge]);
+    }
+
+    public setIframeBridge(data: any) {
+        if (isObject(data)) {
+            const oldState = this.getIframeBridge();
+            for (const key in data) {
+                const value = (data as any)[key];
+                if (oldState[key] !== value) {
+                    this.context.safeUpdateAttributes([Fields.IframeBridge, key], value);
+                }
+            }
         }
     }
 }

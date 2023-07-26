@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%; display: flex;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>H5 TEST</title>
+</head>
+<body style="flex: 1; display: flex; background: #eee;">
+  <section style="flex: 1; border: 1px solid; padding: 1em;">
+    <select id="kind">
+      <option value="" selected disabled>kind</option>
+      <option>SetAttributes</option> <!-- payload: { url: "/" } -->
+      <option>RegisterMagixEvent</option> <!-- payload: "eventName" -->
+      <option>RemoveMagixEvent</option> <!-- payload: "eventName" -->
+      <option>DispatchMagixEvent</option> <!-- payload: { event: "eventName": payload: {} } -->
+      <option>RemoveAllMagixEvent</option>
+      <option>NextPage</option>
+      <option>PrevPage</option>
+      <option>SDKCreate</option>
+      <option>SetPage</option> <!-- payload: 10 (pages) -->
+      <option>GetAttributes</option>
+      <option>PageTo</option> <!-- payload: 10 (page number, 1..10) -->
+<!-- Below are events sent to iframe.
+      <option>Init</option>
+      <option>AttributesUpdate</option>
+      <option>RoomStateChanged</option>
+      <option>ReciveMagixEvent</option>
+      <option>OnCreate</option>
+      <option>Ready</option>
+      <option>Destory</option>
+      <option>StartCreate</option>
+      <option>WrapperDidUpdate</option>
+      <option>DispayIframe</option>
+      <option>HideIframe</option>
+      <option>GetRootRect</option>
+      <option>ReplayRootRect</option> -->
+    </select>
+    <input id="payload" placeholder="payload = eval(this.value)" style="width: 300px;">
+    <button id="button">postMessage</button>
+  </section>
+  <script>
+    var hint = {
+      SetAttributes: '{ url: "/" }',
+      RegisterMagixEvent: '"eventName"',
+      RemoveMagixEvent: '"eventName"',
+      DispatchMagixEvent: '{ event: "eventName": payload: {} }',
+      SetPage: '10 (pages)',
+      PageTo: '10 (page number, 1..10)',
+    }
+    window.onmessage = function(ev) {
+      console.log('<<<', JSON.stringify(ev.data));
+    };
+    kind.oninput = function refresh_hint() {
+      payload.placeholder = hint[kind.value] || 'no payload needed';
+    }
+    button.onclick = function() {
+      try {
+        var data = { kind: kind.value, payload: Function('return ' + payload.value)() };
+        parent.postMessage(data, '*');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>

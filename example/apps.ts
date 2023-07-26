@@ -68,3 +68,12 @@ export const createBoard = (manager: WindowManager) => {
         },
     });
 };
+
+export const createIframe = (manager: WindowManager) => {
+    return manager.getIframeBridge().insert({
+        width: 400,
+        height: 300,
+        url: "/h5.html",
+        displaySceneDir: '/',
+    });
+};

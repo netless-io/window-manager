@@ -1,5 +1,6 @@
 ## Unreleased
 
+- 新增: [Iframe Bridge](https://github.com/netless-io/netless-iframe-bridge) 兼容接口, 通过 `getIframeBridge().insert(options)` 来使用
 - 修复: 复制粘贴元素位置不对的问题, 此修复需要 white-web-sdk >= 2.16.43 才能工作
 
 ## 0.4.60 (2023-07-21)

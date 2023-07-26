@@ -55,6 +55,8 @@ import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
 import { boxEmitter } from "./BoxEmitter";
+import { IframeBridge } from "./View/IframeBridge";
+export * from "./View/IframeBridge";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -364,9 +366,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     /**
      * 注册插件
      */
-    public static register<AppOptions = any, SetupResult = any, Attributes = any>(
-        params: RegisterParams<AppOptions, SetupResult, Attributes>
-    ): Promise<void> {
+    public static register(params: RegisterParams<any, any, any>): Promise<void> {
         return appRegister.register(params);
     }
 
@@ -820,6 +820,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
         }
         WindowManager.params = undefined;
+        this._iframeBridge?.destroy();
+        this._iframeBridge = undefined;
         log("Destroyed");
     }
 
@@ -925,8 +927,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     }
 
     public setContainerSizeRatio(ratio: number) {
-        if (!isNumber(ratio)) {
-            throw new Error(`[WindowManager]: updateContainerSizeRatio error, ratio must be a number. but got ${ratio}`);
+        if (!isNumber(ratio) || !(ratio > 0)) {
+            throw new Error(`[WindowManager]: updateContainerSizeRatio error, ratio must be a positive number. but got ${ratio}`);
         }
         WindowManager.containerSizeRatio = ratio;
         this.containerSizeRatio = ratio;
@@ -958,7 +960,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
             if (!this.attributes[Fields.Registered]) {
                 this.safeSetAttributes({ [Fields.Registered]: {} });
             }
+            if (!this.attributes[Fields.IframeBridge]) {
+                this.safeSetAttributes({ [Fields.IframeBridge]: {} });
+            }
         }
+    }
+
+    private _iframeBridge?: IframeBridge;
+    public getIframeBridge() {
+        if (!this.appManager) {
+            throw new Error("[WindowManager]: should call getIframeBridge() after await mount()");
+        }
+        this._iframeBridge || (this._iframeBridge = new IframeBridge(this, this.appManager));
+        return this._iframeBridge;
     }
 }
 
