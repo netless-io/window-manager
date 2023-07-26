@@ -273,7 +273,7 @@ manager.setContainerSizeRatio(10 / 16)
 <h2 id="events">事件回调</h2>
 
 ```typescript
-manager.callbacks.on(events, listener)
+manager.emitter.on(events, listener)
 ```
 
 | name                     | type           | default | desc                       |
