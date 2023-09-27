@@ -208,6 +208,15 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
         return true;
     };
 
+    public jumpPage = async (index: number): Promise<boolean> => {
+        if (!(0 <= index && index < this.pageState.length)) {
+            console.warn("[WindowManager] nextPage: index out of range");
+            return false;
+        }
+        this.appProxy.setSceneIndex(index);
+        return true;
+    };
+
     public prevPage = async (): Promise<boolean> => {
         const nextIndex = this.pageState.index - 1;
         if (nextIndex < 0) {

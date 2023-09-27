@@ -13,6 +13,7 @@ export type PageState = {
 export interface PageController {
     nextPage: () => Promise<boolean>;
     prevPage: () => Promise<boolean>;
+    jumpPage: (index: number) => Promise<boolean>;
     addPage: (params?: AddPageParams) => Promise<void>;
     removePage: (index: number) => Promise<boolean>;
     pageState: PageState;

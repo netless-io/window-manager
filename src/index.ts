@@ -515,6 +515,19 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         }
     }
 
+    public async jumpPage(index: number): Promise<boolean> {
+        if (this.appManager) {
+            if (index < 0 || index >= this.pageState.length) {
+                console.warn(`[WindowManager]: index ${index} out of range`);
+                return false;
+            }
+            await this.appManager.setMainViewSceneIndex(index);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public async addPage(params?: AddPageParams): Promise<void> {
         if (this.appManager) {
             const after = params?.after;
