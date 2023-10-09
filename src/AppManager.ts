@@ -739,7 +739,7 @@ export class AppManager {
                 const success = this.setMainViewFocusPath(scenePath);
                 if (success) {
                     this.store.setMainViewScenePath(scenePath);
-                    this.safeSetAttributes({ _mainSceneIndex: index });
+                    this.store.setMainViewSceneIndex(index);
                     this.dispatchSetMainViewScenePath(scenePath);
                 }
             } else {
@@ -750,6 +750,7 @@ export class AppManager {
 
     private dispatchSetMainViewScenePath(scenePath: string): void {
         this.dispatchInternalEvent(Events.SetMainViewScenePath, { nextScenePath: scenePath });
+        callbacks.emit("mainViewScenePathChange", scenePath);
         // 兼容 15 的 SDK, 需要 room 的当前 ScenePath
         setScenePath(this.room, scenePath);
     }

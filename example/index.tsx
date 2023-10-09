@@ -70,6 +70,9 @@ const mountManager = async (room, root) => {
         console.log("boxStateChange:", state);
     });
 
+    manager.emitter.on("mainViewScenePathChange", path => {
+        console.log("mainViewScenePathChange", path);
+    });
     manager.emitter.on("mainViewSceneIndexChange", index => {
         console.log("mainViewSceneIndexChange", index);
     });
@@ -197,7 +200,7 @@ const App = () => {
         joinRoom(ref.current).then(() => {
             if (manager) {
                 setPageState(manager.pageState);
-                createIframe(manager);
+                // createIframe(manager);
                 return manager.emitter.on("pageStateChange", state => {
                     setPageState(state);
                 });
