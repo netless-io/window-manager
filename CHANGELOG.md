@@ -1,3 +1,9 @@
+## 0.4.62 (2023-10-12)
+
+- 升级 @netless/app-docs-viewer@0.2.16
+  - 支持抓手工具
+- 新增: `jumpPage` 切页方法
+
 ## 0.4.61 (2023-07-26)
 
 - 新增: [Iframe Bridge](https://github.com/netless-io/netless-iframe-bridge) 兼容接口, 通过 `getIframeBridge().insert(options)` 来使用

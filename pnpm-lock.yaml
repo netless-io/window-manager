@@ -32,8 +32,8 @@ dependencies:
 
 devDependencies:
   '@netless/app-docs-viewer':
-    specifier: ^0.2.15
-    version: 0.2.15(jspdf@2.5.1)
+    specifier: ^0.2.16
+    version: 0.2.16(jspdf@2.5.1)
   '@netless/app-media-player':
     specifier: 0.1.0-beta.5
     version: 0.1.0-beta.5
@@ -228,8 +228,8 @@ packages:
   /@juggle/resize-observer@3.3.1:
     resolution: {integrity: sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==}
 
-  /@netless/app-docs-viewer@0.2.15(jspdf@2.5.1):
-    resolution: {integrity: sha512-10sl3HUw5kyCMvewl3dCyCJxJhN1N6AOwZ3ucSk+reP74vV2LCatAIu1V646cEcMujz0W1VE34DyeMkOKTGjrQ==}
+  /@netless/app-docs-viewer@0.2.16(jspdf@2.5.1):
+    resolution: {integrity: sha512-ryXwz6yScgrmSryiemhQ026qL5jUvu1+JUxVdVQj5CFrsYRfV2cPRdC5N+OB8jG6aL2ovl+lKMVNr2LGuIeACg==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
