@@ -7,7 +7,7 @@ import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
 import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants";
-import { emitter } from "./InternalEmitter";
+import { internalEmitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
@@ -130,7 +130,7 @@ export type MountParams = {
     container?: HTMLElement;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
-    /** 显示 PS 透明背景，默认 true */
+    /** @deprecated 显示 PS 透明背景，默认 true */
     chessboard?: boolean;
     collectorContainer?: HTMLElement;
     collectorStyles?: Partial<CSSStyleDeclaration>;
@@ -140,14 +140,16 @@ export type MountParams = {
     disableCameraTransform?: boolean;
     prefersColorScheme?: TeleBoxColorScheme;
     applianceIcons?: ApplianceIcons;
+    fullscreen?: boolean;
 };
 
-export const reconnectRefresher = new ReconnectRefresher({ emitter });
+export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
 
 export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> implements PageController {
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
+    public static sizer?: HTMLElement;
     public static playground?: HTMLElement;
     public static container?: HTMLElement;
     public static debug = false;
@@ -166,6 +168,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public viewMode = ViewMode.Broadcaster;
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
+    private _fullscreen?: boolean;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
@@ -234,6 +237,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         }
         await manager.ensureAttributes();
 
+        manager._fullscreen = params.fullscreen;
         manager.appManager = new AppManager(manager);
         manager._pageState = new PageStateImpl(manager.appManager);
         manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor), params.applianceIcons);
@@ -246,7 +250,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         }
 
         replaceRoomFunction(room, manager);
-        emitter.emit("onCreated");
+        internalEmitter.emit("onCreated");
         WindowManager.isCreated = true;
         try {
             await initDb();
@@ -282,9 +286,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     private static initContainer(
         manager: WindowManager,
         container: HTMLElement,
-        chessboard: boolean | undefined,
-        overwriteStyles: string | undefined
+        params: {
+            chessboard?: boolean,
+            overwriteStyles?: string,
+            fullscreen?: boolean,
+        }
     ) {
+        const {
+            chessboard,
+            overwriteStyles,
+            fullscreen,
+        } = params;
         if (!WindowManager.container) {
             WindowManager.container = container;
         }
@@ -292,6 +304,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         WindowManager.playground = playground;
         if (chessboard) {
             sizer.classList.add("netless-window-manager-chess-sizer");
+        }
+        if (fullscreen) {
+            sizer.classList.add("netless-window-manager-fullscreen");
         }
         if (overwriteStyles) {
             const style = document.createElement("style");
@@ -302,9 +317,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
             playground,
             sizer,
             wrapper,
-            emitter
+            internalEmitter
         );
         WindowManager.wrapper = wrapper;
+        WindowManager.sizer = sizer;
         return mainViewElement;
     }
 
@@ -323,16 +339,11 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         } else {
             if (WindowManager.params) {
                 const params = WindowManager.params;
-                const mainViewElement = WindowManager.initContainer(
-                    this,
-                    container,
-                    params.chessboard,
-                    params.overwriteStyles
-                );
+                const mainViewElement = WindowManager.initContainer(this, container, params);
                 if (this.boxManager) {
                     this.boxManager.destroy();
                 }
-                const boxManager = createBoxManager(this, callbacks, emitter, boxEmitter, {
+                const boxManager = createBoxManager(this, callbacks, internalEmitter, boxEmitter, {
                     collectorContainer: params.collectorContainer,
                     collectorStyles: params.collectorStyles,
                     prefersColorScheme: params.prefersColorScheme,
@@ -345,7 +356,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
                 }
             }
         }
-        emitter.emit("updateManagerRect");
+        internalEmitter.emit("updateManagerRect");
         this.appManager?.refresh();
         this.appManager?.resetMaximized();
         this.appManager?.resetMinimized();
@@ -385,7 +396,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
             // 移除根目录时需要做一些异步的释放操作 addApp 需要等待释放完成才可以继续添加
             if (this.appManager.rootDirRemoving) {
                 return new Promise((resolve, reject) => {
-                    emitter.once("rootDirRemoved").then(async () => {
+                    internalEmitter.once("rootDirRemoved").then(async () => {
                         try {
                             const appId = await this._addApp(params);
                             resolve(appId);
@@ -583,7 +594,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public setReadonly(readonly: boolean): void {
         this.readonly = readonly;
         this.boxManager?.setReadonly(readonly);
-        emitter.emit("setReadonly", readonly);
+        internalEmitter.emit("setReadonly", readonly);
     }
 
     /**
@@ -644,6 +655,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public setMinimized(minimized: boolean): void {
         if (!this.canOperate) return;
         this.boxManager?.setMinimized(minimized, false);
+    }
+
+    public setFullscreen(fullscreen: boolean): void {
+        if (this._fullscreen !== fullscreen) {
+            this._fullscreen = fullscreen;
+            WindowManager.sizer?.classList.toggle("netless-window-manager-fullscreen", fullscreen);
+            callbacks.emit("fullscreenChange", fullscreen);
+        }
     }
 
     public get mainView(): View {
@@ -747,6 +766,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         }
     }
 
+    public get fullscreen(): boolean {
+        return Boolean(this._fullscreen);
+    }
+
     /**
      * 查询所有的 App
      */
@@ -828,6 +851,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         this.cursorManager?.destroy();
         WindowManager.container = undefined;
         WindowManager.wrapper = undefined;
+        WindowManager.sizer = undefined;
         WindowManager.isCreated = false;
         if (WindowManager.playground) {
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
@@ -945,7 +969,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         }
         WindowManager.containerSizeRatio = ratio;
         this.containerSizeRatio = ratio;
-        emitter.emit("containerSizeRatioUpdate", ratio);
+        internalEmitter.emit("containerSizeRatioUpdate", ratio);
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {

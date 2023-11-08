@@ -14,6 +14,10 @@ const config = {
         "@typescript-eslint/explicit-module-boundary-types": "off",
         "@typescript-eslint/no-unused-vars": ["error", {
             "argsIgnorePattern": "^_"
+        }],
+        "@typescript-eslint/ban-types": ["error", {
+            "types": { "{}": false },
+            "extendDefaults": true
         }]
     },
     overrides: [

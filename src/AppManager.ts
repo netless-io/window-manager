@@ -8,7 +8,7 @@ import { boxEmitter } from "./BoxEmitter";
 import { calculateNextIndex } from "./Page";
 import { callbacks } from "./callback";
 import { debounce, get, isInteger, orderBy } from "lodash";
-import { emitter } from "./InternalEmitter";
+import { internalEmitter } from "./InternalEmitter";
 import { Fields, store } from "./AttributesDelegate";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
@@ -89,7 +89,7 @@ export class AppManager {
 
         this.refresher = reconnectRefresher;
         this.refresher.setRoom(this.room);
-        this.refresher.setContext({ emitter });
+        this.refresher.setContext({ emitter: internalEmitter });
 
         this.sideEffectManager.add(() => {
             return () => {
@@ -102,16 +102,16 @@ export class AppManager {
             };
         });
 
-        emitter.once("onCreated").then(() => this.onCreated());
-        emitter.on("onReconnected", () => this.onReconnected());
+        internalEmitter.once("onCreated").then(() => this.onCreated());
+        internalEmitter.on("onReconnected", () => this.onReconnected());
 
         if (isPlayer(this.displayer)) {
-            emitter.on("seekStart", this.onPlayerSeekStart);
-            emitter.on("seek", this.onPlayerSeekDone);
+            internalEmitter.on("seekStart", this.onPlayerSeekStart);
+            internalEmitter.on("seek", this.onPlayerSeekDone);
         }
 
-        emitter.on("removeScenes", this.onRemoveScenes);
-        emitter.on("setReadonly", this.onReadonlyChanged);
+        internalEmitter.on("removeScenes", this.onRemoveScenes);
+        internalEmitter.on("setReadonly", this.onReadonlyChanged);
 
         this.createRootDirScenesCallback();
 
@@ -161,7 +161,7 @@ export class AppManager {
         }
         // 删除了根目录的 scenes 之后 mainview 需要重新绑定, 否则主白板会不能渲染
         this.mainViewProxy.rebind();
-        emitter.emit("rootDirRemoved");
+        internalEmitter.emit("rootDirRemoved");
         this.updateRootDirRemoving(false);
     }
 
@@ -192,7 +192,7 @@ export class AppManager {
             onAddScene: this.onSceneChange,
             onRemoveScene: async (node, name) => {
                 await this.onSceneChange(node);
-                emitter.emit("rootDirSceneRemoved", name);
+                internalEmitter.emit("rootDirSceneRemoved", name);
             },
         });
         if (this.callbacksNode) {
@@ -215,7 +215,7 @@ export class AppManager {
             }
         }, 100);
         return new Promise<boolean>((resolve, reject) => {
-            emitter
+            internalEmitter
                 .once("rootDirSceneRemoved")
                 .then(name => {
                     if (name === scene) {
@@ -245,7 +245,7 @@ export class AppManager {
     private emitMainViewScenesChange = (length: number) => {
         return Promise.all([
             callbacks.emit("mainViewScenesLengthChange", length),
-            emitter.emit("changePageState"),
+            internalEmitter.emit("changePageState"),
         ]);
     };
 
@@ -310,7 +310,7 @@ export class AppManager {
 
     private async onCreated() {
         await this.attributesUpdateCallback(this.attributes.apps);
-        emitter.emit("updateManagerRect");
+        internalEmitter.emit("updateManagerRect");
         boxEmitter.on("move", this.onBoxMove);
         boxEmitter.on("resize", this.onBoxResize);
         boxEmitter.on("focus", this.onBoxFocus);
@@ -423,7 +423,7 @@ export class AppManager {
     private onMainViewIndexChange = (index: number) => {
         if (index !== undefined && this._prevSceneIndex !== index) {
             callbacks.emit("mainViewSceneIndexChange", index);
-            emitter.emit("changePageState");
+            internalEmitter.emit("changePageState");
             if (this.callbacksNode) {
                 this.updateSceneState(this.callbacksNode);
             }
@@ -434,7 +434,7 @@ export class AppManager {
     private onFocusChange = (focused: string | undefined) => {
         if (this._prevFocused !== focused) {
             callbacks.emit("focusedChange", focused);
-            emitter.emit("focusedChange", { focused, prev: this._prevFocused });
+            internalEmitter.emit("focusedChange", { focused, prev: this._prevFocused });
             this._prevFocused = focused;
             if (focused !== undefined) {
                 this.boxManager?.focusBox({ appId: focused });
@@ -454,6 +454,14 @@ export class AppManager {
         100
     );
 
+    private _appIds: string[] = [];
+    public notifyAppsChange(appIds: string[]): void {
+        if (this._appIds.length !== appIds.length || !this._appIds.every(id => appIds.includes(id))) {
+            this._appIds = appIds;
+            callbacks.emit("appsChange", appIds);
+        }
+    }
+
     /**
      * 插件更新 attributes 时的回调
      *
@@ -466,13 +474,15 @@ export class AppManager {
             if (appIds.length === 0) {
                 this.appCreateQueue.emitReady();
             }
-            const appsWithCreatedAt = appIds.map(appId => {
+            const appsWithCreatedAt = orderBy(appIds.map(appId => {
                 return {
                     id: appId,
                     createdAt: apps[appId].createdAt,
                 };
-            });
-            for (const { id } of orderBy(appsWithCreatedAt, "createdAt", "asc")) {
+            }), "createdAt", "asc");
+            const orderedAppIds = appsWithCreatedAt.map(({ id }) => id);
+            this.notifyAppsChange(orderedAppIds);
+            for (const id of orderedAppIds) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
                     try {
@@ -564,7 +574,7 @@ export class AppManager {
         if (!mainView.focusScenePath) {
             this.setMainViewFocusPath();
         }
-        emitter.emit("mainViewMounted");
+        internalEmitter.emit("mainViewMounted");
     }
 
     public setMainViewFocusPath(scenePath?: string) {
@@ -660,7 +670,7 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
-        emitter.emit("observerIdChange", this.displayer.observerId);
+        internalEmitter.emit("observerIdChange", this.displayer.observerId);
     };
 
     public displayerWritableListener = (isReadonly: boolean) => {
@@ -675,7 +685,7 @@ export class AppManager {
         this.appProxies.forEach(appProxy => {
             appProxy.emitAppIsWritableChange();
         });
-        emitter.emit("writableChange", isWritable);
+        internalEmitter.emit("writableChange", isWritable);
     };
 
     public safeSetAttributes(attributes: any) {
@@ -812,7 +822,7 @@ export class AppManager {
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();
         boxEmitter.clearListeners();
-        emitter.clearListeners();
+        internalEmitter.clearListeners();
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
                 appProxy.destroy(true, false, true);

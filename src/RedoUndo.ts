@@ -1,5 +1,5 @@
 import { callbacks } from "./callback";
-import { emitter } from "./InternalEmitter";
+import { internalEmitter } from "./InternalEmitter";
 import type { View } from "white-web-sdk";
 import type { AppProxy } from "./App";
 
@@ -11,13 +11,13 @@ export type RedoUndoContext = {
 
 export class RedoUndo {
     constructor(private context: RedoUndoContext) {
-        emitter.on("focusedChange", changed => {
+        internalEmitter.on("focusedChange", changed => {
             this.disposePrevFocusViewRedoUndoListeners(changed.prev);
             setTimeout(() => {
                 this.addRedoUndoListeners(changed.focused);
             }, 0);
         });
-        emitter.on("rootDirRemoved", () => {
+        internalEmitter.on("rootDirRemoved", () => {
             this.disposePrevFocusViewRedoUndoListeners(context.focus());
             this.addRedoUndoListeners(context.focus());
         });

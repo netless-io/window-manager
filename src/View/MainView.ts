@@ -2,7 +2,7 @@ import { AnimationMode, reaction, ViewMode } from "white-web-sdk";
 import { callbacks } from "../callback";
 import { createView } from "./ViewManager";
 import { debounce, get, isEmpty, isEqual } from "lodash";
-import { emitter } from "../InternalEmitter";
+import { internalEmitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
@@ -23,7 +23,7 @@ export class MainViewProxy {
     constructor(private manager: AppManager) {
         this.mainView = this.createMainView();
         this.moveCameraSizeByAttributes();
-        emitter.once("mainViewMounted").then(() => {
+        internalEmitter.once("mainViewMounted").then(() => {
             this.addMainViewListener();
             this.start();
             this.ensureCameraAndSize();
@@ -33,13 +33,13 @@ export class MainViewProxy {
             this.sizeChangeHandler(this.mainViewSize);
         };
         this.sideEffectManager.add(() => {
-            return emitter.on("playgroundSizeChange", playgroundSizeChangeListener);
+            return internalEmitter.on("playgroundSizeChange", playgroundSizeChangeListener);
         });
         this.sideEffectManager.add(() => {
-            return emitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio);
+            return internalEmitter.on("containerSizeRatioUpdate", this.onUpdateContainerSizeRatio);
         });
         this.sideEffectManager.add(() => {
-            return emitter.on("startReconnect", () => {
+            return internalEmitter.on("startReconnect", () => {
                 if (!this.didRelease) {
                     this.mainView.release();
                 }
@@ -49,7 +49,7 @@ export class MainViewProxy {
 
     private startListenWritableChange = () => {
         this.sideEffectManager.add(() => {
-            return emitter.on("writableChange", isWritable => {
+            return internalEmitter.on("writableChange", isWritable => {
                 if (isWritable) {
                     this.ensureCameraAndSize();
                 }

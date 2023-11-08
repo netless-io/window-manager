@@ -1,3 +1,8 @@
+## Unreleased
+
+- 添加 `fullscreen` 初始化参数和 `setFullscreen()` 方法，该选项启用时会隐藏窗口标题栏（但是不会自动最大化）
+- 添加 `fullscreenChange` 和 `appsChange` 事件
+
 ## 0.4.62 (2023-10-12)
 
 - 升级 @netless/app-docs-viewer@0.2.16

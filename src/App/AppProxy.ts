@@ -6,7 +6,7 @@ import { appRegister } from "../Register";
 import { autorun } from "white-web-sdk";
 import { BoxManagerNotFoundError } from "../Utils/error";
 import { debounce, get } from "lodash";
-import { emitter } from "../InternalEmitter";
+import { internalEmitter } from "../InternalEmitter";
 import { Fields } from "../AttributesDelegate";
 import { log } from "../Utils/log";
 import {
@@ -152,7 +152,7 @@ export class AppProxy implements PageRemoveService {
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
-        emitter.emit("updateManagerRect");
+        internalEmitter.emit("updateManagerRect");
         return {
             appId: this.id,
             app: appImpl,
@@ -177,7 +177,7 @@ export class AppProxy implements PageRemoveService {
         const context = new AppContext(this.manager, this.boxManager, appId, this, appOptions);
         this.appContext = context;
         try {
-            emitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
+            internalEmitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
                 let boxInitState: AppInitState | undefined;
                 if (!skipUpdate) {
                     boxInitState = this.getAppInitState(appId);
@@ -477,7 +477,7 @@ export class AppProxy implements PageRemoveService {
             console.error("[WindowManager]: notifyApp error", error.message, error.stack);
         }
         this.appEmitter.clearListeners();
-        emitter.emit(`destroy-${this.id}` as any, { error });
+        internalEmitter.emit(`destroy-${this.id}` as any, { error });
         if (needCloseBox) {
             this.boxManager?.closeBox(this.id, skipUpdate);
         }

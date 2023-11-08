@@ -1,5 +1,5 @@
 import { callbacks } from "./callback";
-import { emitter } from "./InternalEmitter";
+import { internalEmitter } from "./InternalEmitter";
 import { Events, MagixEventName } from "./constants";
 import { isEqual, omit } from "lodash";
 import { setViewFocusScenePath } from "./Utils/Common";
@@ -114,13 +114,13 @@ export class AppListeners {
     };
 
     private cursorMoveHandler = (payload: any) => {
-        emitter.emit("cursorMove", payload);
+        internalEmitter.emit("cursorMove", payload);
     };
 
     private rootDirRemovedHandler = () => {
         this.manager.createRootDirScenesCallback();
         this.manager.mainViewProxy.rebind();
-        emitter.emit("rootDirRemoved");
+        internalEmitter.emit("rootDirRemoved");
     }
 
     private refreshHandler = () => {

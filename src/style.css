@@ -197,3 +197,11 @@
 .netless-iframe-brdige-hidden {
     display: none;
 }
+
+.netless-window-manager-fullscreen .telebox-titlebar,
+.netless-window-manager-fullscreen .telebox-max-titlebar-maximized,
+.netless-window-manager-fullscreen .netless-app-slide-footer,
+.netless-window-manager-fullscreen .telebox-footer-wrap,
+.netless-window-manager-fullscreen .telebox-titlebar-wrap {
+    display: none;
+}

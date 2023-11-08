@@ -1,6 +1,6 @@
 import { appRegister } from "../Register";
 import { debounce } from "lodash";
-import { emitter } from "../InternalEmitter";
+import { internalEmitter } from "../InternalEmitter";
 import { ROOT_DIR } from "../constants";
 import { ScenePathType } from "white-web-sdk";
 import { v4 } from "uuid";
@@ -69,15 +69,15 @@ export const setViewMode = (view: View, mode: ViewVisionMode) => {
 };
 
 export const emitError = (error: Error) => {
-    if (emitter.listenerCount("error") > 0) {
-        emitter.emit("error", error);
+    if (internalEmitter.listenerCount("error") > 0) {
+        internalEmitter.emit("error", error);
     } else {
         console.log("[WindowManager]:", error);
     }
 };
 
 export const addEmitterOnceListener = (event: any, listener: any) => {
-    emitter.once(event).then(listener);
+    internalEmitter.once(event).then(listener);
 };
 
 export const notifyMainViewModeChange = debounce(

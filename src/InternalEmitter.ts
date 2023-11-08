@@ -30,4 +30,4 @@ export type EmitterEvent = {
 };
 
 export type EmitterType = Emittery<EmitterEvent>;
-export const emitter: EmitterType = new Emittery();
+export const internalEmitter: EmitterType = new Emittery();

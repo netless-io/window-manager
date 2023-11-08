@@ -1,4 +1,4 @@
-import { emitter } from "../InternalEmitter";
+import { internalEmitter } from "../InternalEmitter";
 import { isPlayer } from "white-web-sdk";
 import type { WindowManager } from "../index";
 import type { Camera, Room, Player, PlayerSeekingResult } from "white-web-sdk";
@@ -66,7 +66,7 @@ const delegateRemoveScenes = (room: Room, manager: WindowManager) => {
             manager.appManager?.updateRootDirRemoving(true);
         }
         const result = originRemoveScenes.call(room, scenePath);
-        emitter.emit("removeScenes", { scenePath, index });
+        internalEmitter.emit("removeScenes", { scenePath, index });
         return result;
     };
 };
@@ -76,9 +76,9 @@ const delegateSeekToProgressTime = (player: Player) => {
     // eslint-disable-next-line no-inner-declarations
     async function newSeek(time: number): Promise<PlayerSeekingResult> {
         // seek 时需要先关闭所有的 app 防止内部使用的 mobx 出现错误
-        await emitter.emit("seekStart");
+        await internalEmitter.emit("seekStart");
         const seekResult = await originSeek.call(player, time);
-        emitter.emit("seek", time); 
+        internalEmitter.emit("seek", time); 
         return seekResult;
     }
     player.seekToProgressTime = newSeek;

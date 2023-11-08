@@ -1,7 +1,7 @@
 import { ApplianceNames } from "white-web-sdk";
 import { Cursor } from "./Cursor";
 import { CursorState, Events } from "../constants";
-import { emitter } from "../InternalEmitter";
+import { internalEmitter } from "../InternalEmitter";
 import { SideEffectManager } from "side-effect-manager";
 import { WindowManager } from "../index";
 import type { CursorMovePayload, ApplianceIcons } from "../index";
@@ -39,11 +39,11 @@ export class CursorManager {
             this.setupWrapper(wrapper);
         }
         this.sideEffectManager.add(() => {
-            return emitter.on("cursorMove", this.onCursorMove);
+            return internalEmitter.on("cursorMove", this.onCursorMove);
         });
 
         this.sideEffectManager.add(() => {
-            return emitter.on("playgroundSizeChange", () => this.updateContainerRect());
+            return internalEmitter.on("playgroundSizeChange", () => this.updateContainerRect());
         });
         if (applianceIcons) {
             this.applianceIcons = { ...ApplianceMap, ...applianceIcons };

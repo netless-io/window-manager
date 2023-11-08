@@ -20,6 +20,8 @@ export type PublicEvent = {
     ready: undefined; // 所有 APP 创建完毕时触发
     sceneStateChange: SceneState;
     pageStateChange: PageState;
+    fullscreenChange: boolean;
+    appsChange: string[]; // APP 列表变化时触发
 };
 
 export type CallbacksType = Emittery<PublicEvent>;

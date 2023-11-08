@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist";
-import type { MountParams, WindowManager as WindowManagerType } from "../dist";
+import type { WindowManager as WindowManagerType } from "../dist";
 import {
     createStatic,
     createDynamic,
@@ -43,9 +43,10 @@ const mountManager = async (room, root) => {
         // collectorStyles: { bottom: "100px", left: "30px" },
         containerSizeRatio: 9 / 16,
         chessboard: true,
+        // fullscreen: true,
         debug: true,
         cursor,
-    } as MountParams)) as WindowManagerType;
+    })) as WindowManagerType;
 
     manager.emitter.on("ready", async () => {
         if (isWritable === "false") {
@@ -68,6 +69,14 @@ const mountManager = async (room, root) => {
 
     manager.emitter.on("boxStateChange", state => {
         console.log("boxStateChange:", state);
+    });
+
+    manager.emitter.on("fullscreenChange", state => {
+        console.log("fullscreenChange:", state);
+    });
+
+    manager.emitter.on("appsChange", apps => {
+        console.log("appsChange:", apps);
     });
 
     manager.emitter.on("mainViewScenePathChange", path => {
