@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.63 (2023-11-22)
 
 - 添加 `fullscreen` 初始化参数和 `setFullscreen()` 方法，该选项启用时会隐藏窗口标题栏（但是不会自动最大化）
 - 添加 `fullscreenChange` 和 `appsChange` 事件
