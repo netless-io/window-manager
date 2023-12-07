@@ -1,3 +1,7 @@
+## Unreleased
+
+- 修复: 回放模式下也应该显示光标
+
 ## 0.4.32 (2022-06-10)
 
 - 功能: `WindowManager.mount` 添加 `applianceIcons` 选项配置光标使用的图片

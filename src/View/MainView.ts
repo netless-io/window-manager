@@ -158,6 +158,7 @@ export class MainViewProxy {
         this.removeCameraListener();
         this.addCameraListener();
         this.addCameraReaction();
+        if (this.manager.room) this.syncMainView(this.manager.room);
         this.started = true;
     }
 

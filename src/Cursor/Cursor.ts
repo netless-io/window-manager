@@ -176,7 +176,7 @@ export class Cursor {
     }
 
     public updateMember() {
-        this.member = findMemberByUid(this.manager.room, this.memberId);
+        this.member = findMemberByUid(this.manager.displayer, this.memberId);
         this.updateComponent();
         return this.member;
     }

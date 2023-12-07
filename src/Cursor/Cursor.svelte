@@ -15,7 +15,7 @@
     export let color: string;
     export let cursorTagBackgroundColor: string;
     export let opacity: number;
-    export let pencilEraserSize: number;
+    export let pencilEraserSize: number | undefined;
 
     $: hasName = !isEmpty(cursorName);
     $: hasTagName = !isEmpty(tagName);

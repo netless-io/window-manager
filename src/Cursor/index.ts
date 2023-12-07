@@ -122,7 +122,7 @@ export class CursorManager {
     }
 
     private updateCursor(event: EventType, clientX: number, clientY: number) {
-        const self = findMemberByUid(this.manager.room, this.manager.uid);
+        const self = findMemberByUid(this.manager.displayer, this.manager.uid);
         if (this.wrapperRect && this.shouldBroadcast() && this.canMoveCursor(self)) {
             const view = event.type === "main" ? this.manager.mainView : this.focusView;
             const point = this.getPoint(view, clientX, clientY);

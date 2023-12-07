@@ -4,7 +4,7 @@ import { REQUIRE_VERSION } from "./constants";
 import { toJS, WhiteVersion } from "white-web-sdk";
 import { WhiteWebSDKInvalidError } from "./Utils/error";
 import { WindowManager } from "./index";
-import type { Room, RoomMember } from "white-web-sdk";
+import type { Displayer, Room, RoomMember } from "white-web-sdk";
 
 export const setupWrapper = (
     root: HTMLElement,
@@ -31,7 +31,7 @@ export const checkVersion = () => {
     }
 };
 
-export const findMemberByUid = (room: Room | undefined, uid: string) => {
+export const findMemberByUid = (room: Displayer | undefined, uid: string) => {
     const roomMembers = room?.state.roomMembers || [];
     let maxMemberId = -1; // 第一个进入房间的用户 memberId 是 0
     let result: RoomMember | undefined = undefined;
