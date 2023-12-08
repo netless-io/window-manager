@@ -53,9 +53,10 @@ export class MainViewProxy {
                 if (isWritable) {
                     this.ensureCameraAndSize();
                 }
+                if (this.manager.room) this.syncMainView(this.manager.room);
             });
         });
-    }
+    };
 
     public ensureCameraAndSize() {
         if (this.viewMode !== ViewMode.Broadcaster) return;
@@ -124,7 +125,7 @@ export class MainViewProxy {
     public onUpdateContainerSizeRatio = () => {
         const size = this.store.getMainViewSize();
         this.sizeChangeHandler(size);
-    }
+    };
 
     public get view(): View {
         return this.mainView;
@@ -239,7 +240,7 @@ export class MainViewProxy {
         if (room.isWritable) {
             room.syncMainView(this.mainView);
         }
-    }
+    };
 
     public moveCameraToContian(size: Size): void {
         if (!isEmpty(size)) {
@@ -275,9 +276,9 @@ export class MainViewProxy {
         this.started = false;
     }
 
-    public setViewMode = (mode:ViewMode) => {
+    public setViewMode = (mode: ViewMode) => {
         this.viewMode = mode;
-    }
+    };
 
     public destroy() {
         this.removeMainViewListener();
