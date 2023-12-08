@@ -81,6 +81,7 @@ export class MainViewProxy {
                 if (isWritable) {
                     this.ensureCameraAndSize();
                 }
+                if (this.manager.room) this.syncMainView(this.manager.room);
             })
         );
     };
