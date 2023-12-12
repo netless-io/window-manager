@@ -372,6 +372,7 @@ export class AppProxy implements PageRemoveService {
                 const appState = this.appAttributes?.state;
                 if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
                     this.boxManager?.setZIndex(appId, appState.zIndex);
+                    this.boxManager?.focusBox({ appId });
                 }
             });
         });

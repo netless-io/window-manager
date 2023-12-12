@@ -1,3 +1,7 @@
+## Unreleased
+
+- 修复: 窗口最大化时加载已存在 scenePath 的 app 没有自动切换 focus 的问题
+
 ## 0.4.65 (2023-12-08)
 
 - 修复: SDK 内置光标在修改 isWritable 后消失的问题
