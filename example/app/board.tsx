@@ -15,7 +15,11 @@ export const Board: NetlessApp = {
 
         // 挂载自定义的 footer 到 box 的 footer 上
         mount(box.$footer, context);
-        return;
+
+        setTimeout(() => {
+            context.dispatchAppEvent("board", 42);
+            context.dispatchAppEvent("board2");
+        }, 1000);
     }
 }
 

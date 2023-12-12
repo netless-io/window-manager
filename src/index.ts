@@ -613,6 +613,15 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     }
 
     /**
+     * app 本地自定义事件回调
+     * 
+     * 返回一个用于撤销此监听的函数
+     */
+    public onAppEvent(kind: string, listener: (args: { kind: string, appId: string, type: string, value: any }) => void): () => void {
+        return internalEmitter.on(`custom-${kind}` as any, listener);
+    }
+
+    /**
      * 设置 ViewMode
      */
     public setViewMode(mode: ViewMode): void {

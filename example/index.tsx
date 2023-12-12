@@ -59,11 +59,19 @@ const mountManager = async (room, root) => {
     console.log("manager apps", manager.queryAll());
     console.log("manager mounted boxState:", manager.boxState);
     (window as any).manager = manager;
-    (window as any).manager.onAppDestroy(BuiltinApps.DocsViewer, error => {
+    manager.onAppDestroy(BuiltinApps.DocsViewer, error => {
         console.log("onAppDestroy", error);
     });
 
-    (window as any).manager.emitter.on("mainViewModeChange", mode => {
+    manager.onAppEvent(BuiltinApps.DocsViewer, event => {
+        console.log("onAppEvent", event);
+    });
+
+    manager.onAppEvent("Board", event => {
+        console.log("onAppEvent", event);
+    });
+
+    manager.emitter.on("mainViewModeChange", mode => {
         console.log("mode", mode);
     });
 

@@ -28,6 +28,7 @@ import type {
     MagixEventRemoveListener,
 } from "./MagixEvent";
 import type { AddPageParams, PageController, PageState } from "../Page";
+import { internalEmitter } from "../InternalEmitter";
 
 export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any, TAppOptions = any>
     implements PageController
@@ -255,5 +256,14 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
 
     public get pageState(): PageState {
         return this.appProxy.pageState;
+    }
+
+    public get kind(): string {
+        return this.appProxy.kind;
+    }
+
+    /** Dispatch a local event to `manager.onAppEvent()`. */
+    public dispatchAppEvent(type: string, value?: any): void {
+        internalEmitter.emit(`custom-${this.kind}` as any, { kind: this.kind, appId: this.appId, type, value });
     }
 }

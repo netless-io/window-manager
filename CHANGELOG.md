@@ -1,6 +1,8 @@
 ## Unreleased
 
 - 修复: 窗口最大化时加载已存在 scenePath 的 app 没有自动切换 focus 的问题
+- 新增: `context.dispatchAppEvent(type, value?)` 发送 app 本地事件
+- 新增: `onAppEvent(kind, listener)` 监听 app 本地事件
 
 ## 0.4.65 (2023-12-08)
 
