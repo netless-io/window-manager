@@ -1,27 +1,27 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.4.66",
-  "description": "",
+  "version": "0.4.67-beta.1",
+  "description": "Multi-window mode for Netless Whiteboard",
+  "author": "l1shen <lishen1635@gmail.com> (https://github.com/l1shen)",
+  "license": "MIT",
+  "repository": "netless-io/window-manager",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "repository": "netless-io/window-manager",
+  "files": [
+    "dist",
+    "docs",
+    "src"
+  ],
   "scripts": {
-    "prettier": "prettier --write .",
     "build": "vite build && yarn type-gen",
-    "type-gen": "tsc --emitDeclarationOnly",
-    "predev": "yarn type-gen",
     "build:lib:types": "tsc --emitDeclarationOnly",
     "lint": "eslint --ext .ts,.tsx,.svelte . && prettier --check .",
-    "test": "vitest"
+    "predev": "yarn type-gen",
+    "prettier": "prettier --write .",
+    "test": "vitest",
+    "type-gen": "tsc --emitDeclarationOnly"
   },
-  "author": "l1shen <lishen1635@gmail.com> (https://github.com/l1shen)",
-  "license": "MIT",
-  "files": [
-    "src",
-    "dist",
-    "docs"
-  ],
   "peerDependencies": {
     "jspdf": "2.5.1",
     "white-web-sdk": "^2.16.0"

@@ -120,6 +120,7 @@ export class MainViewProxy {
             this.moveCameraToContian(size);
             this.moveCamera(this.mainViewCamera);
         }
+        this.ensureMainViewSize();
     }, 30);
 
     public onUpdateContainerSizeRatio = () => {
@@ -209,7 +210,7 @@ export class MainViewProxy {
         this.manager.boxManager?.blurAllBox();
     }
 
-    public setMainViewSize = debounce(size => {
+    public setMainViewSize = debounce((size: Size) => {
         this.store.setMainViewSize({ ...size, id: this.manager.uid });
     }, 50);
 
@@ -234,7 +235,15 @@ export class MainViewProxy {
             clearTimeout(this._syncMainViewTimer);
             this._syncMainViewTimer = setTimeout(this.syncMainView, 100, this.manager.room);
         }
+        this.ensureMainViewSize();
     };
+
+    private ensureMainViewSize() {
+        if ((!this.mainViewSize || this.mainViewSize.width === 0 || this.mainViewSize.height === 0) &&
+            this.mainView.size.width > 0 && this.mainView.size.height > 0) {
+            this.setMainViewSize(this.mainView.size);
+        }
+    }
 
     private syncMainView = (room: Room) => {
         if (room.isWritable) {

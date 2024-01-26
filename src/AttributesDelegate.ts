@@ -163,10 +163,12 @@ export class AttributesDelegate {
     }
 
     public setMainViewSize(size: ISize) {
+        if (size.width === 0 || size.height === 0) return;
         this.context.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 
     public setMainViewCameraAndSize(camera: ICamera, size: ISize) {
+        if (size.width === 0 || size.height === 0) return;
         this.context.safeSetAttributes({
             [Fields.MainViewCamera]: { ...camera },
             [Fields.MainViewSize]: { ...size },
