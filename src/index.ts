@@ -418,6 +418,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
             if (!params.kind || typeof params.kind !== "string") {
                 throw new Errors.ParamsInvalidError();
             }
+            if (params.src && typeof params.src === "string") {
+                appRegister.register({ kind: params.kind, src: params.src });
+            }
             const appImpl = await appRegister.appClasses.get(params.kind)?.();
             if (appImpl && appImpl.config?.singleton) {
                 if (this.appManager.appProxies.has(params.kind)) {
