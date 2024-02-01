@@ -55,7 +55,7 @@ export class AppManager {
     public appStatus: Map<string, AppStatus> = new Map();
     public store = store;
     public mainViewProxy: MainViewProxy;
-    public refresher?: ReconnectRefresher;
+    public refresher: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
     public mainViewScenesLength = 0;
 
@@ -91,15 +91,13 @@ export class AppManager {
         this.refresher.setRoom(this.room);
         this.refresher.setContext({ emitter: internalEmitter });
 
-        this.sideEffectManager.add(() => {
-            return () => {
-                this.appCreateQueue.destroy();
-                this.mainViewProxy.destroy();
-                this.refresher?.destroy();
-                this.viewManager.destroy();
-                this.boxManager?.destroy();
-                this.callbacksNode?.dispose();
-            };
+        this.sideEffectManager.addDisposer(() => {
+            this.appCreateQueue.destroy();
+            this.mainViewProxy.destroy();
+            this.refresher.destroy();
+            this.viewManager.destroy();
+            this.boxManager?.destroy();
+            this.callbacksNode?.dispose();
         });
 
         internalEmitter.once("onCreated").then(() => this.onCreated());
@@ -289,6 +287,14 @@ export class AppManager {
         return this.mainViewProxy.view;
     }
 
+    public get polling() {
+        return this.mainViewProxy.polling;
+    }
+
+    public set polling(b: boolean) {
+        this.mainViewProxy.polling = b;
+    }
+
     public get focusApp() {
         if (this.store.focus) {
             return this.appProxies.get(this.store.focus);
@@ -319,31 +325,31 @@ export class AppManager {
 
         this.addAppsChangeListener();
         this.addAppCloseListener();
-        this.refresher?.add("maximized", () => {
+        this.refresher.add("maximized", () => {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
                 this.boxManager?.setMaximized(Boolean(maximized));
             });
         });
-        this.refresher?.add("minimized", () => {
+        this.refresher.add("minimized", () => {
             return autorun(() => {
                 const minimized = this.attributes.minimized;
                 this.onMinimized(minimized);
             });
         });
-        this.refresher?.add("mainViewIndex", () => {
+        this.refresher.add("mainViewIndex", () => {
             return autorun(() => {
                 const mainSceneIndex = get(this.attributes, "_mainSceneIndex");
                 this.onMainViewIndexChange(mainSceneIndex);
             });
         });
-        this.refresher?.add("focusedChange", () => {
+        this.refresher.add("focusedChange", () => {
             return autorun(() => {
                 const focused = get(this.attributes, "focus");
                 this.onFocusChange(focused);
             });
         });
-        this.refresher?.add("registeredChange", () => {
+        this.refresher.add("registeredChange", () => {
             return autorun(() => {
                 const registered = get(this.attributes, Fields.Registered);
                 this.onRegisteredChange(registered);
@@ -402,7 +408,7 @@ export class AppManager {
     };
 
     public addAppsChangeListener = () => {
-        this.refresher?.add("apps", () => {
+        this.refresher.add("apps", () => {
             return safeListenPropsUpdated(
                 () => this.attributes.apps,
                 () => {
@@ -413,7 +419,7 @@ export class AppManager {
     };
 
     public addAppCloseListener = () => {
-        this.refresher?.add("appsClose", () => {
+        this.refresher.add("appsClose", () => {
             return onObjectRemoved(this.attributes.apps, () => {
                 this.onAppDelete(this.attributes.apps);
             });

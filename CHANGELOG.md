@@ -1,6 +1,7 @@
 ## Unreleased
 
 - 修复: `addApp({ src: "url" })` 不能工作的问题 (可以先调 register 解决)
+- 修复: 并发初始化后一端的主白板视角不对的问题
 
 ## 0.4.67 (2024-01-26)
 
@@ -165,7 +166,7 @@
 
 ## 0.4.31 (2022-06-09)
 
-- 修复: `bindContainer` 在回放模式下直接抛出错误的问题 
+- 修复: `bindContainer` 在回放模式下直接抛出错误的问题
 
 ## 0.4.30 (2022-06-08)
 
@@ -276,7 +277,7 @@
 
 ## 0.4.7
 
-1. 修改 `addPage` 接口 
+1. 修改 `addPage` 接口
 
 ## 0.4.6
 
@@ -292,7 +293,7 @@
 ## 0.4.4
 
 1. 代理 `room` 的 `insertText` `insertImage` `completeImageUpload` `lockImage` `lockImages` 方法
-2. 修复回放时 view didRelease 的报错问题 
+2. 修复回放时 view didRelease 的报错问题
 
 ## 0.4.3
 

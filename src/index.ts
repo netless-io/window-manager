@@ -141,6 +141,7 @@ export type MountParams = {
     prefersColorScheme?: TeleBoxColorScheme;
     applianceIcons?: ApplianceIcons;
     fullscreen?: boolean;
+    polling?: boolean;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
@@ -217,7 +218,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         } else {
             await pRetry(
                 async count => {
-                    manager = (await room.getInvisiblePlugin(WindowManager.kind)) as WindowManager;
+                    manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
                     if (!manager) {
                         log(`manager is empty. retrying ${count}`);
                         throw new Error();
@@ -239,6 +240,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
 
         manager._fullscreen = params.fullscreen;
         manager.appManager = new AppManager(manager);
+        manager.appManager.polling = params.polling || false;
         manager._pageState = new PageStateImpl(manager.appManager);
         manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor), params.applianceIcons);
         if (containerSizeRatio) {
@@ -617,7 +619,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
 
     /**
      * app 本地自定义事件回调
-     * 
+     *
      * 返回一个用于撤销此监听的函数
      */
     public onAppEvent(kind: string, listener: (args: { kind: string, appId: string, type: string, value: any }) => void): () => void {
@@ -732,6 +734,16 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
 
     public get focusedView(): View | undefined {
         return this.appManager?.focusApp?.view || this.mainView;
+    }
+
+    public get polling(): boolean {
+        return this.appManager?.polling || false;
+    }
+
+    public set polling(b: boolean) {
+        if (this.appManager) {
+            this.appManager.polling = b;
+        }
     }
 
     public get mainViewSceneIndex(): number {
@@ -966,14 +978,14 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
        this._refresh();
        this.appManager?.dispatchInternalEvent(Events.Refresh);
     }
-    
+
     /** @inner */
     public _refresh() {
         this.appManager?.mainViewProxy.rebind();
         if (WindowManager.container) {
             this.bindContainer(WindowManager.container);
         }
-        this.appManager?.refresher?.refresh();
+        this.appManager?.refresher.refresh();
     }
 
     public setContainerSizeRatio(ratio: number) {

@@ -359,7 +359,7 @@ export class AppProxy implements PageRemoveService {
     }
 
     private appAttributesUpdateListener = (appId: string) => {
-        this.manager.refresher?.add(appId, () => {
+        this.manager.refresher.add(appId, () => {
             return autorun(() => {
                 const attrs = this.manager.attributes[appId];
                 if (attrs) {
@@ -367,7 +367,7 @@ export class AppProxy implements PageRemoveService {
                 }
             });
         });
-        this.manager.refresher?.add(this.stateKey, () => {
+        this.manager.refresher.add(this.stateKey, () => {
             return autorun(() => {
                 const appState = this.appAttributes?.state;
                 if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
@@ -376,7 +376,7 @@ export class AppProxy implements PageRemoveService {
                 }
             });
         });
-        this.manager.refresher?.add(`${appId}-fullPath`, () => {
+        this.manager.refresher.add(`${appId}-fullPath`, () => {
             return autorun(() => {
                 const fullPath = this.appAttributes?.fullPath;
                 this.setFocusScenePathHandler(fullPath);
@@ -493,9 +493,9 @@ export class AppProxy implements PageRemoveService {
 
         this.viewManager.destroyView(this.id);
         this.manager.appStatus.delete(this.id);
-        this.manager.refresher?.remove(this.id);
-        this.manager.refresher?.remove(this.stateKey);
-        this.manager.refresher?.remove(`${this.id}-fullPath`);
+        this.manager.refresher.remove(this.id);
+        this.manager.refresher.remove(this.stateKey);
+        this.manager.refresher.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
     }
 

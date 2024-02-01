@@ -11,6 +11,9 @@ import type { AppManager } from "../AppManager";
 import { Events } from "../constants";
 
 export class MainViewProxy {
+    /** Refresh the view's camera in an interval of 1.5s. */
+    public polling = false;
+
     private scale?: number;
     private started = false;
     private mainViewIsAddListener = false;
@@ -45,7 +48,17 @@ export class MainViewProxy {
                 }
             });
         });
+        this.sideEffectManager.setInterval(this.syncCamera, 1500);
     }
+
+    // Guard function when the camera is not synced
+    private syncCamera = () => {
+        if (!this.polling || this.viewMode !== ViewMode.Broadcaster) return;
+        const { mainViewCamera } = this;
+        if (mainViewCamera && mainViewCamera.id !== this.manager.uid) {
+            this.moveCameraSizeByAttributes();
+        }
+    };
 
     private startListenWritableChange = () => {
         this.sideEffectManager.add(() => {
@@ -93,7 +106,7 @@ export class MainViewProxy {
     }
 
     public addCameraReaction = () => {
-        this.manager.refresher?.add(Fields.MainViewCamera, this.cameraReaction);
+        this.manager.refresher.add(Fields.MainViewCamera, this.cameraReaction);
     };
 
     public setCameraAndSize(): void {
@@ -280,8 +293,8 @@ export class MainViewProxy {
 
     public stop() {
         this.removeCameraListener();
-        this.manager.refresher?.remove(Fields.MainViewCamera);
-        this.manager.refresher?.remove(Fields.MainViewSize);
+        this.manager.refresher.remove(Fields.MainViewCamera);
+        this.manager.refresher.remove(Fields.MainViewSize);
         this.started = false;
     }
 
