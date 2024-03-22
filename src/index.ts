@@ -56,6 +56,7 @@ import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
 import { boxEmitter } from "./BoxEmitter";
 import { IframeBridge } from "./View/IframeBridge";
+import { setOptions } from "@netless/app-media-player";
 export * from "./View/IframeBridge";
 
 export type WindowMangerAttributes = {
@@ -209,6 +210,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         }
 
         this.debug = Boolean(debug);
+        if (this.debug) {
+            setOptions({ verbose: true });
+        }
         log("Already insert room", manager);
 
         if (isRoom(this.displayer)) {
