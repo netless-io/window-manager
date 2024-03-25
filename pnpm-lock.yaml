@@ -35,8 +35,8 @@ devDependencies:
     specifier: ^0.2.17
     version: 0.2.17(jspdf@2.5.1)
   '@netless/app-media-player':
-    specifier: 0.1.0-beta.5
-    version: 0.1.0-beta.5
+    specifier: 0.1.0-beta.6
+    version: 0.1.0-beta.6
   '@rollup/plugin-commonjs':
     specifier: ^20.0.0
     version: 20.0.0(rollup@2.70.1)
@@ -242,8 +242,8 @@ packages:
       vanilla-lazyload: 17.8.3
     dev: true
 
-  /@netless/app-media-player@0.1.0-beta.5:
-    resolution: {integrity: sha512-q24tZnDGwTM8fvSs97qavuF8w8cXa4Tx3Nl7Xvig5Um4XKrfNijjLK9pI1cdctfuefl9s8wrG8JNCN2C6yqeDw==}
+  /@netless/app-media-player@0.1.0-beta.6:
+    resolution: {integrity: sha512-Io1BEi1JS/AyE2FDbb8iMTuZhF/nXhGlRe2hSI0ohL1bFkz8kEDfFWN6YL//ZGOCQjw0yhB4dXzykNn+RO3ohQ==}
     dev: true
 
   /@netless/canvas-polyfill@0.0.4:

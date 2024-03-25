@@ -5,3 +5,4 @@ test/
 tsconfig.json
 vite.config.js
 .vscode/
+**/*.md
