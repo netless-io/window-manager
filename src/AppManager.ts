@@ -31,13 +31,7 @@ import {
 } from "./Utils/Common";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
-import type {
-    Displayer,
-    Room,
-    ScenesCallbacksNode,
-    SceneState,
-    RoomState,
-} from "white-web-sdk";
+import type { Displayer, Room, ScenesCallbacksNode, SceneState, RoomState } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 import type {
     BoxClosePayload,
@@ -46,7 +40,6 @@ import type {
     BoxResizePayload,
     BoxStateChangePayload,
 } from "./BoxEmitter";
-
 
 export class AppManager {
     public displayer: Displayer;
@@ -462,7 +455,10 @@ export class AppManager {
 
     private _appIds: string[] = [];
     public notifyAppsChange(appIds: string[]): void {
-        if (this._appIds.length !== appIds.length || !this._appIds.every(id => appIds.includes(id))) {
+        if (
+            this._appIds.length !== appIds.length ||
+            !this._appIds.every(id => appIds.includes(id))
+        ) {
             this._appIds = appIds;
             callbacks.emit("appsChange", appIds);
         }
@@ -480,12 +476,16 @@ export class AppManager {
             if (appIds.length === 0) {
                 this.appCreateQueue.emitReady();
             }
-            const appsWithCreatedAt = orderBy(appIds.map(appId => {
-                return {
-                    id: appId,
-                    createdAt: apps[appId].createdAt,
-                };
-            }), "createdAt", "asc");
+            const appsWithCreatedAt = orderBy(
+                appIds.map(appId => {
+                    return {
+                        id: appId,
+                        createdAt: apps[appId].createdAt,
+                    };
+                }),
+                "createdAt",
+                "asc"
+            );
             const orderedAppIds = appsWithCreatedAt.map(({ id }) => id);
             this.notifyAppsChange(orderedAppIds);
             for (const id of orderedAppIds) {
@@ -663,16 +663,6 @@ export class AppManager {
     }
 
     private displayerStateListener = (state: Partial<RoomState>) => {
-        const sceneState = state.sceneState;
-        if (sceneState) {
-            const scenePath = sceneState.scenePath;
-            this.appProxies.forEach(appProxy => {
-                if (appProxy.scenePath && scenePath.startsWith(appProxy.scenePath)) {
-                    appProxy.emitAppSceneStateChange(sceneState);
-                    appProxy.setFullPath(scenePath);
-                }
-            });
-        }
         this.appProxies.forEach(appProxy => {
             appProxy.appEmitter.emit("roomStateChange", state);
         });
