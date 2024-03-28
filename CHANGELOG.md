@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.70 (2024-03-28)
 
 - 修复: 不再支持通过 `room.setScenePath()` 影响 App 内白板的场景
 
