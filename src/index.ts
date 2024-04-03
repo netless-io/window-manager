@@ -143,6 +143,7 @@ export type MountParams = {
     applianceIcons?: ApplianceIcons;
     fullscreen?: boolean;
     polling?: boolean;
+    supportTeachingAidsPlugin?: boolean;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
@@ -156,6 +157,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public static container?: HTMLElement;
     public static debug = false;
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
+    public static supportTeachingAidsPlugin?: boolean;
     private static isCreated = false;
 
     public version = __APP_VERSION__;
@@ -187,6 +189,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     public static async mount(params: MountParams): Promise<WindowManager> {
         const room = params.room;
         WindowManager.container = params.container;
+        WindowManager.supportTeachingAidsPlugin = params.supportTeachingAidsPlugin;
         const containerSizeRatio = params.containerSizeRatio;
         const debug = params.debug;
 
@@ -367,7 +370,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         this.appManager?.resetMaximized();
         this.appManager?.resetMinimized();
         this.appManager?.displayerWritableListener(!this.room.isWritable);
-        WindowManager.container = container;
+        WindowManager.container = container;        
     }
 
     public bindCollectorContainer(container: HTMLElement) {
