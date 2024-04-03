@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.71 (2024-04-03)
 
 - 新增: `cursorOptions.style` 初始化参数和 `cursorStyle=` 方法，可以切换到另一种光标样式
 
