@@ -21,7 +21,7 @@ dependencies:
     specifier: ^4.6.1
     version: 4.6.1
   side-effect-manager:
-    specifier: ^0.1.5
+    specifier: 0.1.5
     version: 0.1.5
   uuid:
     specifier: ^7.0.3
