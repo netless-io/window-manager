@@ -31,7 +31,14 @@ import {
 } from "./Utils/Common";
 import type { ReconnectRefresher } from "./ReconnectRefresher";
 import type { BoxManager } from "./BoxManager";
-import type { Displayer, Room, ScenesCallbacksNode, SceneState, RoomState } from "white-web-sdk";
+import type {
+    Displayer,
+    Room,
+    ScenesCallbacksNode,
+    SceneState,
+    RoomState,
+    MemberState,
+} from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 import type {
     BoxClosePayload,
@@ -109,6 +116,10 @@ export class AppManager {
         appRegister.setSyncRegisterApp(payload => {
             this.safeUpdateAttributes([Fields.Registered, payload.kind], payload);
         });
+    }
+
+    public getMemberState(): MemberState {
+        return this.room?.state.memberState || ({ strokeColor: [0, 0, 0] } as MemberState);
     }
 
     private onRemoveScenes = async (params: RemoveSceneParams) => {

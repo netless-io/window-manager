@@ -15,7 +15,8 @@
     export let color: string;
     export let cursorTagBackgroundColor: string;
     export let opacity: number;
-    export let pencilEraserSize: number;
+    export let pencilEraserSize: number | undefined;
+    export let custom: boolean | undefined;
 
     $: hasName = !isEmpty(cursorName);
     $: hasTagName = !isEmpty(tagName);
@@ -40,9 +41,9 @@
 </script>
 
 <div
-    class="netless-window-manager-cursor-mid"
+    class={"netless-window-manager-cursor-mid" + (custom ? " netless-window-manager-cursor-custom" : "")}
     style="transform: translateX({x}px) translateY({y}px);display: {display}"
->   
+>
     {#if !isLaserPointer}
         <div class="netless-window-manager-cursor-name {offset} {pencilEraserSize3ImageOffset}">
             <div
@@ -67,6 +68,10 @@
         </div>
     {/if}
     <div class="cursor-image-wrapper">
-        <img class="netless-window-manager-cursor-{appliance}-image {pencilEraserSize3ImageOffset}" {src} alt={appliance} />
+        <img
+            class="netless-window-manager-cursor-{appliance}-image {pencilEraserSize3ImageOffset}"
+            {src}
+            alt={appliance}
+        />
     </div>
 </div>

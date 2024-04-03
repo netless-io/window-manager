@@ -126,6 +126,15 @@ export type AppInitState = {
 
 export type CursorMovePayload = { uid: string; state?: "leave"; position: Position };
 
+export type CursorOptions = {
+    /**
+     * If `"custom"`, it will render the pencil / eraser cursor as a circle and shapes cursor as a cross.
+     *
+     * @default "default"
+     */
+    style?: "default" | "custom";
+};
+
 export type MountParams = {
     room: Room | Player;
     container?: HTMLElement;
@@ -137,6 +146,7 @@ export type MountParams = {
     collectorStyles?: Partial<CSSStyleDeclaration>;
     overwriteStyles?: string;
     cursor?: boolean;
+    cursorOptions?: CursorOptions;
     debug?: boolean;
     disableCameraTransform?: boolean;
     prefersColorScheme?: TeleBoxColorScheme;
@@ -148,7 +158,10 @@ export type MountParams = {
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
 
-export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> implements PageController {
+export class WindowManager
+    extends InvisiblePlugin<WindowMangerAttributes, any>
+    implements PageController
+{
     public static kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
@@ -249,7 +262,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         manager.appManager = new AppManager(manager);
         manager.appManager.polling = params.polling || false;
         manager._pageState = new PageStateImpl(manager.appManager);
-        manager.cursorManager = new CursorManager(manager.appManager, Boolean(cursor), params.applianceIcons);
+        manager.cursorManager = new CursorManager(
+            manager.appManager,
+            Boolean(cursor),
+            params.cursorOptions,
+            params.applianceIcons
+        );
         if (containerSizeRatio) {
             manager.containerSizeRatio = containerSizeRatio;
         }
@@ -296,16 +314,12 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         manager: WindowManager,
         container: HTMLElement,
         params: {
-            chessboard?: boolean,
-            overwriteStyles?: string,
-            fullscreen?: boolean,
+            chessboard?: boolean;
+            overwriteStyles?: string;
+            fullscreen?: boolean;
         }
     ) {
-        const {
-            chessboard,
-            overwriteStyles,
-            fullscreen,
-        } = params;
+        const { chessboard, overwriteStyles, fullscreen } = params;
         if (!WindowManager.container) {
             WindowManager.container = container;
         }
@@ -370,7 +384,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         this.appManager?.resetMaximized();
         this.appManager?.resetMinimized();
         this.appManager?.displayerWritableListener(!this.room.isWritable);
-        WindowManager.container = container;        
+        WindowManager.container = container;
     }
 
     public bindCollectorContainer(container: HTMLElement) {
@@ -581,7 +595,7 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
                 console.warn(`[WindowManager]: index ${index} out of range`);
                 return false;
             }
-            return this.appManager.removeSceneByIndex(needRemoveIndex);;
+            return this.appManager.removeSceneByIndex(needRemoveIndex);
         } else {
             return false;
         }
@@ -629,7 +643,10 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
      *
      * 返回一个用于撤销此监听的函数
      */
-    public onAppEvent(kind: string, listener: (args: { kind: string, appId: string, type: string, value: any }) => void): () => void {
+    public onAppEvent(
+        kind: string,
+        listener: (args: { kind: string; appId: string; type: string; value: any }) => void
+    ): () => void {
         return internalEmitter.on(`custom-${kind}` as any, listener);
     }
 
@@ -751,6 +768,17 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
         if (this.appManager) {
             this.appManager.polling = b;
         }
+    }
+
+    public get cursorStyle(): "default" | "custom" {
+        return this.cursorManager?.style || "default";
+    }
+
+    public set cursorStyle(value: "default" | "custom") {
+        if (!this.cursorManager) {
+            throw new Error("[WindowManager]: cursor is not enabled, please set { cursor: true }.");
+        }
+        this.cursorManager.style = value;
     }
 
     public get mainViewSceneIndex(): number {
@@ -982,8 +1010,8 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
     }
 
     public refresh() {
-       this._refresh();
-       this.appManager?.dispatchInternalEvent(Events.Refresh);
+        this._refresh();
+        this.appManager?.dispatchInternalEvent(Events.Refresh);
     }
 
     /** @inner */
@@ -997,7 +1025,9 @@ export class WindowManager extends InvisiblePlugin<WindowMangerAttributes, any> 
 
     public setContainerSizeRatio(ratio: number) {
         if (!isNumber(ratio) || !(ratio > 0)) {
-            throw new Error(`[WindowManager]: updateContainerSizeRatio error, ratio must be a positive number. but got ${ratio}`);
+            throw new Error(
+                `[WindowManager]: updateContainerSizeRatio error, ratio must be a positive number. but got ${ratio}`
+            );
         }
         WindowManager.containerSizeRatio = ratio;
         this.containerSizeRatio = ratio;

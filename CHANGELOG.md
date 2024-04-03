@@ -1,3 +1,13 @@
+## Unreleased
+
+- 新增: `cursorOptions.style` 初始化参数和 `cursorStyle=` 方法，可以切换到另一种光标样式
+
+  提示: 可以添加以下配置来隐藏远端光标上的用户名部分
+
+  ```js
+  overwriteStyles: ".netless-window-manager-cursor-name { display: none }"
+  ```
+
 ## 0.4.70 (2024-03-28)
 
 - 修复: 不再支持通过 `room.setScenePath()` 影响 App 内白板的场景

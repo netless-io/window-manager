@@ -4,12 +4,13 @@ import { CursorState, Events } from "../constants";
 import { internalEmitter } from "../InternalEmitter";
 import { SideEffectManager } from "side-effect-manager";
 import { WindowManager } from "../index";
-import type { CursorMovePayload, ApplianceIcons } from "../index";
+import type { CursorMovePayload, ApplianceIcons, CursorOptions } from "../index";
 import type { PositionType } from "../AttributesDelegate";
-import type { Point, Room, RoomMember, View } from "white-web-sdk";
+import type { Point, Room, RoomMember, RoomState, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import { ApplianceMap } from "./icons";
 import { findMemberByUid } from "../Helper";
+import { enableLocal } from "./icons2";
 
 export type EventType = {
     type: PositionType;
@@ -22,19 +23,27 @@ export type MoveCursorParams = {
     y: number;
 };
 
+const LocalCursorSideEffectId = "local-cursor";
+
 export class CursorManager {
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();
     public roomMembers?: readonly RoomMember[];
+    public userApplianceIcons: ApplianceIcons = {};
+
     private mainViewElement?: HTMLDivElement;
     private sideEffectManager = new SideEffectManager();
     private store = this.manager.store;
-    public applianceIcons: ApplianceIcons = ApplianceMap;
-    private onceCount = true;
+    private leaveFlag = true;
+    private _style: CursorOptions["style"] & string = "default";
 
-
-    constructor(private manager: AppManager, private enableCursor: boolean, applianceIcons?: ApplianceIcons) {
+    constructor(
+        private manager: AppManager,
+        private enableCursor: boolean,
+        cursorOptions?: CursorOptions,
+        applianceIcons?: ApplianceIcons
+    ) {
         this.roomMembers = this.manager.room?.state.roomMembers;
         const wrapper = WindowManager.wrapper;
         if (wrapper) {
@@ -43,12 +52,44 @@ export class CursorManager {
         this.sideEffectManager.add(() => {
             return internalEmitter.on("cursorMove", this.onCursorMove);
         });
-
         this.sideEffectManager.add(() => {
             return internalEmitter.on("playgroundSizeChange", () => this.updateContainerRect());
         });
+        const room = this.manager.room;
+        if (room) {
+            this.sideEffectManager.add(() => {
+                const update = (state: RoomState) => {
+                    if (this.style === "custom" && state.memberState) this.enableCustomCursor();
+                };
+                room.callbacks.on("onRoomStateChanged", update);
+                return () => room.callbacks.off("onRoomStateChanged", update);
+            });
+        }
         if (applianceIcons) {
-            this.applianceIcons = { ...ApplianceMap, ...applianceIcons };
+            this.userApplianceIcons = applianceIcons;
+        }
+        this.style = cursorOptions?.style || "default";
+    }
+
+    public get applianceIcons(): ApplianceIcons {
+        return { ...ApplianceMap, ...this.userApplianceIcons };
+    }
+
+    public get style() {
+        return this._style;
+    }
+
+    public set style(value) {
+        if (this._style !== value) {
+            this._style = value;
+            this.cursorInstances.forEach(cursor => {
+                cursor.setStyle(value);
+            });
+            if (value === "custom") {
+                this.enableCustomCursor();
+            } else {
+                this.sideEffectManager.flush(LocalCursorSideEffectId);
+            }
         }
     }
 
@@ -72,6 +113,13 @@ export class CursorManager {
         }
         return cursorInstance;
     };
+
+    private enableCustomCursor() {
+        this.sideEffectManager.add(
+            () => enableLocal(this.manager.getMemberState()),
+            LocalCursorSideEffectId
+        );
+    }
 
     private canMoveCursor(member: RoomMember | undefined) {
         const isLaserPointer =
@@ -111,38 +159,48 @@ export class CursorManager {
         const type = this.getType(event);
         this.updateCursor(type, event.clientX, event.clientY);
         isTouch && this.showPencilEraserIfNeeded(type, event.clientX, event.clientY);
-    }
+    };
 
     private mouseMoveTimer = 0;
     private mouseMoveListener = (event: PointerEvent) => {
         const isTouch = event.pointerType === "touch";
         if (isTouch && !event.isPrimary) return;
-        const now = Date.now()
+        const now = Date.now();
         if (now - this.mouseMoveTimer > 48) {
             this.mouseMoveTimer = now;
-            if (WindowManager.supportTeachingAidsPlugin && isRoom(WindowManager.displayer) && (WindowManager.displayer as Room).disableDeviceInputs) {
-                if(this.onceCount){
+            if (
+                WindowManager.supportTeachingAidsPlugin &&
+                isRoom(WindowManager.displayer) &&
+                (WindowManager.displayer as Room).disableDeviceInputs
+            ) {
+                if (this.leaveFlag) {
                     this.manager.dispatchInternalEvent(Events.CursorMove, {
                         uid: this.manager.uid,
-                        state: CursorState.Leave
+                        state: CursorState.Leave,
                     } as CursorMovePayload);
-                    this.onceCount = false;
+                    this.leaveFlag = false;
                 }
-                return ;
+                return;
             }
             this.mouseMoveListener_(event, isTouch);
-            this.onceCount = true;
+            this.leaveFlag = true;
         }
-    }
-    
+    };
+
     private mouseLeaveListener = () => {
         this.hideCursor(this.manager.uid);
-    }
+    };
 
     private showPencilEraserIfNeeded(event: EventType, clientX: number, clientY: number) {
         const self = findMemberByUid(this.manager.room, this.manager.uid);
-        const isPencilEraser = self?.memberState.currentApplianceName === ApplianceNames.pencilEraser;
-        if (this.wrapperRect && this.manager.canOperate && this.canMoveCursor(self) && isPencilEraser) {
+        const isPencilEraser =
+            self?.memberState.currentApplianceName === ApplianceNames.pencilEraser;
+        if (
+            this.wrapperRect &&
+            this.manager.canOperate &&
+            this.canMoveCursor(self) &&
+            isPencilEraser
+        ) {
             const view = event.type === "main" ? this.manager.mainView : this.focusView;
             const point = this.getPoint(view, clientX, clientY);
             if (point) {

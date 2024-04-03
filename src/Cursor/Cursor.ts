@@ -1,12 +1,15 @@
-import App from "./Cursor.svelte";
-import { ApplianceNames } from "white-web-sdk";
-import { findMemberByUid } from "../Helper";
-import { omit } from "lodash";
-import type { Position } from "../AttributesDelegate";
 import type { RoomMember } from "white-web-sdk";
-import type { CursorManager } from "./index";
-import type { SvelteComponent } from "svelte";
+import type { CursorOptions } from "../index";
 import type { AppManager } from "../AppManager";
+import type { Position } from "../AttributesDelegate";
+import type { CursorManager } from "./index";
+
+import { omit } from "lodash";
+import { ApplianceNames } from "white-web-sdk";
+
+import { findMemberByUid } from "../Helper";
+import App from "./Cursor.svelte";
+import { remoteIcon } from "./icons2";
 
 export type Payload = {
     [key: string]: any;
@@ -15,7 +18,8 @@ export type Payload = {
 export class Cursor {
     private member?: RoomMember;
     private timer?: number;
-    private component?: SvelteComponent;
+    private component?: App;
+    private style: CursorOptions["style"] & string = "default";
 
     constructor(
         private manager: AppManager,
@@ -26,6 +30,7 @@ export class Cursor {
         this.updateMember();
         this.createCursor();
         this.autoHidden();
+        this.setStyle(cursorManager.style);
     }
 
     public move = (position: Position) => {
@@ -46,6 +51,16 @@ export class Cursor {
         }
     };
 
+    public setStyle = (style: typeof this.style) => {
+        this.style = style;
+        if (this.component) {
+            this.component.$set({
+                src: this.getIcon(),
+                custom: this.isCustomIcon(),
+            });
+        }
+    };
+
     public leave = () => {
         this.hide();
     };
@@ -56,6 +71,10 @@ export class Cursor {
         if (point) {
             let translateX = point.x - 2;
             let translateY = point.y - 18;
+            if (this.isCustomIcon()) {
+                translateX -= 11;
+                translateY += 4;
+            }
             if (type === "app") {
                 const wrapperRect = this.cursorManager.wrapperRect;
                 if (wrapperRect) {
@@ -78,6 +97,11 @@ export class Cursor {
     public get memberColor() {
         const rgb = this.member?.memberState?.strokeColor.join(",");
         return `rgb(${rgb})`;
+    }
+
+    public get memberColorHex(): string {
+        const [r, g, b] = this.member?.memberState?.strokeColor || [236, 52, 85];
+        return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     }
 
     private get payload(): Payload | undefined {
@@ -145,6 +169,7 @@ export class Cursor {
             appliance: this.memberApplianceName as string,
             avatar: this.memberAvatar,
             src: this.getIcon(),
+            custom: this.isCustomIcon(),
             visible: false,
             backgroundColor: this.memberColor,
             cursorName: this.memberCursorName,
@@ -157,18 +182,49 @@ export class Cursor {
         };
     }
 
-    private getIcon() {
-        if (this.member) {
-            const icons = this.cursorManager.applianceIcons;
-            let applianceSrc = icons[ApplianceNames.shape];
-            if (this.memberApplianceName === ApplianceNames.pencilEraser) {
-                const size = this.member?.memberState.pencilEraserSize || 1;
-                applianceSrc = icons[`${this.memberApplianceName}${size}`];
-            } else {
-                applianceSrc = icons[this.memberApplianceName || ApplianceNames.shape];
-            }
-            return applianceSrc || icons[ApplianceNames.shape];
+    private getIcon(): string | undefined {
+        if (!this.member) return;
+
+        const { memberApplianceName, memberColorHex } = this;
+        const { userApplianceIcons, applianceIcons } = this.cursorManager;
+
+        let iconsKey: string | undefined = this.memberApplianceName;
+        if (iconsKey === ApplianceNames.pencilEraser) {
+            iconsKey = `${iconsKey}${this.member?.memberState.pencilEraserSize || 1}`;
         }
+
+        const userApplianceSrc = iconsKey && userApplianceIcons[iconsKey];
+        if (userApplianceSrc) return userApplianceSrc;
+
+        if (this.style === "custom" && memberApplianceName) {
+            const customApplianceSrc = remoteIcon(memberApplianceName, memberColorHex);
+            if (customApplianceSrc) return customApplianceSrc;
+        }
+
+        const applianceSrc = applianceIcons[iconsKey || ApplianceNames.shape];
+        return applianceSrc || applianceIcons[ApplianceNames.shape];
+    }
+
+    private isCustomIcon(): boolean {
+        if (!this.member) return false;
+
+        const { memberApplianceName, memberColorHex } = this;
+        const { userApplianceIcons } = this.cursorManager;
+
+        let iconsKey: string | undefined = this.memberApplianceName;
+        if (iconsKey === ApplianceNames.pencilEraser) {
+            iconsKey = `${iconsKey}${this.member?.memberState.pencilEraserSize || 1}`;
+        }
+
+        const userApplianceSrc = iconsKey && userApplianceIcons[iconsKey];
+        if (userApplianceSrc) return false;
+
+        if (this.style === "custom" && memberApplianceName) {
+            const customApplianceSrc = remoteIcon(memberApplianceName, memberColorHex);
+            if (customApplianceSrc) return true;
+        }
+
+        return false;
     }
 
     public updateMember() {
