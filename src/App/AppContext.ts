@@ -29,6 +29,8 @@ import type {
 } from "./MagixEvent";
 import type { AddPageParams, PageController, PageState } from "../Page";
 import { internalEmitter } from "../InternalEmitter";
+import { WindowManager } from "../index";
+import { callbacks } from "../callback";
 
 export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any, TAppOptions = any>
     implements PageController
@@ -90,6 +92,9 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
             setTimeout(() => {
                 // 渲染需要时间，延迟 refresh
                 this.getRoom()?.refreshViewSize();
+                if (WindowManager.supportTeachingAidsPlugin) {
+                    callbacks.emit("onAppViewMounted", {appId: this.appId, view});
+                }
             }, 1000);
         }
     };

@@ -88,3 +88,8 @@ export type { SceneState, SceneDefinition, View, AnimationMode, Displayer, Room,
 export type { Storage, StorageStateChangedEvent, StorageStateChangedListener } from "./App/Storage";
 export * from "./Page";
 export * from "./Utils/error";
+
+export type AppPayload = {
+    appId: string,
+    view: View
+}

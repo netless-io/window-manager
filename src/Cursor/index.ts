@@ -1,4 +1,4 @@
-import { ApplianceNames } from "white-web-sdk";
+import { ApplianceNames, isRoom } from "white-web-sdk";
 import { Cursor } from "./Cursor";
 import { CursorState, Events } from "../constants";
 import { internalEmitter } from "../InternalEmitter";
@@ -6,7 +6,7 @@ import { SideEffectManager } from "side-effect-manager";
 import { WindowManager } from "../index";
 import type { CursorMovePayload, ApplianceIcons } from "../index";
 import type { PositionType } from "../AttributesDelegate";
-import type { Point, RoomMember, View } from "white-web-sdk";
+import type { Point, Room, RoomMember, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import { ApplianceMap } from "./icons";
 import { findMemberByUid } from "../Helper";
@@ -31,6 +31,8 @@ export class CursorManager {
     private sideEffectManager = new SideEffectManager();
     private store = this.manager.store;
     public applianceIcons: ApplianceIcons = ApplianceMap;
+    private onceCount = true;
+
 
     constructor(private manager: AppManager, private enableCursor: boolean, applianceIcons?: ApplianceIcons) {
         this.roomMembers = this.manager.room?.state.roomMembers;
@@ -115,14 +117,24 @@ export class CursorManager {
     private mouseMoveListener = (event: PointerEvent) => {
         const isTouch = event.pointerType === "touch";
         if (isTouch && !event.isPrimary) return;
-
         const now = Date.now()
         if (now - this.mouseMoveTimer > 48) {
             this.mouseMoveTimer = now;
+            if (WindowManager.supportTeachingAidsPlugin && isRoom(WindowManager.displayer) && (WindowManager.displayer as Room).disableDeviceInputs) {
+                if(this.onceCount){
+                    this.manager.dispatchInternalEvent(Events.CursorMove, {
+                        uid: this.manager.uid,
+                        state: CursorState.Leave
+                    } as CursorMovePayload);
+                    this.onceCount = false;
+                }
+                return ;
+            }
             this.mouseMoveListener_(event, isTouch);
+            this.onceCount = true;
         }
     }
-
+    
     private mouseLeaveListener = () => {
         this.hideCursor(this.manager.uid);
     }
