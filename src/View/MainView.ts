@@ -188,7 +188,7 @@ export class MainViewProxy {
         this.addMainViewListener();
         this.start();
         if (WindowManager.supportTeachingAidsPlugin) {
-            callbacks.emit("onMainViewRelease", this.mainView);
+            callbacks.emit("onMainViewRebind", this.mainView);
         }
     }
 
