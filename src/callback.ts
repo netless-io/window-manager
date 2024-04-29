@@ -30,6 +30,7 @@ export type PublicEvent = {
     onBoxClose: BoxClosePayload;
     onBoxStateChange: BoxStateChangePayload;
     onMainViewMounted: View;
+    onMainViewRebind: View;
     onAppViewMounted: AppPayload;
     onAppSetup: string;
     onAppScenePathChange: AppPayload;

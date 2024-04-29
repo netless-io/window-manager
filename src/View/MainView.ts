@@ -9,6 +9,7 @@ import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Room, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import { Events } from "../constants";
+import { WindowManager } from "..";
 
 export class MainViewProxy {
     /** Refresh the view's camera in an interval of 1.5s. */
@@ -186,6 +187,9 @@ export class MainViewProxy {
         this.mainView.divElement = divElement;
         this.addMainViewListener();
         this.start();
+        if (WindowManager.supportTeachingAidsPlugin) {
+            callbacks.emit("onMainViewRebind", this.mainView);
+        }
     }
 
     private onCameraUpdatedByDevice = (camera: Camera) => {
