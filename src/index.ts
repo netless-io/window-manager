@@ -172,6 +172,7 @@ export class WindowManager
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     public static supportTeachingAidsPlugin?: boolean;
     private static isCreated = false;
+    private static _resolve = (_manager: WindowManager) => {};
 
     public version = __APP_VERSION__;
     public dependencies = __APP_DEPENDENCIES__;
@@ -197,6 +198,10 @@ export class WindowManager
         super(context);
         WindowManager.displayer = context.displayer;
         (window as any).NETLESS_DEPS = __APP_DEPENDENCIES__;
+    }
+
+    public static onCreate(manager: WindowManager) {
+        WindowManager._resolve(manager);
     }
 
     public static async mount(params: MountParams): Promise<WindowManager> {
@@ -288,26 +293,8 @@ export class WindowManager
         return manager;
     }
 
-    private static async initManager(room: Room): Promise<WindowManager | undefined> {
-        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager | undefined;
-        if (!manager) {
-            if (isRoom(room)) {
-                if (room.isWritable === false) {
-                    try {
-                        await room.setWritable(true);
-                    } catch (error) {
-                        throw new Error("[WindowManger]: room must be switched to be writable");
-                    }
-                    manager = await createInvisiblePlugin(room);
-                    manager?.ensureAttributes();
-                    await wait(500);
-                    await room.setWritable(false);
-                } else {
-                    manager = await createInvisiblePlugin(room);
-                }
-            }
-        }
-        return manager;
+    private static initManager(room: Room): Promise<WindowManager | undefined> {
+        return createInvisiblePlugin(room);
     }
 
     private static initContainer(
