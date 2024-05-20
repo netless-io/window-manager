@@ -14,10 +14,10 @@
     "src"
   ],
   "scripts": {
-    "build": "vite build && yarn type-gen",
+    "build": "vite build && npm run type-gen",
     "build:lib:types": "tsc --emitDeclarationOnly",
     "lint": "eslint --ext .ts,.tsx,.svelte . && prettier --check .",
-    "predev": "yarn type-gen",
+    "predev": "npm run type-gen",
     "prettier": "prettier --write .",
     "test": "vitest",
     "type-gen": "tsc --emitDeclarationOnly"
@@ -37,7 +37,6 @@
     "emittery": "^0.9.2",
     "lodash": "^4.17.21",
     "p-retry": "^4.6.1",
-    "side-effect-manager": "0.1.5",
     "uuid": "^7.0.3",
     "video.js": ">=7"
   },
@@ -68,10 +67,12 @@
     "prettier-plugin-svelte": "^2.4.0",
     "rollup-plugin-analyzer": "^4.0.0",
     "rollup-plugin-styles": "^3.14.1",
+    "side-effect-manager": "0.1.5",
     "svelte": "^3.42.4",
     "typescript": "^4.5.5",
-    "vite": "^2.5.3",
+    "vite": "^2.9.9",
     "vitest": "^0.14.1",
     "white-web-sdk": "2.16.43"
-  }
+  },
+  "packageManager": "^pnpm@latest-8"
 }

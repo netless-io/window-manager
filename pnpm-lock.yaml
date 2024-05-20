@@ -20,9 +20,6 @@ dependencies:
   p-retry:
     specifier: ^4.6.1
     version: 4.6.1
-  side-effect-manager:
-    specifier: 0.1.5
-    version: 0.1.5
   uuid:
     specifier: ^7.0.3
     version: 7.0.3
@@ -48,7 +45,7 @@ devDependencies:
     version: 6.1.0(rollup@2.70.1)
   '@sveltejs/vite-plugin-svelte':
     specifier: ^1.0.0-next.22
-    version: 1.0.0-next.40(svelte@3.46.4)(vite@2.8.6)
+    version: 1.0.0-next.40(svelte@3.46.4)(vite@2.9.9)
   '@tsconfig/svelte':
     specifier: ^2.0.1
     version: 2.0.1
@@ -109,6 +106,9 @@ devDependencies:
   rollup-plugin-styles:
     specifier: ^3.14.1
     version: 3.14.1(rollup@2.70.1)
+  side-effect-manager:
+    specifier: 0.1.5
+    version: 0.1.5
   svelte:
     specifier: ^3.42.4
     version: 3.46.4
@@ -116,8 +116,8 @@ devDependencies:
     specifier: ^4.5.5
     version: 4.6.3
   vite:
-    specifier: ^2.5.3
-    version: 2.8.6(less@4.1.2)
+    specifier: ^2.9.9
+    version: 2.9.9(less@4.1.2)
   vitest:
     specifier: ^0.14.1
     version: 0.14.1(@vitest/ui@0.14.1)(jsdom@19.0.0)(less@4.1.2)
@@ -411,7 +411,7 @@ packages:
       picomatch: 2.3.1
     dev: true
 
-  /@sveltejs/vite-plugin-svelte@1.0.0-next.40(svelte@3.46.4)(vite@2.8.6):
+  /@sveltejs/vite-plugin-svelte@1.0.0-next.40(svelte@3.46.4)(vite@2.9.9):
     resolution: {integrity: sha512-DtXF01fYGEJkbC7GntU/7jaq9M1SwyyNCkbDA+cfQSXRpm3H7zbu0M80wSQBSpntdd+hgSdxKCxv4GgX6/zI6w==}
     engines: {node: ^14.13.1 || >= 16}
     peerDependencies:
@@ -428,7 +428,7 @@ packages:
       magic-string: 0.26.1
       svelte: 3.46.4
       svelte-hmr: 0.14.11(svelte@3.46.4)
-      vite: 2.8.6(less@4.1.2)
+      vite: 2.9.9(less@4.1.2)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -4228,7 +4228,6 @@ packages:
 
   /side-effect-manager@0.1.5:
     resolution: {integrity: sha512-aAEXMS+9qW7rY2cwq4S6UjW3IBO/ZLWRI0sH1oGJ1eDE7YBFR1TW950qffnpx/0hByusAOVbu2zjThk9Vcjs+Q==}
-    dev: false
 
   /signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
@@ -4788,31 +4787,6 @@ packages:
     dependencies:
       global: 4.4.0
     dev: false
-
-  /vite@2.8.6(less@4.1.2):
-    resolution: {integrity: sha512-e4H0QpludOVKkmOsRyqQ7LTcMUDF3mcgyNU4lmi0B5JUbe0ZxeBBl8VoZ8Y6Rfn9eFKYtdXNPcYK97ZwH+K2ug==}
-    engines: {node: '>=12.2.0'}
-    hasBin: true
-    peerDependencies:
-      less: '*'
-      sass: '*'
-      stylus: '*'
-    peerDependenciesMeta:
-      less:
-        optional: true
-      sass:
-        optional: true
-      stylus:
-        optional: true
-    dependencies:
-      esbuild: 0.14.28
-      less: 4.1.2
-      postcss: 8.4.13
-      resolve: 1.22.0
-      rollup: 2.70.1
-    optionalDependencies:
-      fsevents: 2.3.2
-    dev: true
 
   /vite@2.9.9(less@4.1.2):
     resolution: {integrity: sha512-ffaam+NgHfbEmfw/Vuh6BHKKlI/XIAhxE5QSS7gFLIngxg171mg1P3a4LSRME0z2ZU1ScxoKzphkipcYwSD5Ew==}
