@@ -102,7 +102,7 @@ export const createInvisiblePlugin = async (room: Room): Promise<WindowManager> 
             clearInterval(interval);
             resolve(manager);
             if (wasReadonly && room.isWritable) {
-                room.setWritable(false).catch(console.warn);
+                setTimeout(() => room.setWritable(false).catch(console.warn), 500);
             }
         }
     }, 200);
