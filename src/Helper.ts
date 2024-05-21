@@ -1,11 +1,11 @@
 import pRetry from "p-retry";
-import { getVersionNumber, wait } from "./Utils/Common";
-import { log } from "./Utils/log";
-import { REQUIRE_VERSION } from "./constants";
-import type { InvisiblePlugin, Room, RoomMember } from "white-web-sdk";
+import type { Room, RoomMember } from "white-web-sdk";
 import { WhiteVersion } from "white-web-sdk";
-import { WhiteWebSDKInvalidError } from "./Utils/error";
+import { REQUIRE_VERSION } from "./constants";
 import { WindowManager } from "./index";
+import { getVersionNumber } from "./Utils/Common";
+import { WhiteWebSDKInvalidError } from "./Utils/error";
+import { log } from "./Utils/log";
 
 export const setupWrapper = (
     root: HTMLElement
@@ -61,13 +61,13 @@ export const createInvisiblePlugin = async (room: Room): Promise<WindowManager> 
     if (manager) return manager;
 
     let resolve!: (manager: WindowManager) => void;
-    let promise = new Promise<WindowManager>(r => {
+    const promise = new Promise<WindowManager>(r => {
         // @ts-expect-error Set private property.
         WindowManager._resolve = resolve = r;
     });
 
     let wasReadonly = false;
-    let canOperate = isRoomTokenWritable(room);
+    const canOperate = isRoomTokenWritable(room);
     if (!room.isWritable && canOperate) {
         wasReadonly = true;
         await pRetry(
@@ -86,15 +86,15 @@ export const createInvisiblePlugin = async (room: Room): Promise<WindowManager> 
         console.warn("[WindowManager]: waiting for others to create the plugin...");
     }
 
-    let timeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
         console.warn("[WindowManager]: no one called createInvisiblePlugin() after 20 seconds");
     }, 20_000);
 
-    let abort = setTimeout(() => {
+    const abort = setTimeout(() => {
         throw new Error("[WindowManager]: no one called createInvisiblePlugin() after 60 seconds");
     }, 60_000);
 
-    let interval = setInterval(() => {
+    const interval = setInterval(() => {
         manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
         if (manager) {
             clearTimeout(abort);

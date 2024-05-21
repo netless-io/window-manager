@@ -172,7 +172,7 @@ export class WindowManager
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     public static supportTeachingAidsPlugin?: boolean;
     private static isCreated = false;
-    private static _resolve = (_manager: WindowManager) => {};
+    private static _resolve = (_manager: WindowManager) => void 0;
 
     public version = __APP_VERSION__;
     public dependencies = __APP_DEPENDENCIES__;
