@@ -73,6 +73,5 @@
     "vite": "^2.9.9",
     "vitest": "^0.14.1",
     "white-web-sdk": "2.16.43"
-  },
-  "packageManager": "^pnpm@latest-8"
+  }
 }
