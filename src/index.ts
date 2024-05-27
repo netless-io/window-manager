@@ -1001,7 +1001,7 @@ export class WindowManager
         this.appManager?.dispatchInternalEvent(Events.Refresh);
     }
 
-    /** @inner */
+    /** @internal */
     public _refresh() {
         this.appManager?.mainViewProxy.rebind();
         if (WindowManager.container) {

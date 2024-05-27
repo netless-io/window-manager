@@ -15,12 +15,11 @@
   ],
   "scripts": {
     "build": "vite build && npm run type-gen",
-    "build:lib:types": "tsc --emitDeclarationOnly",
     "lint": "eslint --ext .ts,.tsx,.svelte . && prettier --check .",
     "predev": "npm run type-gen",
     "prettier": "prettier --write .",
     "test": "vitest",
-    "type-gen": "tsc --emitDeclarationOnly"
+    "type-gen": "dts src/index.ts -o dist/index.d.ts"
   },
   "peerDependencies": {
     "jspdf": "2.5.1",
@@ -41,6 +40,7 @@
     "video.js": ">=7"
   },
   "devDependencies": {
+    "@hyrious/dts": "^0.2.2",
     "@netless/app-docs-viewer": "^0.2.17",
     "@netless/app-media-player": "0.1.0-beta.6",
     "@rollup/plugin-commonjs": "^20.0.0",
