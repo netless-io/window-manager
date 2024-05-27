@@ -15,4 +15,4 @@ export const calculateNextIndex = (index: number, pageState: PageState) => {
         nextIndex = pageState.index;
     }
     return nextIndex;
-}
+};

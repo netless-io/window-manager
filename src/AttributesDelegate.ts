@@ -38,14 +38,13 @@ export type StoreContext = {
     getAttributes: () => any;
     safeUpdateAttributes: (keys: string[], value: any) => void;
     safeSetAttributes: (attributes: any) => void;
-}
+};
 
 export type ICamera = Camera & { id: string };
 
 export type ISize = Size & { id: string };
 
 export class AttributesDelegate {
-
     constructor(private context: StoreContext) {}
 
     public setContext(context: StoreContext) {
@@ -181,7 +180,7 @@ export class AttributesDelegate {
         } else {
             this.context.safeSetAttributes({ [Fields.Focus]: undefined });
         }
-    }
+    };
 
     public updateCursor(uid: string, position: Position) {
         if (!get(this.attributes, [Fields.Cursors])) {
@@ -250,15 +249,14 @@ export type Cursors = {
     [key: string]: Cursor;
 };
 
-
 export const store = new AttributesDelegate({
     getAttributes: () => {
-        throw new Error("getAttributes not implemented")
+        throw new Error("getAttributes not implemented");
     },
     safeSetAttributes: () => {
-        throw new Error("safeSetAttributes not implemented")
+        throw new Error("safeSetAttributes not implemented");
     },
     safeUpdateAttributes: () => {
-        throw new Error("safeUpdateAttributes not implemented")
+        throw new Error("safeUpdateAttributes not implemented");
     },
 });

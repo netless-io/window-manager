@@ -93,7 +93,7 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
                 // 渲染需要时间，延迟 refresh
                 this.getRoom()?.refreshViewSize();
                 if (WindowManager.supportTeachingAidsPlugin) {
-                    callbacks.emit("onAppViewMounted", {appId: this.appId, view});
+                    callbacks.emit("onAppViewMounted", { appId: this.appId, view });
                 }
             }, 1000);
         }
@@ -164,7 +164,10 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
      * @param defaultState Default state for initial storage creation.
      * @returns
      */
-    public createStorage = <TState extends {}>(storeId: string, defaultState?: TState): Storage<TState> => {
+    public createStorage = <TState extends {}>(
+        storeId: string,
+        defaultState?: TState
+    ): Storage<TState> => {
         const storage = new Storage(this, storeId, defaultState);
         this.emitter.on("destroy", () => {
             storage.destroy();
@@ -256,8 +259,8 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
             console.warn(`[WindowManager]: page index ${index} out of range`);
             return false;
         }
-        return this.appProxy.removeSceneByIndex(needRemoveIndex);;
-    }
+        return this.appProxy.removeSceneByIndex(needRemoveIndex);
+    };
 
     public get pageState(): PageState {
         return this.appProxy.pageState;
@@ -269,6 +272,11 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
 
     /** Dispatch a local event to `manager.onAppEvent()`. */
     public dispatchAppEvent(type: string, value?: any): void {
-        internalEmitter.emit(`custom-${this.kind}` as any, { kind: this.kind, appId: this.appId, type, value });
+        internalEmitter.emit(`custom-${this.kind}` as any, {
+            kind: this.kind,
+            appId: this.appId,
+            type,
+            value,
+        });
     }
 }

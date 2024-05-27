@@ -24,4 +24,4 @@ describe("redo undo 切换", () => {
     });
 });
 
-export {}
+export {};

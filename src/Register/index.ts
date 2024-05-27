@@ -8,7 +8,7 @@ export type LoadAppEvent = {
     reason?: string;
 };
 
-export type SyncRegisterAppPayload =  { kind: string, src: string, name: string | undefined };
+export type SyncRegisterAppPayload = { kind: string; src: string; name: string | undefined };
 export type SyncRegisterApp = (payload: SyncRegisterAppPayload) => void;
 
 class AppRegister {
@@ -25,7 +25,7 @@ class AppRegister {
 
     public onSyncRegisterAppChange = (payload: SyncRegisterAppPayload) => {
         this.register({ kind: payload.kind, src: payload.src });
-    }
+    };
 
     public async register(params: RegisterParams): Promise<void> {
         this.appClassesCache.delete(params.kind);
@@ -36,7 +36,7 @@ class AppRegister {
 
         if (typeof paramSrc === "string") {
             downloadApp = async () => {
-                const result = await loadApp(paramSrc, params.kind, params.name) as any;
+                const result = (await loadApp(paramSrc, params.kind, params.name)) as any;
                 if (result.__esModule) {
                     return result.default;
                 }
@@ -48,16 +48,14 @@ class AppRegister {
         }
         if (typeof paramSrc === "function") {
             downloadApp = async () => {
-                let appClass = await paramSrc() as any;
+                let appClass = (await paramSrc()) as any;
                 if (appClass) {
                     if (appClass.__esModule || appClass.default) {
                         appClass = appClass.default;
                     }
                     return appClass;
                 } else {
-                    throw new Error(
-                        `[WindowManager]: load remote script failed, ${paramSrc}`
-                    );
+                    throw new Error(`[WindowManager]: load remote script failed, ${paramSrc}`);
                 }
             };
         }

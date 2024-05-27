@@ -256,8 +256,13 @@ export class MainViewProxy {
     };
 
     private ensureMainViewSize() {
-        if ((!this.mainViewSize || this.mainViewSize.width === 0 || this.mainViewSize.height === 0) &&
-            this.mainView.size.width > 0 && this.mainView.size.height > 0) {
+        if (
+            (!this.mainViewSize ||
+                this.mainViewSize.width === 0 ||
+                this.mainViewSize.height === 0) &&
+            this.mainView.size.width > 0 &&
+            this.mainView.size.height > 0
+        ) {
             this.setMainViewSize(this.mainView.size);
         }
     }

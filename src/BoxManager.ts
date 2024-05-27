@@ -79,7 +79,7 @@ export const createBoxManager = (
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             callbacks,
             emitter,
-            boxEmitter
+            boxEmitter,
         },
         options
     );

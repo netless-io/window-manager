@@ -1,4 +1,3 @@
-
 export class AppCreateError extends Error {
     override message = "[WindowManager]: app duplicate exists and cannot be created again";
 }

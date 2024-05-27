@@ -20,18 +20,17 @@ export const Board: NetlessApp = {
             context.dispatchAppEvent("board", 42);
             context.dispatchAppEvent("board2");
         }, 1000);
-    }
-}
+    },
+};
 
 const BoardFooter = ({ context }: { context: AppContext }) => {
-    
     const [pageState, setPageState] = useState({ index: 0, length: 0 });
 
     const nextPage = () => context.nextPage();
-    
+
     const prevPage = () => context.prevPage();
 
-    const addPage = () =>  context.addPage();
+    const addPage = () => context.addPage();
 
     const removePage = () => context.removePage(1);
 
@@ -54,9 +53,9 @@ const BoardFooter = ({ context }: { context: AppContext }) => {
             <button onClick={removeLastPage}>删除最后一页</button>
             {pageState.index + 1}/{pageState.length}
         </div>
-    )
-}
+    );
+};
 
 export const mount = (dom: HTMLElement, context: AppContext) => {
-    ReactDom.render(<BoardFooter context={context} />, dom)
-}
+    ReactDom.render(<BoardFooter context={context} />, dom);
+};

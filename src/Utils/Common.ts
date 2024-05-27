@@ -5,7 +5,7 @@ import { ROOT_DIR } from "../constants";
 import { ScenePathType } from "white-web-sdk";
 import { v4 } from "uuid";
 import type { PublicEvent } from "../callback";
-import type { Displayer, ViewVisionMode, Room, View , SceneDefinition} from "white-web-sdk";
+import type { Displayer, ViewVisionMode, Room, View, SceneDefinition } from "white-web-sdk";
 import type Emittery from "emittery";
 
 export const genAppId = async (kind: string) => {
@@ -104,14 +104,19 @@ export const entireScenes = (displayer: Displayer) => {
     return displayer.entireScenes();
 };
 
-export const putScenes = (room: Room | undefined, path: string, scenes: SceneDefinition[], index?: number) => {
+export const putScenes = (
+    room: Room | undefined,
+    path: string,
+    scenes: SceneDefinition[],
+    index?: number
+) => {
     for (let i = 0; i < scenes.length; ++i) {
-        if (scenes[i].name?.includes('/')) {
+        if (scenes[i].name?.includes("/")) {
             throw new Error("scenes name can not have '/'");
         }
     }
     return room?.putScenes(path, scenes, index);
-}
+};
 
 export const isValidScenePath = (scenePath: string) => {
     return scenePath.startsWith("/");
@@ -156,4 +161,4 @@ export const isRootDirPage = (scenePath: string) => {
         return prev;
     }, 0);
     return delimiterCount === 1;
-}
+};

@@ -70,6 +70,6 @@ export class ContainerResizeObserver {
         if (isFunction(this.disposer)) {
             this.disposer();
             this.disposer = undefined;
-        }        
+        }
     }
 }

@@ -13,11 +13,13 @@ export type DiffOne<T> = { oldValue?: T; newValue?: T };
 export type Diff<T> = { [K in keyof T]?: DiffOne<T[K]> };
 
 export type StorageOnSetStatePayload<TState = unknown> = {
-  [K in keyof TState]?: MaybeRefValue<TState[K]>;
+    [K in keyof TState]?: MaybeRefValue<TState[K]>;
 };
 
 export type StorageStateChangedEvent<TState = any> = Diff<TState>;
 
-export type StorageStateChangedListener<TState = any> = StorageEventListener<StorageStateChangedEvent<TState>>;
+export type StorageStateChangedListener<TState = any> = StorageEventListener<
+    StorageStateChangedEvent<TState>
+>;
 
 export type StorageStateChangedListenerDisposer = () => void;
