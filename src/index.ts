@@ -187,6 +187,8 @@ export class WindowManager
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
     private _fullscreen?: boolean;
+    private _cursorUIDs: string[] = [];
+    private _cursorUIDsStyleDOM?: HTMLStyleElement;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
@@ -688,6 +690,27 @@ export class WindowManager
             this._fullscreen = fullscreen;
             WindowManager.sizer?.classList.toggle("netless-window-manager-fullscreen", fullscreen);
             callbacks.emit("fullscreenChange", fullscreen);
+        }
+    }
+
+    public get cursorUIDs(): string[] {
+        return this._cursorUIDs;
+    }
+
+    public setCursorUIDs(cursorUIDs?: string[] | null): void {
+        this._cursorUIDs = cursorUIDs || [];
+        if (this._cursorUIDs.length === 0) {
+            this._cursorUIDsStyleDOM?.remove();
+        } else {
+            if (!this._cursorUIDsStyleDOM) {
+                this._cursorUIDsStyleDOM = document.createElement("style");
+            }
+            WindowManager.playground?.appendChild(this._cursorUIDsStyleDOM);
+            let style = "[data-cursor-uid] { display: none }";
+            for (const uid of this._cursorUIDs) {
+                style += `\n[data-cursor-uid="${uid}"] { display: flex }`;
+            }
+            this._cursorUIDsStyleDOM.textContent = style;
         }
     }
 

@@ -2,6 +2,7 @@
     import { isEmpty } from "lodash";
     import { ApplianceNames } from "white-web-sdk";
 
+    export let uid: string;
     export let cursorName: string;
     export let tagName: string | undefined;
     export let backgroundColor: string;
@@ -21,7 +22,7 @@
     $: hasName = !isEmpty(cursorName);
     $: hasTagName = !isEmpty(tagName);
     $: hasAvatar = !isEmpty(avatar);
-    $: display = visible ? "initial" : "none";
+    $: display = visible ? "" : "none";
     $: isLaserPointer = appliance === ApplianceNames.laserPointer;
     $: isLaserPointerPencilEraser = isLaserPointer || appliance === ApplianceNames.pencilEraser;
     $: offset = isLaserPointerPencilEraser ? "netless-window-manager-laserPointer-pencilEraser-offset" : "";
@@ -43,6 +44,7 @@
 <div
     class={"netless-window-manager-cursor-mid" + (custom ? " netless-window-manager-cursor-custom" : "")}
     style="transform: translateX({x}px) translateY({y}px);display: {display}"
+    data-cursor-uid={uid}
 >
     {#if !isLaserPointer}
         <div class="netless-window-manager-cursor-name {offset} {pencilEraserSize3ImageOffset}">

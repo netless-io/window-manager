@@ -164,6 +164,7 @@ export class Cursor {
 
     private initProps() {
         return {
+            uid: this.memberId,
             x: 0,
             y: 0,
             appliance: this.memberApplianceName as string,

@@ -46,8 +46,8 @@ const mountManager = async (room, root) => {
         // fullscreen: true,
         debug: true,
         cursor,
-        cursorOptions: { style: "custom" },
-        overwriteStyles: ".netless-window-manager-cursor-name { display: none }",
+        // cursorOptions: { style: "custom" },
+        // overwriteStyles: ".netless-window-manager-cursor-name { display: none }",
     })) as WindowManagerType;
 
     manager.emitter.on("ready", async () => {
