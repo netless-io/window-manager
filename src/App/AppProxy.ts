@@ -30,7 +30,6 @@ import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
 import { calculateNextIndex } from "../Page";
 import { boxEmitter } from "../BoxEmitter";
-import { WindowManager } from "../index";
 import { callbacks } from "../callback";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
@@ -196,9 +195,7 @@ export class AppProxy implements PageRemoveService {
                     appRegister.notifyApp(this.kind, "created", { appId, result });
                     this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
-                    if (WindowManager.supportTeachingAidsPlugin) {
-                        callbacks.emit("onAppSetup", appId);
-                    }
+                    callbacks.emit("onAppSetup", appId);
                 }, SETUP_APP_DELAY);
             });
             this.boxManager?.createBox({
@@ -396,9 +393,7 @@ export class AppProxy implements PageRemoveService {
     private setFocusScenePathHandler = debounce((fullPath: string | undefined) => {
         if (this.view && fullPath && fullPath !== this.view?.focusScenePath) {
             setViewFocusScenePath(this.view, fullPath);
-            if (WindowManager.supportTeachingAidsPlugin) {
-                callbacks.emit("onAppScenePathChange", { appId: this.id, view: this.view });
-            }
+            callbacks.emit("onAppScenePathChange", { appId: this.id, view: this.view });
         }
     }, 50);
 

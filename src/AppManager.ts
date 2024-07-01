@@ -384,9 +384,7 @@ export class AppManager {
             x: payload.x,
             y: payload.y,
         });
-        if (WindowManager.supportTeachingAidsPlugin) {
-            callbacks.emit("onBoxMove", payload);
-        }
+        callbacks.emit("onBoxMove", payload);
     };
 
     private onBoxResize = (payload: BoxResizePayload) => {
@@ -396,18 +394,13 @@ export class AppManager {
                 width: payload.width,
                 height: payload.height,
             });
-            if (WindowManager.supportTeachingAidsPlugin) {
-                callbacks.emit("onBoxResize", payload);
-            }
+            callbacks.emit("onBoxResize", payload);
         }
     };
 
     private onBoxFocus = (payload: BoxFocusPayload) => {
         this.windowManger.safeSetAttributes({ focus: payload.appId });
-        if (WindowManager.supportTeachingAidsPlugin) {
-            // (WindowManager.externalNotifyManager as any).emit('onBoxFocus', payload)
-            callbacks.emit("onBoxFocus", payload);
-        }
+        callbacks.emit("onBoxFocus", payload);
     };
 
     private onBoxClose = (payload: BoxClosePayload) => {
@@ -415,16 +408,12 @@ export class AppManager {
         if (appProxy) {
             appProxy.destroy(false, true, true, payload.error);
         }
-        if (WindowManager.supportTeachingAidsPlugin) {
-            callbacks.emit("onBoxClose", payload);
-        }
+        callbacks.emit("onBoxClose", payload);
     };
 
     private onBoxStateChange = (payload: BoxStateChangePayload) => {
         this.dispatchInternalEvent(Events.AppBoxStateChange, payload);
-        if (WindowManager.supportTeachingAidsPlugin) {
-            callbacks.emit("onBoxStateChange", payload);
-        }
+        callbacks.emit("onBoxStateChange", payload);
     };
 
     public addAppsChangeListener = () => {
@@ -608,9 +597,7 @@ export class AppManager {
             this.setMainViewFocusPath();
         }
         internalEmitter.emit("mainViewMounted");
-        if (WindowManager.supportTeachingAidsPlugin) {
-            callbacks.emit("onMainViewMounted", mainView);
-        }
+        callbacks.emit("onMainViewMounted", mainView);
     }
 
     public setMainViewFocusPath(scenePath?: string) {
