@@ -74,6 +74,6 @@ export const createIframe = (manager: WindowManager) => {
         width: 400,
         height: 300,
         url: "/h5.html",
-        displaySceneDir: '/',
+        displaySceneDir: "/",
     });
 };

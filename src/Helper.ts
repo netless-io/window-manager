@@ -1,10 +1,11 @@
-import { getVersionNumber, wait } from "./Utils/Common";
-import { log } from "./Utils/log";
-import { REQUIRE_VERSION } from "./constants";
+import pRetry from "p-retry";
 import type { Room, RoomMember } from "white-web-sdk";
 import { WhiteVersion } from "white-web-sdk";
-import { WhiteWebSDKInvalidError } from "./Utils/error";
+import { REQUIRE_VERSION } from "./constants";
 import { WindowManager } from "./index";
+import { getVersionNumber } from "./Utils/Common";
+import { WhiteWebSDKInvalidError } from "./Utils/error";
+import { log } from "./Utils/log";
 
 export const setupWrapper = (
     root: HTMLElement
@@ -53,19 +54,70 @@ export const findMemberByUid = (room: Room | undefined, uid: string) => {
         }
     }
     return result;
-}
+};
 
-export const createInvisiblePlugin = async (room: Room) => {
-    try {
-        const manager = (await room.createInvisiblePlugin(WindowManager, {})) as WindowManager;
-        return manager;
-    } catch (error) {
-        // 如果有两个用户同时调用 WindowManager.mount 有概率出现这个错误
-        if (error.message === `invisible plugin "WindowManager" exits`) {
-            await wait(200);
-            return room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
-        } else {
-            log("createInvisiblePlugin failed", error);
+export const createInvisiblePlugin = async (room: Room): Promise<WindowManager> => {
+    let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+    if (manager) return manager;
+
+    let resolve!: (manager: WindowManager) => void;
+    const promise = new Promise<WindowManager>(r => {
+        // @ts-expect-error Set private property.
+        WindowManager._resolve = resolve = r;
+    });
+
+    let wasReadonly = false;
+    const canOperate = isRoomTokenWritable(room);
+    if (!room.isWritable && canOperate) {
+        wasReadonly = true;
+        await pRetry(
+            async count => {
+                log(`switching to writable (x${count})`);
+                await room.setWritable(true);
+            },
+            { retries: 10, maxTimeout: 5000 }
+        );
+    }
+    if (room.isWritable) {
+        log("creating InvisiblePlugin...");
+        room.createInvisiblePlugin(WindowManager, {}).catch(console.warn);
+    } else {
+        if (canOperate) console.warn("[WindowManager]: failed to switch to writable");
+        console.warn("[WindowManager]: waiting for others to create the plugin...");
+    }
+
+    const timeout = setTimeout(() => {
+        console.warn("[WindowManager]: no one called createInvisiblePlugin() after 20 seconds");
+    }, 20_000);
+
+    const abort = setTimeout(() => {
+        throw new Error("[WindowManager]: no one called createInvisiblePlugin() after 60 seconds");
+    }, 60_000);
+
+    const interval = setInterval(() => {
+        manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+        if (manager) {
+            clearTimeout(abort);
+            clearTimeout(timeout);
+            clearInterval(interval);
+            resolve(manager);
+            if (wasReadonly && room.isWritable) {
+                setTimeout(() => room.setWritable(false).catch(console.warn), 500);
+            }
         }
+    }, 200);
+
+    return promise;
+};
+
+const isRoomTokenWritable = (room: Room) => {
+    try {
+        const str = atob(room.roomToken.slice("NETLESSROOM_".length));
+        const index = str.indexOf("&role=");
+        const role = +str[index + "&role=".length];
+        return role < 2;
+    } catch (error) {
+        console.error(error);
+        return false;
     }
 };

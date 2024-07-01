@@ -11,7 +11,7 @@ type SetAppFocusIndex = {
     type: "main" | "app";
     appID?: string;
     index: number;
-}
+};
 
 export class AppListeners {
     private displayer = this.manager.displayer;
@@ -121,15 +121,15 @@ export class AppListeners {
         this.manager.createRootDirScenesCallback();
         this.manager.mainViewProxy.rebind();
         internalEmitter.emit("rootDirRemoved");
-    }
+    };
 
     private refreshHandler = () => {
         this.manager.windowManger._refresh();
-    }
+    };
 
     private initMainViewCameraHandler = () => {
         this.manager.mainViewProxy.addCameraReaction();
-    }
+    };
 
     private setAppFocusViewIndexHandler = (payload: SetAppFocusIndex) => {
         if (payload.type === "main") {
@@ -140,5 +140,5 @@ export class AppListeners {
                 app.setSceneIndexWithoutSync(payload.index);
             }
         }
-    }
+    };
 }

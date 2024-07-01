@@ -3,7 +3,13 @@ import type { TeleBoxColorScheme, TELE_BOX_STATE } from "@netless/telebox-inside
 import type { CameraState, SceneState, View, ViewVisionMode } from "white-web-sdk";
 import type { LoadAppEvent } from "./Register";
 import type { PageState } from "./Page";
-import type { BoxClosePayload, BoxFocusPayload, BoxMovePayload, BoxResizePayload, BoxStateChangePayload } from "./BoxEmitter";
+import type {
+    BoxClosePayload,
+    BoxFocusPayload,
+    BoxMovePayload,
+    BoxResizePayload,
+    BoxStateChangePayload,
+} from "./BoxEmitter";
 import type { AppPayload } from "./typings";
 
 export type PublicEvent = {

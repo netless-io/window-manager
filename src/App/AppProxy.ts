@@ -212,7 +212,7 @@ export class AppProxy implements PageRemoveService {
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
                 this.store.updateAppState(appId, AppAttributes.Size, {
                     width: this.box.intrinsicWidth,
-                    height: this.box.intrinsicHeight
+                    height: this.box.intrinsicHeight,
                 });
                 this.boxManager.focusBox({ appId }, false);
             }
@@ -397,7 +397,7 @@ export class AppProxy implements PageRemoveService {
         if (this.view && fullPath && fullPath !== this.view?.focusScenePath) {
             setViewFocusScenePath(this.view, fullPath);
             if (WindowManager.supportTeachingAidsPlugin) {
-                callbacks.emit("onAppScenePathChange", {appId: this.id, view:this.view});
+                callbacks.emit("onAppScenePathChange", { appId: this.id, view: this.view });
             }
         }
     }, 50);

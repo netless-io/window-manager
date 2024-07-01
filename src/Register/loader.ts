@@ -66,7 +66,7 @@ const getResult = (text: string, appName: string, key: string): NetlessApp => {
         callbacks.emit("loadApp", { kind: key, status: "failed", reason: error.message });
         throw error;
     }
-}
+};
 
 async function fetchWithTimeout(resource: string, options: RequestInit & { timeout: number }) {
     const { timeout = 10000 } = options;

@@ -5,23 +5,22 @@ module.exports = {
     preset: "ts-jest",
     testEnvironment: "jsdom",
     globals: {
-      "ts-jest": {
-        tsconfig: "./test/tsconfig.json",
-      },
+        "ts-jest": {
+            tsconfig: "./test/tsconfig.json",
+        },
     },
     testMatch: ["<rootDir>/test/*.ts", "**/test/**/*.test.ts", "test/**.test.ts"],
     setupFiles: ["jest-canvas-mock", "jest-fetch-mock"],
     transform: {
-        '^.+\\.svelte$': [
-            'svelte-jester',
+        "^.+\\.svelte$": [
+            "svelte-jester",
             {
-                "preprocess": true
-            }
+                preprocess: true,
+            },
         ],
         ".+\\.(css|svg|styl|less|sass|scss|png|jpg|ttf|woff|woff2|inline)$": "jest-transform-stub",
-        
     },
     moduleNameMapper: {
-        "^.+.(css|styl|less|sass|scss|png|jpg|ttf|woff|woff2|inline)$": "jest-transform-stub"
+        "^.+.(css|styl|less|sass|scss|png|jpg|ttf|woff|woff2|inline)$": "jest-transform-stub",
     },
 };

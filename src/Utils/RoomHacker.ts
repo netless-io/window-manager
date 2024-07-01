@@ -78,7 +78,7 @@ const delegateSeekToProgressTime = (player: Player) => {
         // seek 时需要先关闭所有的 app 防止内部使用的 mobx 出现错误
         await internalEmitter.emit("seekStart");
         const seekResult = await originSeek.call(player, time);
-        internalEmitter.emit("seek", time); 
+        internalEmitter.emit("seek", time);
         return seekResult;
     }
     player.seekToProgressTime = newSeek;

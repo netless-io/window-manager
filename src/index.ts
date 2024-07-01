@@ -172,6 +172,7 @@ export class WindowManager
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     public static supportTeachingAidsPlugin?: boolean;
     private static isCreated = false;
+    private static _resolve = (_manager: WindowManager) => void 0;
 
     public version = __APP_VERSION__;
     public dependencies = __APP_DEPENDENCIES__;
@@ -186,6 +187,8 @@ export class WindowManager
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
     private _fullscreen?: boolean;
+    private _cursorUIDs: string[] = [];
+    private _cursorUIDsStyleDOM?: HTMLStyleElement;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
@@ -197,6 +200,10 @@ export class WindowManager
         super(context);
         WindowManager.displayer = context.displayer;
         (window as any).NETLESS_DEPS = __APP_DEPENDENCIES__;
+    }
+
+    public static onCreate(manager: WindowManager) {
+        WindowManager._resolve(manager);
     }
 
     public static async mount(params: MountParams): Promise<WindowManager> {
@@ -288,26 +295,8 @@ export class WindowManager
         return manager;
     }
 
-    private static async initManager(room: Room): Promise<WindowManager | undefined> {
-        let manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager | undefined;
-        if (!manager) {
-            if (isRoom(room)) {
-                if (room.isWritable === false) {
-                    try {
-                        await room.setWritable(true);
-                    } catch (error) {
-                        throw new Error("[WindowManger]: room must be switched to be writable");
-                    }
-                    manager = await createInvisiblePlugin(room);
-                    manager?.ensureAttributes();
-                    await wait(500);
-                    await room.setWritable(false);
-                } else {
-                    manager = await createInvisiblePlugin(room);
-                }
-            }
-        }
-        return manager;
+    private static initManager(room: Room): Promise<WindowManager | undefined> {
+        return createInvisiblePlugin(room);
     }
 
     private static initContainer(
@@ -704,6 +693,27 @@ export class WindowManager
         }
     }
 
+    public get cursorUIDs(): string[] {
+        return this._cursorUIDs;
+    }
+
+    public setCursorUIDs(cursorUIDs?: string[] | null): void {
+        this._cursorUIDs = cursorUIDs || [];
+        if (this._cursorUIDs.length === 0) {
+            this._cursorUIDsStyleDOM?.remove();
+        } else {
+            if (!this._cursorUIDsStyleDOM) {
+                this._cursorUIDsStyleDOM = document.createElement("style");
+            }
+            WindowManager.playground?.appendChild(this._cursorUIDsStyleDOM);
+            let style = "[data-cursor-uid] { display: none }";
+            for (const uid of this._cursorUIDs) {
+                style += `\n[data-cursor-uid="${uid}"] { display: flex }`;
+            }
+            this._cursorUIDsStyleDOM.textContent = style;
+        }
+    }
+
     public get mainView(): View {
         if (this.appManager) {
             return this.appManager.mainViewProxy.view;
@@ -1014,7 +1024,7 @@ export class WindowManager
         this.appManager?.dispatchInternalEvent(Events.Refresh);
     }
 
-    /** @inner */
+    /** @internal */
     public _refresh() {
         this.appManager?.mainViewProxy.rebind();
         if (WindowManager.container) {
