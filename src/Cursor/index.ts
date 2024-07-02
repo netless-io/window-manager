@@ -169,7 +169,7 @@ export class CursorManager {
         if (now - this.mouseMoveTimer > 48) {
             this.mouseMoveTimer = now;
             if (
-                WindowManager.supportTeachingAidsPlugin &&
+                WindowManager.supportAppliancePlugin &&
                 isRoom(WindowManager.displayer) &&
                 (WindowManager.displayer as Room).disableDeviceInputs
             ) {
