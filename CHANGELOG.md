@@ -1,7 +1,7 @@
 ## 0.4.73 (2024-07-02)
 
 - 新增: `setCursorUIDs([uid])` 可以限制只显示相关用户的光标，不传参数或传入空数组表示显示所有用户的光标
-- 新增: `supportAppliancePlugin` 配置项，开启用于支持`AppliancePlugin`接入
+- 新增: `supportAppliancePlugin` 配置项，开启用于支持 `AppliancePlugin` 接入
 
 ## 0.4.72 (2024-04-03)
 
