@@ -37,8 +37,8 @@ importers:
         specifier: ^0.2.17
         version: 0.2.17(jspdf@2.5.1)
       '@netless/app-media-player':
-        specifier: 0.1.0-beta.6
-        version: 0.1.0-beta.6
+        specifier: 0.1.0-beta.7
+        version: 0.1.0-beta.7
       '@rollup/plugin-commonjs':
         specifier: ^20.0.0
         version: 20.0.0(rollup@4.18.0)
@@ -199,8 +199,8 @@ packages:
       jspdf:
         optional: true
 
-  '@netless/app-media-player@0.1.0-beta.6':
-    resolution: {integrity: sha512-Io1BEi1JS/AyE2FDbb8iMTuZhF/nXhGlRe2hSI0ohL1bFkz8kEDfFWN6YL//ZGOCQjw0yhB4dXzykNn+RO3ohQ==}
+  '@netless/app-media-player@0.1.0-beta.7':
+    resolution: {integrity: sha512-oK6DFcP0bT5tvcIS+08gvgrS0cXBqCZ9+XJ5TZQs9K6daOHrDr3asDg+IElCun39YafbdJ+hEshmdVCRsANDIg==}
 
   '@netless/canvas-polyfill@0.0.4':
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
@@ -3064,7 +3064,7 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.1
 
-  '@netless/app-media-player@0.1.0-beta.6': {}
+  '@netless/app-media-player@0.1.0-beta.7': {}
 
   '@netless/canvas-polyfill@0.0.4': {}
 
