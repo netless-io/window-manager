@@ -20,7 +20,7 @@
     "prettier": "prettier --write .",
     "test": "vitest",
     "type-gen": "dts src/index.ts -o dist/index.d.ts",
-    "localbuild": "pnpm update @netless/app-media-player && pnpm run build"
+    "localbuild": "pnpm update @netless/app-media-player && pnpm run build && cp ./package.json ./dist/package.json"
   },
   "peerDependencies": {
     "jspdf": "2.5.1",
