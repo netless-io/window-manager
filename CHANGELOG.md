@@ -1,3 +1,6 @@
+## 0.4.75 (2024-09-10)
+- 升级 @netless/app-media-player@0.1.0-beta.9
+
 ## 0.4.74 (2024-09-02)
 
 - 升级 @netless/app-media-player@0.1.0-beta.7
