@@ -42,7 +42,7 @@
   "devDependencies": {
     "@hyrious/dts": "^0.2.2",
     "@netless/app-docs-viewer": "^0.2.17",
-    "@netless/app-media-player": "0.1.0-beta.7",
+    "@netless/app-media-player": "0.1.0-beta.9",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
     "@rollup/plugin-url": "^6.1.0",
