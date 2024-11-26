@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@hyrious/dts": "^0.2.2",
-    "@netless/app-docs-viewer": "^0.2.17",
+    "@netless/app-docs-viewer": "^0.2.18",
     "@netless/app-media-player": "0.1.0-beta.9",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
@@ -72,6 +72,6 @@
     "typescript": "^4.5.5",
     "vite": "^2.9.9",
     "vitest": "^0.14.1",
-    "white-web-sdk": "2.16.43"
+    "white-web-sdk": "2.16.52"
   }
 }
