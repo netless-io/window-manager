@@ -34,8 +34,8 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       '@netless/app-docs-viewer':
-        specifier: ^0.2.17
-        version: 0.2.17(jspdf@2.5.1)
+        specifier: ^0.2.18
+        version: 0.2.18(jspdf@2.5.1)
       '@netless/app-media-player':
         specifier: 0.1.0-beta.9
         version: 0.1.0-beta.9
@@ -127,8 +127,8 @@ importers:
         specifier: ^0.14.1
         version: 0.14.1(@vitest/ui@0.14.1)(jsdom@19.0.0)(less@4.1.2)
       white-web-sdk:
-        specifier: 2.16.43
-        version: 2.16.43
+        specifier: 2.16.52
+        version: 2.16.52
 
 packages:
 
@@ -191,8 +191,8 @@ packages:
   '@juggle/resize-observer@3.3.1':
     resolution: {integrity: sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==}
 
-  '@netless/app-docs-viewer@0.2.17':
-    resolution: {integrity: sha512-TmUOdwyxvwBw0+uXxaKLu413GBw3fmMWAEC1+KMr+q5WWkzZu+QeUloB11EqzdnsnwSG161V6iIYQBFaUwHpFw==}
+  '@netless/app-docs-viewer@0.2.18':
+    resolution: {integrity: sha512-rFMvOPqTlPTYknj6YEsknK0tvKPOsET7GI8mLax4Q4i2jBfroYAgv0AmBM3zNX7Q2PcRnNybWgEz8Nbo7TaOLQ==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
@@ -436,9 +436,6 @@ packages:
 
   '@types/lodash@4.14.182':
     resolution: {integrity: sha512-/THyiqyQAP9AfARo4pF+aCGcyiQ94tX/Is2I7HofNRqoYLgN1PBoOWu2/zTA5zMxzP5EFutMtWtGAFRKUe961Q==}
-
-  '@types/long@4.0.1':
-    resolution: {integrity: sha512-5tXH6Bx/kNGd3MgffdmP4dy2Z+G4eaXw0SE81Tq3BNadtnMR5/ySMzX4SLEzHJzSmPNn4HIdpQsBvXMUykr58w==}
 
   '@types/ms@0.7.31':
     resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
@@ -809,6 +806,10 @@ packages:
 
   color@3.2.1:
     resolution: {integrity: sha512-aBl7dZI9ENN6fUGC7mWpMTPNHmWUSNan9tuWN6ahh5ZLNk9baLJOnSMlrQkHcrfFgz2/RigjUVAjdx36VcemKA==}
+
+  color@4.2.3:
+    resolution: {integrity: sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A==}
+    engines: {node: '>=12.5.0'}
 
   colorette@2.0.16:
     resolution: {integrity: sha512-hUewv7oMjCp+wkBv5Rm0v87eJhq4woh5rSR+42YSQJKecCqgIqNkZ6lAlQms/BwHPJA5NKMRlpxPRv0n8HQW6g==}
@@ -1825,8 +1826,8 @@ packages:
     resolution: {integrity: sha512-9fkkDevMefjg0mmzWFBW8YkFP91OrizzkW3diF7CpG+S2EYdy4+TVfGwz1zeF8x7hCx1ovSPTOE9Ngib74qqUg==}
     engines: {node: '>=10'}
 
-  long@4.0.0:
-    resolution: {integrity: sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==}
+  long@5.2.3:
+    resolution: {integrity: sha512-lcHwpNoggQTObv5apGNCTdJrO69eHOZMi4BNC+rTLER8iHAqGrUVeLh/irVIM7zTw2bOXA8T6uNPeujwOLg/2Q==}
 
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
@@ -2290,9 +2291,9 @@ packages:
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
 
-  protobufjs@6.11.2:
-    resolution: {integrity: sha512-4BQJoPooKJl2G9j3XftkIXjoC9C0Av2NOrWmbLWT1vH32GcSUHjM0Arra6UfTsVyfMAuFzaLucXn1sadxJydAw==}
-    hasBin: true
+  protobufjs@7.4.0:
+    resolution: {integrity: sha512-mRUWCc3KUU4w1jU8sGxICXH/gNS94DvI1gxqDvBzhj1JpcsimQkYiOJfwsPUykUI5ZaspFbSgmBLER8IrQ3tqw==}
+    engines: {node: '>=12.0.0'}
 
   proxy-from-env@1.0.0:
     resolution: {integrity: sha512-F2JHgJQ1iqwnHDcQjVBsq3n/uoaFL+iPW/eAeL7kVxy/2RrWaN4WroKjjvbsoRtv0ftelNyC01bjRhn/bhcf4A==}
@@ -2816,8 +2817,8 @@ packages:
   value-enhancer@0.0.8:
     resolution: {integrity: sha512-ba8Rcyp9ItqlLWoyZVqHGaEdY1tqP1mcbRhlOrCnIrDxdl8rKNH1Rq45syo4IMYNSkwC2oV9xBWcV9dmL14aQg==}
 
-  vanilla-lazyload@17.8.3:
-    resolution: {integrity: sha512-0eYjhkSkfP/JCDIzVpmgnh9I3XKAA8/i/6FpRrH8qjcC+nHv5mYZ6DQZUIGU16TqJei23hHl0J/Zuv/zmCC2Zw==}
+  vanilla-lazyload@17.9.0:
+    resolution: {integrity: sha512-VOuNHn6xCXmC1I/Lz2cB/l1ScpsY2aXcymXzxtbsMmLQ2qiHr2KlBeJ7uf2Su/yqKTLkgdDWahznb/ae5YzZNA==}
 
   vendors@1.0.4:
     resolution: {integrity: sha512-/juG65kTL4Cy2su4P8HjtkTxk6VmJDiOPBufWniqQ6wknac6jNiXS9vU+hO3wgusiyqWlzTbVHi0dyJqRONg3w==}
@@ -2906,8 +2907,8 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
-  white-web-sdk@2.16.43:
-    resolution: {integrity: sha512-jDNcUQnyN8E83GzdZE+kBa07ZfTP4Socr0trDcK5ex1GMpDa/qta7YLNfusdo+blWICUFAZG74Q28Iu+YrNZWw==}
+  white-web-sdk@2.16.52:
+    resolution: {integrity: sha512-P15j3ytAYzPgSi5jaxvhZd+3yt7eYznenAf9LnGFMxqUt+OtuTAQl1JmAhexfpsfHAvMPEBpcw+Kh8cwiFsrHw==}
 
   word-wrap@1.2.3:
     resolution: {integrity: sha512-Hz/mrNwitNRh/HUAtM/VT/5VH+ygD6DV7mYKZAtHOrbs8U7lvPS6xf7EJKMF0uW1KJCl0H701g3ZGus+muE5vQ==}
@@ -3056,11 +3057,11 @@ snapshots:
 
   '@juggle/resize-observer@3.3.1': {}
 
-  '@netless/app-docs-viewer@0.2.17(jspdf@2.5.1)':
+  '@netless/app-docs-viewer@0.2.18(jspdf@2.5.1)':
     dependencies:
       '@juggle/resize-observer': 3.3.1
       debounce-fn: 5.1.2
-      vanilla-lazyload: 17.8.3
+      vanilla-lazyload: 17.9.0
     optionalDependencies:
       jspdf: 2.5.1
 
@@ -3271,8 +3272,6 @@ snapshots:
       '@types/lodash': 4.14.182
 
   '@types/lodash@4.14.182': {}
-
-  '@types/long@4.0.1': {}
 
   '@types/ms@0.7.31': {}
 
@@ -3662,6 +3661,11 @@ snapshots:
   color@3.2.1:
     dependencies:
       color-convert: 1.9.3
+      color-string: 1.9.0
+
+  color@4.2.3:
+    dependencies:
+      color-convert: 2.0.1
       color-string: 1.9.0
 
   colorette@2.0.16: {}
@@ -4761,7 +4765,7 @@ snapshots:
       slice-ansi: 4.0.0
       wrap-ansi: 6.2.0
 
-  long@4.0.0: {}
+  long@5.2.3: {}
 
   loose-envify@1.4.0:
     dependencies:
@@ -5263,7 +5267,7 @@ snapshots:
       object-assign: 4.1.1
       react-is: 16.13.1
 
-  protobufjs@6.11.2:
+  protobufjs@7.4.0:
     dependencies:
       '@protobufjs/aspromise': 1.1.2
       '@protobufjs/base64': 1.1.2
@@ -5275,9 +5279,8 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/long': 4.0.1
       '@types/node': 17.0.23
-      long: 4.0.0
+      long: 5.2.3
 
   proxy-from-env@1.0.0: {}
 
@@ -5798,7 +5801,7 @@ snapshots:
     dependencies:
       side-effect-manager: 0.1.5
 
-  vanilla-lazyload@17.8.3: {}
+  vanilla-lazyload@17.9.0: {}
 
   vendors@1.0.4: {}
 
@@ -5897,7 +5900,7 @@ snapshots:
     dependencies:
       isexe: 2.0.0
 
-  white-web-sdk@2.16.43:
+  white-web-sdk@2.16.52:
     dependencies:
       '@juggle/resize-observer': 3.3.1
       '@netless/canvas-polyfill': 0.0.4
@@ -5905,13 +5908,13 @@ snapshots:
       atob: 2.1.2
       bezier-js: 2.6.1
       bowser: 2.11.0
-      color: 3.2.1
+      color: 4.2.3
       core-js: 3.21.1
       detect-it: 3.0.7
       eventemitter3: 4.0.7
       mathjs: 10.6.4
       mobx: 6.5.0
-      protobufjs: 6.11.2
+      protobufjs: 7.4.0
       query-string: 5.1.1
       react: 16.14.0
       react-dom: 16.14.0(react@16.14.0)

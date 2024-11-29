@@ -1,3 +1,6 @@
+## 0.4.76 (2024-11-25)
+- 升级 @netless/app-docs-viewer@0.2.18
+
 ## 0.4.75 (2024-09-10)
 - 升级 @netless/app-media-player@0.1.0-beta.9
 
