@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "0.4.75",
+  "version": "1.0.0",
   "description": "Multi-window mode for Netless Whiteboard",
   "author": "l1shen <lishen1635@gmail.com> (https://github.com/l1shen)",
   "license": "MIT",
@@ -23,7 +23,7 @@
   },
   "peerDependencies": {
     "jspdf": "2.5.1",
-    "white-web-sdk": "^2.16.0"
+    "white-web-sdk": "^2.16.52"
   },
   "peerDependenciesMeta": {
     "jspdf": {
