@@ -294,6 +294,8 @@ manager.emitter.on(events, listener)
 | ready                    | undefined      |         | Triggered when all apps are created   |  
 | sceneStateChange         | SceneState     |         | Fired when sceneState is modified     |
 | pageStateChange          | PageState      |         |                            |
+| fullscreenChange          | boolean      |          | Triggered when the full-screen status changes          ｜
+| appsChange                 | string[]    |         | Triggered when the list of opened apps changes       |
 
 ```ts
 type LoadAppEvent = {

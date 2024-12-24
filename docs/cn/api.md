@@ -292,6 +292,8 @@ manager.emitter.on(events, listener)
 | ready                    | undefined      |         | 当所有 APP 创建完毕时触发      ｜
 | sceneStateChange         | SceneState     |         | 当 sceneState 修改时触发     |
 | pageStateChange          | PageState      |         |                            ｜
+| fullscreenChange          | boolean      |          | 当全屏状态改变时触发          ｜
+| appsChange                 | string[]    |         | 被打开的app列表改变时触发       |
 
 ```ts
 type LoadAppEvent = {
