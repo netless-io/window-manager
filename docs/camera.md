@@ -45,8 +45,9 @@ manager.setCameraBound({
 ## Prohibit/allow movement and scaling of `mainView` `camera`
 ```typescript
 // Prohibit `camera` from moving and zooming
-manager.mainView.disableCameraTransform = false
+manager.mainView.disableCameraTransform = true
 
 // restore `camera` movement, scaling
-manager.mainView.disableCameraTransform = true
+manager.mainView.disableCameraTransform = false
 ```
+**Note** that when this property is `true`, only device operations are prohibited. You can still actively adjust the perspective using the moveCamera method.

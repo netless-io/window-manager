@@ -45,9 +45,9 @@ manager.setCameraBound({
 ## 禁止/允许 `mainView` `camera` 的移动，缩放
 ```typescript
 // 禁止 `camera` 移动,缩放
-manager.mainView.disableCameraTransform = false
+manager.mainView.disableCameraTransform = true
 
 // 恢复 `camera` 移动,缩放
-manager.mainView.disableCameraTransform = true
+manager.mainView.disableCameraTransform = false
 ```
-
+**注意**，该属性为 `true` 时，仅仅禁止设备操作。你依然可以用 `moveCamera` 方法主动调整视角。
