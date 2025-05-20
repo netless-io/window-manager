@@ -1,3 +1,7 @@
+## 1.0.2(2025-05-20)
+
+- 升级 @netless/app-media-player@0.1.4
+
 ## 1.0.1 (2025-05-18)
 
 - 升级 @netless/app-media-player@0.1.3
