@@ -1,3 +1,7 @@
+## 1.0.3(2025-06-02)
+
+- 升级 @telebox-insider@0.2.31
+
 ## 1.0.2(2025-05-20)
 
 - 升级 @netless/app-media-player@0.1.4
