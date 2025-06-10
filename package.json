@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Multi-window mode for Netless Whiteboard",
   "author": "l1shen <lishen1635@gmail.com> (https://github.com/l1shen)",
   "license": "MIT",
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@hyrious/dts": "^0.2.2",
-    "@netless/app-docs-viewer": "^0.2.18",
+    "@netless/app-docs-viewer": "^0.2.19",
     "@netless/app-media-player": "0.1.4",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",

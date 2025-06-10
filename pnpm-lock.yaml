@@ -34,8 +34,8 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       '@netless/app-docs-viewer':
-        specifier: ^0.2.18
-        version: 0.2.18(jspdf@2.5.1)
+        specifier: ^0.2.19
+        version: 0.2.19(jspdf@2.5.1)
       '@netless/app-media-player':
         specifier: 0.1.4
         version: 0.1.4
@@ -191,8 +191,8 @@ packages:
   '@juggle/resize-observer@3.3.1':
     resolution: {integrity: sha512-zMM9Ds+SawiUkakS7y94Ymqx+S0ORzpG3frZirN3l+UlXUmSUR7hF4wxCVqW+ei94JzV5kt0uXBcoOEAuiydrw==}
 
-  '@netless/app-docs-viewer@0.2.18':
-    resolution: {integrity: sha512-rFMvOPqTlPTYknj6YEsknK0tvKPOsET7GI8mLax4Q4i2jBfroYAgv0AmBM3zNX7Q2PcRnNybWgEz8Nbo7TaOLQ==}
+  '@netless/app-docs-viewer@0.2.19':
+    resolution: {integrity: sha512-rxZ5qe+rHE4RfmbzEl4Yo+D47P587v+snRXVW/JVSJtJOAuiO2+slWynfwZYYyCzwKqslZ0KNbm5LrqofSss6Q==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
@@ -3030,7 +3030,7 @@ snapshots:
 
   '@juggle/resize-observer@3.3.1': {}
 
-  '@netless/app-docs-viewer@0.2.18(jspdf@2.5.1)':
+  '@netless/app-docs-viewer@0.2.19(jspdf@2.5.1)':
     dependencies:
       '@juggle/resize-observer': 3.3.1
       debounce-fn: 5.1.2
