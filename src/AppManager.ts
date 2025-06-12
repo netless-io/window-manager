@@ -67,6 +67,8 @@ export class AppManager {
     private callbacksNode: ScenesCallbacksNode | null = null;
     private appCreateQueue = new AppCreateQueue();
 
+    private _focusAppCreatedResolve?: (appProxy: AppProxy) => void;
+
     private sideEffectManager = new SideEffectManager();
 
     public sceneState: SceneState | null = null;
@@ -319,7 +321,15 @@ export class AppManager {
     }
 
     private async onCreated() {
+        if (Object.keys(this.attributes.apps).length && this.store.focus) {
+            await new Promise<AppProxy>(resolve => {
+                this._focusAppCreatedResolve = resolve;
+            }).then(() => {
+                this.focusByAttributes(this.attributes.apps);
+            });
+        }
         await this.attributesUpdateCallback(this.attributes.apps);
+        this.focusByAttributes(this.attributes.apps);
         internalEmitter.emit("updateManagerRect");
         boxEmitter.on("move", this.onBoxMove);
         boxEmitter.on("resize", this.onBoxResize);
@@ -512,9 +522,10 @@ export class AppManager {
                         if (!appAttributes) {
                             throw new Error("appAttributes is undefined");
                         }
-                        this.appCreateQueue.push<AppProxy>(() => {
+
+                        this.appCreateQueue.push<AppProxy>(async() => {
                             this.appStatus.set(id, AppStatus.StartCreate);
-                            return this.baseInsertApp(
+                            const appProxy = await this.baseInsertApp(
                                 {
                                     kind: app.kind,
                                     options: app.options,
@@ -523,6 +534,10 @@ export class AppManager {
                                 id,
                                 false
                             );
+                            if (appProxy &&this.store.focus === id && this._focusAppCreatedResolve) {
+                                this._focusAppCreatedResolve(appProxy);
+                            }
+                            return appProxy;
                         });
                         this.focusByAttributes(apps);
                     } catch (error) {
@@ -845,5 +860,6 @@ export class AppManager {
         this.sideEffectManager.flushAll();
         this._prevFocused = undefined;
         this._prevSceneIndex = undefined;
+        this._focusAppCreatedResolve = undefined;
     }
 }
