@@ -1,3 +1,8 @@
+## 1.0.5(2025-06-12)
+
+- 升级 @netless/telebox-insider@0.2.32
+- 修复: `appManager.onCreated`的时候, 因setProxy异步导致`RedoUndo`初始化获取appProxy为空
+
 ## 1.0.4(2025-06-10)
 
 - 升级 @netless/app-docs-viewer@0.2.19
