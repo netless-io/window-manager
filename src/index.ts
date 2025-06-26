@@ -57,6 +57,8 @@ import type { PageController, AddPageParams, PageState } from "./Page";
 import { boxEmitter } from "./BoxEmitter";
 import { IframeBridge } from "./View/IframeBridge";
 import { setOptions } from "@netless/app-media-player";
+import type { ExtendPluginInstance } from "./ExtendPluginManager";
+import { ExtendPluginManager } from "./ExtendPluginManager";
 export * from "./View/IframeBridge";
 
 export type WindowMangerAttributes = {
@@ -196,6 +198,8 @@ export class WindowManager
     private containerResizeObserver?: ContainerResizeObserver;
     public containerSizeRatio = WindowManager.containerSizeRatio;
 
+    private extendPluginManager?: ExtendPluginManager;
+
     constructor(context: InvisiblePluginContext) {
         super(context);
         WindowManager.displayer = context.displayer;
@@ -275,6 +279,11 @@ export class WindowManager
             params.cursorOptions,
             params.applianceIcons
         );
+        manager.extendPluginManager = new ExtendPluginManager({
+            internalEmitter: internalEmitter,
+            windowManager: manager,
+        });
+
         if (containerSizeRatio) {
             manager.containerSizeRatio = containerSizeRatio;
         }
@@ -919,6 +928,7 @@ export class WindowManager
         this.containerResizeObserver?.disconnect();
         this.appManager?.destroy();
         this.cursorManager?.destroy();
+        this.extendPluginManager?.destroy();
         WindowManager.container = undefined;
         WindowManager.wrapper = undefined;
         WindowManager.sizer = undefined;
@@ -1083,6 +1093,10 @@ export class WindowManager
         this._iframeBridge || (this._iframeBridge = new IframeBridge(this, this.appManager));
         return this._iframeBridge;
     }
+
+    public useExtendPlugin(extend: ExtendPluginInstance<any>) {
+        this.extendPluginManager?.use(extend);
+    }
 }
 
 setupBuiltin();
@@ -1091,3 +1105,5 @@ export * from "./typings";
 
 export { BuiltinApps } from "./BuiltinApps";
 export type { PublicEvent } from "./callback";
+
+export * from "./ExtendPluginManager";

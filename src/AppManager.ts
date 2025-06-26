@@ -523,7 +523,7 @@ export class AppManager {
                             throw new Error("appAttributes is undefined");
                         }
 
-                        this.appCreateQueue.push<AppProxy>(async() => {
+                        this.appCreateQueue.push<AppProxy>(async () => {
                             this.appStatus.set(id, AppStatus.StartCreate);
                             const appProxy = await this.baseInsertApp(
                                 {
@@ -534,7 +534,11 @@ export class AppManager {
                                 id,
                                 false
                             );
-                            if (appProxy &&this.store.focus === id && this._focusAppCreatedResolve) {
+                            if (
+                                appProxy &&
+                                this.store.focus === id &&
+                                this._focusAppCreatedResolve
+                            ) {
                                 this._focusAppCreatedResolve(appProxy);
                             }
                             return appProxy;
