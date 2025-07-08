@@ -1,3 +1,7 @@
+## 1.0.6(2025-07-08)
+
+- 新增 `ExtendPluginManager`, 用于扩展window-managerd内部插件管理
+
 ## 1.0.5(2025-06-12)
 
 - 升级 @netless/telebox-insider@0.2.32

@@ -7,6 +7,7 @@ export interface ExtendContext {
     readonly manager: ExtendPluginManager;
     readonly windowManager: WindowManager;
     readonly internalEmitter: EmitterType;
+    windowManagerContainer?: HTMLElement;
 }
 
 export abstract class ExtendPlugin extends Emittery {
@@ -24,6 +25,7 @@ export type ExtendPluginInstance<T extends ExtendPlugin> = T;
 export interface ExtendManagerOptions {
     readonly windowManager: WindowManager;
     readonly internalEmitter: EmitterType;
+    readonly container?: HTMLElement;
 }
 
 export class ExtendPluginManager {
@@ -35,6 +37,16 @@ export class ExtendPluginManager {
             windowManager: props.windowManager,
             internalEmitter: props.internalEmitter,
         };
+        if (props.container) {
+            this.refreshContainer(props.container);
+        }
+    }
+
+    refreshContainer(container: HTMLElement) {
+        this.context.windowManagerContainer = container;
+        this.extends.forEach(extend => {
+            extend._inject(this.context);
+        });
     }
 
     hasRegister(kind: string) {

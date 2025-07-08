@@ -279,6 +279,7 @@ export class WindowManager
             params.cursorOptions,
             params.applianceIcons
         );
+
         manager.extendPluginManager = new ExtendPluginManager({
             internalEmitter: internalEmitter,
             windowManager: manager,
@@ -383,6 +384,7 @@ export class WindowManager
         this.appManager?.resetMinimized();
         this.appManager?.displayerWritableListener(!this.room.isWritable);
         WindowManager.container = container;
+        this.extendPluginManager?.refreshContainer(container);
     }
 
     public bindCollectorContainer(container: HTMLElement) {
