@@ -187,6 +187,11 @@ export class AppProxy implements PageRemoveService {
                 this.appEmitter.onAny(this.appListener);
                 this.appAttributesUpdateListener(appId);
                 this.setViewFocusScenePath();
+                // 如果当前是回放模式, 则需要记录当前主视图的场景路径, 以便在 app 创建后恢复
+                let currentMainViewScenePath: string | undefined;
+                if (this.manager.isReplay) {
+                    currentMainViewScenePath = (this.manager.mainView as any).scenePath as string;
+                }
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
                     console.log("setup app", app);
@@ -195,6 +200,9 @@ export class AppProxy implements PageRemoveService {
                     appRegister.notifyApp(this.kind, "created", { appId, result });
                     this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
+                    if (currentMainViewScenePath) {
+                        this.manager.mainViewProxy.setFocusScenePath(currentMainViewScenePath);
+                    }
                     callbacks.emit("onAppSetup", appId);
                 }, SETUP_APP_DELAY);
             });
