@@ -21,6 +21,7 @@ export const STORAGE_NS = "_WM-STORAGE_";
 
 export class Storage<TState extends Record<string, any> = any> implements Storage<TState> {
     readonly id: string | null;
+    readonly maxIllusionQueueSize = 500;
 
     private readonly _context: AppContext;
     private readonly _sideEffect = new SideEffectManager();
