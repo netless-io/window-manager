@@ -3,6 +3,7 @@ import Emittery from "emittery";
 
 export type BoxMovePayload = { appId: string; x: number; y: number };
 export type BoxFocusPayload = { appId: string };
+export type BoxBlurredPayload = { appId: string };
 export type BoxResizePayload = {
     appId: string;
     width: number;
@@ -19,6 +20,7 @@ export type BoxEvent = {
     resize: BoxResizePayload;
     close: BoxClosePayload;
     boxStateChange: BoxStateChangePayload;
+    blurred: BoxBlurredPayload;
 };
 
 export type BoxEmitterType = Emittery<BoxEvent>;

@@ -4,6 +4,7 @@ import type { CameraState, SceneState, View, ViewVisionMode } from "white-web-sd
 import type { LoadAppEvent } from "./Register";
 import type { PageState } from "./Page";
 import type {
+    BoxBlurredPayload,
     BoxClosePayload,
     BoxFocusPayload,
     BoxMovePayload,
@@ -33,6 +34,7 @@ export type PublicEvent = {
     onBoxMove: BoxMovePayload;
     onBoxResize: BoxResizePayload;
     onBoxFocus: BoxFocusPayload;
+    onBoxBlurred: BoxBlurredPayload;
     onBoxClose: BoxClosePayload;
     onBoxStateChange: BoxStateChangePayload;
     onMainViewMounted: View;

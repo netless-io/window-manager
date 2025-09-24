@@ -4,11 +4,14 @@ import { setViewFocusScenePath } from "./Utils/Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { Cursor } from "./Cursor/Cursor";
+import { ExtendClass, getExtendClass } from "./Utils/extendClass";
+import { NotMinimizedBoxState, TELE_BOX_STATE, TeleBoxState } from "@netless/telebox-insider";
 
 export enum Fields {
     Apps = "apps",
     Focus = "focus",
     State = "state",
+    /** 默认窗口状态, (用于窗口状态的统一管理) */
     BoxState = "boxState",
     MainViewCamera = "mainViewCamera",
     MainViewSize = "mainViewSize",
@@ -19,6 +22,10 @@ export enum Fields {
     FullPath = "fullPath",
     Registered = "registered",
     IframeBridge = "iframeBridge",
+    /** 所有窗口状态, (用于窗口状态的单独管理) */
+    BoxesStatus = "boxesStatus",
+    /** 上次非最小化窗口状态 */
+    LastNotMinimizedBoxesStatus = "lastNotMinimizedBoxesStatus",
 }
 
 export type Apps = {
@@ -77,6 +84,42 @@ export class AttributesDelegate {
 
     public getMinimized() {
         return get(this.attributes, ["minimized"]);
+    }
+
+    public getBoxesStatus(): Record<string, TELE_BOX_STATE> | undefined {
+        return get(this.attributes, [Fields.BoxesStatus]);
+    }
+
+    public getBoxStatus(id: string): TELE_BOX_STATE | undefined {
+        return get(this.attributes, [Fields.BoxesStatus, id]);
+    }
+
+    public setBoxStatus(id: string, status?: TeleBoxState) {
+        const attributes = this.attributes;
+        if (!attributes.boxesStatus) {
+            this.context.safeSetAttributes({ boxesStatus: {} });
+        }
+        if (this.getBoxStatus(id) !== status) {
+            this.context.safeUpdateAttributes([Fields.BoxesStatus, id], status);
+        }
+    }
+
+    public getLastNotMinimizedBoxesStatus(): Record<string, NotMinimizedBoxState> | undefined {
+        return get(this.attributes, [Fields.LastNotMinimizedBoxesStatus]);
+    }
+
+    public getLastNotMinimizedBoxStatus(id: string): NotMinimizedBoxState | undefined {
+        return get(this.attributes, [Fields.LastNotMinimizedBoxesStatus, id]);
+    }
+
+    public setLastNotMinimizedBoxStatus(id: string, status?: NotMinimizedBoxState) {
+        const attributes = this.attributes;
+        if (!attributes.lastNotMinimizedBoxesStatus) {
+            this.context.safeSetAttributes({ lastNotMinimizedBoxesStatus: {} });
+        }
+        if (this.getLastNotMinimizedBoxStatus(id) !== status) {
+            this.context.safeUpdateAttributes([Fields.LastNotMinimizedBoxesStatus, id], status);
+        }
     }
 
     public setupAppAttributes(params: AddAppParams, id: string, isDynamicPPT: boolean) {
@@ -249,14 +292,32 @@ export type Cursors = {
     [key: string]: Cursor;
 };
 
-export const store = new AttributesDelegate({
-    getAttributes: () => {
-        throw new Error("getAttributes not implemented");
-    },
-    safeSetAttributes: () => {
-        throw new Error("safeSetAttributes not implemented");
-    },
-    safeUpdateAttributes: () => {
-        throw new Error("safeUpdateAttributes not implemented");
-    },
-});
+// export const store = new AttributesDelegate({
+//     getAttributes: () => {
+//         throw new Error("getAttributes not implemented");
+//     },
+//     safeSetAttributes: () => {
+//         throw new Error("safeSetAttributes not implemented");
+//     },
+//     safeUpdateAttributes: () => {
+//         throw new Error("safeUpdateAttributes not implemented");
+//     },
+// });
+
+export const createAttributesDelegate = (
+    extendClass?: ExtendClass,
+    context: StoreContext = {
+        getAttributes: () => {
+            throw new Error("getAttributes not implemented");
+        },
+        safeSetAttributes: () => {
+            throw new Error("safeSetAttributes not implemented");
+        },
+        safeUpdateAttributes: () => {
+            throw new Error("safeUpdateAttributes not implemented");
+        },
+    }
+) => {
+    const AttributesDelegateClass = getExtendClass(AttributesDelegate, extendClass);
+    return new AttributesDelegateClass(context);
+};

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist";
-import type { WindowManager as WindowManagerType } from "../dist";
 import {
     createStatic,
     createDynamic,
@@ -17,6 +16,7 @@ import "../dist/style.css";
 import "./register";
 import "./index.css";
 import { DefaultHotKeys } from "white-web-sdk";
+import { customAppContext, customAppManager, customAppProxy, customAttributesDelegate, customBoxManager, customCursorManager } from "./extendClass";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
@@ -35,7 +35,7 @@ const isWritable = url.get("isWritable");
 const isReplay = url.get("isReplay");
 const cursor = url.get("cursor") === "false" ? false : true;
 
-let manager: WindowManagerType;
+let manager: WindowManager;
 
 const mountManager = async (room, root) => {
     manager = (await WindowManager.mount({
@@ -46,9 +46,17 @@ const mountManager = async (room, root) => {
         // fullscreen: true,
         debug: true,
         cursor,
+        useBoxesStatus: true,
         // cursorOptions: { style: "custom" },
         // overwriteStyles: ".netless-window-manager-cursor-name { display: none }",
-    })) as WindowManagerType;
+    }, {
+        AppContext: customAppContext,
+        AppManager: customAppManager,
+        AppProxy: customAppProxy,
+        BoxManager: customBoxManager,
+        AttributesDelegate: customAttributesDelegate,
+        CursorManager: customCursorManager,
+    })) as WindowManager;
 
     manager.emitter.on("ready", async () => {
         if (isWritable === "false") {
@@ -110,7 +118,7 @@ const mountManager = async (room, root) => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     manager.emitter.on("cameraStateChange", state => {
-        // console.log("cameraStateChange", state);
+        console.log("cameraStateChange", state);
     });
 
     manager.emitter.on("sceneStateChange", state => {

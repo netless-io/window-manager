@@ -7,9 +7,9 @@ import { autorun, isPlayer, isRoom, ScenePathType, UpdateEventKind } from "white
 import { boxEmitter } from "./BoxEmitter";
 import { calculateNextIndex } from "./Page";
 import { callbacks } from "./callback";
-import { debounce, get, isInteger, orderBy } from "lodash";
+import { debounce, get, isEqual, isInteger, orderBy } from "lodash";
 import { internalEmitter } from "./InternalEmitter";
-import { Fields, store } from "./AttributesDelegate";
+import { AttributesDelegate, createAttributesDelegate, Fields } from "./AttributesDelegate";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { safeListenPropsUpdated } from "./Utils/Reactive";
@@ -41,19 +41,21 @@ import type {
 } from "white-web-sdk";
 import type { AddAppParams, BaseInsertParams, TeleBoxRect } from "./index";
 import type {
+    BoxBlurredPayload,
     BoxClosePayload,
     BoxFocusPayload,
     BoxMovePayload,
     BoxResizePayload,
     BoxStateChangePayload,
 } from "./BoxEmitter";
+import { getExtendClass } from "./Utils/extendClass";
 
 export class AppManager {
     public displayer: Displayer;
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();
     public appStatus: Map<string, AppStatus> = new Map();
-    public store = store;
+    public store!: AttributesDelegate;
     public mainViewProxy: MainViewProxy;
     public refresher: ReconnectRefresher;
     public isReplay = this.windowManger.isReplay;
@@ -75,9 +77,24 @@ export class AppManager {
 
     public rootDirRemoving = false;
 
+    private _useBoxesStatus = false;
+
+    public get useBoxesStatus() {
+        return this._useBoxesStatus;
+    }
+
+    public set useBoxesStatus(value: boolean) {
+        this._useBoxesStatus = value;
+    }
+
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
-        this.store.setContext({
+        // this.store.setContext({
+        //     getAttributes: () => this.attributes,
+        //     safeSetAttributes: attributes => this.safeSetAttributes(attributes),
+        //     safeUpdateAttributes: (keys, val) => this.safeUpdateAttributes(keys, val),
+        // });
+        this.store = createAttributesDelegate(WindowManager.extendClass, {
             getAttributes: () => this.attributes,
             safeSetAttributes: attributes => this.safeSetAttributes(attributes),
             safeUpdateAttributes: (keys, val) => this.safeUpdateAttributes(keys, val),
@@ -336,9 +353,11 @@ export class AppManager {
         boxEmitter.on("focus", this.onBoxFocus);
         boxEmitter.on("close", this.onBoxClose);
         boxEmitter.on("boxStateChange", this.onBoxStateChange);
+        boxEmitter.on("blurred", this.onBoxBlurred);
 
         this.addAppsChangeListener();
         this.addAppCloseListener();
+        this.addBoxesStatusChangeListener();
         this.refresher.add("maximized", () => {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
@@ -413,6 +432,14 @@ export class AppManager {
         callbacks.emit("onBoxFocus", payload);
     };
 
+    private onBoxBlurred = (payload: BoxBlurredPayload) => {
+        const focus = this.attributes.focus;
+        if (focus === payload.appId) { 
+            this.windowManger.safeSetAttributes({ focus: undefined });
+            callbacks.emit("onBoxBlurred", payload);
+        }
+    };
+
     private onBoxClose = (payload: BoxClosePayload) => {
         const appProxy = this.appProxies.get(payload.appId);
         if (appProxy) {
@@ -424,6 +451,25 @@ export class AppManager {
     private onBoxStateChange = (payload: BoxStateChangePayload) => {
         this.dispatchInternalEvent(Events.AppBoxStateChange, payload);
         callbacks.emit("onBoxStateChange", payload);
+    };
+
+    public addBoxesStatusChangeListener = () => {
+        this.refresher.add("boxesStatus", () => {
+            return safeListenPropsUpdated(
+                () => this.attributes.boxesStatus,
+                () => {
+                    this.boxManager?.setBoxesStatus(this.attributes.boxesStatus);
+                }
+            );
+        });
+        this.refresher.add("lastNotMinimizedBoxesStatus", () => {
+            return safeListenPropsUpdated(
+                () => this.attributes.lastNotMinimizedBoxesStatus,
+                () => {
+                    this.boxManager?.setLastNotMinimizedBoxesStatus(this.attributes.lastNotMinimizedBoxesStatus);
+                }
+            );
+        });
     };
 
     public addAppsChangeListener = () => {
@@ -697,7 +743,8 @@ export class AppManager {
             console.warn("[WindowManager]: app duplicate exists and cannot be created again");
             return;
         }
-        const appProxy = new AppProxy(params, this, appId, isAddApp);
+        const AppProxyClass = getExtendClass(AppProxy, WindowManager.extendClass);
+        const appProxy = new AppProxyClass(params, this, appId, isAddApp);
         if (appProxy) {
             await appProxy.baseInsertApp(focus);
             this.appStatus.delete(appId);

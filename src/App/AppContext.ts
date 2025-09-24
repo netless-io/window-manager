@@ -19,7 +19,7 @@ import type {
 import type { ReadonlyTeleBox } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { BoxManager } from "../BoxManager";
-import type { AppEmitterEvent } from "../index";
+import type { AppEmitterEvent, WindowManager } from "../index";
 import type { AppManager } from "../AppManager";
 import type { AppProxy } from "./AppProxy";
 import type {
@@ -62,8 +62,24 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
         this.isAddApp = appProxy.isAddApp;
     }
 
+    public getManager = (): AppManager => {
+        return this.manager;
+    };
+
+    public getBoxManager = (): BoxManager => {
+        return this.boxManager;
+    };
+
+    public getWindowManager = (): WindowManager => {
+        return this.manager.windowManger;
+    };
+
     public getDisplayer = () => {
         return this.manager.displayer;
+    };
+
+    public getAppProxy = (): AppProxy => {
+        return this.appProxy;
     };
 
     /** @deprecated Use context.storage.state instead. */

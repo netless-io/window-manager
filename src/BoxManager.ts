@@ -12,12 +12,15 @@ import type {
     TeleBoxColorScheme,
     TeleBoxRect,
     TeleBoxConfig,
+    TeleBoxState,
+    NotMinimizedBoxState,
 } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
+import { getExtendClass } from "./Utils/extendClass";
 
 export { TELE_BOX_STATE };
 
@@ -29,6 +32,7 @@ export type CreateBoxParams = {
     options?: AddAppOptions;
     canOperate?: boolean;
     smartPosition?: boolean;
+    boxStatus?: TeleBoxState;
 };
 
 type AppId = { appId: string };
@@ -45,12 +49,15 @@ export type CreateTeleBoxManagerConfig = {
     collectorContainer?: HTMLElement;
     collectorStyles?: Partial<CSSStyleDeclaration>;
     prefersColorScheme?: TeleBoxColorScheme;
+    useBoxesStatus?: boolean;
 };
 
 export type BoxManagerContext = {
     safeSetAttributes: (attributes: any) => void;
     getMainView: () => View;
     updateAppState: (appId: string, field: AppAttributes, value: any) => void;
+    setBoxStatus: (appId: string, status?: TeleBoxState) => void;
+    setLastNotMinimizedBoxStatus: (appId: string, status?: NotMinimizedBoxState) => void;
     emitter: EmitterType;
     boxEmitter: BoxEmitterType;
     callbacks: CallbacksType;
@@ -67,11 +74,22 @@ export const createBoxManager = (
     boxEmitter: BoxEmitterType,
     options: CreateTeleBoxManagerConfig
 ) => {
-    return new BoxManager(
+    const BoxManagerClass = getExtendClass(BoxManager, WindowManager.extendClass);
+    return new BoxManagerClass(
         {
             safeSetAttributes: (attributes: any) => manager.safeSetAttributes(attributes),
             getMainView: () => manager.mainView,
             updateAppState: (...args) => manager.appManager?.store.updateAppState(...args),
+            setBoxStatus: (id: string, boxStatus?: TeleBoxState) =>
+                manager.appManager?.store.setBoxStatus(id, boxStatus),
+            setLastNotMinimizedBoxStatus: (
+                id: string,
+                lastNotMinimizedBoxStatus?: NotMinimizedBoxState
+            ) =>
+                manager.appManager?.store.setLastNotMinimizedBoxStatus(
+                    id,
+                    lastNotMinimizedBoxStatus
+                ),
             canOperate: () => manager.canOperate,
             notifyContainerRectUpdate: (rect: TeleBoxRect) =>
                 manager.appManager?.notifyContainerRectUpdate(rect),
@@ -167,9 +185,32 @@ export class BoxManager {
                 }
             }
         });
+        this.teleBoxManager.events.on("blurred", box => {
+            if (box) {
+                if (this.canOperate) {
+                    boxEmitter.emit("blurred", { appId: box.id });
+                }
+            }
+        });
         this.teleBoxManager.events.on("z_index", box => {
             this.context.updateAppState(box.id, AppAttributes.ZIndex, box.zIndex);
         });
+        this.teleBoxManager.events.on(
+            "box_status",
+            (box: { id: string; boxStatus?: TeleBoxState }) => {
+                if (this.canOperate) {
+                    this.context.setBoxStatus(box.id, box.boxStatus);
+                }
+            }
+        );
+        this.teleBoxManager.events.on(
+            "last_not_minimized_box_status",
+            (box: { id: string; boxStatus?: NotMinimizedBoxState }) => {
+                if (this.canOperate) {
+                    this.context.setLastNotMinimizedBoxStatus(box.id, box.boxStatus);
+                }
+            }
+        );
         emitter.on("playgroundSizeChange", () => this.updateManagerRect());
         emitter.on("updateManagerRect", () => this.updateManagerRect());
     }
@@ -228,6 +269,7 @@ export class BoxManager {
             width,
             height,
             id: params.appId,
+            boxStatus: params.boxStatus,
         };
         this.teleBoxManager.create(createBoxConfig, params.smartPosition);
         this.context.emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
@@ -247,6 +289,21 @@ export class BoxManager {
             }
         }
     }
+    public setBoxesStatus(status?: Record<string, TeleBoxState>): void {
+        this.teleBoxManager.setBoxesStatus(new Map(Object.entries(status ?? {})), true);
+    }
+
+    public setBoxStatus(appId: string, status?: TeleBoxState): void {
+        this.teleBoxManager.update(appId, { boxStatus: status }, true);
+    }
+
+    public setLastNotMinimizedBoxesStatus(status?: Record<string, NotMinimizedBoxState>): void {
+        this.teleBoxManager.setLastNotMinimizedBoxesStatus(new Map(Object.entries(status ?? {})), true);
+    }
+
+    public setLastNotMinimizedBoxStatus(appId: string, status?: NotMinimizedBoxState): void {
+        this.teleBoxManager.update(appId, { lastNotMinimizedBoxStatus: status }, true);
+    }
 
     public setupBoxManager(
         createTeleBoxManagerConfig?: CreateTeleBoxManagerConfig
@@ -263,6 +320,7 @@ export class BoxManager {
             },
             fence: false,
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
+            useBoxesStatus: createTeleBoxManagerConfig?.useBoxesStatus || false,
         };
 
         const manager = new TeleBoxManager(initManagerState);
@@ -318,6 +376,8 @@ export class BoxManager {
                     width: state.width || 0.5,
                     height: state.height || 0.5,
                     zIndex: state.zIndex,
+                    boxStatus: state.boxStatus,
+                    lastNotMinimizedBoxStatus: state.lastNotMinimizedBoxStatus,
                 },
                 true
             );

@@ -28,9 +28,9 @@ import {
     putScenes,
     wait,
 } from "./Utils/Common";
-import type { TELE_BOX_STATE, BoxManager } from "./BoxManager";
+import { TELE_BOX_STATE, BoxManager } from "./BoxManager";
 import * as Errors from "./Utils/error";
-import type { Apps, Position } from "./AttributesDelegate";
+import { Apps, Position } from "./AttributesDelegate";
 import type {
     Displayer,
     SceneDefinition,
@@ -49,8 +49,12 @@ import type {
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
-import type { TeleBoxColorScheme, TeleBoxState } from "@netless/telebox-insider";
-import type { AppProxy } from "./App";
+import type {
+    NotMinimizedBoxState,
+    TeleBoxColorScheme,
+    TeleBoxState,
+} from "@netless/telebox-insider";
+import { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
@@ -59,7 +63,9 @@ import { IframeBridge } from "./View/IframeBridge";
 import { setOptions } from "@netless/app-media-player";
 import type { ExtendPluginInstance } from "./ExtendPluginManager";
 import { ExtendPluginManager } from "./ExtendPluginManager";
-export * from "./View/IframeBridge";
+import { ExtendClass, getExtendClass } from "./Utils/extendClass";
+
+export * from "./utils/extendClass";
 
 export type WindowMangerAttributes = {
     modelValue?: string;
@@ -122,8 +128,13 @@ export type AppInitState = {
     maximized?: boolean;
     minimized?: boolean;
     sceneIndex?: number;
+    /** 所有box的基本状态 */
     boxState?: TeleBoxState; // 兼容旧版 telebox
     zIndex?: number;
+    /** 扩展版本,单个box的状态 */
+    boxStatus?: TeleBoxState;
+    /** 上次非最小化窗口状态 */
+    lastNotMinimizedBoxStatus?: NotMinimizedBoxState;
 };
 
 export type CursorMovePayload = { uid: string; state?: "leave"; position: Position };
@@ -156,10 +167,11 @@ export type MountParams = {
     fullscreen?: boolean;
     polling?: boolean;
     supportAppliancePlugin?: boolean;
+    /** 是否使用 boxesStatus 状态管理窗口 */
+    useBoxesStatus?: boolean;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
-
 export class WindowManager
     extends InvisiblePlugin<WindowMangerAttributes, any>
     implements PageController
@@ -194,6 +206,7 @@ export class WindowManager
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
+    static extendClass?: ExtendClass;
 
     private containerResizeObserver?: ContainerResizeObserver;
     public containerSizeRatio = WindowManager.containerSizeRatio;
@@ -210,7 +223,10 @@ export class WindowManager
         WindowManager._resolve(manager);
     }
 
-    public static async mount(params: MountParams): Promise<WindowManager> {
+    public static async mount(
+        params: MountParams,
+        extendClass?: ExtendClass
+    ): Promise<WindowManager> {
         const room = params.room;
         WindowManager.container = params.container;
         WindowManager.supportAppliancePlugin = params.supportAppliancePlugin;
@@ -219,6 +235,7 @@ export class WindowManager
 
         const cursor = params.cursor;
         WindowManager.params = params;
+        WindowManager.extendClass = extendClass;
         WindowManager.displayer = params.room;
         checkVersion();
         let manager: WindowManager | undefined = undefined;
@@ -269,11 +286,14 @@ export class WindowManager
         }
         await manager.ensureAttributes();
 
+        const AppManagerClass = getExtendClass(AppManager, WindowManager.extendClass);
+        const CursorManagerClass = getExtendClass(CursorManager, WindowManager.extendClass);
+
         manager._fullscreen = params.fullscreen;
-        manager.appManager = new AppManager(manager);
+        manager.appManager = new AppManagerClass(manager);
         manager.appManager.polling = params.polling || false;
         manager._pageState = new PageStateImpl(manager.appManager);
-        manager.cursorManager = new CursorManager(
+        manager.cursorManager = new CursorManagerClass(
             manager.appManager,
             Boolean(cursor),
             params.cursorOptions,
@@ -369,9 +389,14 @@ export class WindowManager
                     collectorContainer: params.collectorContainer,
                     collectorStyles: params.collectorStyles,
                     prefersColorScheme: params.prefersColorScheme,
+                    useBoxesStatus: params.useBoxesStatus,
                 });
                 this.boxManager = boxManager;
-                this.appManager?.setBoxManager(boxManager);
+                if (this.appManager) {
+                    this.appManager.useBoxesStatus = params.useBoxesStatus || false;
+                    this.appManager.setBoxManager(boxManager);
+    
+                }
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
                 if (WindowManager.wrapper) {
                     this.cursorManager?.setupWrapper(WindowManager.wrapper);
@@ -696,6 +721,21 @@ export class WindowManager
         this.boxManager?.setMinimized(minimized, false);
     }
 
+    /** 设置指定 box 的状态, 如果为 undefined, 则移除状态*/
+    public setBoxStatus(boxId: string, boxStatus?: TELE_BOX_STATE): void {
+        if (!this.canOperate) return;
+        this.boxManager?.setBoxStatus(boxId, boxStatus);
+    }
+
+    /** 设置指定 box 的非最小化状态, 如果为 undefined, 则移除状态 */
+    public setLastNotMinimizedBoxStatus(
+        boxId: string,
+        lastNotMinimizedBoxStatus?: NotMinimizedBoxState
+    ): void {
+        if (!this.canOperate) return;
+        this.boxManager?.setLastNotMinimizedBoxStatus(boxId, lastNotMinimizedBoxStatus);
+    }
+
     public setFullscreen(fullscreen: boolean): void {
         if (this._fullscreen !== fullscreen) {
             this._fullscreen = fullscreen;
@@ -756,6 +796,22 @@ export class WindowManager
     public get boxState(): TeleBoxState | undefined {
         if (this.appManager) {
             return this.appManager.boxManager?.boxState;
+        } else {
+            throw new Errors.AppManagerNotInitError();
+        }
+    }
+
+    public get boxStatus(): Record<string, TELE_BOX_STATE> | undefined {
+        if (this.appManager) {
+            return this.appManager.store.getBoxesStatus();
+        } else {
+            throw new Errors.AppManagerNotInitError();
+        }
+    }
+
+    public get lastNotMinimizedBoxStatus(): Record<string, NotMinimizedBoxState> | undefined {
+        if (this.appManager) {
+            return this.appManager.store.getLastNotMinimizedBoxesStatus();
         } else {
             throw new Errors.AppManagerNotInitError();
         }

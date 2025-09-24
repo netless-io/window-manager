@@ -23,14 +23,16 @@ import type {
     setAppOptions,
     AppListenerKeys,
 } from "../index";
+import { WindowManager } from "../index";
 import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
-import type { ReadonlyTeleBox } from "@netless/telebox-insider";
+import { TELE_BOX_STATE, type ReadonlyTeleBox, type TeleBoxState } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
 import { calculateNextIndex } from "../Page";
 import { boxEmitter } from "../BoxEmitter";
 import { callbacks } from "../callback";
+import { getExtendClass } from "../Utils/extendClass";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -148,7 +150,8 @@ export class AppProxy implements PageRemoveService {
                 skipUpdate,
                 appImpl,
                 params.options,
-                appParams?.appOptions
+                appParams?.appOptions,
+                this.manager.useBoxesStatus ? TELE_BOX_STATE.Normal : undefined
             );
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
@@ -169,13 +172,15 @@ export class AppProxy implements PageRemoveService {
         skipUpdate: boolean,
         app: NetlessApp,
         options?: setAppOptions,
-        appOptions?: any
+        appOptions?: any,
+        boxStatus?: TeleBoxState
     ) {
-        log("setupApp", appId, app, options);
+        log("setupApp", appId, app, options, boxStatus);
         if (!this.boxManager) {
             throw new BoxManagerNotFoundError();
         }
-        const context = new AppContext(this.manager, this.boxManager, appId, this, appOptions);
+        const AppContextClass = getExtendClass(AppContext, WindowManager.extendClass);
+        const context = new AppContextClass(this.manager, this.boxManager, appId, this, appOptions);
         this.appContext = context;
         try {
             internalEmitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
@@ -212,8 +217,12 @@ export class AppProxy implements PageRemoveService {
                 options,
                 canOperate: this.manager.canOperate,
                 smartPosition: this.isAddApp,
+                boxStatus
             });
             if (this.isAddApp && this.box) {
+                if (boxStatus) {
+                    this.store.setBoxStatus(appId, boxStatus);
+                }
                 this.store.updateAppState(appId, AppAttributes.ZIndex, this.box.zIndex);
                 this.store.updateAppState(appId, AppAttributes.Size, {
                     width: this.box.intrinsicWidth,
@@ -266,7 +275,8 @@ export class AppProxy implements PageRemoveService {
         const currentAppState = this.getAppInitState(this.id);
         await this.destroy(true, false, true);
         const params = this.params;
-        const appProxy = new AppProxy(params, this.manager, this.id, this.isAddApp);
+        const AppProxyClass = getExtendClass(AppProxy, WindowManager.extendClass);
+        const appProxy = new AppProxyClass(params, this.manager, this.id, this.isAddApp);
         await appProxy.baseInsertApp(true);
         this.boxManager?.updateBoxState(currentAppState);
     }
@@ -298,6 +308,9 @@ export class AppProxy implements PageRemoveService {
         const sceneIndex = attrs?.[AppAttributes.SceneIndex];
         const maximized = this.attributes?.["maximized"];
         const minimized = this.attributes?.["minimized"];
+        const boxStatus = this.store.getBoxStatus(id) ?? undefined;
+        const lastNotMinimizedBoxStatus =
+            this.store.getLastNotMinimizedBoxStatus(id) ?? undefined;
         const zIndex = attrs?.zIndex;
         let payload = { maximized, minimized, zIndex } as AppInitState;
         if (position) {
@@ -311,6 +324,12 @@ export class AppProxy implements PageRemoveService {
         }
         if (sceneIndex) {
             payload = { ...payload, sceneIndex };
+        }
+        if (boxStatus) {
+            payload = { ...payload, boxStatus };
+        }
+        if (lastNotMinimizedBoxStatus) {
+            payload = { ...payload, lastNotMinimizedBoxStatus };
         }
         return payload;
     };

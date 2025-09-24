@@ -9,7 +9,7 @@
         "module": "ESNext",
         "skipLibCheck": true,
         "useDefineForClassFields": false,
-        "target": "es6",
+        "target": "es2015",
         "jsx": "react",
         "forceConsistentCasingInFileNames": false,
         "lib": ["es6", "dom", "ES2017"],
@@ -23,7 +23,8 @@
         "noImplicitOverride": true,
         "isolatedModules": true,
         "resolveJsonModule": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "downlevelIteration": true
     },
     "include": ["src", "./src/shim.d.ts", "../node_modules/@types/**/index.d.ts"]
 }
