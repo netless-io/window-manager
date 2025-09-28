@@ -16,7 +16,15 @@ import "../dist/style.css";
 import "./register";
 import "./index.css";
 import { DefaultHotKeys } from "white-web-sdk";
-import { customAppContext, customAppManager, customAppProxy, customAttributesDelegate, customBoxManager, customCursorManager } from "./extendClass";
+import {
+    customAppContext,
+    customAppManager,
+    customAppProxy,
+    customAttributesDelegate,
+    customBoxManager,
+    customCursorManager,
+    CustomTeleBoxManager,
+} from "./extendClass";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
@@ -38,25 +46,29 @@ const cursor = url.get("cursor") === "false" ? false : true;
 let manager: WindowManager;
 
 const mountManager = async (room, root) => {
-    manager = (await WindowManager.mount({
-        room,
-        // collectorStyles: { bottom: "100px", left: "30px" },
-        containerSizeRatio: 9 / 16,
-        chessboard: true,
-        // fullscreen: true,
-        debug: true,
-        cursor,
-        useBoxesStatus: true,
-        // cursorOptions: { style: "custom" },
-        // overwriteStyles: ".netless-window-manager-cursor-name { display: none }",
-    }, {
-        AppContext: customAppContext,
-        AppManager: customAppManager,
-        AppProxy: customAppProxy,
-        BoxManager: customBoxManager,
-        AttributesDelegate: customAttributesDelegate,
-        CursorManager: customCursorManager,
-    })) as WindowManager;
+    manager = (await WindowManager.mount(
+        {
+            room,
+            // collectorStyles: { bottom: "100px", left: "30px" },
+            containerSizeRatio: 9 / 16,
+            chessboard: true,
+            // fullscreen: true,
+            debug: true,
+            cursor,
+            useBoxesStatus: true,
+            // cursorOptions: { style: "custom" },
+            // overwriteStyles: ".netless-window-manager-cursor-name { display: none }",
+        },
+        {
+            AppContext: customAppContext,
+            AppManager: customAppManager,
+            AppProxy: customAppProxy,
+            BoxManager: customBoxManager,
+            AttributesDelegate: customAttributesDelegate,
+            CursorManager: customCursorManager,
+            TeleBoxManager: CustomTeleBoxManager,
+        }
+    )) as WindowManager;
 
     manager.emitter.on("ready", async () => {
         if (isWritable === "false") {

@@ -1,6 +1,6 @@
 import { AppAttributes, Events, MIN_HEIGHT, MIN_WIDTH } from "./constants";
 import { debounce } from "lodash";
-import { TELE_BOX_STATE, TeleBoxCollector, TeleBoxManager } from "@netless/telebox-insider";
+import { TELE_BOX_STATE } from "@netless/telebox-insider";
 import { WindowManager } from "./index";
 import type { BoxEmitterType } from "./BoxEmitter";
 import type { AddAppOptions, AppInitState } from "./index";
@@ -20,7 +20,7 @@ import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
-import { getExtendClass } from "./Utils/extendClass";
+import { getExtendClass, TeleBoxManager, TeleBoxCollector } from "./Utils/extendClass";
 
 export { TELE_BOX_STATE };
 
@@ -298,7 +298,10 @@ export class BoxManager {
     }
 
     public setLastNotMinimizedBoxesStatus(status?: Record<string, NotMinimizedBoxState>): void {
-        this.teleBoxManager.setLastNotMinimizedBoxesStatus(new Map(Object.entries(status ?? {})), true);
+        this.teleBoxManager.setLastNotMinimizedBoxesStatus(
+            new Map(Object.entries(status ?? {})),
+            true
+        );
     }
 
     public setLastNotMinimizedBoxStatus(appId: string, status?: NotMinimizedBoxState): void {
@@ -323,7 +326,8 @@ export class BoxManager {
             useBoxesStatus: createTeleBoxManagerConfig?.useBoxesStatus || false,
         };
 
-        const manager = new TeleBoxManager(initManagerState);
+        const TeleBoxManagerClass = getExtendClass(TeleBoxManager, WindowManager.extendClass);
+        const manager = new TeleBoxManagerClass(initManagerState);
         if (this.teleBoxManager) {
             this.teleBoxManager.destroy();
         }
@@ -336,7 +340,8 @@ export class BoxManager {
     }
 
     public setCollectorContainer(container: HTMLElement) {
-        const collector = new TeleBoxCollector({
+        const TeleBoxCollectorClass = getExtendClass(TeleBoxCollector, WindowManager.extendClass);
+        const collector = new TeleBoxCollectorClass({
             styles: this.createTeleBoxManagerConfig?.collectorStyles,
         }).mount(container);
         this.teleBoxManager.setCollector(collector);

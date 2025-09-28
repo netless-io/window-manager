@@ -7,9 +7,10 @@ import { autorun, isPlayer, isRoom, ScenePathType, UpdateEventKind } from "white
 import { boxEmitter } from "./BoxEmitter";
 import { calculateNextIndex } from "./Page";
 import { callbacks } from "./callback";
-import { debounce, get, isEqual, isInteger, orderBy } from "lodash";
+import { debounce, get, isInteger, orderBy } from "lodash";
 import { internalEmitter } from "./InternalEmitter";
-import { AttributesDelegate, createAttributesDelegate, Fields } from "./AttributesDelegate";
+import { createAttributesDelegate, Fields } from "./AttributesDelegate";
+import type { AttributesDelegate } from "./AttributesDelegate";
 import { log } from "./Utils/log";
 import { MainViewProxy } from "./View/MainView";
 import { safeListenPropsUpdated } from "./Utils/Reactive";
@@ -434,7 +435,7 @@ export class AppManager {
 
     private onBoxBlurred = (payload: BoxBlurredPayload) => {
         const focus = this.attributes.focus;
-        if (focus === payload.appId) { 
+        if (focus === payload.appId) {
             this.windowManger.safeSetAttributes({ focus: undefined });
             callbacks.emit("onBoxBlurred", payload);
         }
@@ -466,7 +467,9 @@ export class AppManager {
             return safeListenPropsUpdated(
                 () => this.attributes.lastNotMinimizedBoxesStatus,
                 () => {
-                    this.boxManager?.setLastNotMinimizedBoxesStatus(this.attributes.lastNotMinimizedBoxesStatus);
+                    this.boxManager?.setLastNotMinimizedBoxesStatus(
+                        this.attributes.lastNotMinimizedBoxesStatus
+                    );
                 }
             );
         });

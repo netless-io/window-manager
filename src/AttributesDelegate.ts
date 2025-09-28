@@ -4,8 +4,10 @@ import { setViewFocusScenePath } from "./Utils/Common";
 import type { AddAppParams, AppSyncAttributes } from "./index";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { Cursor } from "./Cursor/Cursor";
-import { ExtendClass, getExtendClass } from "./Utils/extendClass";
-import { NotMinimizedBoxState, TELE_BOX_STATE, TeleBoxState } from "@netless/telebox-insider";
+import { getExtendClass } from "./Utils/extendClass";
+import type { TELE_BOX_STATE } from "@netless/telebox-insider";
+import type { ExtendClass } from "./Utils/extendClass";
+import type { NotMinimizedBoxState, TeleBoxState } from "@netless/telebox-insider";
 
 export enum Fields {
     Apps = "apps",

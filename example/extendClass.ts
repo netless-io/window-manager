@@ -1,7 +1,29 @@
-import { AppContext, AppManager, BoxManager, AppProxy, WindowManager, BaseInsertParams, AttributesDelegate, CursorManager, CursorOptions, ApplianceIcons } from "../dist";
-
+import {
+    AppContext,
+    AppManager,
+    BoxManager,
+    AppProxy,
+    AttributesDelegate,
+    CursorManager,
+} from "../dist";
+import type { WindowManager, BaseInsertParams, CursorOptions, ApplianceIcons } from "../dist";
+import { TeleBoxManagerConfig, TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
+export class CustomTeleBoxManager extends TeleBoxManager {
+    constructor(TeleBoxManagerConfig: TeleBoxManagerConfig) {
+        super(TeleBoxManagerConfig);
+    }
+    public customMethod() {
+        console.log("CustomTeleBoxManager customMethod");
+    }
+}
 export class customAppContext extends AppContext {
-    constructor(manager: AppManager, boxManager: BoxManager, appId: string, appProxy: AppProxy, appOptions?: any) {
+    constructor(
+        manager: AppManager,
+        boxManager: BoxManager,
+        appId: string,
+        appProxy: AppProxy,
+        appOptions?: any
+    ) {
         super(manager, boxManager, appId, appProxy, appOptions);
     }
     public customMethod() {
@@ -46,7 +68,12 @@ export class customAttributesDelegate extends AttributesDelegate {
 }
 
 export class customCursorManager extends CursorManager {
-    constructor(manager: AppManager, enableCursor: boolean, cursorOptions?: CursorOptions, applianceIcons?: ApplianceIcons) {
+    constructor(
+        manager: AppManager,
+        enableCursor: boolean,
+        cursorOptions?: CursorOptions,
+        applianceIcons?: ApplianceIcons
+    ) {
         super(manager, enableCursor, cursorOptions, applianceIcons);
     }
     public customMethod() {

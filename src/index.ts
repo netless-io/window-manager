@@ -28,9 +28,10 @@ import {
     putScenes,
     wait,
 } from "./Utils/Common";
-import { TELE_BOX_STATE, BoxManager } from "./BoxManager";
+import type { BoxManager } from "./BoxManager";
+import type { TELE_BOX_STATE } from "./BoxManager";
 import * as Errors from "./Utils/error";
-import { Apps, Position } from "./AttributesDelegate";
+import type { Apps, Position } from "./AttributesDelegate";
 import type {
     Displayer,
     SceneDefinition,
@@ -54,7 +55,7 @@ import type {
     TeleBoxColorScheme,
     TeleBoxState,
 } from "@netless/telebox-insider";
-import { AppProxy } from "./App";
+import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
@@ -63,7 +64,8 @@ import { IframeBridge } from "./View/IframeBridge";
 import { setOptions } from "@netless/app-media-player";
 import type { ExtendPluginInstance } from "./ExtendPluginManager";
 import { ExtendPluginManager } from "./ExtendPluginManager";
-import { ExtendClass, getExtendClass } from "./Utils/extendClass";
+import { getExtendClass } from "./Utils/extendClass";
+import type { ExtendClass } from "./Utils/extendClass";
 
 export * from "./utils/extendClass";
 
@@ -395,7 +397,6 @@ export class WindowManager
                 if (this.appManager) {
                     this.appManager.useBoxesStatus = params.useBoxesStatus || false;
                     this.appManager.setBoxManager(boxManager);
-    
                 }
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
                 if (WindowManager.wrapper) {

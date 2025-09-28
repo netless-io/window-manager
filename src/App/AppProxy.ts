@@ -27,7 +27,8 @@ import { WindowManager } from "../index";
 import type { SceneState, View, SceneDefinition } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { NetlessApp } from "../typings";
-import { TELE_BOX_STATE, type ReadonlyTeleBox, type TeleBoxState } from "@netless/telebox-insider";
+import { TELE_BOX_STATE } from "@netless/telebox-insider";
+import type { ReadonlyTeleBox, TeleBoxState } from "@netless/telebox-insider";
 import type { PageRemoveService, PageState } from "../Page";
 import { calculateNextIndex } from "../Page";
 import { boxEmitter } from "../BoxEmitter";
@@ -217,7 +218,7 @@ export class AppProxy implements PageRemoveService {
                 options,
                 canOperate: this.manager.canOperate,
                 smartPosition: this.isAddApp,
-                boxStatus
+                boxStatus,
             });
             if (this.isAddApp && this.box) {
                 if (boxStatus) {
@@ -309,8 +310,7 @@ export class AppProxy implements PageRemoveService {
         const maximized = this.attributes?.["maximized"];
         const minimized = this.attributes?.["minimized"];
         const boxStatus = this.store.getBoxStatus(id) ?? undefined;
-        const lastNotMinimizedBoxStatus =
-            this.store.getLastNotMinimizedBoxStatus(id) ?? undefined;
+        const lastNotMinimizedBoxStatus = this.store.getLastNotMinimizedBoxStatus(id) ?? undefined;
         const zIndex = attrs?.zIndex;
         let payload = { maximized, minimized, zIndex } as AppInitState;
         if (position) {

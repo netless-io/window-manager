@@ -12,6 +12,7 @@
   "dependencies": {
     "@netless/app-slide": "^0.2.24",
     "@netless/video-js-plugin": "^0.3.7",
+    "@netless/telebox-insider": "0.3.0-beta.10",
     "normalize.css": "^8.0.1",
     "p-queue": "^7.1.0",
     "react": "^17.0.2",

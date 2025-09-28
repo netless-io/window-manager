@@ -3,12 +3,14 @@ import { AppManager } from "../AppManager";
 import { AttributesDelegate } from "../AttributesDelegate";
 import { BoxManager } from "../BoxManager";
 import { CursorManager } from "../Cursor";
+import { TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
 
 export { AppManager } from "../AppManager";
 export { AppContext, AppProxy } from "../App";
 export { BoxManager } from "../BoxManager";
 export { AttributesDelegate } from "../AttributesDelegate";
 export { CursorManager } from "../Cursor";
+export { TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
 
 export type ExtendClassAble =
     | typeof AppManager
@@ -17,6 +19,8 @@ export type ExtendClassAble =
     | typeof BoxManager
     | typeof AttributesDelegate
     | typeof CursorManager
+    | typeof TeleBoxManager
+    | typeof TeleBoxCollector;
 
 export type ExtendClass = {
     AppManager?: typeof AppManager;
@@ -25,12 +29,13 @@ export type ExtendClass = {
     CursorManager?: typeof CursorManager;
     AppProxy?: typeof AppProxy;
     AppContext?: typeof AppContext;
+    TeleBoxManager?: typeof TeleBoxManager;
+    TeleBoxCollector?: typeof TeleBoxCollector;
 };
 export function getExtendClass<T extends ExtendClassAble>(
     baseClass: T,
     extendClass?: ExtendClass
 ): T {
-    console.log("baseClass===>", baseClass.name);
     switch (baseClass.name) {
         case "AppManager":
             return (extendClass?.AppManager || AppManager) as T;
@@ -44,6 +49,10 @@ export function getExtendClass<T extends ExtendClassAble>(
             return (extendClass?.AppProxy || AppProxy) as T;
         case "AppContext":
             return (extendClass?.AppContext || AppContext) as T;
+        case "TeleBoxManager":
+            return (extendClass?.TeleBoxManager || TeleBoxManager) as T;
+        case "TeleBoxCollector":
+            return (extendClass?.TeleBoxCollector || TeleBoxCollector) as T;
         default:
             return baseClass;
     }
