@@ -31,8 +31,17 @@ export const HelloWorldApp = async () => {
             //     context.storage.setState({ a: 2, b: c });
             //     context.storage.setState({ a: 2, b: c });
             // }
+            const boxStatus = context.getBoxStatus();
+            const lastNotMinimizedBoxStatus = context.getLastNotMinimizedBoxStatus();
+            console.log("HelloWorldApp box", context.getBox());
+            console.log("HelloWorldApp boxStatus===>", boxStatus);
+            console.log("HelloWorldApp lastNotMinimizedBoxStatus===>", lastNotMinimizedBoxStatus);
             console.log("HelloWorldApp pageState", context.pageState);
             console.log("helloworld options", context.getAppOptions());
+
+            context.emitter.on("boxStatusChange", boxStatus => {
+                console.log("HelloWorldApp boxStatusChange===>", boxStatus);
+            });
 
             context.emitter.on("pageStateChange", pageState => {
                 console.log("HelloWorldApp pageState change", pageState);

@@ -5,7 +5,6 @@ import type { AddAppParams, AppSyncAttributes } from "./index";
 import type { Camera, Size, View } from "white-web-sdk";
 import type { Cursor } from "./Cursor/Cursor";
 import { getExtendClass } from "./Utils/extendClass";
-import type { TELE_BOX_STATE } from "@netless/telebox-insider";
 import type { ExtendClass } from "./Utils/extendClass";
 import type { NotMinimizedBoxState, TeleBoxState } from "@netless/telebox-insider";
 
@@ -88,11 +87,11 @@ export class AttributesDelegate {
         return get(this.attributes, ["minimized"]);
     }
 
-    public getBoxesStatus(): Record<string, TELE_BOX_STATE> | undefined {
+    public getBoxesStatus(): Record<string, TeleBoxState> | undefined {
         return get(this.attributes, [Fields.BoxesStatus]);
     }
 
-    public getBoxStatus(id: string): TELE_BOX_STATE | undefined {
+    public getBoxStatus(id: string): TeleBoxState | undefined {
         return get(this.attributes, [Fields.BoxesStatus, id]);
     }
 

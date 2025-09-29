@@ -1,5 +1,6 @@
 import Emittery from "emittery";
 import type { AppInitState, CursorMovePayload } from "./index";
+import type { NotMinimizedBoxState, TeleBoxState } from "@netless/telebox-insider";
 
 export type RemoveSceneParams = {
     scenePath: string;
@@ -28,6 +29,8 @@ export type EmitterEvent = {
     changePageState: undefined;
     writableChange: boolean;
     containerSizeRatioUpdate: number;
+    boxesStatusChange: Map<string, TeleBoxState>;
+    lastNotMinimizedBoxesStatusChange: Map<string, NotMinimizedBoxState>;
 };
 
 export type EmitterType = Emittery<EmitterEvent>;

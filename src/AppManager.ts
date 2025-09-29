@@ -50,6 +50,7 @@ import type {
     BoxStateChangePayload,
 } from "./BoxEmitter";
 import { getExtendClass } from "./Utils/extendClass";
+import type { TeleBoxState } from "@netless/telebox-insider";
 
 export class AppManager {
     public displayer: Displayer;
@@ -454,12 +455,25 @@ export class AppManager {
         callbacks.emit("onBoxStateChange", payload);
     };
 
+    private notifyBoxesStatusChange = debounce(() => {
+        const entries = Object.entries(this.attributes.boxesStatus);
+        if (entries.length > 0) {
+            entries.forEach(([appId, status]) => {
+                const appProxy = this.appProxies.get(appId);
+                if (appProxy) {
+                    appProxy.notifyBoxStatusChange(status as TeleBoxState);
+                }
+            });
+        }
+    }, 50);
+
     public addBoxesStatusChangeListener = () => {
         this.refresher.add("boxesStatus", () => {
             return safeListenPropsUpdated(
                 () => this.attributes.boxesStatus,
                 () => {
                     this.boxManager?.setBoxesStatus(this.attributes.boxesStatus);
+                    this.notifyBoxesStatusChange();
                 }
             );
         });
@@ -474,7 +488,6 @@ export class AppManager {
             );
         });
     };
-
     public addAppsChangeListener = () => {
         this.refresher.add("apps", () => {
             return safeListenPropsUpdated(

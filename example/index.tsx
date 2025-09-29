@@ -23,6 +23,7 @@ import {
     customAttributesDelegate,
     customBoxManager,
     customCursorManager,
+    CustomTeleBoxCollector,
     CustomTeleBoxManager,
 } from "./extendClass";
 
@@ -67,6 +68,7 @@ const mountManager = async (room, root) => {
             AttributesDelegate: customAttributesDelegate,
             CursorManager: customCursorManager,
             TeleBoxManager: CustomTeleBoxManager,
+            TeleBoxCollector: CustomTeleBoxCollector,
         }
     )) as WindowManager;
 

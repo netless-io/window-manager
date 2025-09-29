@@ -16,7 +16,7 @@ import type {
     View,
     EventListener as WhiteEventListener,
 } from "white-web-sdk";
-import type { ReadonlyTeleBox } from "@netless/telebox-insider";
+import type { NotMinimizedBoxState, ReadonlyTeleBox, TeleBoxState } from "@netless/telebox-insider";
 import type Emittery from "emittery";
 import type { BoxManager } from "../BoxManager";
 import type { AppEmitterEvent, WindowManager } from "../index";
@@ -72,6 +72,14 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
 
     public getWindowManager = (): WindowManager => {
         return this.manager.windowManger;
+    };
+
+    public getBoxStatus = (): TeleBoxState | undefined => {
+        return this.manager.store.getBoxStatus(this.appId);
+    };
+
+    public getLastNotMinimizedBoxStatus = (): NotMinimizedBoxState | undefined => {
+        return this.manager.store.getLastNotMinimizedBoxStatus(this.appId);
     };
 
     public getDisplayer = () => {

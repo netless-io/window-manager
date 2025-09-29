@@ -802,7 +802,7 @@ export class WindowManager
         }
     }
 
-    public get boxStatus(): Record<string, TELE_BOX_STATE> | undefined {
+    public get boxStatus(): Record<string, TeleBoxState> | undefined {
         if (this.appManager) {
             return this.appManager.store.getBoxesStatus();
         } else {

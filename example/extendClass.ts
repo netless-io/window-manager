@@ -7,7 +7,19 @@ import {
     CursorManager,
 } from "../dist";
 import type { WindowManager, BaseInsertParams, CursorOptions, ApplianceIcons } from "../dist";
-import { TeleBoxManagerConfig, TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
+import { TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
+import type { TeleBoxManagerConfig, TeleBoxCollectorConfig } from "@netless/telebox-insider";
+
+export class CustomTeleBoxCollector extends TeleBoxCollector {
+    constructor(TeleBoxCollectorConfig: TeleBoxCollectorConfig) {
+        super(TeleBoxCollectorConfig);
+    }
+
+    public customMethod() {
+        console.log("TeleBoxCollectorConfig customMethod");
+    }
+}
+
 export class CustomTeleBoxManager extends TeleBoxManager {
     constructor(TeleBoxManagerConfig: TeleBoxManagerConfig) {
         super(TeleBoxManagerConfig);

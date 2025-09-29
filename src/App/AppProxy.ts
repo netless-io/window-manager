@@ -450,6 +450,10 @@ export class AppProxy implements PageRemoveService {
         this.appEmitter.emit("pageStateChange", this.pageState);
     }, 50);
 
+    public notifyBoxStatusChange = (status: TeleBoxState) => {
+        this.appEmitter.emit("boxStatusChange", { appId: this.id, status });
+    };
+
     public get pageState(): PageState {
         return this._pageState.toObject();
     }

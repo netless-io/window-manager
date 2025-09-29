@@ -290,7 +290,10 @@ export class BoxManager {
         }
     }
     public setBoxesStatus(status?: Record<string, TeleBoxState>): void {
-        this.teleBoxManager.setBoxesStatus(new Map(Object.entries(status ?? {})), true);
+        const map = new Map(Object.entries(status ?? {}));
+        this.teleBoxManager.setBoxesStatus(map, true);
+        this.context.callbacks.emit("onBoxesStatusChange", map);
+        this.context.emitter.emit("boxesStatusChange", map);
     }
 
     public setBoxStatus(appId: string, status?: TeleBoxState): void {
@@ -298,10 +301,10 @@ export class BoxManager {
     }
 
     public setLastNotMinimizedBoxesStatus(status?: Record<string, NotMinimizedBoxState>): void {
-        this.teleBoxManager.setLastNotMinimizedBoxesStatus(
-            new Map(Object.entries(status ?? {})),
-            true
-        );
+        const map = new Map(Object.entries(status ?? {}));
+        this.teleBoxManager.setLastNotMinimizedBoxesStatus(map, true);
+        this.context.callbacks.emit("onLastNotMinimizedBoxesStatusChange", map);
+        this.context.emitter.emit("lastNotMinimizedBoxesStatusChange", map);
     }
 
     public setLastNotMinimizedBoxStatus(appId: string, status?: NotMinimizedBoxState): void {
