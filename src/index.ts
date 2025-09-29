@@ -725,7 +725,7 @@ export class WindowManager
     /** 设置指定 box 的状态, 如果为 undefined, 则移除状态*/
     public setBoxStatus(boxId: string, boxStatus?: TELE_BOX_STATE): void {
         if (!this.canOperate) return;
-        this.boxManager?.setBoxStatus(boxId, boxStatus);
+        this.appManager?.store.setBoxStatus(boxId, boxStatus);
     }
 
     /** 设置指定 box 的非最小化状态, 如果为 undefined, 则移除状态 */
@@ -734,7 +734,7 @@ export class WindowManager
         lastNotMinimizedBoxStatus?: NotMinimizedBoxState
     ): void {
         if (!this.canOperate) return;
-        this.boxManager?.setLastNotMinimizedBoxStatus(boxId, lastNotMinimizedBoxStatus);
+        this.appManager?.store.setLastNotMinimizedBoxStatus(boxId, lastNotMinimizedBoxStatus);
     }
 
     public setFullscreen(fullscreen: boolean): void {
