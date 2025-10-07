@@ -8,6 +8,9 @@ export const createHelloWorld = (manager: WindowManager) => {
         options: {
             scenePath: "/helloworld1",
         },
+        forceTop: true,
+        forceNormal: true,
+        isDragContent: true,
     });
 };
 

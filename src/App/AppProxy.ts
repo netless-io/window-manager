@@ -152,7 +152,10 @@ export class AppProxy implements PageRemoveService {
                 appImpl,
                 params.options,
                 appParams?.appOptions,
-                this.manager.useBoxesStatus ? TELE_BOX_STATE.Normal : undefined
+                this.manager.useBoxesStatus ? TELE_BOX_STATE.Normal : undefined,
+                params.forceTop,
+                params.forceNormal,
+                params.isDragContent
             );
         } else {
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
@@ -174,9 +177,12 @@ export class AppProxy implements PageRemoveService {
         app: NetlessApp,
         options?: setAppOptions,
         appOptions?: any,
-        boxStatus?: TeleBoxState
+        boxStatus?: TeleBoxState,
+        forceTop?: boolean,
+        forceNormal?: boolean,
+        isDragContent?: boolean
     ) {
-        log("setupApp", appId, app, options, boxStatus);
+        log("setupApp", appId, app, options, boxStatus, forceTop, forceNormal, isDragContent);
         if (!this.boxManager) {
             throw new BoxManagerNotFoundError();
         }
@@ -219,6 +225,9 @@ export class AppProxy implements PageRemoveService {
                 canOperate: this.manager.canOperate,
                 smartPosition: this.isAddApp,
                 boxStatus,
+                forceTop,
+                forceNormal,
+                isDragContent,
             });
             if (this.isAddApp && this.box) {
                 if (boxStatus) {
@@ -311,6 +320,7 @@ export class AppProxy implements PageRemoveService {
         const minimized = this.attributes?.["minimized"];
         const boxStatus = this.store.getBoxStatus(id) ?? undefined;
         const lastNotMinimizedBoxStatus = this.store.getLastNotMinimizedBoxStatus(id) ?? undefined;
+        const { forceTop, forceNormal, isDragContent } = this.store.getAppAttributes(id);
         const zIndex = attrs?.zIndex;
         let payload = { maximized, minimized, zIndex } as AppInitState;
         if (position) {
@@ -330,6 +340,15 @@ export class AppProxy implements PageRemoveService {
         }
         if (lastNotMinimizedBoxStatus) {
             payload = { ...payload, lastNotMinimizedBoxStatus };
+        }
+        if (forceTop) {
+            payload = { ...payload, forceTop };
+        }
+        if (forceNormal) {
+            payload = { ...payload, forceNormal };
+        }
+        if (isDragContent) {
+            payload = { ...payload, isDragContent };
         }
         return payload;
     };

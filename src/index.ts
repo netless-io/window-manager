@@ -97,6 +97,12 @@ export type AddAppParams<TAttributes = any> = {
     options?: AddAppOptions;
     // 初始化 attributes
     attributes?: TAttributes;
+    // 强制置顶
+    forceTop?: boolean;
+    // 强制正常窗口
+    forceNormal?: boolean;
+    // 是否可以在内容区域拖动
+    isDragContent?: boolean;
 };
 
 export type BaseInsertParams = {
@@ -108,6 +114,12 @@ export type BaseInsertParams = {
     // 初始化 attributes
     attributes?: any;
     isDynamicPPT?: boolean;
+    // 强制置顶
+    forceTop?: boolean;
+    // 强制正常窗口
+    forceNormal?: boolean;
+    // 是否可以在内容区域拖动
+    isDragContent?: boolean;
 };
 
 export type AppSyncAttributes = {
@@ -118,6 +130,12 @@ export type AppSyncAttributes = {
     isDynamicPPT?: boolean;
     fullPath?: string;
     createdAt?: number;
+    // 强制置顶
+    forceTop?: boolean;
+    // 强制正常窗口
+    forceNormal?: boolean;
+    // 是否可以在内容区域拖动
+    isDragContent?: boolean;
 };
 
 export type AppInitState = {
@@ -137,6 +155,12 @@ export type AppInitState = {
     boxStatus?: TeleBoxState;
     /** 上次非最小化窗口状态 */
     lastNotMinimizedBoxStatus?: NotMinimizedBoxState;
+    // 强制置顶
+    forceTop?: boolean;
+    // 强制正常窗口
+    forceNormal?: boolean;
+    // 是否可以在内容区域拖动
+    isDragContent?: boolean;
 };
 
 export type CursorMovePayload = { uid: string; state?: "leave"; position: Position };

@@ -33,6 +33,9 @@ export type CreateBoxParams = {
     canOperate?: boolean;
     smartPosition?: boolean;
     boxStatus?: TeleBoxState;
+    forceTop?: boolean;
+    forceNormal?: boolean;
+    isDragContent?: boolean;
 };
 
 type AppId = { appId: string };
@@ -270,6 +273,9 @@ export class BoxManager {
             height,
             id: params.appId,
             boxStatus: params.boxStatus,
+            forceTop: params.forceTop,
+            forceNormal: params.forceNormal,
+            isDragContent: params.isDragContent,
         };
         this.teleBoxManager.create(createBoxConfig, params.smartPosition);
         this.context.emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
@@ -386,6 +392,9 @@ export class BoxManager {
                     zIndex: state.zIndex,
                     boxStatus: state.boxStatus,
                     lastNotMinimizedBoxStatus: state.lastNotMinimizedBoxStatus,
+                    forceTop: state.forceTop,
+                    forceNormal: state.forceNormal,
+                    isDragContent: state.isDragContent,
                 },
                 true
             );

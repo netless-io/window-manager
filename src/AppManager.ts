@@ -602,6 +602,9 @@ export class AppManager {
                                     kind: app.kind,
                                     options: app.options,
                                     isDynamicPPT: app.isDynamicPPT,
+                                    forceNormal: app.forceNormal,
+                                    forceTop: app.forceTop,
+                                    isDragContent: app.isDragContent,
                                 },
                                 id,
                                 false

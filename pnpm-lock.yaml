@@ -12,8 +12,8 @@ importers:
         specifier: ^3.3.1
         version: 3.4.0
       '@netless/telebox-insider':
-        specifier: 0.3.0-beta.10
-        version: 0.3.0-beta.10
+        specifier: 0.3.0-beta.13
+        version: 0.3.0-beta.13
       emittery:
         specifier: ^0.9.2
         version: 0.9.2
@@ -361,8 +361,8 @@ packages:
   '@netless/canvas-polyfill@0.0.4':
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
 
-  '@netless/telebox-insider@0.3.0-beta.10':
-    resolution: {integrity: sha512-fQ+zMV/dR+Ju12JD96YRWEYPTgaRJEwG56y0F3lT6wVvTeIZhxCIKdu4gee2uG7mcYcjakJOqMHANDYdSLCmuw==}
+  '@netless/telebox-insider@0.3.0-beta.13':
+    resolution: {integrity: sha512-puMfqE7adNZlfTzVQ3xzmSk3kGCls8vr9PA2KsDhc8D0dMwl0XBWXVARteUjnFYi5tFLlttwvsXmf32vI4FEjw==}
 
   '@netless/xml-js@1.6.16':
     resolution: {integrity: sha512-QnSH8y3j3DDEW0S3MalYBmR0opeyaecAkzx0ocKYncMDiOdQkhByJgD7AVhXQqH8bA/PVHU0VFP445AbJq6fDQ==}
@@ -3537,7 +3537,7 @@ snapshots:
 
   '@netless/canvas-polyfill@0.0.4': {}
 
-  '@netless/telebox-insider@0.3.0-beta.10': {}
+  '@netless/telebox-insider@0.3.0-beta.13': {}
 
   '@netless/xml-js@1.6.16': {}
 

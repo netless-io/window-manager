@@ -1,3 +1,4 @@
+import { RoomState } from "white-web-sdk";
 import type { AppContext } from "../../dist";
 import { WindowManager } from "../../dist";
 
@@ -50,8 +51,25 @@ export const HelloWorldApp = async () => {
             //     console.log("MagixEvent", message);
             // });
             // context.dispatchMagixEvent("event1", { count: 1 });
-            context.mountView(context.getBox().$content);
+            const room = context.getRoom();
+            const content = document.createElement("div");
+            content.style.position = "relative";
+            content.style.width = "100%";
+            content.style.height = "100%";
+            content.style.zIndex = room.state.memberState.currentApplianceName === 'clicker' ? "9" : "11";
+            context.getBox().$content.appendChild(content);
+            context.mountView(content);
             context.emitter.on("destroy", () => console.log("[HelloWorld]: destroy"));
+
+            room.callbacks.on('onRoomStateChanged', (state: RoomState)=>{
+                if(state.memberState){
+                    if (state.memberState.currentApplianceName === 'clicker') {
+                        content.style.zIndex = "9";
+                    } else {
+                        content.style.zIndex = "11";
+                    }
+                }
+            })
 
             return "Hello World Result";
         },
