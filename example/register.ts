@@ -37,3 +37,8 @@ WindowManager.register({
     kind: "Board",
     src: Board,
 });
+
+WindowManager.register({
+    kind: "Plyr",
+    src: () => import("@netless/app-plyr")
+});

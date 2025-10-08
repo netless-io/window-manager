@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@netless/app-plyr':
+        specifier: 0.2.6-beta.3
+        version: 0.2.6-beta.3
       '@netless/app-slide':
         specifier: ^0.2.24
         version: 0.2.81(jspdf@2.5.2)
@@ -57,6 +60,9 @@ packages:
 
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
+
+  '@netless/app-plyr@0.2.6-beta.3':
+    resolution: {integrity: sha512-0H8BII9f0VeefBOWI4Q5MiZnZguHrQ4IWJQSAwO9fCF2LYMQNZbtqBQrWNrz+QlHyPS1s/AYD/BxRZSLFqGZ9w==}
 
   '@netless/app-slide@0.2.81':
     resolution: {integrity: sha512-5ib8P9XzhYa80/7hL4RJyMvNFrmJwtjIYxfdN2ZvXb07SXis0QR+UJctPoP9vSc+gPOgSi9BZXSNXr2a8x/vrQ==}
@@ -634,6 +640,8 @@ snapshots:
     optional: true
 
   '@juggle/resize-observer@3.4.0': {}
+
+  '@netless/app-plyr@0.2.6-beta.3': {}
 
   '@netless/app-slide@0.2.81(jspdf@2.5.2)':
     optionalDependencies:

@@ -11,6 +11,7 @@ import {
     createCounter,
     createBoard,
     createIframe,
+    createPlyr,
 } from "./apps";
 import "../dist/style.css";
 import "./register";
@@ -26,6 +27,8 @@ import {
     CustomTeleBoxCollector,
     CustomTeleBoxManager,
 } from "./extendClass";
+import { TeleBoxState } from "@netless/telebox-insider";
+import type { AppResult as PlyrAppResult } from "@netless/app-plyr";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
@@ -45,6 +48,19 @@ const isReplay = url.get("isReplay");
 const cursor = url.get("cursor") === "false" ? false : true;
 
 let manager: WindowManager;
+
+
+const plyrBoxStatusChangeHandler = (playload:{appId: string, status: TeleBoxState}) => {
+    console.log("plyrBoxStatusChangeHandler", playload.appId, playload.status);
+    const app = manager.queryOne(playload.appId);
+    if (app && app.appResult) {
+        if (playload.status === "minimized") {
+            (app.appResult as PlyrAppResult)?.controller?.pause();
+        } else {
+            (app.appResult as PlyrAppResult)?.controller?.play();
+        }
+    }
+}
 
 const mountManager = async (room, root) => {
     manager = (await WindowManager.mount(
@@ -71,6 +87,20 @@ const mountManager = async (room, root) => {
             TeleBoxCollector: CustomTeleBoxCollector,
         }
     )) as WindowManager;
+
+
+
+    manager.emitter.on('onAppSetup',(appId)=>{
+        console.log("onAppSetup", appId);
+        const app = manager.queryOne(appId);
+        if (app.kind === "Plyr") {
+            app.appContext.emitter.on("boxStatusChange", plyrBoxStatusChangeHandler);
+            app.appContext.emitter.on("destroy", () => {
+                console.log("destroy", appId);
+                app.appContext.emitter.off("boxStatusChange", plyrBoxStatusChangeHandler);
+            });
+        }
+    })
 
     manager.emitter.on("ready", async () => {
         if (isWritable === "false") {
@@ -263,6 +293,9 @@ const App = () => {
                 }}
             ></div>
             <div className="side">
+                <button className="side-button" onClick={() => createPlyr(manager)}>
+                    Plyr
+                </button>
                 <button className="side-button" onClick={() => createHelloWorld(manager)}>
                     Hello World
                 </button>
