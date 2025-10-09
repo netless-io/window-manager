@@ -12,7 +12,7 @@
   "dependencies": {
     "@netless/app-plyr": "0.2.6-beta.3",
     "@netless/app-slide": "^0.2.24",
-    "@netless/telebox-insider": "0.3.0-beta.13",
+    "@netless/telebox-insider": "0.3.0-beta.14",
     "@netless/video-js-plugin": "^0.3.7",
     "normalize.css": "^8.0.1",
     "p-queue": "^7.1.0",

@@ -53,6 +53,7 @@ import { getExtendClass } from "./Utils/extendClass";
 import type { TeleBoxState } from "@netless/telebox-insider";
 
 export class AppManager {
+    static readonly kind = "AppManager";
     public displayer: Displayer;
     public viewManager: ViewManager;
     public appProxies: Map<string, AppProxy> = new Map();

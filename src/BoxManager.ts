@@ -107,6 +107,7 @@ export const createBoxManager = (
 };
 
 export class BoxManager {
+    static readonly kind = "BoxManager";
     public teleBoxManager: TeleBoxManager;
 
     constructor(

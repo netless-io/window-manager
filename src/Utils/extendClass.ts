@@ -36,24 +36,27 @@ export function getExtendClass<T extends ExtendClassAble>(
     baseClass: T,
     extendClass?: ExtendClass
 ): T {
-    switch (baseClass.name) {
-        case "AppManager":
-            return (extendClass?.AppManager || AppManager) as T;
-        case "BoxManager":
-            return (extendClass?.BoxManager || BoxManager) as T;
-        case "AttributesDelegate":
-            return (extendClass?.AttributesDelegate || AttributesDelegate) as T;
-        case "CursorManager":
-            return (extendClass?.CursorManager || CursorManager) as T;
-        case "AppProxy":
-            return (extendClass?.AppProxy || AppProxy) as T;
-        case "AppContext":
-            return (extendClass?.AppContext || AppContext) as T;
-        case "TeleBoxManager":
-            return (extendClass?.TeleBoxManager || TeleBoxManager) as T;
-        case "TeleBoxCollector":
-            return (extendClass?.TeleBoxCollector || TeleBoxCollector) as T;
-        default:
-            return baseClass;
+    if (baseClass.kind && extendClass && Object.keys(extendClass).includes(baseClass.kind)) {
+        switch (baseClass.kind) {
+            case "AppManager":
+                return (extendClass?.AppManager || AppManager) as T;
+            case "BoxManager":
+                return (extendClass?.BoxManager || BoxManager) as T;
+            case "AttributesDelegate":
+                return (extendClass?.AttributesDelegate || AttributesDelegate) as T;
+            case "CursorManager":
+                return (extendClass?.CursorManager || CursorManager) as T;
+            case "AppProxy":
+                return (extendClass?.AppProxy || AppProxy) as T;
+            case "AppContext":
+                return (extendClass?.AppContext || AppContext) as T;
+            case "TeleBoxManager":
+                return (extendClass?.TeleBoxManager || TeleBoxManager) as T;
+            case "TeleBoxCollector":
+                return (extendClass?.TeleBoxCollector || TeleBoxCollector) as T;
+            default:
+                return baseClass;
+        }
     }
+    return baseClass;
 }

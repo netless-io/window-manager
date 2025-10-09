@@ -15,8 +15,8 @@ importers:
         specifier: ^0.2.24
         version: 0.2.81(jspdf@2.5.2)
       '@netless/telebox-insider':
-        specifier: 0.3.0-beta.13
-        version: 0.3.0-beta.13
+        specifier: 0.3.0-beta.14
+        version: 0.3.0-beta.14
       '@netless/video-js-plugin':
         specifier: ^0.3.7
         version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.53)
@@ -75,8 +75,8 @@ packages:
   '@netless/canvas-polyfill@0.0.4':
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
 
-  '@netless/telebox-insider@0.3.0-beta.13':
-    resolution: {integrity: sha512-puMfqE7adNZlfTzVQ3xzmSk3kGCls8vr9PA2KsDhc8D0dMwl0XBWXVARteUjnFYi5tFLlttwvsXmf32vI4FEjw==}
+  '@netless/telebox-insider@0.3.0-beta.14':
+    resolution: {integrity: sha512-wIlFVlos70xoVgQQrKBiy8m/jPe2UEgCA2rgvo3Yixgdn4NBECFcIk8R1OtvM28dvR6vitH00hLJBK8LRLVdgg==}
 
   '@netless/video-js-plugin@0.3.8':
     resolution: {integrity: sha512-xCLfL8ISjPD5XQbeGWT/pwKdWXqYXmaEXiP4jcX8oaR83+vJo463znIg2JW8EXHkTq7KRrYnZqqlQdI6It4L+A==}
@@ -649,7 +649,7 @@ snapshots:
 
   '@netless/canvas-polyfill@0.0.4': {}
 
-  '@netless/telebox-insider@0.3.0-beta.13': {}
+  '@netless/telebox-insider@0.3.0-beta.14': {}
 
   '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.53)':
     dependencies:

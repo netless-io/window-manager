@@ -38,6 +38,7 @@ import { getExtendClass } from "../Utils/extendClass";
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
 export class AppProxy implements PageRemoveService {
+    static readonly kind = "AppProxy";
     public kind: string;
     public id: string;
     public scenePath?: string;

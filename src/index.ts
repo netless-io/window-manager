@@ -202,7 +202,7 @@ export class WindowManager
     extends InvisiblePlugin<WindowMangerAttributes, any>
     implements PageController
 {
-    public static kind = "WindowManager";
+    public static readonly kind = "WindowManager";
     public static displayer: Displayer;
     public static wrapper?: HTMLElement;
     public static sizer?: HTMLElement;

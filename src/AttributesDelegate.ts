@@ -53,6 +53,7 @@ export type ICamera = Camera & { id: string };
 export type ISize = Size & { id: string };
 
 export class AttributesDelegate {
+    static readonly kind = "AttributesDelegate";
     constructor(private context: StoreContext) {}
 
     public setContext(context: StoreContext) {

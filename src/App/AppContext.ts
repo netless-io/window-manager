@@ -34,6 +34,7 @@ import { callbacks } from "../callback";
 export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any, TAppOptions = any>
     implements PageController
 {
+    static readonly kind = "AppContext";
     public readonly emitter: Emittery<AppEmitterEvent<TAttributes>>;
     public readonly mobxUtils = {
         autorun,

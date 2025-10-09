@@ -56,20 +56,21 @@ export const HelloWorldApp = async () => {
             content.style.position = "relative";
             content.style.width = "100%";
             content.style.height = "100%";
-            content.style.zIndex = room.state.memberState.currentApplianceName === 'clicker' ? "9" : "11";
+            content.style.zIndex =
+                room.state.memberState.currentApplianceName === "clicker" ? "9" : "11";
             context.getBox().$content.appendChild(content);
             context.mountView(content);
             context.emitter.on("destroy", () => console.log("[HelloWorld]: destroy"));
 
-            room.callbacks.on('onRoomStateChanged', (state: RoomState)=>{
-                if(state.memberState){
-                    if (state.memberState.currentApplianceName === 'clicker') {
+            room.callbacks.on("onRoomStateChanged", (state: RoomState) => {
+                if (state.memberState) {
+                    if (state.memberState.currentApplianceName === "clicker") {
                         content.style.zIndex = "9";
                     } else {
                         content.style.zIndex = "11";
                     }
                 }
-            })
+            });
 
             return "Hello World Result";
         },

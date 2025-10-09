@@ -49,8 +49,7 @@ const cursor = url.get("cursor") === "false" ? false : true;
 
 let manager: WindowManager;
 
-
-const plyrBoxStatusChangeHandler = (playload:{appId: string, status: TeleBoxState}) => {
+const plyrBoxStatusChangeHandler = (playload: { appId: string; status: TeleBoxState }) => {
     console.log("plyrBoxStatusChangeHandler", playload.appId, playload.status);
     const app = manager.queryOne(playload.appId);
     if (app && app.appResult) {
@@ -60,7 +59,7 @@ const plyrBoxStatusChangeHandler = (playload:{appId: string, status: TeleBoxStat
             (app.appResult as PlyrAppResult)?.controller?.play();
         }
     }
-}
+};
 
 const mountManager = async (room, root) => {
     manager = (await WindowManager.mount(
@@ -88,9 +87,7 @@ const mountManager = async (room, root) => {
         }
     )) as WindowManager;
 
-
-
-    manager.emitter.on('onAppSetup',(appId)=>{
+    manager.emitter.on("onAppSetup", appId => {
         console.log("onAppSetup", appId);
         const app = manager.queryOne(appId);
         if (app.kind === "Plyr") {
@@ -100,7 +97,7 @@ const mountManager = async (room, root) => {
                 app.appContext.emitter.off("boxStatusChange", plyrBoxStatusChangeHandler);
             });
         }
-    })
+    });
 
     manager.emitter.on("ready", async () => {
         if (isWritable === "false") {

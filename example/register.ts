@@ -40,5 +40,5 @@ WindowManager.register({
 
 WindowManager.register({
     kind: "Plyr",
-    src: () => import("@netless/app-plyr")
+    src: () => import("@netless/app-plyr"),
 });

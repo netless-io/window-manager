@@ -26,6 +26,7 @@ export type MoveCursorParams = {
 const LocalCursorSideEffectId = "local-cursor";
 
 export class CursorManager {
+    static readonly kind = "CursorManager";
     public containerRect?: DOMRect;
     public wrapperRect?: DOMRect;
     public cursorInstances: Map<string, Cursor> = new Map();

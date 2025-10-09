@@ -7,3 +7,4 @@ vite.config.js
 .vscode/
 **/*.md
 pnpm-lock.yaml
+example/

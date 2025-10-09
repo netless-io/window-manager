@@ -5,9 +5,11 @@ import {
     AppProxy,
     AttributesDelegate,
     CursorManager,
+    TeleBoxManager,
+    TeleBoxCollector,
 } from "../dist";
 import type { WindowManager, BaseInsertParams, CursorOptions, ApplianceIcons } from "../dist";
-import { TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
+// import { TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
 import type { TeleBoxManagerConfig, TeleBoxCollectorConfig } from "@netless/telebox-insider";
 
 export class CustomTeleBoxCollector extends TeleBoxCollector {
