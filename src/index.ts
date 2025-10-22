@@ -972,7 +972,7 @@ export class WindowManager
         const mainViewCamera = { ...this.mainView.camera };
         if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
         this.mainView.moveCamera(camera);
-        this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
+        // this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
         setTimeout(() => {
             this.appManager?.mainViewProxy.setCameraAndSize();
         }, 500);
@@ -985,7 +985,7 @@ export class WindowManager
             }>
     ): void {
         this.mainView.moveCameraToContain(rectangle);
-        this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
+        // this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
         setTimeout(() => {
             this.appManager?.mainViewProxy.setCameraAndSize();
         }, 500);

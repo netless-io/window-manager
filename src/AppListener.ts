@@ -50,14 +50,14 @@ export class AppListeners {
                     this.setMainViewScenePathHandler(data.payload);
                     break;
                 }
-                case Events.MoveCamera: {
-                    this.moveCameraHandler(data.payload);
-                    break;
-                }
-                case Events.MoveCameraToContain: {
-                    this.moveCameraToContainHandler(data.payload);
-                    break;
-                }
+                // case Events.MoveCamera: {
+                //     this.moveCameraHandler(data.payload);
+                //     break;
+                // }
+                // case Events.MoveCameraToContain: {
+                //     this.moveCameraToContainHandler(data.payload);
+                //     break;
+                // }
                 case Events.CursorMove: {
                     this.cursorMoveHandler(data.payload);
                     break;
@@ -102,16 +102,16 @@ export class AppListeners {
         callbacks.emit("mainViewScenePathChange", nextScenePath);
     };
 
-    private moveCameraHandler = (
-        payload: Camera & { animationMode?: AnimationMode | undefined }
-    ) => {
-        if (isEqual(omit(payload, ["animationMode"]), { ...this.manager.mainView.camera })) return;
-        this.manager.mainView.moveCamera(payload);
-    };
+    // private moveCameraHandler = (
+    //     payload: Camera & { animationMode?: AnimationMode | undefined }
+    // ) => {
+    //     if (isEqual(omit(payload, ["animationMode"]), { ...this.manager.mainView.camera })) return;
+    //     this.manager.mainView.moveCamera(payload);
+    // };
 
-    private moveCameraToContainHandler = (payload: any) => {
-        this.manager.mainView.moveCameraToContain(payload);
-    };
+    // private moveCameraToContainHandler = (payload: any) => {
+    //     this.manager.mainView.moveCameraToContain(payload);
+    // };
 
     private cursorMoveHandler = (payload: any) => {
         internalEmitter.emit("cursorMove", payload);

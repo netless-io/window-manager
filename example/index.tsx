@@ -14,6 +14,7 @@ import {
     createPlyr,
 } from "./apps";
 import "../dist/style.css";
+import "@netless/appliance-plugin/dist/style.css";
 import "./register";
 import "./index.css";
 import { DefaultHotKeys } from "white-web-sdk";
@@ -29,6 +30,9 @@ import {
 } from "./extendClass";
 import { TeleBoxState } from "@netless/telebox-insider";
 import type { AppResult as PlyrAppResult } from "@netless/app-plyr";
+import fullWorkerString from "@netless/appliance-plugin/dist/fullWorker.js?raw";
+import subWorkerString from "@netless/appliance-plugin/dist/subWorker.js?raw";
+import { ApplianceMultiPlugin, AppliancePluginOptions } from "@netless/appliance-plugin";
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
@@ -86,6 +90,61 @@ const mountManager = async (room, root) => {
             TeleBoxCollector: CustomTeleBoxCollector,
         }
     )) as WindowManager;
+    const fullWorkerBlob = new Blob([fullWorkerString], {
+        type: "text/javascript",
+      });
+      const fullWorkerUrl = URL.createObjectURL(fullWorkerBlob);
+      const subWorkerBlob = new Blob([subWorkerString], {
+        type: "text/javascript",
+      });
+      const subWorkerUrl = URL.createObjectURL(subWorkerBlob);
+  
+      const pluginOptions: AppliancePluginOptions = {
+        cdn: {
+          fullWorkerUrl,
+          subWorkerUrl,
+        },
+        extras: {
+          useSimple: true,
+          // canvasOpt: {
+          //   contextType: "2d",
+          // },
+          cursor: {
+            enable: false,
+            expirationTime: 500,
+            moveDelayTime: 300,
+          },
+          syncOpt: {
+            interval: 100,
+            smoothSync: false,
+          },
+          bezier: {
+            enable: false,
+            maxDrawCount: 180,
+          },
+          textEditor: {
+            showFloatBar: false,
+            canSelectorSwitch: false,
+            rightBoundBreak: true,
+            // extendFontFaces: [{fontFamily: "Pacifico", src: "https://fonts.gstatic.com/s/pacifico/v17/FwZY7-Qmy14u9lezJ-6H6MmBp0u-.woff2"}]
+            extendFontFaces: [
+              {
+                fontFamily: "Noto Sans SC",
+                src: "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-mu0SC55I.woff2",
+              },
+            ],
+            loadFontFacesTimeout: 20000,
+          },
+          longDottedStroke: {
+            lineCap: "square",
+            segment: 4,
+            gap: 2,
+          },
+        },
+      };
+      const plugin = await ApplianceMultiPlugin.getInstance(manager as any, {
+        options: pluginOptions,
+      });
 
     manager.emitter.on("onAppSetup", appId => {
         console.log("onAppSetup", appId);
@@ -110,6 +169,7 @@ const mountManager = async (room, root) => {
     console.log("manager apps", manager.queryAll());
     console.log("manager mounted boxState:", manager.boxState);
     (window as any).manager = manager;
+    (window as any).appliancePlugin = plugin;
     manager.onAppDestroy(BuiltinApps.DocsViewer, error => {
         console.log("onAppDestroy", error);
     });
@@ -173,13 +233,19 @@ const mountManager = async (room, root) => {
     manager.emitter.on("pageStateChange", state => {
         console.log("pageStateChange", state);
     });
+    manager.mainView.callbacks.on("onCameraUpdated", ()=>{
+        console.log("onCameraUpdated====>", manager.mainView.camera);
+    });
+    manager.mainView.callbacks.on("onSizeUpdated", ()=>{
+        console.log("onSizeUpdated====>", manager.mainView.size);
+    });
 };
 
 const replay = () => {
     sdk.replayRoom({
         room: import.meta.env.VITE_ROOM_UUID,
         roomToken: import.meta.env.VITE_ROOM_TOKEN,
-        invisiblePlugins: [WindowManager as any],
+        invisiblePlugins: [WindowManager, ApplianceMultiPlugin],
         useMultiViews: true,
     }).then(async player => {
         await manager?.destroy();
@@ -210,7 +276,7 @@ const joinRoom = ref => {
             .joinRoom({
                 uuid: import.meta.env.VITE_ROOM_UUID,
                 roomToken: import.meta.env.VITE_ROOM_TOKEN,
-                invisiblePlugins: [WindowManager as any],
+                invisiblePlugins: [WindowManager, ApplianceMultiPlugin],
                 useMultiViews: true,
                 userPayload: {
                     userId: "111",
