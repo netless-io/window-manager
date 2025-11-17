@@ -67,6 +67,7 @@ parameter
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | print log information   |
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           |
+| useBoxesStatus         | [optional] boolean                      | false   | Whether to use the boxesStatus status management window, after it is enabled, the status of each window can be managed separately               |
 
 
 <h3 id="register">WindowManager. register</h3>
@@ -294,8 +295,8 @@ manager.emitter.on(events, listener)
 | ready                    | undefined      |         | Triggered when all apps are created   |  
 | sceneStateChange         | SceneState     |         | Fired when sceneState is modified     |
 | pageStateChange          | PageState      |         |                            |
-| fullscreenChange          | boolean      |          | Triggered when the full-screen status changes          ｜
-| appsChange                 | string[]    |         | Triggered when the list of opened apps changes       |
+| fullscreenChange         | boolean        |         | Triggered when the full-screen status changes          ｜
+| appsChange               | string[]       |         | Triggered when the list of opened apps changes       |
 
 ```ts
 type LoadAppEvent = {

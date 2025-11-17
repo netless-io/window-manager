@@ -66,6 +66,7 @@ const manager = await WindowManager.mount(
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | 打印日志信息   
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | 配置光标使用的教具图片           ｜
+| useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 状态管理窗口, 开启后可以单独管理每个窗口的状态               |
 
 <h3 id="register">WindowManager.register</h3>
 
