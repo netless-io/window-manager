@@ -1,3 +1,9 @@
+## 1.0.8(2025-10-22)
+
+- 新增: `useBoxesStatus`,用于可以独立管理单个窗口状态,以及`forceTop`、`forceNormal`、`isDragContent`等窗口特殊属性
+- 修复: `moveCamera`中间过程状态会有一次回退,导致内容闪动
+- 修复: 白板回放过程中因课件获焦错误导致笔记显示在错误的视口中
+
 ## 1.0.6(2025-07-08)
 
 - 新增 `ExtendPluginManager`, 用于扩展window-managerd内部插件管理
