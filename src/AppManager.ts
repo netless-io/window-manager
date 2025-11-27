@@ -348,7 +348,7 @@ export class AppManager {
             await new Promise<AppProxy | undefined>(resolve => {
                 this._focusAppCreatedResolve = resolve;
                 this._resolveTimer = setTimeout(() => {
-                    resolve(this.appProxies.get(this._focusAppId || ''));
+                    resolve(this.appProxies.get(this._focusAppId || ""));
                 }, 500);
             }).then(() => {
                 this.focusByAttributes(this.attributes.apps);
@@ -406,14 +406,16 @@ export class AppManager {
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
         this._prevFocused = this.attributes.focus;
 
-        this.sideEffectManager.add(() => {
-            const redoUndo = new RedoUndo({
-                mainView: () => this.mainViewProxy.view,
-                focus: () => this.attributes.focus,
-                getAppProxy: id => this.appProxies.get(id),
+        if (!WindowManager.supportAppliancePlugin) {
+            this.sideEffectManager.add(() => {
+                const redoUndo = new RedoUndo({
+                    mainView: () => this.mainViewProxy.view,
+                    focus: () => this.attributes.focus,
+                    getAppProxy: id => this.appProxies.get(id),
+                });
+                return () => redoUndo.destroy();
             });
-            return () => redoUndo.destroy();
-        });
+        }
     }
 
     private onBoxMove = (payload: BoxMovePayload) => {
@@ -601,7 +603,7 @@ export class AppManager {
                         if (!appAttributes) {
                             throw new Error("appAttributes is undefined");
                         }
-                        
+
                         this.appCreateQueue.push<AppProxy>(async () => {
                             this.appStatus.set(id, AppStatus.StartCreate);
                             const appProxy = await this.baseInsertApp(

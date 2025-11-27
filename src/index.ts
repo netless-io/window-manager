@@ -192,6 +192,7 @@ export type MountParams = {
     applianceIcons?: ApplianceIcons;
     fullscreen?: boolean;
     polling?: boolean;
+    /** 是否支持 appliance plugin */
     supportAppliancePlugin?: boolean;
     /** 是否使用 boxesStatus 状态管理窗口 */
     useBoxesStatus?: boolean;
@@ -229,6 +230,8 @@ export class WindowManager
     private _fullscreen?: boolean;
     private _cursorUIDs: string[] = [];
     private _cursorUIDsStyleDOM?: HTMLStyleElement;
+
+    public _appliancePlugin?: any;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;

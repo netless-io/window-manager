@@ -1,3 +1,6 @@
+## 1.0.9(2025-11-27)
+- 修复: `appliancePlugin` 和 `RedoUndo` 的事件冲突问题.
+
 ## 1.0.8(2025-10-22)
 
 - 新增: `useBoxesStatus`,用于可以独立管理单个窗口状态,以及`forceTop`、`forceNormal`、`isDragContent`等窗口特殊属性

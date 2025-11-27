@@ -76,6 +76,7 @@ const mountManager = async (room, root) => {
             debug: true,
             cursor,
             useBoxesStatus: true,
+            supportAppliancePlugin: true,
             // cursorOptions: { style: "custom" },
             // overwriteStyles: ".netless-window-manager-cursor-name { display: none }",
         },

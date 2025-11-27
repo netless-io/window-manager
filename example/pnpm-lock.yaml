@@ -15,8 +15,8 @@ importers:
         specifier: ^0.2.24
         version: 0.2.81(jspdf@2.5.2)
       '@netless/appliance-plugin':
-        specifier: 1.1.22-beta.12
-        version: 1.1.22-beta.12(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53))(white-web-sdk@2.16.53)
+        specifier: 1.1.25-beta.2
+        version: 1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53))(white-web-sdk@2.16.53)
       '@netless/telebox-insider':
         specifier: 0.3.0-beta.14
         version: 0.3.0-beta.14
@@ -78,8 +78,8 @@ packages:
       jspdf:
         optional: true
 
-  '@netless/appliance-plugin@1.1.22-beta.12':
-    resolution: {integrity: sha512-/8p87Eig9Z4JurxnLRPzDeq5M6+Fb8CHZd7N9r7q8HLoz4PEZfM39eIzS+I8NJfJokIeUJn748ZzvuYtqfyIEw==}
+  '@netless/appliance-plugin@1.1.25-beta.2':
+    resolution: {integrity: sha512-VoGyF+XeiuJRrhPR7Gfst24BKRNtHxoDP6tZNMq/iYu9ICdsKB0zTFHhFzECtvcnDmBFDEt2dURPxgQLe3L6gg==}
     peerDependencies:
       '@netless/window-manager': '>=1.0'
       white-web-sdk: '>= 2.16.52'
@@ -844,7 +844,7 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/appliance-plugin@1.1.22-beta.12(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53))(white-web-sdk@2.16.53)':
+  '@netless/appliance-plugin@1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53))(white-web-sdk@2.16.53)':
     dependencies:
       '@netless/window-manager': 1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53)
       clipper-lib: 6.4.2

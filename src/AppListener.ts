@@ -1,9 +1,9 @@
 import { callbacks } from "./callback";
 import { internalEmitter } from "./InternalEmitter";
 import { Events, MagixEventName } from "./constants";
-import { isEqual, omit } from "lodash";
+// import { isEqual, omit } from "lodash";
 import { setViewFocusScenePath } from "./Utils/Common";
-import type { AnimationMode, Camera, Event } from "white-web-sdk";
+import type { Event } from "white-web-sdk";
 import type { AppManager } from "./AppManager";
 import type { TeleBoxState } from "@netless/telebox-insider";
 
