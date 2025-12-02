@@ -410,7 +410,9 @@ export class BoxManager {
                     this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
                 }
             }, 50);
-            this.context.callbacks.emit("boxStateChange", this.teleBoxManager.state);
+            if (!state.boxStatus) {
+                this.context.callbacks.emit("boxStateChange", this.teleBoxManager.state);
+            }
         }
     }
 

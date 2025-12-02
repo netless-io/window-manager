@@ -139,7 +139,7 @@ export class AppProxy implements PageRemoveService {
         this.manager.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
     }
 
-    public async baseInsertApp(skipUpdate = false): Promise<{ appId: string; app: NetlessApp }> {
+    public async baseInsertApp(skipUpdate = false, boxStatus: TeleBoxState = TELE_BOX_STATE.Normal): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (!params.kind) {
             throw new Error("[WindowManager]: kind require");
@@ -153,7 +153,7 @@ export class AppProxy implements PageRemoveService {
                 appImpl,
                 params.options,
                 appParams?.appOptions,
-                this.manager.useBoxesStatus ? TELE_BOX_STATE.Normal : undefined,
+                this.manager.useBoxesStatus ? boxStatus : undefined,
                 params.forceTop,
                 params.forceNormal,
                 params.isDragContent
@@ -288,7 +288,7 @@ export class AppProxy implements PageRemoveService {
         const params = this.params;
         const AppProxyClass = getExtendClass(AppProxy, WindowManager.extendClass);
         const appProxy = new AppProxyClass(params, this.manager, this.id, this.isAddApp);
-        await appProxy.baseInsertApp(true);
+        await appProxy.baseInsertApp(true, currentAppState?.boxStatus);
         this.boxManager?.updateBoxState(currentAppState);
     }
 

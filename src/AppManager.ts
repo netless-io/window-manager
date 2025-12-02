@@ -202,7 +202,7 @@ export class AppManager {
     };
 
     private onPlayerSeekDone = async (time: number) => {
-        await this.attributesUpdateCallback(this.attributes.apps);
+        await this._attributesUpdateCallback(this.attributes.apps);
         this.appProxies.forEach(appProxy => {
             appProxy.onSeek(time);
         });
@@ -351,11 +351,12 @@ export class AppManager {
                     resolve(this.appProxies.get(this._focusAppId || ""));
                 }, 500);
             }).then(() => {
+                this._resolveTimer = undefined;
+                this._focusAppCreatedResolve = undefined;
                 this.focusByAttributes(this.attributes.apps);
             });
         }
-        await this.attributesUpdateCallback(this.attributes.apps);
-        this.focusByAttributes(this.attributes.apps);
+        await this._attributesUpdateCallback(this.attributes.apps);
         internalEmitter.emit("updateManagerRect");
         boxEmitter.on("move", this.onBoxMove);
         boxEmitter.on("resize", this.onBoxResize);
@@ -404,6 +405,7 @@ export class AppManager {
         }
         this.displayerWritableListener(!this.room?.isWritable);
         this.displayer.callbacks.on("onEnableWriteNowChanged", this.displayerWritableListener);
+        this.focusByAttributes(this.attributes.apps);
         this._prevFocused = this.attributes.focus;
 
         if (!WindowManager.supportAppliancePlugin) {
@@ -465,6 +467,7 @@ export class AppManager {
     };
 
     private notifyBoxesStatusChange = debounce(() => {
+        this.boxManager?.setBoxesStatus(this.attributes.boxesStatus);
         const entries = Object.entries(this.attributes.boxesStatus);
         if (entries.length > 0) {
             entries.forEach(([appId, status]) => {
@@ -474,14 +477,13 @@ export class AppManager {
                 }
             });
         }
-    }, 50);
+    }, 100);
 
     public addBoxesStatusChangeListener = () => {
         this.refresher.add("boxesStatus", () => {
             return safeListenPropsUpdated(
                 () => this.attributes.boxesStatus,
                 () => {
-                    this.boxManager?.setBoxesStatus(this.attributes.boxesStatus);
                     this.notifyBoxesStatusChange();
                 }
             );
@@ -908,7 +910,7 @@ export class AppManager {
     }
 
     public async onReconnected() {
-        this.attributesUpdateCallback(this.attributes.apps);
+        await this._attributesUpdateCallback(this.attributes.apps);
         const appProxies = Array.from(this.appProxies.values());
         const reconnected = appProxies.map(appProxy => {
             return appProxy.onReconnected();
