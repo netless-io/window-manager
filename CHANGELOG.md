@@ -1,5 +1,8 @@
+## 1.0.10(2025-12-10)
+- 修复: `onReconnected`的时候, boxStatus的值被设置成了 `normal`
+
 ## 1.0.9(2025-11-27)
-- 修复: `appliancePlugin` 和 `RedoUndo` 的事件冲突问题.
+- 修复: `appliancePlugin` 和 `RedoUndo` 的事件冲突问题
 
 ## 1.0.8(2025-10-22)
 
