@@ -188,6 +188,21 @@ manager.emitter.on("boxStateChange", state => {
     }
 });
 ```
+### 独立管理窗口状态
+通过 开启[`WindowManager.mount`](https://github.com/netless-io/window-manager/blob/master/docs/api.md#windowmanagermount) 配置 `useBoxesStatus` 参数, 可以独立管理窗口状态
+```javascript  
+WindowManager.mount({
+    ...otherConfigs,
+    useBoxesStatus: true
+})
+```
+当开启了`useBoxesStatus`参数后, 窗口状态将不能用 `boxStateChange` 监听窗口状态变化,而应该使用 [`onBoxesStatusChange`](https://github.com/netless-io/window-manager/blob/master/docs/cn/api.md#%E4%BA%8B%E4%BB%B6%E5%9B%9E%E8%B0%83) 监听所有窗口状态变化
+```typescript
+manager.emitter.on("onBoxesStatusChange", (map: Map<appId, TeleBoxState>) => {
+    //  map: Map<appId, TeleBoxState>
+})
+```
+
 
 ### 监听 `broadcaster` 变化
 ```javascript

@@ -297,6 +297,7 @@ manager.emitter.on(events, listener)
 | pageStateChange          | PageState      |         |                            |
 | fullscreenChange         | boolean        |         | Triggered when the full-screen status changes          ｜
 | appsChange               | string[]       |         | Triggered when the list of opened apps changes       |
+| boxesStatusChange          | Map<string, TeleBoxState>|         | Triggered when window state changes, only fires when useBoxesStatus is configured     |
 
 ```ts
 type LoadAppEvent = {
@@ -310,5 +311,14 @@ type LoadAppEvent = {
 type PageState = {
      index: number;
      length: number;
+}
+```
+
+```ts
+type TeleBoxState = `${TELE_BOX_STATE}`;
+declare enum TELE_BOX_STATE {
+    Normal = "normal",
+    Minimized = "minimized",
+    Maximized = "maximized"
 }
 ```

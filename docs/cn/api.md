@@ -292,9 +292,10 @@ manager.emitter.on(events, listener)
 | loadApp                  | LoadAppEvent   |         | 加载远程APP 事件                |
 | ready                    | undefined      |         | 当所有 APP 创建完毕时触发      ｜
 | sceneStateChange         | SceneState     |         | 当 sceneState 修改时触发     |
-| pageStateChange          | PageState      |         |                            ｜
+| pageStateChange          | PageState      |         | 当mainView 的页码变化的时候触发             ｜
 | fullscreenChange          | boolean      |          | 当全屏状态改变时触发          ｜
 | appsChange                 | string[]    |         | 被打开的app列表改变时触发       |
+| boxesStatusChange          | Map<string, TeleBoxState>|         | 当窗口状态改变时触发,只有配置了useBoxesStatus时才会触发     |
 
 ```ts
 type LoadAppEvent = {
@@ -308,5 +309,14 @@ type LoadAppEvent = {
 type PageState = {
     index: number;
     length: number;
+}
+```
+
+```ts
+type TeleBoxState = `${TELE_BOX_STATE}`;
+declare enum TELE_BOX_STATE {
+    Normal = "normal",
+    Minimized = "minimized",
+    Maximized = "maximized"
 }
 ```

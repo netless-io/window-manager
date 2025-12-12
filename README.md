@@ -213,6 +213,20 @@ manager.emitter.on("boxStateChange", state => {
     }
 });
 ```
+### Independent Window State Management
+By enabling the `useBoxesStatus` parameter in [`WindowManager.mount`](https://github.com/netless-io/window-manager/blob/master/docs/api.md#windowmanagermount), you can independently manage window states
+```javascript  
+WindowManager.mount({
+    ...otherConfigs,
+    useBoxesStatus: true
+})
+```
+After enabling the `useBoxesStatus` parameter, window states cannot be monitored using `boxStateChange`. Instead, use [`boxesStatusChange`](https://github.com/netless-io/window-manager/blob/master/docs/api.md#events) to monitor all window state changes
+```typescript
+manager.emitter.on("boxesStatusChange", (map: Map<appId, TeleBoxState>) => {
+    //  map: Map<appId, TeleBoxState>
+})
+```
 
 ### Listening for `broadcaster` changes
 ```javascript

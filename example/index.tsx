@@ -300,6 +300,7 @@ const joinRoom = ref => {
             })
             .then(async room => {
                 (window as any).room = room;
+                room.syncMode=true;
                 return await mountManager(room, ref);
             });
     }
