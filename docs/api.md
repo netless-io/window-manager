@@ -296,8 +296,8 @@ manager.emitter.on(events, listener)
 | sceneStateChange         | SceneState     |         | Fired when sceneState is modified     |
 | pageStateChange          | PageState      |         |                            |
 | fullscreenChange         | boolean        |         | Triggered when the full-screen status changes          ｜
-| appsChange               | string[]       |         | Triggered when the list of opened apps changes       |
-| boxesStatusChange          | Map<string, TeleBoxState>|         | Triggered when window state changes, only fires when useBoxesStatus is configured     |
+| onAppSetup             | string      |         | Triggered when the app window is opened     |
+| onBoxesStatusChange          | Map<string, TeleBoxState>|         | Triggered when window state changes, only fires when useBoxesStatus is configured     |
 
 ```ts
 type LoadAppEvent = {

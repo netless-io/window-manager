@@ -295,7 +295,8 @@ manager.emitter.on(events, listener)
 | pageStateChange          | PageState      |         | 当mainView 的页码变化的时候触发             ｜
 | fullscreenChange          | boolean      |          | 当全屏状态改变时触发          ｜
 | appsChange                 | string[]    |         | 被打开的app列表改变时触发       |
-| boxesStatusChange          | Map<string, TeleBoxState>|         | 当窗口状态改变时触发,只有配置了useBoxesStatus时才会触发     |
+| onAppSetup             | string      |         | 当 app 窗口被打开时触发     |
+| onBoxesStatusChange          | Map<string, TeleBoxState> |         | 当窗口状态改变时触发,只有配置了useBoxesStatus时才会触发     |
 
 ```ts
 type LoadAppEvent = {
