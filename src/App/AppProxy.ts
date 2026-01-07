@@ -139,7 +139,10 @@ export class AppProxy implements PageRemoveService {
         this.manager.safeUpdateAttributes(["apps", this.id, Fields.FullPath], path);
     }
 
-    public async baseInsertApp(skipUpdate = false, boxStatus: TeleBoxState = TELE_BOX_STATE.Normal): Promise<{ appId: string; app: NetlessApp }> {
+    public async baseInsertApp(
+        skipUpdate = false,
+        boxStatus: TeleBoxState = TELE_BOX_STATE.Normal
+    ): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (!params.kind) {
             throw new Error("[WindowManager]: kind require");
