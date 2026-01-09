@@ -1,3 +1,6 @@
+## 1.0.11(2026-01-09)
+- 升级 @netless/telebox-insider@0.3.0
+
 ## 1.0.10(2025-12-10)
 - 修复: `onReconnected`的时候, boxStatus的值被设置成了 `normal`
 
