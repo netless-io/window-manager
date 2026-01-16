@@ -762,7 +762,7 @@ export class AppManager {
     public async closeApp(appId: string, needClose = true) {
         const appProxy = this.appProxies.get(appId);
         if (appProxy) {
-            appProxy.destroy(true, needClose, false);
+            await appProxy.destroy(true, needClose, false);
         }
     }
 
