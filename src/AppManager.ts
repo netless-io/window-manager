@@ -94,11 +94,6 @@ export class AppManager {
 
     constructor(public windowManger: WindowManager) {
         this.displayer = windowManger.displayer;
-        // this.store.setContext({
-        //     getAttributes: () => this.attributes,
-        //     safeSetAttributes: attributes => this.safeSetAttributes(attributes),
-        //     safeUpdateAttributes: (keys, val) => this.safeUpdateAttributes(keys, val),
-        // });
         this.store = createAttributesDelegate(WindowManager.extendClass, {
             getAttributes: () => this.attributes,
             safeSetAttributes: attributes => this.safeSetAttributes(attributes),
@@ -138,6 +133,7 @@ export class AppManager {
         this.createRootDirScenesCallback();
 
         appRegister.setSyncRegisterApp(payload => {
+            this.Logger?.info(`[WindowManager] syncRegisterApp ${JSON.stringify(payload)}`);
             this.safeUpdateAttributes([Fields.Registered, payload.kind], payload);
         });
     }
@@ -331,6 +327,10 @@ export class AppManager {
 
     public get uid() {
         return this.room?.uid || "";
+    }
+
+    public get Logger() {
+        return this.windowManger.Logger;
     }
 
     public getMainViewSceneDir() {
@@ -603,6 +603,9 @@ export class AppManager {
                     try {
                         const appAttributes = this.attributes[id];
                         if (!appAttributes) {
+                            this.Logger?.error(
+                                `[WindowManager]: appAttributes is undefined, appId: ${id}`
+                            );
                             throw new Error("appAttributes is undefined");
                         }
 
@@ -725,6 +728,9 @@ export class AppManager {
 
     public async addApp(params: AddAppParams, isDynamicPPT: boolean): Promise<string | undefined> {
         log("addApp", params);
+        this.windowManger.Logger?.info(
+            `[WindowManager]: addApp ${params.kind}, isDynamicPPT: ${isDynamicPPT}`
+        );
         const { appId, needFocus } = await this.beforeAddApp(params, isDynamicPPT);
         const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
         this.afterAddApp(appProxy);
@@ -773,7 +779,9 @@ export class AppManager {
         focus?: boolean
     ) {
         if (this.appProxies.has(appId)) {
-            console.warn("[WindowManager]: app duplicate exists and cannot be created again");
+            this.windowManger.Logger?.warn(
+                `[WindowManager]: app duplicate exists and cannot be created again, appId: ${appId}`
+            );
             return;
         }
         const AppProxyClass = getExtendClass(AppProxy, WindowManager.extendClass);
@@ -784,6 +792,7 @@ export class AppManager {
             return appProxy;
         } else {
             this.appStatus.delete(appId);
+            this.Logger?.error(`[WindowManager]: initialize AppProxy failed, appId: ${appId}`);
             throw new Error("[WindowManger]: initialize AppProxy failed");
         }
     }
@@ -823,9 +832,11 @@ export class AppManager {
             const scenePathType = this.displayer.scenePathType(scenePath);
             const sceneDir = parseSceneDir(scenePath);
             if (sceneDir !== ROOT_DIR) {
+                this.Logger?.error(`[WindowManager]: main view scenePath must in root dir "/"`);
                 throw new Error(`[WindowManager]: main view scenePath must in root dir "/"`);
             }
             if (scenePathType === ScenePathType.None) {
+                this.Logger?.error(`[WindowManager]: ${scenePath} not valid scene`);
                 throw new Error(`[WindowManager]: ${scenePath} not valid scene`);
             } else if (scenePathType === ScenePathType.Page) {
                 await this._setMainViewScenePath(scenePath);
@@ -875,6 +886,7 @@ export class AppManager {
                     this.dispatchSetMainViewScenePath(scenePath);
                 }
             } else {
+                this.Logger?.error(`[WindowManager]: ${index} not valid index`);
                 throw new Error(`[WindowManager]: ${index} not valid index`);
             }
         }

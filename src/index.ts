@@ -47,6 +47,7 @@ import type {
     Player,
     ImageInformation,
     SceneState,
+    Logger,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
@@ -242,6 +243,12 @@ export class WindowManager
 
     private extendPluginManager?: ExtendPluginManager;
 
+    private _roomLogger?: Logger;
+
+    get Logger(): Logger | undefined {
+        return this._roomLogger;
+    }
+
     constructor(context: InvisiblePluginContext) {
         super(context);
         WindowManager.displayer = context.displayer;
@@ -277,6 +284,16 @@ export class WindowManager
                 room.disableSerialization = false;
             }
             manager = await this.initManager(room);
+            if (manager) {
+                manager._roomLogger = (room as unknown as { logger: Logger }).logger;
+                if (WindowManager.registered.size > 0) {
+                    manager._roomLogger.info(
+                        `[WindowManager] registered apps: ${JSON.stringify(
+                            Array.from(WindowManager.registered.keys())
+                        )}`
+                    );
+                }
+            }
         }
         if (WindowManager.isCreated) {
             throw new Error("[WindowManager]: Already created cannot be created again");
@@ -286,7 +303,13 @@ export class WindowManager
         if (this.debug) {
             setOptions({ verbose: true });
         }
-        log("Already insert room", manager);
+        if (manager?._roomLogger) {
+            manager._roomLogger.info(
+                `[WindowManager] Already insert room version: ${manager.version}`
+            );
+        } else {
+            log("Already insert room", manager);
+        }
 
         if (isRoom(this.displayer)) {
             if (!manager) {
@@ -345,12 +368,25 @@ export class WindowManager
         replaceRoomFunction(room, manager);
         internalEmitter.emit("onCreated");
         WindowManager.isCreated = true;
+        if (
+            manager._roomLogger &&
+            manager.attributes.registered &&
+            Object.keys(manager.attributes.registered).length > 0
+        ) {
+            manager._roomLogger.info(
+                `[WindowManager] attributes registered apps: ${JSON.stringify(
+                    Array.from(Object.keys(manager.attributes.registered))
+                )}`
+            );
+        }
         try {
             await initDb();
         } catch (error) {
+            manager._roomLogger?.warn(`[WindowManager] indexedDB open failed: ${error.message}`);
             console.warn("[WindowManager]: indexedDB open failed");
             console.log(error);
         }
+
         return manager;
     }
 
