@@ -33,7 +33,14 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
                 return manager.canRedoSteps;
             },
         });
-
+        const _scalePptToFit = room.scalePptToFit;
+        room.scalePptToFit = (...args) => {
+            _scalePptToFit.call(room, ...args);
+            if (manager.appManager?.mainViewProxy) {
+                console.log("[window-manager] scalePptToFit  ", JSON.stringify(args));
+                manager.appManager.mainViewProxy.setCameraAndSize();
+            }
+        };
         room.moveCamera = (camera: Camera) => manager.moveCamera(camera);
         room.moveCameraToContain = (...args) => manager.moveCameraToContain(...args);
         room.convertToPointInWorld = (...args) => manager.mainView.convertToPointInWorld(...args);
