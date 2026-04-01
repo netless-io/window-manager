@@ -7,6 +7,7 @@ import type { Cursor } from "./Cursor/Cursor";
 import { getExtendClass } from "./Utils/extendClass";
 import type { ExtendClass } from "./Utils/extendClass";
 import type { NotMinimizedBoxState, TeleBoxState } from "@netless/telebox-insider";
+import { LocalConsole } from "./Utils/log";
 
 export enum Fields {
     Apps = "apps",
@@ -54,6 +55,7 @@ export type ISize = Size & { id: string };
 
 export class AttributesDelegate {
     static readonly kind = "AttributesDelegate";
+    private setMainViewCameraConsole = new LocalConsole("setMainViewCamera", 30);
     constructor(private context: StoreContext) {}
 
     public setContext(context: StoreContext) {
@@ -194,10 +196,12 @@ export class AttributesDelegate {
     }
 
     public setMainViewScenePath(scenePath: string) {
+        console.log("[window-manager] setMainViewScenePath  " + scenePath);
         this.context.safeSetAttributes({ _mainScenePath: scenePath });
     }
 
     public setMainViewSceneIndex(index: number) {
+        console.log("[window-manager] setMainViewSceneIndex  " + index);
         this.context.safeSetAttributes({ _mainSceneIndex: index });
     }
 
@@ -210,16 +214,19 @@ export class AttributesDelegate {
     }
 
     public setMainViewCamera(camera: ICamera) {
+        this.setMainViewCameraConsole.log(JSON.stringify(camera));
         this.context.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
 
     public setMainViewSize(size: ISize) {
         if (size.width === 0 || size.height === 0) return;
+        console.log("[window-manager] setMainViewSize size:" + JSON.stringify(size));
         this.context.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 
     public setMainViewCameraAndSize(camera: ICamera, size: ISize) {
         if (size.width === 0 || size.height === 0) return;
+        console.log("[window-manager] setMainViewCameraAndSize camera:" + JSON.stringify(camera) + ", size:" + JSON.stringify(size));
         this.context.safeSetAttributes({
             [Fields.MainViewCamera]: { ...camera },
             [Fields.MainViewSize]: { ...size },

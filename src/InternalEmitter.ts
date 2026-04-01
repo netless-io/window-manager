@@ -29,6 +29,7 @@ export type EmitterEvent = {
     changePageState: undefined;
     writableChange: boolean;
     containerSizeRatioUpdate: number;
+    wrapperRectChange: { width: number; height: number; origin?: string };
     boxesStatusChange: Map<string, TeleBoxState>;
     lastNotMinimizedBoxesStatusChange: Map<string, NotMinimizedBoxState>;
 };

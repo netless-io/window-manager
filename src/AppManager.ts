@@ -146,6 +146,7 @@ export class AppManager {
         const { scenePath } = params;
         // 如果移除根目录就把 scenePath 设置为初始值
         if (scenePath === ROOT_DIR) {
+            console.log("[window-manager] onRemoveScenes ROOT_DIR");
             await this.onRootDirRemoved();
             this.dispatchInternalEvent(Events.RootDirRemoved);
             return;
@@ -158,6 +159,7 @@ export class AppManager {
                 sceneName = this.callbacksNode?.scenes[nextIndex];
             }
             if (sceneName) {
+                console.log(`[window-manager] onRemoveScenes  setMainViewScenePath ${ROOT_DIR}${sceneName}`);
                 this.setMainViewScenePath(`${ROOT_DIR}${sceneName}`);
             }
             await this.setMainViewSceneIndex(nextIndex);
@@ -709,6 +711,31 @@ export class AppManager {
         }
         internalEmitter.emit("mainViewMounted");
         callbacks.emit("onMainViewMounted", mainView);
+        const hasRoot = this.hasRoot(mainView.divElement);
+        const rect = this.getRectByDivElement(mainView.divElement);
+        let log = `[window-manager] bindMainView hasRoot:${hasRoot}, rect:${JSON.stringify(rect)}, outerHeight:${window.outerHeight}, outerWidth:${window.outerWidth}`;
+        const visualViewport = window.visualViewport;
+        if (visualViewport) {
+            log += `, visualViewportWidth:${visualViewport.width}, visualViewportHeight:${visualViewport.height}, visualViewportOffsetLeft:${visualViewport.offsetLeft}, visualViewportOffsetTop:${visualViewport.offsetTop}`;
+        }
+        console.log(log);
+    }
+
+    private hasRoot(divElement: HTMLDivElement){
+        let current = divElement;
+        while (current) {
+            if (current.parentElement === document.body) {
+                return true;
+            }
+            current = current.parentElement as HTMLDivElement;
+        }
+        return false;
+    }
+
+    private getRectByDivElement(divElement: HTMLDivElement){
+        // 获取当前divElement的矩形区域
+        const rect = divElement.getBoundingClientRect();
+        return rect;
     }
 
     public setMainViewFocusPath(scenePath?: string) {
@@ -840,6 +867,7 @@ export class AppManager {
                 throw new Error(`[WindowManager]: ${scenePath} not valid scene`);
             } else if (scenePathType === ScenePathType.Page) {
                 await this._setMainViewScenePath(scenePath);
+
             } else if (scenePathType === ScenePathType.Dir) {
                 const validScenePath = makeValidScenePath(this.displayer, scenePath);
                 if (validScenePath) {
@@ -852,6 +880,7 @@ export class AppManager {
     private async _setMainViewScenePath(scenePath: string) {
         const success = this.setMainViewFocusPath(scenePath);
         if (success) {
+            console.log("[window-manager] _setMainViewScenePath " + scenePath);
             this.safeSetAttributes({ _mainScenePath: scenePath });
             this.store.setMainViewFocusPath(this.mainView);
             this.updateSceneIndex();
@@ -868,6 +897,7 @@ export class AppManager {
             const pageName = scenePath.replace(sceneDir, "").replace("/", "");
             const index = scenes.findIndex(scene => scene.name === pageName);
             if (isInteger(index) && index >= 0) {
+                console.log("[window-manager] updateSceneIndex  " + index);
                 this.safeSetAttributes({ _mainSceneIndex: index });
             }
         }
@@ -973,3 +1003,4 @@ export class AppManager {
         this._resolveTimer = undefined;
     }
 }
+

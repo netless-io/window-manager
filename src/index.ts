@@ -253,6 +253,7 @@ export class WindowManager
         super(context);
         WindowManager.displayer = context.displayer;
         (window as any).NETLESS_DEPS = __APP_DEPENDENCIES__;
+        this.emitter.on('mainViewScenePathChange', this.onMainViewScenePathChangeHandler)
     }
 
     public static onCreate(manager: WindowManager) {
@@ -386,8 +387,26 @@ export class WindowManager
             console.warn("[WindowManager]: indexedDB open failed");
             console.log(error);
         }
-
+        manager.emitter.on('mainViewScenePathChange', manager.onMainViewScenePathChangeHandler)
         return manager;
+    }
+
+    public onMainViewScenePathChangeHandler = (scenePath: string) => {
+        const mainViewElement = this.mainView.divElement;
+        if (mainViewElement) {
+            const backgroundImage = mainViewElement.querySelector('.background img');
+            if (backgroundImage) {
+                const backgroundImageRect = backgroundImage?.getBoundingClientRect();
+                const backgroundImageCSS = window.getComputedStyle(backgroundImage);
+                const backgroundImageVisible = backgroundImageRect?.width > 0 && backgroundImageRect?.height > 0 && backgroundImageCSS.display !== 'none';
+                const camera = this.mainView.camera;
+                console.log("[window-manager] backgroundImageVisible:" + backgroundImageVisible + " camera:" + JSON.stringify(camera));
+                return;
+            }
+            console.log("[window-manager] onMainViewScenePathChange scenePath:" + scenePath + ' backgroundImageVisible is not found');
+            return;
+        }
+        console.log("[window-manager] onMainViewScenePathChange scenePath:" + scenePath + ' mainViewElement is not found');
     }
 
     private static initManager(room: Room): Promise<WindowManager | undefined> {
@@ -1011,7 +1030,6 @@ export class WindowManager
         const mainViewCamera = { ...this.mainView.camera };
         if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
         this.mainView.moveCamera(camera);
-        // this.appManager?.dispatchInternalEvent(Events.MoveCamera, camera);
         setTimeout(() => {
             this.appManager?.mainViewProxy.setCameraAndSize();
         }, 500);
@@ -1024,7 +1042,6 @@ export class WindowManager
             }>
     ): void {
         this.mainView.moveCameraToContain(rectangle);
-        // this.appManager?.dispatchInternalEvent(Events.MoveCameraToContain, rectangle);
         setTimeout(() => {
             this.appManager?.mainViewProxy.setCameraAndSize();
         }, 500);
@@ -1059,6 +1076,7 @@ export class WindowManager
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
         }
         WindowManager.params = undefined;
+        this.emitter.off('mainViewScenePathChange', this.onMainViewScenePathChangeHandler);
         this._iframeBridge?.destroy();
         this._iframeBridge = undefined;
         log("Destroyed");

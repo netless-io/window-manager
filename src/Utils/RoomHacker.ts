@@ -37,9 +37,23 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.scalePptToFit = (...args) => {
             _scalePptToFit.call(room, ...args);
             if (manager.appManager?.mainViewProxy) {
-                console.log("[window-manager] scalePptToFit  ", JSON.stringify(args));
                 manager.appManager.mainViewProxy.setCameraAndSize();
             }
+        };
+        const _putScenes = room.putScenes;
+        room.putScenes = (...args) => {
+            const [path, scenes] = args;
+            const currentScenePath = manager.mainView.focusScenePath;
+            if (currentScenePath && path && scenes) {
+                console.log("[window-manager] putScenes " + JSON.stringify(args));
+                for (const scene of scenes) {
+                    if (`${path}${scene.name}` === currentScenePath) {
+                        console.error(`[window-manager] putScenes: scene name can not be the same as the current scene path: ${currentScenePath}`);
+                        return;
+                    }
+                }
+            }
+            return _putScenes.call(room, ...args);
         };
         room.moveCamera = (camera: Camera) => manager.moveCamera(camera);
         room.moveCameraToContain = (...args) => manager.moveCameraToContain(...args);
