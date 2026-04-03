@@ -30,8 +30,8 @@ export const onObjectByEvent = (event: UpdateEventKind) => {
     };
 };
 
-export const safeListenPropsUpdated = <T>(
-    getProps: () => T,
+export const safeListenPropsUpdated = <T extends Record<string, unknown>>(
+    getProps: () => T | null | undefined,
     callback: AkkoObjectUpdatedListener<T>,
     onDestroyed?: (props: unknown) => void
 ) => {

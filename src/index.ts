@@ -199,6 +199,25 @@ export type MountParams = {
     useBoxesStatus?: boolean;
 };
 
+type DiagnosticColorChannels = {
+    raw: string;
+    r?: number;
+    g?: number;
+    b?: number;
+    a?: number;
+};
+
+type DiagnosticRect = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+};
+
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
 export class WindowManager
     extends InvisiblePlugin<WindowMangerAttributes, any>
@@ -393,6 +412,7 @@ export class WindowManager
 
     public onMainViewScenePathChangeHandler = (scenePath: string) => {
         const mainViewElement = this.mainView.divElement;
+        this.logMainViewVisibilityDiagnostics("onMainViewScenePathChange", scenePath, mainViewElement);
         if (mainViewElement) {
             const backgroundImage = mainViewElement.querySelector('.background img');
             if (backgroundImage) {
@@ -407,6 +427,415 @@ export class WindowManager
             return;
         }
         console.log("[window-manager] onMainViewScenePathChange scenePath:" + scenePath + ' mainViewElement is not found');
+    }
+
+    public logMainViewVisibilityDiagnostics(
+        tag: string,
+        scenePath?: string,
+        mainViewElement?: HTMLDivElement | null
+    ): void {
+        const element = mainViewElement ?? this.mainView?.divElement;
+        const label = scenePath ? `${tag}:${scenePath}` : tag;
+        const payload = this.collectMainViewVisibilityDiagnostics(element, scenePath);
+        this.emitMainViewVisibilityDiagnostic(label, payload.summary);
+        if (payload.details) {
+            this.emitMainViewVisibilityDiagnostic(`${label}:details`, payload.details);
+        }
+    }
+
+    private emitMainViewVisibilityDiagnostic(tag: string, payload: unknown): void {
+        const content = `[window-manager][visibility][${tag}] ${JSON.stringify(payload)}`;
+        // console.log(content);
+        this._roomLogger?.info(content);
+    }
+
+    private collectMainViewVisibilityDiagnostics(
+        mainViewElement: HTMLDivElement | null | undefined,
+        scenePath?: string
+    ): {
+        summary: Record<string, any>;
+        details: Record<string, any> | null;
+    } {
+        const element = mainViewElement ?? null;
+        const backgroundImage = element?.querySelector(".background img") as HTMLImageElement | null;
+        const elementDiagnostic = element ? this.collectElementDiagnostic(element) : null;
+        const chainDiagnostics = element ? this.collectElementChainDiagnostics(element) : [];
+        const elementRect = element?.getBoundingClientRect?.() ?? null;
+        const centerPoint = elementRect
+            ? {
+                  x: elementRect.left + elementRect.width / 2,
+                  y: elementRect.top + elementRect.height / 2,
+              }
+            : undefined;
+        const topElement =
+            centerPoint &&
+            Number.isFinite(centerPoint.x) &&
+            Number.isFinite(centerPoint.y)
+                ? document.elementFromPoint(centerPoint.x, centerPoint.y)
+                : null;
+        const overlayStack =
+            centerPoint &&
+            Number.isFinite(centerPoint.x) &&
+            Number.isFinite(centerPoint.y) &&
+            document.elementsFromPoint
+                ? document
+                      .elementsFromPoint(centerPoint.x, centerPoint.y)
+                      .slice(0, 10)
+                      .map(item => this.describeElement(item))
+                      .filter((item): item is string => item !== null)
+                : [];
+        const topElementDiagnostic = topElement ? this.collectElementDiagnostic(topElement) : null;
+        const backgroundImageDiagnostic = backgroundImage
+            ? this.collectImageDiagnostic(backgroundImage)
+            : null;
+        const blockers: string[] = [];
+        const warnings: string[] = [];
+        const suspiciousAncestors: Array<Record<string, any>> = [];
+        const mainViewBlockers: string[] = [];
+        const mainViewWarnings: string[] = [];
+
+        if (!element) {
+            blockers.push("mainViewElement.missing");
+        }
+
+        if (document.hidden || document.visibilityState === "hidden") {
+            blockers.push("document.hidden");
+        }
+
+        if (elementDiagnostic) {
+            this.appendRenderImpactIssues(
+                "mainViewElement",
+                elementDiagnostic,
+                mainViewBlockers,
+                mainViewWarnings
+            );
+            blockers.push(...mainViewBlockers);
+            warnings.push(...mainViewWarnings);
+        }
+
+        chainDiagnostics.slice(1).forEach((diagnostic, index) => {
+            const ancestorBlockers: string[] = [];
+            const ancestorWarnings: string[] = [];
+            this.appendRenderImpactIssues(
+                `ancestor[${index + 1}]`,
+                diagnostic,
+                ancestorBlockers,
+                ancestorWarnings
+            );
+            if (ancestorBlockers.length > 0 || ancestorWarnings.length > 0) {
+                blockers.push(...ancestorBlockers);
+                warnings.push(...ancestorWarnings);
+                suspiciousAncestors.push(this.pickRenderRelevantFields(diagnostic));
+            }
+        });
+
+        let backgroundImageStatus: Record<string, any> | null = null;
+        const backgroundImageBlockers: string[] = [];
+        const backgroundImageWarnings: string[] = [];
+        if (backgroundImageDiagnostic) {
+            backgroundImageStatus = this.pickBackgroundImageStatus(backgroundImageDiagnostic);
+            this.appendRenderImpactIssues(
+                "backgroundImage",
+                backgroundImageDiagnostic,
+                backgroundImageBlockers,
+                backgroundImageWarnings
+            );
+            blockers.push(...backgroundImageBlockers);
+            warnings.push(...backgroundImageWarnings);
+            if (backgroundImageDiagnostic.complete === false) {
+                warnings.push("backgroundImage.loading");
+            } else if (backgroundImageDiagnostic.naturalWidth === 0) {
+                warnings.push("backgroundImage.empty");
+            }
+        }
+
+        let topElementSummary: Record<string, any> | null = null;
+        if (topElementDiagnostic) {
+            const coveredByOutsideElement = Boolean(
+                element && topElement && topElement !== element && !element.contains(topElement)
+            );
+            topElementSummary = {
+                node: topElementDiagnostic.node,
+                coveredByOutsideElement,
+            };
+            if (coveredByOutsideElement) {
+                warnings.push(`center.coveredBy:${topElementDiagnostic.node}`);
+            }
+        }
+
+        const summary: Record<string, any> = {
+            scenePath: scenePath || null,
+            timestamp: new Date().toISOString(),
+            status:
+                blockers.length > 0
+                    ? "blocked"
+                    : warnings.length > 0
+                      ? "uncertain"
+                      : "likely-renderable",
+            canRender: blockers.length === 0,
+            blockers,
+            warnings,
+        };
+        if (
+            backgroundImageStatus &&
+            backgroundImageDiagnostic &&
+            (backgroundImageDiagnostic.complete === false ||
+                backgroundImageDiagnostic.naturalWidth === 0)
+        ) {
+            summary.backgroundImage = backgroundImageStatus;
+        }
+        if (topElementSummary?.coveredByOutsideElement) {
+            summary.coveringElement = topElementSummary.node;
+        }
+
+        const shouldEmitDetails =
+            blockers.length > 0 ||
+            warnings.some(
+                warning =>
+                    warning !== "backgroundImage.loading" &&
+                    warning !== "backgroundImage.empty"
+            );
+        const details: Record<string, any> = {};
+        if ((mainViewBlockers.length > 0 || mainViewWarnings.length > 0) && elementDiagnostic) {
+            details.mainViewElement = this.pickRenderRelevantFields(elementDiagnostic);
+        }
+        if (
+            suspiciousAncestors.length > 0
+        ) {
+            details.suspiciousAncestors = suspiciousAncestors;
+        }
+        if (
+            backgroundImageDiagnostic &&
+            (backgroundImageBlockers.length > 0 ||
+                backgroundImageWarnings.length > 0 ||
+                backgroundImageDiagnostic.complete === false ||
+                backgroundImageDiagnostic.naturalWidth === 0)
+        ) {
+            details.backgroundImage = {
+                ...this.pickRenderRelevantFields(backgroundImageDiagnostic),
+                loadState: backgroundImageStatus,
+            };
+        }
+        if (topElementSummary?.coveredByOutsideElement && topElementDiagnostic) {
+            details.topElementAtCenter = {
+                ...this.pickRenderRelevantFields(topElementDiagnostic),
+                overlayStack,
+            };
+        }
+
+        return {
+            summary,
+            details: shouldEmitDetails && Object.keys(details).length > 0 ? details : null,
+        };
+    }
+
+    private collectElementChainDiagnostics(element: Element): Array<Record<string, any>> {
+        const chain: Array<Record<string, any>> = [];
+        let current: Element | null = element;
+        while (current) {
+            const diagnostic = this.collectElementDiagnostic(current);
+            if (diagnostic) {
+                chain.push(diagnostic);
+            }
+            current = current.parentElement;
+        }
+        return chain;
+    }
+
+    private collectImageDiagnostic(image: HTMLImageElement): Record<string, any> {
+        const diagnostic = this.collectElementDiagnostic(image);
+        return {
+            ...diagnostic,
+            currentSrc: image.currentSrc,
+            src: image.getAttribute("src"),
+            complete: image.complete,
+            naturalWidth: image.naturalWidth,
+            naturalHeight: image.naturalHeight,
+        };
+    }
+
+    private appendRenderImpactIssues(
+        label: string,
+        diagnostic: Record<string, any>,
+        blockers: string[],
+        warnings: string[]
+    ): void {
+        const opacity = Number.parseFloat(diagnostic.opacity || "1");
+        if (diagnostic.hiddenAttribute) {
+            blockers.push(`${label}.hiddenAttribute`);
+        }
+        if (diagnostic.display === "none") {
+            blockers.push(`${label}.display:none`);
+        }
+        if (diagnostic.visibility === "hidden" || diagnostic.visibility === "collapse") {
+            blockers.push(`${label}.visibility:${diagnostic.visibility}`);
+        }
+        if (Number.isFinite(opacity) && opacity <= 0.01) {
+            blockers.push(`${label}.opacity:${diagnostic.opacity}`);
+        }
+        if (diagnostic.contentVisibility === "hidden") {
+            blockers.push(`${label}.contentVisibility:hidden`);
+        }
+        if (diagnostic.transform !== "none") {
+            warnings.push(`${label}.transform`);
+        }
+        if (diagnostic.filter !== "none") {
+            warnings.push(`${label}.filter`);
+        }
+        if (diagnostic.backdropFilter !== "none") {
+            warnings.push(`${label}.backdropFilter`);
+        }
+        if (diagnostic.clipPath !== "none") {
+            warnings.push(`${label}.clipPath`);
+        }
+        if (diagnostic.maskImage !== "none") {
+            warnings.push(`${label}.maskImage`);
+        }
+        if (diagnostic.mixBlendMode !== "normal") {
+            warnings.push(`${label}.mixBlendMode:${diagnostic.mixBlendMode}`);
+        }
+    }
+
+    private pickRenderRelevantFields(diagnostic: Record<string, any>): Record<string, any> {
+        const result: Record<string, any> = {
+            node: diagnostic.node,
+            display: diagnostic.display,
+            visibility: diagnostic.visibility,
+            opacity: diagnostic.opacity,
+            hiddenAttribute: diagnostic.hiddenAttribute,
+            contentVisibility: diagnostic.contentVisibility,
+            backgroundColor: diagnostic.backgroundColor,
+            backgroundAlpha: diagnostic.backgroundColorChannels?.a ?? null,
+            color: diagnostic.color,
+            colorAlpha: diagnostic.colorChannels?.a ?? null,
+            textFillColor: diagnostic.textFillColor,
+            textFillAlpha: diagnostic.textFillColorChannels?.a ?? null,
+        };
+        if (diagnostic.transform !== "none") {
+            result.transform = diagnostic.transform;
+        }
+        if (diagnostic.filter !== "none") {
+            result.filter = diagnostic.filter;
+        }
+        if (diagnostic.backdropFilter !== "none") {
+            result.backdropFilter = diagnostic.backdropFilter;
+        }
+        if (diagnostic.mixBlendMode !== "normal") {
+            result.mixBlendMode = diagnostic.mixBlendMode;
+        }
+        if (diagnostic.clipPath !== "none") {
+            result.clipPath = diagnostic.clipPath;
+        }
+        if (diagnostic.maskImage !== "none") {
+            result.maskImage = diagnostic.maskImage;
+        }
+        if (diagnostic.overflow !== "visible") {
+            result.overflow = diagnostic.overflow;
+        }
+        if (diagnostic.zIndex !== "auto") {
+            result.zIndex = diagnostic.zIndex;
+        }
+        return result;
+    }
+
+    private pickBackgroundImageStatus(diagnostic: Record<string, any>): Record<string, any> {
+        return {
+            found: true,
+            complete: diagnostic.complete,
+            currentSrc: diagnostic.currentSrc || diagnostic.src || "",
+            naturalWidth: diagnostic.naturalWidth,
+            naturalHeight: diagnostic.naturalHeight,
+        };
+    }
+
+    private collectElementDiagnostic(element: Element | null): Record<string, any> | null {
+        if (!element) {
+            return null;
+        }
+        const style = window.getComputedStyle(element);
+        const htmlElement = element as HTMLElement;
+        return {
+            node: this.describeElement(element),
+            isConnected: element.isConnected,
+            hiddenAttribute: htmlElement.hidden,
+            ariaHidden: htmlElement.getAttribute("aria-hidden"),
+            opacity: style.opacity,
+            alpha: style.opacity,
+            display: style.display,
+            visibility: style.visibility,
+            backgroundColor: style.backgroundColor,
+            backgroundColorChannels: this.parseColorChannels(style.backgroundColor),
+            color: style.color,
+            colorChannels: this.parseColorChannels(style.color),
+            textFillColor: style.getPropertyValue("-webkit-text-fill-color"),
+            textFillColorChannels: this.parseColorChannels(
+                style.getPropertyValue("-webkit-text-fill-color")
+            ),
+            filter: style.filter,
+            backdropFilter: style.getPropertyValue("backdrop-filter"),
+            mixBlendMode: style.mixBlendMode,
+            transform: style.transform,
+            contentVisibility: style.getPropertyValue("content-visibility"),
+            clipPath: style.clipPath,
+            maskImage:
+                style.getPropertyValue("mask-image") ||
+                style.getPropertyValue("-webkit-mask-image"),
+            overflow: style.overflow,
+            zIndex: style.zIndex,
+        };
+    }
+
+    private describeElement(element: Element | null): string | null {
+        if (!element) {
+            return null;
+        }
+        const tagName = element.tagName.toLowerCase();
+        const id = element.id ? `#${element.id}` : "";
+        const className =
+            typeof (element as HTMLElement).className === "string" &&
+            (element as HTMLElement).className.trim()
+                ? `.${(element as HTMLElement).className.trim().replace(/\s+/g, ".")}`
+                : "";
+        return `${tagName}${id}${className}`;
+    }
+
+    private serializeRect(rect?: DOMRect | null): DiagnosticRect | null {
+        if (!rect) {
+            return null;
+        }
+        return {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left,
+        };
+    }
+
+    private parseColorChannels(value?: string | null): DiagnosticColorChannels {
+        const raw = value?.trim() || "";
+        if (!raw) {
+            return { raw };
+        }
+        if (raw === "transparent") {
+            return { raw, r: 0, g: 0, b: 0, a: 0 };
+        }
+        const matches = raw.match(/^rgba?\((.+)\)$/i);
+        if (!matches) {
+            return { raw };
+        }
+        const parts = matches[1].split(",").map(part => part.trim());
+        const [r, g, b, a] = parts.map(part => Number(part));
+        return {
+            raw,
+            r: Number.isFinite(r) ? r : undefined,
+            g: Number.isFinite(g) ? g : undefined,
+            b: Number.isFinite(b) ? b : undefined,
+            a: Number.isFinite(a) ? a : raw.startsWith("rgb(") ? 1 : undefined,
+        };
     }
 
     private static initManager(room: Room): Promise<WindowManager | undefined> {
@@ -481,6 +910,7 @@ export class WindowManager
                     this.appManager.setBoxManager(boxManager);
                 }
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
+                this.logMainViewVisibilityDiagnostics("bindContainer.afterBindMainView");
                 if (WindowManager.wrapper) {
                     this.cursorManager?.setupWrapper(WindowManager.wrapper);
                 }
