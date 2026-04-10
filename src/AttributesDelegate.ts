@@ -196,12 +196,10 @@ export class AttributesDelegate {
     }
 
     public setMainViewScenePath(scenePath: string) {
-        console.log("[window-manager] setMainViewScenePath  " + scenePath);
         this.context.safeSetAttributes({ _mainScenePath: scenePath });
     }
 
     public setMainViewSceneIndex(index: number) {
-        console.log("[window-manager] setMainViewSceneIndex  " + index);
         this.context.safeSetAttributes({ _mainSceneIndex: index });
     }
 
@@ -220,13 +218,11 @@ export class AttributesDelegate {
 
     public setMainViewSize(size: ISize) {
         if (size.width === 0 || size.height === 0) return;
-        console.log("[window-manager] setMainViewSize size:" + JSON.stringify(size));
         this.context.safeSetAttributes({ [Fields.MainViewSize]: { ...size } });
     }
 
     public setMainViewCameraAndSize(camera: ICamera, size: ISize) {
         if (size.width === 0 || size.height === 0) return;
-        console.log("[window-manager] setMainViewCameraAndSize camera:" + JSON.stringify(camera) + ", size:" + JSON.stringify(size));
         this.context.safeSetAttributes({
             [Fields.MainViewCamera]: { ...camera },
             [Fields.MainViewSize]: { ...size },

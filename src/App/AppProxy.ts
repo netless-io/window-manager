@@ -149,7 +149,7 @@ export class AppProxy implements PageRemoveService {
     ): Promise<{ appId: string; app: NetlessApp }> {
         const params = this.params;
         if (!params.kind) {
-            this.Logger?.error(`[WindowManager]: kind require`);
+            this.Logger && this.Logger.error(`[WindowManager]: kind require`);
             throw new Error("[WindowManager]: kind require");
         }
         const appImpl = await appRegister.appClasses.get(params.kind)?.();
@@ -167,7 +167,7 @@ export class AppProxy implements PageRemoveService {
                 params.isDragContent
             );
         } else {
-            this.Logger?.error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
+            this.Logger && this.Logger.error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
         internalEmitter.emit("updateManagerRect");
@@ -216,7 +216,7 @@ export class AppProxy implements PageRemoveService {
                 }
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
-                    this.Logger?.info(`[WindowManager]: setup app ${this.kind}, appId: ${appId}`);
+                    this.Logger && this.Logger.info(`[WindowManager]: setup app ${this.kind}, appId: ${appId}`);
                     const result = await app.setup(context);
                     this.appResult = result;
                     appRegister.notifyApp(this.kind, "created", { appId, result });
@@ -251,7 +251,7 @@ export class AppProxy implements PageRemoveService {
                 this.boxManager.focusBox({ appId }, false);
             }
         } catch (error: any) {
-            this.Logger?.error(`[WindowManager]: app setup error: ${error.message}`);
+            this.Logger && this.Logger.error(`[WindowManager]: app setup error: ${error.message}`);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
         }
     }
@@ -538,7 +538,7 @@ export class AppProxy implements PageRemoveService {
             await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
             await this.appEmitter.emit("destroy", { error });
         } catch (error) {
-            this.Logger?.error(`[WindowManager]: notifyApp error: ${error.message}`);
+            this.Logger && this.Logger.error(`[WindowManager]: notifyApp error: ${error.message}`);
             console.error("[WindowManager]: notifyApp error", error.message, error.stack);
         }
         this.appEmitter.clearListeners();
@@ -561,7 +561,7 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher.remove(this.stateKey);
         this.manager.refresher.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
-        this.Logger?.info(`[WindowManager]: destroy app ${this.kind} appId: ${this.id}`);
+        this.Logger && this.Logger.info(`[WindowManager]: destroy app ${this.kind} appId: ${this.id}`);
     }
 
     public close(): Promise<void> {

@@ -170,13 +170,6 @@ export class MainViewProxy {
             return;
         }
         this.isForcingMainViewDivElement = true;
-        console.log("[window-manager] forceSyncMainViewDivElement " + JSON.stringify({
-            reason,
-            observedSize,
-            viewSize: this.mainView.size,
-            mainViewSize: this.mainViewSize,
-            mainViewCamera: this.mainViewCamera,
-        }));
         this.mainView.divElement = null;
         this.mainView.divElement = element;
         queueMicrotask(() => {
@@ -379,7 +372,6 @@ export class MainViewProxy {
 
     private syncMainView = (room: Room) => {
         if (room.isWritable) {
-            console.log("[window-manager] syncMainView ");
             room.syncMainView(this.mainView);
         }
     };

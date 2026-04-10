@@ -1106,12 +1106,14 @@ export class WindowManager
 
     public safeSetAttributes(attributes: any): void {
         if (this.canOperate) {
+            this.Logger && this.Logger.info(`[WindowManager]: safeSetAttributes ${JSON.stringify(attributes)}`);
             this.setAttributes(attributes);
         }
     }
 
     public safeUpdateAttributes(keys: string[], value: any): void {
         if (this.canOperate) {
+            this.Logger && this.Logger.info(`[WindowManager]: safeUpdateAttributes ${keys.join(", ")} ${value}`);
             this.updateAttributes(keys, value);
         }
     }
@@ -1122,6 +1124,7 @@ export class WindowManager
 
     public cleanCurrentScene(): void {
         log("clean current scene");
+        this.Logger && this.Logger.info(`[WindowManager]: cleanCurrentScene ${this.focusedView?.focusScenePath}`);
         this.focusedView?.cleanCurrentScene();
     }
 
@@ -1134,6 +1137,7 @@ export class WindowManager
     }
 
     public delete(): void {
+        this.Logger && this.Logger.info(`[WindowManager]: delete ${this.focusedView?.focusScenePath}`);
         this.focusedView?.delete();
     }
 

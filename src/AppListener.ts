@@ -47,7 +47,6 @@ export class AppListeners {
                     break;
                 }
                 case Events.SetMainViewScenePath: {
-                    console.log("[window-manager] mainMagixEventListener  " + JSON.stringify(data.payload));
                     this.setMainViewScenePathHandler(data.payload);
                     break;
                 }

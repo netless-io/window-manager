@@ -133,7 +133,6 @@ export class AppManager {
         this.createRootDirScenesCallback();
 
         appRegister.setSyncRegisterApp(payload => {
-            this.Logger?.info(`[WindowManager] syncRegisterApp ${JSON.stringify(payload)}`);
             this.safeUpdateAttributes([Fields.Registered, payload.kind], payload);
         });
     }
@@ -605,7 +604,7 @@ export class AppManager {
                     try {
                         const appAttributes = this.attributes[id];
                         if (!appAttributes) {
-                            this.Logger?.error(
+                            this.Logger && this.Logger.error(
                                 `[WindowManager]: appAttributes is undefined, appId: ${id}`
                             );
                             throw new Error("appAttributes is undefined");
@@ -819,7 +818,7 @@ export class AppManager {
             return appProxy;
         } else {
             this.appStatus.delete(appId);
-            this.Logger?.error(`[WindowManager]: initialize AppProxy failed, appId: ${appId}`);
+            this.Logger && this.Logger.error(`[WindowManager]: initialize AppProxy failed, appId: ${appId}`);
             throw new Error("[WindowManger]: initialize AppProxy failed");
         }
     }
@@ -859,11 +858,11 @@ export class AppManager {
             const scenePathType = this.displayer.scenePathType(scenePath);
             const sceneDir = parseSceneDir(scenePath);
             if (sceneDir !== ROOT_DIR) {
-                this.Logger?.error(`[WindowManager]: main view scenePath must in root dir "/"`);
+                this.Logger && this.Logger.error(`[WindowManager]: main view scenePath must in root dir "/"`);
                 throw new Error(`[WindowManager]: main view scenePath must in root dir "/"`);
             }
             if (scenePathType === ScenePathType.None) {
-                this.Logger?.error(`[WindowManager]: ${scenePath} not valid scene`);
+                this.Logger && this.Logger.error(`[WindowManager]: ${scenePath} not valid scene`);
                 throw new Error(`[WindowManager]: ${scenePath} not valid scene`);
             } else if (scenePathType === ScenePathType.Page) {
                 await this._setMainViewScenePath(scenePath);
@@ -880,7 +879,6 @@ export class AppManager {
     private async _setMainViewScenePath(scenePath: string) {
         const success = this.setMainViewFocusPath(scenePath);
         if (success) {
-            console.log("[window-manager] _setMainViewScenePath " + scenePath);
             this.safeSetAttributes({ _mainScenePath: scenePath });
             this.store.setMainViewFocusPath(this.mainView);
             this.updateSceneIndex();
@@ -897,7 +895,6 @@ export class AppManager {
             const pageName = scenePath.replace(sceneDir, "").replace("/", "");
             const index = scenes.findIndex(scene => scene.name === pageName);
             if (isInteger(index) && index >= 0) {
-                console.log("[window-manager] updateSceneIndex  " + index);
                 this.safeSetAttributes({ _mainSceneIndex: index });
             }
         }
@@ -916,7 +913,7 @@ export class AppManager {
                     this.dispatchSetMainViewScenePath(scenePath);
                 }
             } else {
-                this.Logger?.error(`[WindowManager]: ${index} not valid index`);
+                this.Logger && this.Logger.error(`[WindowManager]: ${index} not valid index`);
                 throw new Error(`[WindowManager]: ${index} not valid index`);
             }
         }
