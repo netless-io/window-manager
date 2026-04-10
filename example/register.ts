@@ -40,5 +40,8 @@ WindowManager.register({
 
 WindowManager.register({
     kind: "Plyr",
-    src: () => import("@netless/app-plyr"),
+    src: (async () => {
+        const app = await import("@netless/app-plyr");
+        return app.default;
+    }) as any,
 });

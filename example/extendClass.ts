@@ -9,8 +9,9 @@ import {
     TeleBoxCollector,
 } from "../dist";
 import type { WindowManager, BaseInsertParams, CursorOptions, ApplianceIcons } from "../dist";
-// import { TeleBoxManager, TeleBoxCollector } from "@netless/telebox-insider";
-import type { TeleBoxManagerConfig, TeleBoxCollectorConfig } from "@netless/telebox-insider";
+
+type TeleBoxManagerConfig = ConstructorParameters<typeof TeleBoxManager>[0];
+type TeleBoxCollectorConfig = ConstructorParameters<typeof TeleBoxCollector>[0];
 
 export class CustomTeleBoxCollector extends TeleBoxCollector {
     constructor(TeleBoxCollectorConfig: TeleBoxCollectorConfig) {

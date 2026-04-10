@@ -3,13 +3,21 @@ import { callbacks } from "../callback";
 import { createView } from "./ViewManager";
 import { debounce, get, isEmpty, isEqual } from "lodash";
 import { internalEmitter } from "../InternalEmitter";
-import { Fields } from "../AttributesDelegate";
+import { Fields, type MainViewCamera } from "../AttributesDelegate";
 import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Room, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import { Events } from "../constants";
 import { LocalConsole } from "../Utils/log";
+
+type MainViewScreenLike = {
+    refreshSize?: (width: number, height: number) => void;
+    resizeObserver?: {
+        disconnect?: () => void;
+        observe?: (target: Element) => void;
+    };
+};
 
 export class MainViewProxy {
     /** Refresh the view's camera in an interval of 1.5s. */
@@ -27,9 +35,10 @@ export class MainViewProxy {
 
     private sideEffectManager = new SideEffectManager();
 
-    private playgroundSizeChangeListenerLocalConsole = new LocalConsole("playgroundSizeChangeListener", 30);
-    private sizeUpdatedLocalConsole = new LocalConsole("sizeUpdated", 30);
-    private cameraUpdatedLocalConsole = new LocalConsole("cameraUpdated", 30);
+    private playgroundSizeChangeListenerLocalConsole = new LocalConsole("playgroundSizeChangeListener", 100);
+    private sizeUpdatedLocalConsole = new LocalConsole("sizeUpdated", 100);
+    private cameraUpdatedLocalConsole = new LocalConsole("cameraUpdated", 100);
+    private cameraReactionLocalConsole = new LocalConsole("cameraReaction", 100);
 
     constructor(private manager: AppManager) {
         this.mainView = this.createMainView();
@@ -155,6 +164,7 @@ export class MainViewProxy {
         element: HTMLDivElement
     ) {
         const { width: viewWidth, height: viewHeight } = this.mainView.size;
+        let targetElement = element;
         if (
             Math.abs(viewWidth - observedSize.width) <= 0.5 &&
             Math.abs(viewHeight - observedSize.height) <= 0.5
@@ -170,17 +180,36 @@ export class MainViewProxy {
             return;
         }
         this.isForcingMainViewDivElement = true;
-        this.mainView.divElement = null;
-        this.mainView.divElement = element;
-        queueMicrotask(() => {
-            const rect = element.getBoundingClientRect();
-            console.log("[window-manager] forceSyncMainViewDivElementResult " + JSON.stringify({
-                reason,
-                viewSize: this.mainView.size,
-                rect: { width: rect.width, height: rect.height },
-            }));
-            this.isForcingMainViewDivElement = false;
-        });
+        try {
+            const mainView = this.mainView as View & { screen?: MainViewScreenLike };
+            const screen = mainView.screen;
+            const resizeObserver = screen?.resizeObserver;
+            if (typeof screen?.refreshSize === "function") {
+                console.log(
+                    "[window-manager] forceSyncMainViewDivElement observerReset " +
+                        JSON.stringify({
+                            reason,
+                            viewSize: this.mainView.size,
+                            observedSize,
+                        })
+                );
+                // Reset the observer queue so we sync against the current DOM box,
+                // not a stale ResizeObserver entry from a rapid resize burst.
+                resizeObserver?.disconnect?.();
+                screen.refreshSize(observedSize.width, observedSize.height);
+                resizeObserver?.observe?.(element);
+            }
+        } finally {
+            queueMicrotask(() => {
+                const rect = targetElement.getBoundingClientRect();
+                console.log("[window-manager] forceSyncMainViewDivElementResult " + JSON.stringify({
+                    reason,
+                    viewSize: this.mainView.size,
+                    rect: { width: rect.width, height: rect.height },
+                }));
+                this.isForcingMainViewDivElement = false;
+            });
+        }
     }
 
     public start() {
@@ -210,11 +239,11 @@ export class MainViewProxy {
     private cameraReaction = () => {
         return reaction(
             () => this.mainViewCamera,
-            camera => {
+            (camera: MainViewCamera | undefined) => {
                 if (camera && camera.id !== this.manager.uid) {
-                    console.log("[window-manager] cameraReaction  " + JSON.stringify(camera) + JSON.stringify(this.mainViewSize));
                     this.moveCameraToContian(this.mainViewSize);
                     this.moveCamera(camera);
+                    this.cameraReactionLocalConsole.log(`camera: ${JSON.stringify(camera)}, current size: ${JSON.stringify(this.mainViewSize)}`);
                 }
             },
             { fireImmediately: true }
@@ -420,6 +449,10 @@ export class MainViewProxy {
             cancelAnimationFrame(this.wrapperRectWorkaroundFrame);
             this.wrapperRectWorkaroundFrame = 0;
         }
+        this.playgroundSizeChangeListenerLocalConsole.destroy();
+        this.sizeUpdatedLocalConsole.destroy();
+        this.cameraUpdatedLocalConsole.destroy();
+        this.cameraReactionLocalConsole.destroy();
         this.removeMainViewListener();
         this.stop();
         this.sideEffectManager.flushAll();

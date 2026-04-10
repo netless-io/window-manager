@@ -1,5 +1,4 @@
 import { ResizeObserver as ResizeObserverPolyfill } from "@juggle/resize-observer";
-import { isFunction } from "lodash";
 import { WindowManager } from "./index";
 import type { EmitterType } from "./InternalEmitter";
 import type { UnsubscribeFn } from "emittery";
@@ -11,7 +10,7 @@ export class ContainerResizeObserver {
     private containerResizeObserver?: ResizeObserver;
     private disposer?: UnsubscribeFn;
     
-    private updateSizerLocalConsole = new LocalConsole("updateSizer", 30);
+    private updateSizerLocalConsole = new LocalConsole("updateSizer", 100);
 
     constructor(private emitter: EmitterType) {}
 
@@ -77,10 +76,9 @@ export class ContainerResizeObserver {
     }
 
     public disconnect() {
+        this.updateSizerLocalConsole.destroy();
         this.containerResizeObserver?.disconnect();
-        if (isFunction(this.disposer)) {
-            this.disposer();
-            this.disposer = undefined;
-        }
+        this.disposer?.();
+        this.disposer = undefined;
     }
 }

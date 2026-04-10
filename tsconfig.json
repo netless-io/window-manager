@@ -16,6 +16,11 @@
         "allowSyntheticDefaultImports": true,
         "experimentalDecorators": true,
         "moduleResolution": "node",
+        "baseUrl": ".",
+        "paths": {
+            "lodash": ["./node_modules/@types/lodash/index.d.ts"],
+            "white-web-sdk": ["./node_modules/white-web-sdk/types/index.d.ts"]
+        },
         "allowJs": true,
         "types": ["svelte"],
         "useUnknownInCatchVariables": false,
@@ -26,5 +31,5 @@
         "esModuleInterop": true,
         "downlevelIteration": true
     },
-    "include": ["src", "./src/shim.d.ts", "../node_modules/@types/**/index.d.ts"]
+    "include": ["src", "./src/shim.d.ts", "./node_modules/@types/**/index.d.ts"]
 }

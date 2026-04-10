@@ -12,7 +12,7 @@ import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, omit, isNumber } from "lodash";
-import { log } from "./Utils/log";
+import { ArgusLog, log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
@@ -245,6 +245,8 @@ export class WindowManager
 
     private _roomLogger?: Logger;
 
+    public attributesDeboundceLog?: ArgusLog;
+
     get Logger(): Logger | undefined {
         return this._roomLogger;
     }
@@ -287,6 +289,7 @@ export class WindowManager
             manager = await this.initManager(room);
             if (manager) {
                 manager._roomLogger = (room as unknown as { logger: Logger }).logger;
+                manager.attributesDeboundceLog = new ArgusLog(manager._roomLogger, "attributes", 300);
                 if (WindowManager.registered.size > 0) {
                     manager._roomLogger.info(
                         `[WindowManager] registered apps: ${JSON.stringify(
@@ -1064,6 +1067,8 @@ export class WindowManager
     }
 
     private _destroy() {
+        this.attributesDeboundceLog?.destroy();
+        this.attributesDeboundceLog = undefined;
         this.containerResizeObserver?.disconnect();
         this.appManager?.destroy();
         this.cursorManager?.destroy();
@@ -1106,15 +1111,19 @@ export class WindowManager
 
     public safeSetAttributes(attributes: any): void {
         if (this.canOperate) {
-            this.Logger && this.Logger.info(`[WindowManager]: safeSetAttributes ${JSON.stringify(attributes)}`);
             this.setAttributes(attributes);
+            if (this.attributesDeboundceLog) {
+                this.attributesDeboundceLog.logDebouncedShallowMerge("safeSetAttributes", attributes);
+            }
         }
     }
 
     public safeUpdateAttributes(keys: string[], value: any): void {
         if (this.canOperate) {
-            this.Logger && this.Logger.info(`[WindowManager]: safeUpdateAttributes ${keys.join(", ")} ${value}`);
             this.updateAttributes(keys, value);
+            if (this.attributesDeboundceLog) {
+                this.attributesDeboundceLog.logDebouncedUpdateAttributes(keys, value);
+            }
         }
     }
 
@@ -1124,8 +1133,8 @@ export class WindowManager
 
     public cleanCurrentScene(): void {
         log("clean current scene");
-        this.Logger && this.Logger.info(`[WindowManager]: cleanCurrentScene ${this.focusedView?.focusScenePath}`);
         this.focusedView?.cleanCurrentScene();
+        this.Logger && this.Logger.info(`[WindowManager]: cleanCurrentScene ${this.focusedView?.focusScenePath}`);
     }
 
     public redo(): number {
@@ -1137,8 +1146,8 @@ export class WindowManager
     }
 
     public delete(): void {
-        this.Logger && this.Logger.info(`[WindowManager]: delete ${this.focusedView?.focusScenePath}`);
         this.focusedView?.delete();
+        this.Logger && this.Logger.info(`[WindowManager]: delete ${this.focusedView?.focusScenePath}`);
     }
 
     public copy(): void {

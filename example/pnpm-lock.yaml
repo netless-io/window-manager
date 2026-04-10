@@ -16,13 +16,13 @@ importers:
         version: 0.2.81(jspdf@2.5.2)
       '@netless/appliance-plugin':
         specifier: 1.1.25-beta.2
-        version: 1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53))(white-web-sdk@2.16.53)
+        version: 1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54))(white-web-sdk@2.16.54)
       '@netless/telebox-insider':
         specifier: 0.3.0-beta.14
         version: 0.3.0-beta.14
       '@netless/video-js-plugin':
         specifier: ^0.3.7
-        version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.53)
+        version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.54)
       normalize.css:
         specifier: ^8.0.1
         version: 8.0.1
@@ -39,8 +39,8 @@ importers:
         specifier: ^7.14.3
         version: 7.21.7
       white-web-sdk:
-        specifier: ^2.16.43
-        version: 2.16.53
+        specifier: ^2.16.54
+        version: 2.16.54
     devDependencies:
       jspdf:
         specifier: ^2.5.1
@@ -801,8 +801,8 @@ packages:
       stylus:
         optional: true
 
-  white-web-sdk@2.16.53:
-    resolution: {integrity: sha512-ACYemnxcCyWu5TKgbIIwa2I4MMmmYOwbZVqAtBZDnV++eT1iTtRES8CBhwKqJSUPrVqR0elz7E5vre7EXl6rzA==}
+  white-web-sdk@2.16.54:
+    resolution: {integrity: sha512-1C4irCa8tSvoknanwJUdQ9e0zFK9rh3lKG+7B4ETGYlWFvI0vhCgW2fiaT5ZjDOc9TyrveX3Cdu5NrhWxdmRkA==}
 
   xss@1.0.15:
     resolution: {integrity: sha512-FVdlVVC67WOIPvfOwhoMETV72f6GbW7aOabBC3WxN/oUdoEMDyLz4OgRv5/gck2ZeNqEQu+Tb0kloovXOfpYVg==}
@@ -844,9 +844,9 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/appliance-plugin@1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53))(white-web-sdk@2.16.53)':
+  '@netless/appliance-plugin@1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54))(white-web-sdk@2.16.54)':
     dependencies:
-      '@netless/window-manager': 1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53)
+      '@netless/window-manager': 1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54)
       clipper-lib: 6.4.2
       eventemitter2: 6.4.9
       lineclip: 1.1.5
@@ -857,7 +857,7 @@ snapshots:
       react-dom: 16.14.0(react@16.14.0)
       react-draggable: 4.5.0(react-dom@16.14.0(react@16.14.0))(react@16.14.0)
       spritejs: 3.8.3
-      white-web-sdk: 2.16.53
+      white-web-sdk: 2.16.54
       xss: 1.0.15
 
   '@netless/canvas-polyfill@0.0.4': {}
@@ -866,14 +866,14 @@ snapshots:
 
   '@netless/telebox-insider@0.3.0-beta.14': {}
 
-  '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.53)':
+  '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.54)':
     dependencies:
       react: 17.0.2
       react-dom: 17.0.2(react@17.0.2)
       video.js: 7.21.7
-      white-web-sdk: 2.16.53
+      white-web-sdk: 2.16.54
 
-  '@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.53)':
+  '@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54)':
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/telebox-insider': 0.2.32
@@ -882,7 +882,7 @@ snapshots:
       p-retry: 4.6.2
       uuid: 7.0.3
       video.js: 7.21.7
-      white-web-sdk: 2.16.53
+      white-web-sdk: 2.16.54
     optionalDependencies:
       jspdf: 2.5.2
 
@@ -1554,7 +1554,7 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
-  white-web-sdk@2.16.53:
+  white-web-sdk@2.16.54:
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/canvas-polyfill': 0.0.4
