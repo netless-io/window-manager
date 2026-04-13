@@ -1,4 +1,9 @@
-## 1.0.11(2026-01-09)
+## 1.0.13(2026-04-13)
+- 修复 `scalePptToFit` 和 `setContainerSizeRatio` 混用时序问题.
+- 修复 部分低端机无法监听到`mianview`的size的变化问题, 添加了 `forceSyncMainViewDivElement` workaround.
+- 完善argus日志
+
+## 1.0.12(2026-01-20)
 - 修复: `closeApp` 内部无法通过`await`同步问题
 
 ## 1.0.11(2026-01-09)
