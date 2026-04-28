@@ -1,23 +1,26 @@
 import AppDocsViewer from "@netless/app-docs-viewer";
-import AppMediaPlayer, { setOptions } from "@netless/app-media-player";
 import { WindowManager } from "./index";
 
-export const setupBuiltin = () => {
+const loadAppMediaPlayer = async () => {
+    const mod = await import("@netless/app-media-player");
     if (WindowManager.debug) {
-        setOptions({ verbose: true });
+        mod.setOptions({ verbose: true });
     }
+    return (mod.default || mod) as any;
+};
 
+export const setupBuiltin = () => {
     WindowManager.register({
         kind: AppDocsViewer.kind,
         src: AppDocsViewer,
     });
     WindowManager.register({
-        kind: AppMediaPlayer.kind,
-        src: AppMediaPlayer as any,
+        kind: "MediaPlayer",
+        src: loadAppMediaPlayer,
     });
 };
 
 export const BuiltinApps = {
     DocsViewer: AppDocsViewer.kind as string,
-    MediaPlayer: AppMediaPlayer.kind as string,
+    MediaPlayer: "MediaPlayer" as string,
 };
