@@ -1,3 +1,5 @@
+## 1.0.13(2026-04-14)
+- AppMediaPlayer 改成异步加载
 ## 1.0.13(2026-04-13)
 - 修复 `scalePptToFit` 和 `setContainerSizeRatio` 混用时序问题.
 - 修复 部分低端机无法监听到`mianview`的size的变化问题, 添加了 `forceSyncMainViewDivElement` workaround.
