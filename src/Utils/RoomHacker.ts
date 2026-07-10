@@ -48,7 +48,9 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
                 console.log("[window-manager] putScenes " + JSON.stringify(args));
                 for (const scene of scenes) {
                     if (`${path}${scene.name}` === currentScenePath) {
-                        console.error(`[window-manager] putScenes: scene name can not be the same as the current scene path: ${currentScenePath}`);
+                        console.error(
+                            `[window-manager] putScenes: scene name can not be the same as the current scene path: ${currentScenePath}`
+                        );
                         return;
                     }
                 }

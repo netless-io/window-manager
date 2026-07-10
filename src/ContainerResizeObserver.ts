@@ -9,7 +9,7 @@ const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 export class ContainerResizeObserver {
     private containerResizeObserver?: ResizeObserver;
     private disposer?: UnsubscribeFn;
-    
+
     private updateSizerLocalConsole = new LocalConsole("updateSizer", 100);
 
     constructor(private emitter: EmitterType) {}
@@ -30,19 +30,24 @@ export class ContainerResizeObserver {
         sizer: HTMLElement,
         wrapper: HTMLDivElement
     ) {
-        this.updateSizer(container.getBoundingClientRect(), sizer, wrapper, 'observePlaygroundSize');
+        this.updateSizer(
+            container.getBoundingClientRect(),
+            sizer,
+            wrapper,
+            "observePlaygroundSize"
+        );
 
         this.containerResizeObserver = new ResizeObserver(entries => {
             const containerRect = entries[0]?.contentRect;
             if (containerRect) {
-                this.updateSizer(containerRect, sizer, wrapper, 'containerResizeObserver');
+                this.updateSizer(containerRect, sizer, wrapper, "containerResizeObserver");
                 this.emitter.emit("playgroundSizeChange", containerRect);
             }
         });
 
         this.disposer = this.emitter.on("containerSizeRatioUpdate", () => {
             const containerRect = container.getBoundingClientRect();
-            this.updateSizer(containerRect, sizer, wrapper, 'containerSizeRatioUpdate');
+            this.updateSizer(containerRect, sizer, wrapper, "containerSizeRatioUpdate");
             this.emitter.emit("playgroundSizeChange", containerRect);
         });
 
@@ -66,7 +71,11 @@ export class ContainerResizeObserver {
             wrapper.style.width = `${width}px`;
             wrapper.style.height = `${height}px`;
             const wrapperRect = wrapper.getBoundingClientRect();
-            this.updateSizerLocalConsole.log(`from ${origin}, traget size: ${JSON.stringify({ width, height })}, wrapperRect: ${wrapperRect.width} ${wrapperRect.height}`);
+            this.updateSizerLocalConsole.log(
+                `from ${origin}, traget size: ${JSON.stringify({ width, height })}, wrapperRect: ${
+                    wrapperRect.width
+                } ${wrapperRect.height}`
+            );
             this.emitter.emit("wrapperRectChange", {
                 width: wrapperRect.width,
                 height: wrapperRect.height,

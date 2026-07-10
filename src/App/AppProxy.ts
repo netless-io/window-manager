@@ -167,7 +167,8 @@ export class AppProxy implements PageRemoveService {
                 params.isDragContent
             );
         } else {
-            this.Logger && this.Logger.error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
+            this.Logger &&
+                this.Logger.error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
             throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
         }
         internalEmitter.emit("updateManagerRect");
@@ -216,7 +217,10 @@ export class AppProxy implements PageRemoveService {
                 }
                 setTimeout(async () => {
                     // 延迟执行 setup, 防止初始化的属性没有更新成功
-                    this.Logger && this.Logger.info(`[WindowManager]: setup app ${this.kind}, appId: ${appId}`);
+                    this.Logger &&
+                        this.Logger.info(
+                            `[WindowManager]: setup app ${this.kind}, appId: ${appId}`
+                        );
                     const result = await app.setup(context);
                     this.appResult = result;
                     appRegister.notifyApp(this.kind, "created", { appId, result });
@@ -561,7 +565,8 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher.remove(this.stateKey);
         this.manager.refresher.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
-        this.Logger && this.Logger.info(`[WindowManager]: destroy app ${this.kind} appId: ${this.id}`);
+        this.Logger &&
+            this.Logger.info(`[WindowManager]: destroy app ${this.kind} appId: ${this.id}`);
     }
 
     public close(): Promise<void> {

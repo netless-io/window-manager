@@ -1,5 +1,8 @@
 import type { Logger } from "white-web-sdk";
-import { isShallowMergeAttributesRecord, stringifyForAttributesLog } from "./attributesLogStringify";
+import {
+    isShallowMergeAttributesRecord,
+    stringifyForAttributesLog,
+} from "./attributesLogStringify";
 import { WindowManager } from "../index";
 
 /** ArgusLog 经 `logger.info` 上报的单条字符串上限（含前缀） */
@@ -39,10 +42,7 @@ export class LocalConsole {
     private pendingArgs: unknown[] | null = null;
     private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-    constructor(
-        private readonly name: string,
-        private readonly debounceTime?: number,
-    ) {}
+    constructor(private readonly name: string, private readonly debounceTime?: number) {}
 
     private flush(): void {
         this.flushTimer = null;
@@ -102,7 +102,7 @@ export class ArgusLog {
     constructor(
         private readonly logger: Logger,
         private readonly name: string,
-        private readonly debounceTime?: number,
+        private readonly debounceTime?: number
     ) {}
 
     private emitInfo(message: string): void {
@@ -127,7 +127,9 @@ export class ArgusLog {
             return;
         }
         const body =
-            p.kind === "record" ? stringifyForAttributesLog(p.data) : stringifyForAttributesLog(p.value);
+            p.kind === "record"
+                ? stringifyForAttributesLog(p.data)
+                : stringifyForAttributesLog(p.value);
         this.emitInfo(`[WindowManager][${this.name}]: ${p.label} ${body}`);
         // 输出后释放合并对象引用，避免长时间持有 attributes 快照
         if (p.kind === "record") {
@@ -198,7 +200,7 @@ export class ArgusLog {
             return;
         }
         const parts = segments.map(
-            (s) => `${s.keys.join(", ")} ${stringifyForAttributesLog(s.value)}`,
+            s => `${s.keys.join(", ")} ${stringifyForAttributesLog(s.value)}`
         );
         this.emitInfo(`[WindowManager][${this.name}]: safeUpdateAttributes ${parts.join(" | ")}`);
         for (const s of segments) {
@@ -219,7 +221,9 @@ export class ArgusLog {
 
         if (!debounced) {
             this.emitInfo(
-                `[WindowManager][${this.name}]: safeUpdateAttributes ${keysCopy.join(", ")} ${stringifyForAttributesLog(value)}`,
+                `[WindowManager][${this.name}]: safeUpdateAttributes ${keysCopy.join(
+                    ", "
+                )} ${stringifyForAttributesLog(value)}`
             );
             return;
         }

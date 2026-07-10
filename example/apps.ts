@@ -14,6 +14,66 @@ export const createHelloWorld = (manager: WindowManager) => {
     });
 };
 
+export const createPresentation = (manager: WindowManager) => {
+    manager.addApp({
+        kind: "Presentation",
+        options: {
+            scenePath: "/Presentation",
+            title: "Static PDF",
+            scenes: [
+                {
+                    name: "1",
+                    ppt: {
+                        height: 1010,
+                        src: "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/1.png",
+                        width: 714,
+                    },
+                },
+                {
+                    name: "2",
+                    ppt: {
+                        height: 1010,
+                        src: "https://convertcdn.netless.link/staticConvert/18140800fe8a11eb8cb787b1c376634e/2.png",
+                        width: 714,
+                    },
+                },
+                {
+                    name: "3",
+                    ppt: {
+                        height: 1010,
+                        src: "https://convertcdn.netless.link/staticConvert/00a244504ae311ee8180f740d6754c0e/28.png",
+                        width: 714,
+                    },
+                },
+                {
+                    name: "4",
+                    ppt: {
+                        height: 1010,
+                        src: "https://convertcdn.netless.link/staticConvert/00a244504ae311ee8180f740d6754c0e/32.png",
+                        width: 714,
+                    },
+                },
+                {
+                    name: "5",
+                    ppt: {
+                        height: 1010,
+                        src: "https://convertcdn.netless.link/staticConvert/00a244504ae311ee8180f740d6754c0e/33.png",
+                        width: 714,
+                    },
+                },
+                {
+                    name: "6",
+                    ppt: {
+                        height: 1010,
+                        src: "https://convertcdn.netless.link/staticConvert/00a244504ae311ee8180f740d6754c0e/24.png",
+                        width: 714,
+                    },
+                },
+            ],
+        },
+    });
+};
+
 export const createPlyr = (manager: WindowManager) => {
     manager.addApp({
         kind: "Plyr",

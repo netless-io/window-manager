@@ -4,6 +4,20 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { dependencies, peerDependencies, version, devDependencies } from "./package.json"
 import { omit } from "lodash";
 
+const builtinAppChunkNames = {
+    "@netless/app-docs-viewer": "app-docs-viewer",
+    "@netless/app-media-player": "app-media-player",
+    "@netless/app-presentation": "app-presentation",
+};
+
+function manualBuiltinAppChunks(id) {
+    for (const [packageName, chunkName] of Object.entries(builtinAppChunkNames)) {
+        if (id.includes(`/node_modules/${packageName}/`)) {
+            return chunkName;
+        }
+    }
+}
+
 export default defineConfig(({ mode }) => {
     const isProd = mode === "production";
 
@@ -34,7 +48,6 @@ export default defineConfig(({ mode }) => {
             lib: {
                 // eslint-disable-next-line no-undef
                 entry: path.resolve(__dirname, "src/index.ts"),
-                formats: ["es", "umd", "cjs"],
                 name: "WindowManager",
                 fileName: (moduleType) => {
                     return moduleType === "es" ? "index.mjs" : "index.js";
@@ -47,6 +60,20 @@ export default defineConfig(({ mode }) => {
                     ...omit(dependencies, ["@netless/telebox-insider"]),
                     ...peerDependencies,
                 }),
+                output: [
+                    {
+                        format: "es",
+                        entryFileNames: "index.mjs",
+                        chunkFileNames: "[name].mjs",
+                        manualChunks: manualBuiltinAppChunks,
+                    },
+                    {
+                        format: "cjs",
+                        entryFileNames: "index.js",
+                        chunkFileNames: "[name].js",
+                        manualChunks: manualBuiltinAppChunks,
+                    },
+                ],
             },
             minify: isProd,
         },

@@ -43,6 +43,7 @@
     "@hyrious/dts": "^0.2.2",
     "@netless/app-docs-viewer": "^0.2.19",
     "@netless/app-media-player": "0.1.4",
+    "@netless/app-presentation": "^0.1.9",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
     "@rollup/plugin-url": "^6.1.0",

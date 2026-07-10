@@ -3,11 +3,12 @@ import { callbacks } from "../callback";
 import { createView } from "./ViewManager";
 import { debounce, get, isEmpty, isEqual } from "lodash";
 import { internalEmitter } from "../InternalEmitter";
-import { Fields, type MainViewCamera } from "../AttributesDelegate";
+import { Fields } from "../AttributesDelegate";
 import { setViewFocusScenePath } from "../Utils/Common";
 import { SideEffectManager } from "side-effect-manager";
 import type { Camera, Room, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
+import type { MainViewCamera } from "../AttributesDelegate";
 import { Events } from "../constants";
 import { LocalConsole } from "../Utils/log";
 
@@ -35,7 +36,10 @@ export class MainViewProxy {
 
     private sideEffectManager = new SideEffectManager();
 
-    private playgroundSizeChangeListenerLocalConsole = new LocalConsole("playgroundSizeChangeListener", 100);
+    private playgroundSizeChangeListenerLocalConsole = new LocalConsole(
+        "playgroundSizeChangeListener",
+        100
+    );
     private sizeUpdatedLocalConsole = new LocalConsole("sizeUpdated", 100);
     private cameraUpdatedLocalConsole = new LocalConsole("cameraUpdated", 100);
     private cameraReactionLocalConsole = new LocalConsole("cameraReaction", 100);
@@ -52,12 +56,15 @@ export class MainViewProxy {
         const playgroundSizeChangeListener = () => {
             this.playgroundSizeChangeListenerLocalConsole.log(
                 JSON.stringify(this.mainView.camera),
-                JSON.stringify(this.mainView.size), 
-                JSON.stringify(this.mainViewSize), 
+                JSON.stringify(this.mainView.size),
+                JSON.stringify(this.mainViewSize),
                 JSON.stringify(this.mainViewCamera),
-                window.outerHeight, window.outerWidth, 
-                window.visualViewport?.width ?? "null", window.visualViewport?.height ?? "null",
-                window.visualViewport?.offsetLeft ?? "null", window.visualViewport?.offsetTop ?? "null",
+                window.outerHeight,
+                window.outerWidth,
+                window.visualViewport?.width ?? "null",
+                window.visualViewport?.height ?? "null",
+                window.visualViewport?.offsetLeft ?? "null",
+                window.visualViewport?.offsetTop ?? "null"
             );
             this.sizeChangeHandler(this.mainViewSize);
         };
@@ -164,7 +171,7 @@ export class MainViewProxy {
         element: HTMLDivElement
     ) {
         const { width: viewWidth, height: viewHeight } = this.mainView.size;
-        let targetElement = element;
+        const targetElement = element;
         if (
             Math.abs(viewWidth - observedSize.width) <= 0.5 &&
             Math.abs(viewHeight - observedSize.height) <= 0.5
@@ -172,11 +179,14 @@ export class MainViewProxy {
             return;
         }
         if (this.isForcingMainViewDivElement) {
-            console.log("[window-manager] skipForceSyncMainViewDivElement " + JSON.stringify({
-                reason,
-                observedSize,
-                viewSize: this.mainView.size,
-            }));
+            console.log(
+                "[window-manager] skipForceSyncMainViewDivElement " +
+                    JSON.stringify({
+                        reason,
+                        observedSize,
+                        viewSize: this.mainView.size,
+                    })
+            );
             return;
         }
         this.isForcingMainViewDivElement = true;
@@ -202,11 +212,14 @@ export class MainViewProxy {
         } finally {
             queueMicrotask(() => {
                 const rect = targetElement.getBoundingClientRect();
-                console.log("[window-manager] forceSyncMainViewDivElementResult " + JSON.stringify({
-                    reason,
-                    viewSize: this.mainView.size,
-                    rect: { width: rect.width, height: rect.height },
-                }));
+                console.log(
+                    "[window-manager] forceSyncMainViewDivElementResult " +
+                        JSON.stringify({
+                            reason,
+                            viewSize: this.mainView.size,
+                            rect: { width: rect.width, height: rect.height },
+                        })
+                );
                 this.isForcingMainViewDivElement = false;
             });
         }
@@ -220,10 +233,14 @@ export class MainViewProxy {
         this.addCameraReaction();
         if (this.manager.room) this.syncMainView(this.manager.room);
         this.started = true;
-        if(this.mainView.focusScenePath) {
-            this.manager.windowManger.onMainViewScenePathChangeHandler(this.mainView.focusScenePath);
+        if (this.mainView.focusScenePath) {
+            this.manager.windowManger.onMainViewScenePathChangeHandler(
+                this.mainView.focusScenePath
+            );
         }
-        console.log("[window-manager] start end mainView size:" + JSON.stringify(this.mainView.size));
+        console.log(
+            "[window-manager] start end mainView size:" + JSON.stringify(this.mainView.size)
+        );
     }
 
     public addCameraReaction = () => {
@@ -243,7 +260,11 @@ export class MainViewProxy {
                 if (camera && camera.id !== this.manager.uid) {
                     this.moveCameraToContian(this.mainViewSize);
                     this.moveCamera(camera);
-                    this.cameraReactionLocalConsole.log(`camera: ${JSON.stringify(camera)}, current size: ${JSON.stringify(this.mainViewSize)}`);
+                    this.cameraReactionLocalConsole.log(
+                        `camera: ${JSON.stringify(camera)}, current size: ${JSON.stringify(
+                            this.mainViewSize
+                        )}`
+                    );
                 }
             },
             { fireImmediately: true }
@@ -254,8 +275,13 @@ export class MainViewProxy {
         if (size) {
             this.moveCameraToContian(size);
             this.moveCamera(this.mainViewCamera);
-            console.log("[window-manager] sizeChangeHandler current size and camera" + JSON.stringify(size) + JSON.stringify(this.mainViewCamera) +
-            JSON.stringify(this.mainView.camera) + JSON.stringify(this.mainView.size));
+            console.log(
+                "[window-manager] sizeChangeHandler current size and camera" +
+                    JSON.stringify(size) +
+                    JSON.stringify(this.mainViewCamera) +
+                    JSON.stringify(this.mainView.camera) +
+                    JSON.stringify(this.mainView.size)
+            );
         }
         this.ensureMainViewSize();
     }, 30);

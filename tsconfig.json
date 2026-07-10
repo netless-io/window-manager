@@ -16,7 +16,6 @@
         "allowSyntheticDefaultImports": true,
         "experimentalDecorators": true,
         "moduleResolution": "node",
-        "baseUrl": ".",
         "paths": {
             "lodash": ["./node_modules/@types/lodash/index.d.ts"],
             "white-web-sdk": ["./node_modules/white-web-sdk/types/index.d.ts"]
@@ -28,8 +27,7 @@
         "noImplicitOverride": true,
         "isolatedModules": true,
         "resolveJsonModule": true,
-        "esModuleInterop": true,
-        "downlevelIteration": true
+        "esModuleInterop": true
     },
     "include": ["src", "./src/shim.d.ts", "./node_modules/@types/**/index.d.ts"]
 }

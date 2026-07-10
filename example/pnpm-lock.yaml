@@ -13,22 +13,22 @@ importers:
         version: 0.2.6-beta.3
       '@netless/app-slide':
         specifier: ^0.2.24
-        version: 0.2.81(jspdf@2.5.2)
+        version: 0.2.99(jspdf@2.5.2)
       '@netless/appliance-plugin':
-        specifier: 1.1.25-beta.2
-        version: 1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54))(white-web-sdk@2.16.54)
+        specifier: 1.1.38-beta.2
+        version: 1.1.38-beta.2(@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@..+white-sdk+web-sdk+dist+prod))(white-web-sdk@..+white-sdk+web-sdk+dist+prod)
       '@netless/telebox-insider':
         specifier: 0.3.0-beta.14
         version: 0.3.0-beta.14
       '@netless/video-js-plugin':
         specifier: ^0.3.7
-        version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.54)
+        version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@..+white-sdk+web-sdk+dist+prod)
       agora-foundation:
         specifier: 3.11.1-rc.1
         version: 3.11.1-rc.1
       core-js:
         specifier: ^3.45.1
-        version: 3.45.1
+        version: 3.49.0
       normalize.css:
         specifier: ^8.0.1
         version: 8.0.1
@@ -46,7 +46,7 @@ importers:
         version: 7.21.7
       white-web-sdk:
         specifier: link:../../white-sdk/web-sdk/dist/prod
-        version: 2.16.54
+        version: link:../../white-sdk/web-sdk/dist/prod
     devDependencies:
       '@types/react':
         specifier: ^17.0.2
@@ -63,8 +63,8 @@ importers:
 
 packages:
 
-  '@babel/runtime@7.28.4':
-    resolution: {integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==}
+  '@babel/runtime@7.29.7':
+    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
   '@esbuild/linux-loong64@0.14.54':
@@ -82,25 +82,32 @@ packages:
   '@netless/app-plyr@0.2.6-beta.3':
     resolution: {integrity: sha512-0H8BII9f0VeefBOWI4Q5MiZnZguHrQ4IWJQSAwO9fCF2LYMQNZbtqBQrWNrz+QlHyPS1s/AYD/BxRZSLFqGZ9w==}
 
-  '@netless/app-slide@0.2.81':
-    resolution: {integrity: sha512-5ib8P9XzhYa80/7hL4RJyMvNFrmJwtjIYxfdN2ZvXb07SXis0QR+UJctPoP9vSc+gPOgSi9BZXSNXr2a8x/vrQ==}
+  '@netless/app-slide@0.2.99':
+    resolution: {integrity: sha512-GFzjoWh/Jp/bh5dXO+coszQmPioRvp/vK+Ac8N/OCry7AS2Oh8RTscNRnVg9j08+7L7m9GjK1JZA8NqcORXFBQ==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/appliance-plugin@1.1.25-beta.2':
-    resolution: {integrity: sha512-VoGyF+XeiuJRrhPR7Gfst24BKRNtHxoDP6tZNMq/iYu9ICdsKB0zTFHhFzECtvcnDmBFDEt2dURPxgQLe3L6gg==}
+  '@netless/appliance-plugin@1.1.38-beta.2':
+    resolution: {integrity: sha512-CFYOSfyekAV4dPUwqsgWHiarfZNawMYdb/IEmCaKjNozrby8qpJq2FJ6D8G6JuzMir7vmI41/JiKzyICfMX35w==}
     peerDependencies:
       '@netless/window-manager': '>=1.0'
-      white-web-sdk: '>= 2.16.52'
+      markmap-lib: ^0.18.12
+      markmap-view: ^0.18.12
+      mermaid: ^11.12.2
+      white-web-sdk: '>= 2.16.54'
+    peerDependenciesMeta:
+      markmap-lib:
+        optional: true
+      markmap-view:
+        optional: true
+      mermaid:
+        optional: true
 
-  '@netless/canvas-polyfill@0.0.4':
-    resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
-
-  '@netless/telebox-insider@0.2.32':
-    resolution: {integrity: sha512-UxHAFjFpGyrA5PuBck0vg5w0546HYsiAQY+0vz9TUXtCCBLI5u0Bu6whM2WGW4ovk/rlS3BU/g241vOG9u3Quw==}
+  '@netless/telebox-insider@0.3.0':
+    resolution: {integrity: sha512-KoQg5SmUdIA/XV520jVR9pKZlf5GbTwVUbkmTfOIrXBingwYBQIbX/W4ISPWpCO98De5YXgciidbDh3vx9Ppnw==}
 
   '@netless/telebox-insider@0.3.0-beta.14':
     resolution: {integrity: sha512-wIlFVlos70xoVgQQrKBiy8m/jPe2UEgCA2rgvo3Yixgdn4NBECFcIk8R1OtvM28dvR6vitH00hLJBK8LRLVdgg==}
@@ -113,51 +120,14 @@ packages:
       video.js: ^7
       white-web-sdk: ^2.13.8
 
-  '@netless/window-manager@1.0.6':
-    resolution: {integrity: sha512-7nfDGFH6ojCwSFhI1DTfxFRC9EYeXgTfFqB2r/pLU0lxie7pmT3iE1jsWZv6xJppog5ArCG350TsGghKaiHo+A==}
+  '@netless/window-manager@1.0.14':
+    resolution: {integrity: sha512-sZbZ0pRhWhI/lrg6kbKddV2+CIKhJACfNmstVU1JjLpnwoBUYvzvOhDQAgPHCjR6iRlZSK47O24tkVqfsdbpcQ==}
     peerDependencies:
       jspdf: 2.5.1
-      white-web-sdk: ^2.16.52
+      white-web-sdk: ^2.16.54
     peerDependenciesMeta:
       jspdf:
         optional: true
-
-  '@netless/xml-js@1.6.16':
-    resolution: {integrity: sha512-QnSH8y3j3DDEW0S3MalYBmR0opeyaecAkzx0ocKYncMDiOdQkhByJgD7AVhXQqH8bA/PVHU0VFP445AbJq6fDQ==}
-    hasBin: true
-
-  '@protobufjs/aspromise@1.1.2':
-    resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
-
-  '@protobufjs/base64@1.1.2':
-    resolution: {integrity: sha512-AZkcAA5vnN/v4PDqKyMR5lx7hZttPDgClv83E//FMNhR2TMcLUhfRUBHCmSl0oi9zMgDDqRUJkSxO3wm85+XLg==}
-
-  '@protobufjs/codegen@2.0.5':
-    resolution: {integrity: sha512-zgXFLzW3Ap33e6d0Wlj4MGIm6Ce8O89n/apUaGNB/jx+hw+ruWEp7EwGUshdLKVRCxZW12fp9r40E1mQrf/34g==}
-
-  '@protobufjs/eventemitter@1.1.1':
-    resolution: {integrity: sha512-vW1GmwMZNnL+gMRaovlh9yZX74kc+TTU3FObkkurpMaRtBfLP3ldjS9KQWlwZgraRE0+dheEEoAxdzcJQ8eXZg==}
-
-  '@protobufjs/fetch@1.1.1':
-    resolution: {integrity: sha512-GpptLrs57adMSuHi3VNj0mAF8dwh36LMaYF6XyJ6JMWlVsc+t42tm1HSEDmOs3A8fC9yyeisgLhsTVQokOZ0zw==}
-
-  '@protobufjs/float@1.0.2':
-    resolution: {integrity: sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ==}
-
-  '@protobufjs/inquire@1.1.2':
-    resolution: {integrity: sha512-pa0vFRuws4wkvaXKK1uXZMAwAX4/t8ANaJo45iw/oQHNQ9q5xUzwgFmVJGXiga2BeN+zpX7Vf9vmsiIa2J+MUw==}
-
-  '@protobufjs/path@1.1.2':
-    resolution: {integrity: sha512-6JOcJ5Tm08dOHAbdR3GrvP+yUUfkjG5ePsHYczMFLq3ZmMkAD98cDgcT2iA1lJ9NVwFd4tH/iSSoe44YWkltEA==}
-
-  '@protobufjs/pool@1.1.0':
-    resolution: {integrity: sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw==}
-
-  '@protobufjs/utf8@1.1.1':
-    resolution: {integrity: sha512-oOAWABowe8EAbMyWKM0tYDKi8Yaox52D+HWZhAIJqQXbqe0xI/GV7FhLWqlEKreMkfDjshR5FKgi3mnle0h6Eg==}
-
-  '@types/node@25.9.2':
-    resolution: {integrity: sha512-G05zqtJhcDLb8uslf5EjCxXg9G1KQxiV8OS0R26IC//Eoyitzqe8z37I7cqvnZlrlSfgocQRfSn/AHBZJJFyGw==}
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -192,8 +162,8 @@ packages:
   '@videojs/xhr@2.6.0':
     resolution: {integrity: sha512-7J361GiN1tXpm+gd0xz2QWr3xNWBE+rytvo8J3KuggFaLg+U37gZQ2BuPLcnkfGffy2e+ozY70RHC8jt7zjA6Q==}
 
-  '@xmldom/xmldom@0.8.11':
-    resolution: {integrity: sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==}
+  '@xmldom/xmldom@0.8.13':
+    resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
 
   abs-svg-path@0.1.1:
@@ -231,17 +201,11 @@ packages:
   bezier-easing@2.1.0:
     resolution: {integrity: sha512-gbIqZ/eslnUFC1tjEvtz0sgx+xTK20wDnYMIA27VA04R7w6xxXQPZDbibjA9DTWZRA2CXtwHykkVzlCaAJAZig==}
 
-  bezier-js@2.6.1:
-    resolution: {integrity: sha512-jelZM33eNzcZ9snJ/5HqJLw3IzXvA8RFcBjkdOB8SDYyOvW8Y2tTosojAiBTnD1MhbHoWUYNbxUXxBl61TxbRg==}
-
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
 
   bound-points@1.0.0:
     resolution: {integrity: sha512-D5v3yrtBvia09U2+Js73YMswySOclYHuXNFFzYvsigAdqpY5YG+kY4cSHi7Mww6yU8N8u0T1XkMkRGgeDdWqBA==}
-
-  bowser@2.14.1:
-    resolution: {integrity: sha512-tzPjzCxygAKWFOJP011oxFHs57HzIhOEracIgAePE4pqB3LikALKnSzUyU4MGs9/iCEUuHlAJTjTc5M+u7YEGg==}
 
   btoa@1.2.1:
     resolution: {integrity: sha512-SB4/MIGlsiVkMcHmT+pSmIPoNDoHg+7cMzmt3Uxt628MTz2487DKSqK/fuhFBrkuqrYv5UCEnACpF4dTFNKc/g==}
@@ -259,10 +223,6 @@ packages:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
 
-  color-convert@2.0.1:
-    resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
-    engines: {node: '>=7.0.0'}
-
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
@@ -275,25 +235,15 @@ packages:
   color-space@2.3.2:
     resolution: {integrity: sha512-BcKnbOEsOarCwyoLstcoEztwT0IJxqqQkNwDuA3a65sICvvHL2yoeV13psoDFh5IuiOMnIOKdQDwB4Mk3BypiA==}
 
-  color-string@1.9.1:
-    resolution: {integrity: sha512-shrVawQFojnZv6xM40anx4CkoDP+fZsw/ZerEMsW/pyzsRbElpsL/DBVW7q3ExxwusdNXI3lXpuhEZkzs8p5Eg==}
-
-  color@4.2.3:
-    resolution: {integrity: sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A==}
-    engines: {node: '>=12.5.0'}
-
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
-
-  complex.js@2.4.3:
-    resolution: {integrity: sha512-UrQVSUur14tNX6tiP4y8T4w4FeJAX3bi2cIv0pu/DTLFNxoq7z2Yh83Vfzztj6Px3X/lubqQ9IrPp7Bpn6p4MQ==}
 
   core-js@2.6.12:
     resolution: {integrity: sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==}
     deprecated: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
 
-  core-js@3.45.1:
-    resolution: {integrity: sha512-L4NPsJlCfZsPeXukyzHFlg/i7IIVwHSItR0wg0FLNqYClJ4MQYTYLbC7EkjKYRLZF2iof2MUgN0EGy7MdQFChg==}
+  core-js@3.49.0:
+    resolution: {integrity: sha512-es1U2+YTtzpwkxVLwAFdSpaIMyQaq0PBgm3YD1W3Qpsn1NAmO3KSgZfu+oGSWVu6NvLHoHCV/aYcsE5wiB7ALg==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -317,34 +267,15 @@ packages:
   dayjs@1.11.21:
     resolution: {integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==}
 
-  decimal.js@10.6.0:
-    resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
-
-  decode-uri-component@0.2.2:
-    resolution: {integrity: sha512-FqUYQ+8o158GyGTrMFJms9qh3CqTKvAqgqsTnkLI8sKu0028orqBhxNMFkFen0zGyg6epACD32pjVk58ngIErQ==}
-    engines: {node: '>=0.10'}
-
-  detect-hover@1.0.3:
-    resolution: {integrity: sha512-HtLoY+tClgYucJNiovNICGWFp9nOGVmHY44s7L62iPqORXM9vujeWFaVcqtA7XRvp/2Y+4RBUfHbDKFGN+xxZQ==}
-
-  detect-it@3.0.7:
-    resolution: {integrity: sha512-RxpgcdbatUX6epJE09K16iJqF7x6iEcEdoL18FR2zpBO4JhnL7aMOAUoUEyexdtbWOSfTmoDWmeD6mwRBQyRXg==}
-
-  detect-passive-events@1.0.5:
-    resolution: {integrity: sha512-foW7Q35wwOCxVzW0xLf5XeB5Fhe7oyRgvkBYdiP9IWgLMzjqUqTvsJv9ymuEWGjY6AoDXD3OC294+Z9iuOw0QA==}
-
-  detect-pointer@1.0.3:
-    resolution: {integrity: sha512-d0o/Puo3fiGSCXy6H039h9Kwz+mmYCGKZ/qtPFnpN3WfsumjC1C9b5KKvRu+aYnfdI8peqN/iAe7dPd85qIt2g==}
-
-  detect-touch-events@2.0.2:
-    resolution: {integrity: sha512-g8GWBkJLiIDRJfRXEdrd1wMXpNyGId2DkbfuwFahSb4OCvn717hyRJtAcEDISfp3zkwEhZ4Y4woHPA6DeyB3Fw==}
-
   dexie@3.2.7:
     resolution: {integrity: sha512-2a+BXvVhY5op+smDRLxeBAivE7YcYaneXJ1la3HOkUfX9zKkE/AJ8CNgjiXbtXepFyFmJNGSbmjOwqbT749r/w==}
     engines: {node: '>=6.0'}
 
   dom-serializer@0.2.2:
     resolution: {integrity: sha512-2/xPb3ORsQ42nHYiSunXkDjPLBaEj/xTwUO4B7XCZQTRk7EBtTOPaygh10YAAh2OI1Qrp6NWfpAhzswj0ydt9g==}
+
+  dom-to-image@2.6.0:
+    resolution: {integrity: sha512-Dt0QdaHmLpjURjU7Tnu3AgYSF2LuOmksSGsUcE6ItvJoCWTBEmiMXcqBdNSAm9+QbbwD7JMoVsuuKX6ZVQv1qA==}
 
   dom-walk@0.1.2:
     resolution: {integrity: sha512-6QvTW9mrGeIegrFXdtQi9pk7O/nSK6lSdXW2eqUspN5LWD7UTji2Fqw5V2YLjBpHEoU9Xl/eUWNpDeZvoyOv2w==}
@@ -355,8 +286,8 @@ packages:
   domelementtype@2.3.0:
     resolution: {integrity: sha512-OLETBj6w0OsagBwdXnPdN0cnMfF9opN69co+7ZrbfPGrdpPVNBUj02spi6B1N7wChLQiPn4CSH/zJvXw56gmHw==}
 
-  dompurify@2.5.8:
-    resolution: {integrity: sha512-o1vSNgrmYMQObbSSvF/1brBYEQPHhV1+gsmrusO7/GXtp1T9rCS8cXFqVxK/9crT1jA6Ccv+5MTSjBNqr7Sovw==}
+  dompurify@2.5.9:
+    resolution: {integrity: sha512-i6mvVmWN4xo9LrhCOZrDgSs9noW6nOahbrmzjRbPF36YPyj5Ue5lgok0MHDWkG7xzpWFO2OYttXdzM7rJxHvNA==}
 
   domutils@1.7.0:
     resolution: {integrity: sha512-Lgd2XcJ/NjEw+7tFvfKxOzCYKZsdct5lczQ2ZaQY8Djz7pfAD3Gbp8ySJWtreII/vDlMVmxwa6pHmdxIYgttDg==}
@@ -367,6 +298,10 @@ packages:
 
   entities@2.2.0:
     resolution: {integrity: sha512-p92if5Nz619I0w+akJrLZH0MX0Pb5DX39XOwQTtXSdQQOaYH03S1uIQp4mhOZtAXrxq4ViO67YTiLBo2638o9A==}
+
+  es-errors@1.3.0:
+    resolution: {integrity: sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==}
+    engines: {node: '>= 0.4'}
 
   esbuild-android-64@0.14.54:
     resolution: {integrity: sha512-Tz2++Aqqz0rJ7kYBfz+iqyE3QMycD4vk7LBRyWaAVFgFtQ/O8EJOnVmTOiDWYZ/uYzB4kvP+bqejYdVKzE5lAQ==}
@@ -493,23 +428,14 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
-  escape-latex@1.2.0:
-    resolution: {integrity: sha512-nV5aVWW1K0wEiUIEdZ4erkGGH8mDxGyxSeqPzRNtWP7ataw+/olFObw7hujFWlVjNsaDFw5VZ5NzVSIqRgfTiw==}
-
   eventemitter2@6.4.9:
     resolution: {integrity: sha512-JEPTiaOt9f04oa6NOkc4aH+nVp5I3wEjpHbIPqfgCdD5v5bUzy7xQqwcVO2aDQgOWhI28da57HksMrzK9HlRxg==}
 
-  eventemitter3@4.0.7:
-    resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
+  eventemitter3@5.0.4:
+    resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
 
-  eventemitter3@5.0.1:
-    resolution: {integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==}
-
-  fflate@0.8.2:
-    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
-
-  fraction.js@4.3.7:
-    resolution: {integrity: sha512-ZsDfxO51wGAXREY55a7la9LScWpwv9RxIrYABrlvOFBlH/ShPnrtsXeuUIfXKKOVicNxQ+o8JTbJvjS4M89yew==}
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -531,8 +457,8 @@ packages:
   global@4.4.0:
     resolution: {integrity: sha512-wv/LAoHdRE3BeTGz53FAamhGlPLhlssK45usmGFThIi4XqnBmjKQ16u+RNbP7WvigRZDxUsM0J3gcQ5yicaL0w==}
 
-  hasown@2.0.2:
-    resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
+  hasown@2.0.4:
+    resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
   html2canvas@1.4.1:
@@ -548,11 +474,8 @@ packages:
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
-  is-arrayish@0.3.4:
-    resolution: {integrity: sha512-m6UrgzFVUYawGBh1dUsWR5M2Clqic9RVXC/9f8ceNlv2IcO9j9J/z8UoCLPqtsPBFNzEpfR3xftohbfqDx8EQA==}
-
-  is-core-module@2.16.1:
-    resolution: {integrity: sha512-UfoeMA6fIJ8wTYFEUjelnaGI67v6+N7qXJEvQuIGa99l4xsCruSYOVSQ0uPANn4dAzm8lkYPaKLrrijLq7x23w==}
+  is-core-module@2.16.2:
+    resolution: {integrity: sha512-evOr8xfXKxE6qSR0hSXL2r3sd7ALj8+7jQEUvPYcm5sgZFdJ+AYzT6yNmJenvIYQBgIGwfwz08sL8zoL7yq2BA==}
     engines: {node: '>= 0.4'}
 
   is-function@1.0.2:
@@ -560,9 +483,6 @@ packages:
 
   isarray@1.0.0:
     resolution: {integrity: sha512-VLghIWNM6ELQzo7zwmcg0NmTVyWKYjvIeM83yjp0wRDTmUnrM678fQbcKBo6n2CJEF0szoG//ytg+TKla89ALQ==}
-
-  javascript-natural-sort@0.7.1:
-    resolution: {integrity: sha512-nO6jcEfZWQXDhOiBtG2KvKyEptz7RVbpGP4vTD2hLBdmNQSsCiicO2Ioinv6UI4y9ukqnBpy+XZ9H6uLNgJTlw==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -582,11 +502,8 @@ packages:
   lineclip@1.1.5:
     resolution: {integrity: sha512-KlA/wRSjpKl7tS9iRUdlG72oQ7qZ1IlVbVgHwoO10TBR/4gQ86uhKow6nlzMAJJhjCWKto8OeoAzzIzKSmN25A==}
 
-  lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-
-  long@5.3.2:
-    resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
@@ -599,16 +516,8 @@ packages:
   m3u8-parser@4.8.0:
     resolution: {integrity: sha512-UqA2a/Pw3liR6Df3gwxrqghCP17OpPlQj6RBPLYygf/ZSQ4MoSgvdvhvt35qV+3NaaA0FSZx93Ix+2brT1U7cA==}
 
-  mathjs@10.6.4:
-    resolution: {integrity: sha512-omQyvRE1jIy+3k2qsqkWASOcd45aZguXZDckr3HtnTYyXk5+2xpVfC3kATgbO2Srjxlqww3TVdhD0oUdZ/hiFA==}
-    engines: {node: '>= 14'}
-    hasBin: true
-
-  min-document@2.19.0:
-    resolution: {integrity: sha512-9Wy1B3m3f66bPPmU5hdA4DR4PB2OfDU/+GS3yAB7IQozE3tqXaVv2zOjgla7MEGSRv95+ILmOuvhLkOK6wJtCQ==}
-
-  mobx@6.16.0:
-    resolution: {integrity: sha512-qFIcwox4Mc4xRUVBGm0mt2uXmm4zCnfpwBRVkm59Y7zDei498NmpyKvEDsjCR3OYPbnQCKyhV6mLDs0vt2hBxA==}
+  min-document@2.19.2:
+    resolution: {integrity: sha512-8S5I8db/uZN8r9HSLFVWPdJCvYOejMcEC82VIzNUc6Zkklf/d1gg2psfE79/vyhWOj4+J8MtwmoOz3TmvaGu5A==}
 
   mpd-parser@0.22.1:
     resolution: {integrity: sha512-fwBebvpyPUU8bOzvhX0VQZgSohncbgYwUyJJoTSNpmy7ccD2ryiCvM7oRkn/xQH5cv73/xU7rJSNCLjdGFor0Q==}
@@ -619,8 +528,8 @@ packages:
     engines: {node: '>=8', npm: '>=5'}
     hasBin: true
 
-  nanoid@3.3.11:
-    resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
+  nanoid@3.3.15:
+    resolution: {integrity: sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -671,8 +580,8 @@ packages:
   polyline-miter-util@1.0.1:
     resolution: {integrity: sha512-/3u91zz6mBerBZo6qnOJOTjv7EfPhKtsV028jMyj86YpzLRNmCCFfrX7IO9tCEQ2W4x45yc+vKOezjf7u2Nd6Q==}
 
-  postcss@8.5.6:
-    resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
+  postcss@8.5.16:
+    resolution: {integrity: sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==}
     engines: {node: ^10 || ^12 || >=14}
 
   process-nextick-args@2.0.1:
@@ -684,17 +593,6 @@ packages:
 
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
-
-  protobufjs@7.6.2:
-    resolution: {integrity: sha512-N9EiLovGEQOJSPF26Ij7qUGvahfEnq0eeYZ02aigIedkmz1qZSwjnP9SBITHJuF/6MYbIW4HDN8zdYjsjqJKXQ==}
-    engines: {node: '>=12.0.0'}
-
-  query-string@5.1.1:
-    resolution: {integrity: sha512-gjWOsm2SoGlgLEdAGt7a6slVOk9mGiXmPFMqrEhLQ68rhQuBnpfs3+EmlvqKyxnCo9/PPlF+9MtY02S1aFg+Jw==}
-    engines: {node: '>=0.10.0'}
-
-  querystringify@2.2.0:
-    resolution: {integrity: sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ==}
 
   raf@3.4.1:
     resolution: {integrity: sha512-Sq4CW4QhwOHE8ucn6J34MqtZCeWFP2aQSmrlroYgqAV1PjStIhJXxYuTgUIfkEk7zTLjmIjLmU5q+fbD1NnOJA==}
@@ -741,11 +639,8 @@ packages:
   regenerator-runtime@0.13.11:
     resolution: {integrity: sha512-kY1AZVr2Ra+t+piVaJ4gxaFaReZVH40AKNo7UCX6W+dEwBo/2oZJzqfuN1qLq1oL45o56cPaTXELwrTh8Fpggg==}
 
-  requires-port@1.0.0:
-    resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
-
-  resolve@1.22.10:
-    resolution: {integrity: sha512-NPRy+/ncIMeDlTAsuqwKIiferiawhefFJtkNSW0qZJEqMEb+qBt/77B/jGeeek+F0uOeN05CDa6HXbbIgtVX4w==}
+  resolve@1.22.12:
+    resolution: {integrity: sha512-TyeJ1zif53BPfHootBGwPRYT1RUt6oGWsaQr8UyZW/eAm9bKoijtvruSDEmZHm92CwS9nj7/fWttqPCgzep8CA==}
     engines: {node: '>= 0.4'}
     hasBin: true
 
@@ -777,14 +672,8 @@ packages:
   scheduler@0.20.2:
     resolution: {integrity: sha512-2eWfGgAqqWFGqtdMmcL5zCMK1U8KlXv8SQFGglL3CEtd0aDVDWgeF/YoCmvln55m5zSk3J/20hTaSBeSObsQDQ==}
 
-  seedrandom@3.0.5:
-    resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
-
   setimmediate@1.0.5:
     resolution: {integrity: sha512-MATJdZp8sLqDl/68LfQmbP8zKPLQNV6BIZoIgrscFDQ+RsvK/BxeDQOgyxKKoh0y/8h3BqVFnCqQ/gd+reiIXA==}
-
-  simple-swizzle@0.2.4:
-    resolution: {integrity: sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw==}
 
   simplify-path@1.1.0:
     resolution: {integrity: sha512-qvEyrV36pP6YjRoEAe7ymSqFwurrTQXltcmZaQXFVh8cTWUfHYGeobbMK8V7WHlT9+ysW3GNVkCd6TF8aM0ydw==}
@@ -792,9 +681,6 @@ packages:
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
-
-  spark-md5@3.0.2:
-    resolution: {integrity: sha512-wcFzz9cDfbuqe0FZzfi2or1sgyIrsDwmPwfZC4hiNidPdPINjeUwNfv5kldczoEAcjl9Y1L3SM7Uz2PUEQzxQw==}
 
   sprite-animator@1.11.5:
     resolution: {integrity: sha512-YqYLYYgyvrhXTF4aYyXb0NfdS4uBSKIYKwbBgAKCSsw6sogcgShWoNnV4SgOtI250kIUS/dZH0OZ+lgbCBgAGA==}
@@ -808,10 +694,6 @@ packages:
   stackblur-canvas@2.7.0:
     resolution: {integrity: sha512-yf7OENo23AGJhBriGx0QivY5JP6Y1HbrrDI6WLt6C5auYZXlQrheoY8hD4ibekFKz1HOfE48Ww8kMWMnJD/zcQ==}
     engines: {node: '>=0.1.14'}
-
-  strict-uri-encode@1.1.0:
-    resolution: {integrity: sha512-R3f198pcvnB+5IpnBlRkphuE9n46WyVl8I39W/ZUTZLz4nqSP/oLYUrcnJrw462Ds8he4YKMov2efsTIw1BDGQ==}
-    engines: {node: '>=0.10.0'}
 
   string_decoder@1.1.1:
     resolution: {integrity: sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg==}
@@ -830,25 +712,9 @@ packages:
   text-segmentation@1.0.3:
     resolution: {integrity: sha512-iOiPUo/BGnZ6+54OsWxZidGCsdU8YbE4PSpdPinp7DeMtUJNJBoJ/ouUSTJjHkh1KntHaltHl/gDs2FC4i5+Nw==}
 
-  textarea-caret-ts@4.1.1:
-    resolution: {integrity: sha512-kEL3aQ99r8jJR2RfB6g74LEzrt9NTXkyjPvvP3vzhNkQ+zAaXitKCq8BUEueepULWCCxtpRaRjtnYHaR45FDMg==}
-
-  tiny-emitter@2.1.0:
-    resolution: {integrity: sha512-NB6Dk1A9xgQPMoGqC5CVXn123gWyte215ONT5Pp5a0yt4nlEoO1ZWeCwpncaekPHXO60i47ihFnZPiRPjRMq4Q==}
-
-  typed-function@2.1.0:
-    resolution: {integrity: sha512-bctQIOqx2iVbWGDGPWwIm18QScpu2XRmkC19D8rQGFsjKSgteq/o1hTZvIG/wuDq8fanpBDrLkLq+aEN/6y5XQ==}
-    engines: {node: '>= 10'}
-
   ua-parser-js@0.7.41:
     resolution: {integrity: sha512-O3oYyCMPYgNNHuO7Jjk3uacJWZF8loBgwrfd/5LE/HyZ3lUIOdniQ7DNXJcIgZbwioZxk0fLfI4EVnetdiX5jg==}
     hasBin: true
-
-  undici-types@7.24.6:
-    resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
-
-  url-parse@1.5.10:
-    resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
 
   url-toolkit@2.2.5:
     resolution: {integrity: sha512-mtN6xk+Nac+oyJ/PrI7tzfmomRVNFIWKUbG8jdYFt52hxbiReFAXIjYskvu64/dvuW71IcB7lV8l0HvZMac6Jg==}
@@ -889,9 +755,6 @@ packages:
       stylus:
         optional: true
 
-  white-web-sdk@2.16.54:
-    resolution: {integrity: sha512-1C4irCa8tSvoknanwJUdQ9e0zFK9rh3lKG+7B4ETGYlWFvI0vhCgW2fiaT5ZjDOc9TyrveX3Cdu5NrhWxdmRkA==}
-
   xss@1.0.15:
     resolution: {integrity: sha512-FVdlVVC67WOIPvfOwhoMETV72f6GbW7aOabBC3WxN/oUdoEMDyLz4OgRv5/gck2ZeNqEQu+Tb0kloovXOfpYVg==}
     engines: {node: '>= 0.10.0'}
@@ -906,7 +769,7 @@ packages:
 
 snapshots:
 
-  '@babel/runtime@7.28.4': {}
+  '@babel/runtime@7.29.7': {}
 
   '@esbuild/linux-loong64@0.14.54':
     optional: true
@@ -915,7 +778,7 @@ snapshots:
 
   '@mesh.js/core@1.1.25':
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       abs-svg-path: 0.1.1
       adaptive-bezier-curve: 1.0.3
       as-number: 1.0.0
@@ -931,79 +794,50 @@ snapshots:
 
   '@netless/app-plyr@0.2.6-beta.3': {}
 
-  '@netless/app-slide@0.2.81(jspdf@2.5.2)':
+  '@netless/app-slide@0.2.99(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/appliance-plugin@1.1.25-beta.2(@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54))(white-web-sdk@2.16.54)':
+  '@netless/appliance-plugin@1.1.38-beta.2(@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@..+white-sdk+web-sdk+dist+prod))(white-web-sdk@..+white-sdk+web-sdk+dist+prod)':
     dependencies:
-      '@netless/window-manager': 1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54)
+      '@netless/window-manager': 1.0.14(jspdf@2.5.2)(white-web-sdk@..+white-sdk+web-sdk+dist+prod)
       clipper-lib: 6.4.2
+      dom-to-image: 2.6.0
       eventemitter2: 6.4.9
       lineclip: 1.1.5
-      lodash: 4.17.21
+      lodash: 4.18.1
       lz-string: 1.5.0
       re-resizable: 6.11.2(react-dom@16.14.0(react@16.14.0))(react@16.14.0)
       react: 16.14.0
       react-dom: 16.14.0(react@16.14.0)
       react-draggable: 4.5.0(react-dom@16.14.0(react@16.14.0))(react@16.14.0)
       spritejs: 3.8.3
-      white-web-sdk: 2.16.54
+      white-web-sdk: link:../../white-sdk/web-sdk/dist/prod
       xss: 1.0.15
 
-  '@netless/canvas-polyfill@0.0.4': {}
-
-  '@netless/telebox-insider@0.2.32': {}
+  '@netless/telebox-insider@0.3.0': {}
 
   '@netless/telebox-insider@0.3.0-beta.14': {}
 
-  '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.54)':
+  '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@..+white-sdk+web-sdk+dist+prod)':
     dependencies:
       react: 17.0.2
       react-dom: 17.0.2(react@17.0.2)
       video.js: 7.21.7
-      white-web-sdk: 2.16.54
+      white-web-sdk: link:../../white-sdk/web-sdk/dist/prod
 
-  '@netless/window-manager@1.0.6(jspdf@2.5.2)(white-web-sdk@2.16.54)':
+  '@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@..+white-sdk+web-sdk+dist+prod)':
     dependencies:
       '@juggle/resize-observer': 3.4.0
-      '@netless/telebox-insider': 0.2.32
+      '@netless/telebox-insider': 0.3.0
       emittery: 0.9.2
-      lodash: 4.17.21
+      lodash: 4.18.1
       p-retry: 4.6.2
       uuid: 7.0.3
       video.js: 7.21.7
-      white-web-sdk: 2.16.54
+      white-web-sdk: link:../../white-sdk/web-sdk/dist/prod
     optionalDependencies:
       jspdf: 2.5.2
-
-  '@netless/xml-js@1.6.16': {}
-
-  '@protobufjs/aspromise@1.1.2': {}
-
-  '@protobufjs/base64@1.1.2': {}
-
-  '@protobufjs/codegen@2.0.5': {}
-
-  '@protobufjs/eventemitter@1.1.1': {}
-
-  '@protobufjs/fetch@1.1.1':
-    dependencies:
-      '@protobufjs/aspromise': 1.1.2
-
-  '@protobufjs/float@1.0.2': {}
-
-  '@protobufjs/inquire@1.1.2': {}
-
-  '@protobufjs/path@1.1.2': {}
-
-  '@protobufjs/pool@1.1.0': {}
-
-  '@protobufjs/utf8@1.1.1': {}
-
-  '@types/node@25.9.2':
-    dependencies:
-      undici-types: 7.24.6
 
   '@types/prop-types@15.7.15': {}
 
@@ -1026,7 +860,7 @@ snapshots:
 
   '@videojs/http-streaming@2.16.3(video.js@7.21.7)':
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       '@videojs/vhs-utils': 3.0.5
       aes-decrypter: 3.1.3
       global: 4.4.0
@@ -1037,17 +871,17 @@ snapshots:
 
   '@videojs/vhs-utils@3.0.5':
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       global: 4.4.0
       url-toolkit: 2.2.5
 
   '@videojs/xhr@2.6.0':
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       global: 4.4.0
       is-function: 1.0.2
 
-  '@xmldom/xmldom@0.8.11': {}
+  '@xmldom/xmldom@0.8.13': {}
 
   abs-svg-path@0.1.1: {}
 
@@ -1055,7 +889,7 @@ snapshots:
 
   aes-decrypter@3.1.3:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       '@videojs/vhs-utils': 3.0.5
       global: 4.4.0
       pkcs7: 1.0.4
@@ -1066,7 +900,7 @@ snapshots:
       dayjs: 1.11.21
       dexie: 3.2.7
       jszip: 3.10.1
-      lodash: 4.17.21
+      lodash: 4.18.1
       ua-parser-js: 0.7.41
       zod: 3.25.76
 
@@ -1086,21 +920,17 @@ snapshots:
 
   bezier-easing@2.1.0: {}
 
-  bezier-js@2.6.1: {}
-
   boolbase@1.0.0: {}
 
   bound-points@1.0.0: {}
-
-  bowser@2.14.1: {}
 
   btoa@1.2.1: {}
 
   canvg@3.0.11:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       '@types/raf': 3.4.3
-      core-js: 3.45.1
+      core-js: 3.49.0
       raf: 3.4.1
       regenerator-runtime: 0.13.11
       rgbcolor: 1.0.1
@@ -1111,10 +941,6 @@ snapshots:
   clipper-lib@6.4.2: {}
 
   clsx@2.1.1: {}
-
-  color-convert@2.0.1:
-    dependencies:
-      color-name: 1.1.4
 
   color-name@1.1.4: {}
 
@@ -1129,23 +955,11 @@ snapshots:
 
   color-space@2.3.2: {}
 
-  color-string@1.9.1:
-    dependencies:
-      color-name: 1.1.4
-      simple-swizzle: 0.2.4
-
-  color@4.2.3:
-    dependencies:
-      color-convert: 2.0.1
-      color-string: 1.9.1
-
   commander@2.20.3: {}
-
-  complex.js@2.4.3: {}
 
   core-js@2.6.12: {}
 
-  core-js@3.45.1: {}
+  core-js@3.49.0: {}
 
   core-util-is@1.0.3: {}
 
@@ -1169,25 +983,6 @@ snapshots:
 
   dayjs@1.11.21: {}
 
-  decimal.js@10.6.0: {}
-
-  decode-uri-component@0.2.2: {}
-
-  detect-hover@1.0.3: {}
-
-  detect-it@3.0.7:
-    dependencies:
-      detect-hover: 1.0.3
-      detect-passive-events: 1.0.5
-      detect-pointer: 1.0.3
-      detect-touch-events: 2.0.2
-
-  detect-passive-events@1.0.5: {}
-
-  detect-pointer@1.0.3: {}
-
-  detect-touch-events@2.0.2: {}
-
   dexie@3.2.7: {}
 
   dom-serializer@0.2.2:
@@ -1195,13 +990,15 @@ snapshots:
       domelementtype: 2.3.0
       entities: 2.2.0
 
+  dom-to-image@2.6.0: {}
+
   dom-walk@0.1.2: {}
 
   domelementtype@1.3.1: {}
 
   domelementtype@2.3.0: {}
 
-  dompurify@2.5.8:
+  dompurify@2.5.9:
     optional: true
 
   domutils@1.7.0:
@@ -1212,6 +1009,8 @@ snapshots:
   emittery@0.9.2: {}
 
   entities@2.2.0: {}
+
+  es-errors@1.3.0: {}
 
   esbuild-android-64@0.14.54:
     optional: true
@@ -1297,17 +1096,11 @@ snapshots:
       esbuild-windows-64: 0.14.54
       esbuild-windows-arm64: 0.14.54
 
-  escape-latex@1.2.0: {}
-
   eventemitter2@6.4.9: {}
 
-  eventemitter3@4.0.7: {}
+  eventemitter3@5.0.4: {}
 
-  eventemitter3@5.0.1: {}
-
-  fflate@0.8.2: {}
-
-  fraction.js@4.3.7: {}
+  fflate@0.8.3: {}
 
   fsevents@2.3.3:
     optional: true
@@ -1318,16 +1111,16 @@ snapshots:
 
   gl-renderer@0.13.6:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
 
   gl-vec2@1.3.0: {}
 
   global@4.4.0:
     dependencies:
-      min-document: 2.19.0
+      min-document: 2.19.2
       process: 0.11.10
 
-  hasown@2.0.2:
+  hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
 
@@ -1343,30 +1136,26 @@ snapshots:
 
   inherits@2.0.4: {}
 
-  is-arrayish@0.3.4: {}
-
-  is-core-module@2.16.1:
+  is-core-module@2.16.2:
     dependencies:
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   is-function@1.0.2: {}
 
   isarray@1.0.0: {}
 
-  javascript-natural-sort@0.7.1: {}
-
   js-tokens@4.0.0: {}
 
   jspdf@2.5.2:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       atob: 2.1.2
       btoa: 1.2.1
-      fflate: 0.8.2
+      fflate: 0.8.3
     optionalDependencies:
       canvg: 3.0.11
-      core-js: 3.45.1
-      dompurify: 2.5.8
+      core-js: 3.49.0
+      dompurify: 2.5.9
       html2canvas: 1.4.1
 
   jszip@3.10.1:
@@ -1384,9 +1173,7 @@ snapshots:
 
   lineclip@1.1.5: {}
 
-  lodash@4.17.21: {}
-
-  long@5.3.2: {}
+  lodash@4.18.1: {}
 
   loose-envify@1.4.0:
     dependencies:
@@ -1396,41 +1183,27 @@ snapshots:
 
   m3u8-parser@4.8.0:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       '@videojs/vhs-utils': 3.0.5
       global: 4.4.0
 
-  mathjs@10.6.4:
-    dependencies:
-      '@babel/runtime': 7.28.4
-      complex.js: 2.4.3
-      decimal.js: 10.6.0
-      escape-latex: 1.2.0
-      fraction.js: 4.3.7
-      javascript-natural-sort: 0.7.1
-      seedrandom: 3.0.5
-      tiny-emitter: 2.1.0
-      typed-function: 2.1.0
-
-  min-document@2.19.0:
+  min-document@2.19.2:
     dependencies:
       dom-walk: 0.1.2
 
-  mobx@6.16.0: {}
-
   mpd-parser@0.22.1:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       '@videojs/vhs-utils': 3.0.5
-      '@xmldom/xmldom': 0.8.11
+      '@xmldom/xmldom': 0.8.13
       global: 4.4.0
 
   mux.js@6.0.1:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       global: 4.4.0
 
-  nanoid@3.3.11: {}
+  nanoid@3.3.15: {}
 
   normalize.css@8.0.1: {}
 
@@ -1442,7 +1215,7 @@ snapshots:
 
   p-queue@7.4.1:
     dependencies:
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       p-timeout: 5.1.0
 
   p-retry@4.6.2:
@@ -1467,15 +1240,15 @@ snapshots:
 
   pkcs7@1.0.4:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
 
   polyline-miter-util@1.0.1:
     dependencies:
       gl-vec2: 1.3.0
 
-  postcss@8.5.6:
+  postcss@8.5.16:
     dependencies:
-      nanoid: 3.3.11
+      nanoid: 3.3.15
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -1488,29 +1261,6 @@ snapshots:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       react-is: 16.13.1
-
-  protobufjs@7.6.2:
-    dependencies:
-      '@protobufjs/aspromise': 1.1.2
-      '@protobufjs/base64': 1.1.2
-      '@protobufjs/codegen': 2.0.5
-      '@protobufjs/eventemitter': 1.1.1
-      '@protobufjs/fetch': 1.1.1
-      '@protobufjs/float': 1.0.2
-      '@protobufjs/inquire': 1.1.2
-      '@protobufjs/path': 1.1.2
-      '@protobufjs/pool': 1.1.0
-      '@protobufjs/utf8': 1.1.1
-      '@types/node': 25.9.2
-      long: 5.3.2
-
-  query-string@5.1.1:
-    dependencies:
-      decode-uri-component: 0.2.2
-      object-assign: 4.1.1
-      strict-uri-encode: 1.1.0
-
-  querystringify@2.2.0: {}
 
   raf@3.4.1:
     dependencies:
@@ -1572,11 +1322,10 @@ snapshots:
   regenerator-runtime@0.13.11:
     optional: true
 
-  requires-port@1.0.0: {}
-
-  resolve@1.22.10:
+  resolve@1.22.12:
     dependencies:
-      is-core-module: 2.16.1
+      es-errors: 1.3.0
+      is-core-module: 2.16.2
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 
@@ -1609,19 +1358,11 @@ snapshots:
       loose-envify: 1.4.0
       object-assign: 4.1.1
 
-  seedrandom@3.0.5: {}
-
   setimmediate@1.0.5: {}
-
-  simple-swizzle@0.2.4:
-    dependencies:
-      is-arrayish: 0.3.4
 
   simplify-path@1.1.0: {}
 
   source-map-js@1.2.1: {}
-
-  spark-md5@3.0.2: {}
 
   sprite-animator@1.11.5:
     dependencies:
@@ -1635,7 +1376,7 @@ snapshots:
 
   spritejs@3.8.3:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       '@mesh.js/core': 1.1.25
       color-rgba: 2.4.0
       css-select: 2.1.0
@@ -1645,8 +1386,6 @@ snapshots:
 
   stackblur-canvas@2.7.0:
     optional: true
-
-  strict-uri-encode@1.1.0: {}
 
   string_decoder@1.1.1:
     dependencies:
@@ -1664,20 +1403,7 @@ snapshots:
       utrie: 1.0.2
     optional: true
 
-  textarea-caret-ts@4.1.1: {}
-
-  tiny-emitter@2.1.0: {}
-
-  typed-function@2.1.0: {}
-
   ua-parser-js@0.7.41: {}
-
-  undici-types@7.24.6: {}
-
-  url-parse@1.5.10:
-    dependencies:
-      querystringify: 2.2.0
-      requires-port: 1.0.0
 
   url-toolkit@2.2.5: {}
 
@@ -1692,7 +1418,7 @@ snapshots:
 
   video.js@7.21.7:
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.7
       '@videojs/http-streaming': 2.16.3(video.js@7.21.7)
       '@videojs/vhs-utils': 3.0.5
       '@videojs/xhr': 2.6.0
@@ -1715,34 +1441,11 @@ snapshots:
   vite@2.9.18:
     dependencies:
       esbuild: 0.14.54
-      postcss: 8.5.6
-      resolve: 1.22.10
+      postcss: 8.5.16
+      resolve: 1.22.12
       rollup: 2.77.3
     optionalDependencies:
       fsevents: 2.3.3
-
-  white-web-sdk@2.16.54:
-    dependencies:
-      '@juggle/resize-observer': 3.4.0
-      '@netless/canvas-polyfill': 0.0.4
-      '@netless/xml-js': 1.6.16
-      atob: 2.1.2
-      bezier-js: 2.6.1
-      bowser: 2.14.1
-      color: 4.2.3
-      core-js: 3.45.1
-      detect-it: 3.0.7
-      eventemitter3: 4.0.7
-      mathjs: 10.6.4
-      mobx: 6.16.0
-      protobufjs: 7.6.2
-      query-string: 5.1.1
-      react: 16.14.0
-      react-dom: 16.14.0(react@16.14.0)
-      spark-md5: 3.0.2
-      textarea-caret-ts: 4.1.1
-      url-parse: 1.5.10
-      uuid: 7.0.3
 
   xss@1.0.15:
     dependencies:

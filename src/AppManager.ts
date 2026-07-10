@@ -158,7 +158,9 @@ export class AppManager {
                 sceneName = this.callbacksNode?.scenes[nextIndex];
             }
             if (sceneName) {
-                console.log(`[window-manager] onRemoveScenes  setMainViewScenePath ${ROOT_DIR}${sceneName}`);
+                console.log(
+                    `[window-manager] onRemoveScenes  setMainViewScenePath ${ROOT_DIR}${sceneName}`
+                );
                 this.setMainViewScenePath(`${ROOT_DIR}${sceneName}`);
             }
             await this.setMainViewSceneIndex(nextIndex);
@@ -604,9 +606,10 @@ export class AppManager {
                     try {
                         const appAttributes = this.attributes[id];
                         if (!appAttributes) {
-                            this.Logger && this.Logger.error(
-                                `[WindowManager]: appAttributes is undefined, appId: ${id}`
-                            );
+                            this.Logger &&
+                                this.Logger.error(
+                                    `[WindowManager]: appAttributes is undefined, appId: ${id}`
+                                );
                             throw new Error("appAttributes is undefined");
                         }
 
@@ -712,7 +715,9 @@ export class AppManager {
         callbacks.emit("onMainViewMounted", mainView);
         const hasRoot = this.hasRoot(mainView.divElement);
         const rect = this.getRectByDivElement(mainView.divElement);
-        let log = `[window-manager] bindMainView hasRoot:${hasRoot}, rect:${JSON.stringify(rect)}, outerHeight:${window.outerHeight}, outerWidth:${window.outerWidth}`;
+        let log = `[window-manager] bindMainView hasRoot:${hasRoot}, rect:${JSON.stringify(
+            rect
+        )}, outerHeight:${window.outerHeight}, outerWidth:${window.outerWidth}`;
         const visualViewport = window.visualViewport;
         if (visualViewport) {
             log += `, visualViewportWidth:${visualViewport.width}, visualViewportHeight:${visualViewport.height}, visualViewportOffsetLeft:${visualViewport.offsetLeft}, visualViewportOffsetTop:${visualViewport.offsetTop}`;
@@ -720,7 +725,7 @@ export class AppManager {
         console.log(log);
     }
 
-    private hasRoot(divElement: HTMLDivElement){
+    private hasRoot(divElement: HTMLDivElement) {
         let current = divElement;
         while (current) {
             if (current.parentElement === document.body) {
@@ -731,7 +736,7 @@ export class AppManager {
         return false;
     }
 
-    private getRectByDivElement(divElement: HTMLDivElement){
+    private getRectByDivElement(divElement: HTMLDivElement) {
         // 获取当前divElement的矩形区域
         const rect = divElement.getBoundingClientRect();
         return rect;
@@ -818,7 +823,8 @@ export class AppManager {
             return appProxy;
         } else {
             this.appStatus.delete(appId);
-            this.Logger && this.Logger.error(`[WindowManager]: initialize AppProxy failed, appId: ${appId}`);
+            this.Logger &&
+                this.Logger.error(`[WindowManager]: initialize AppProxy failed, appId: ${appId}`);
             throw new Error("[WindowManger]: initialize AppProxy failed");
         }
     }
@@ -858,7 +864,8 @@ export class AppManager {
             const scenePathType = this.displayer.scenePathType(scenePath);
             const sceneDir = parseSceneDir(scenePath);
             if (sceneDir !== ROOT_DIR) {
-                this.Logger && this.Logger.error(`[WindowManager]: main view scenePath must in root dir "/"`);
+                this.Logger &&
+                    this.Logger.error(`[WindowManager]: main view scenePath must in root dir "/"`);
                 throw new Error(`[WindowManager]: main view scenePath must in root dir "/"`);
             }
             if (scenePathType === ScenePathType.None) {
@@ -866,7 +873,6 @@ export class AppManager {
                 throw new Error(`[WindowManager]: ${scenePath} not valid scene`);
             } else if (scenePathType === ScenePathType.Page) {
                 await this._setMainViewScenePath(scenePath);
-
             } else if (scenePathType === ScenePathType.Dir) {
                 const validScenePath = makeValidScenePath(this.displayer, scenePath);
                 if (validScenePath) {
@@ -1000,4 +1006,3 @@ export class AppManager {
         this._resolveTimer = undefined;
     }
 }
-

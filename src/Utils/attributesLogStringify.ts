@@ -3,11 +3,16 @@ function formatAttributesLogObjectKey(key: string): string {
     return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : JSON.stringify(key);
 }
 
+type AttributesLogRecord = Record<string, unknown>;
+
 /**
  * attributes 调试日志：对象/数组会写成近似 JS 字面量（保留 `undefined`、数组空洞），避免 `[object Object]`；
  * 并处理 BigInt、循环引用等。
  */
-export function stringifyForAttributesLog(value: unknown, seen?: WeakSet<object>): string {
+export function stringifyForAttributesLog(
+    value: unknown,
+    seen?: WeakSet<AttributesLogRecord>
+): string {
     if (value === undefined) {
         return "undefined";
     }
@@ -29,17 +34,17 @@ export function stringifyForAttributesLog(value: unknown, seen?: WeakSet<object>
         return t === "string" ? JSON.stringify(value as string) : String(value);
     }
 
-    const obj = value as object;
+    const obj = value as AttributesLogRecord;
     if (seen?.has(obj)) {
         return "[Circular]";
     }
 
-    const nextSeen = seen ?? new WeakSet<object>();
+    const nextSeen = seen ?? new WeakSet<AttributesLogRecord>();
     nextSeen.add(obj);
     try {
         if (Array.isArray(value)) {
-            return `[${Array.from(value as unknown[], (item) =>
-                stringifyForAttributesLog(item, nextSeen),
+            return `[${Array.from(value as unknown[], item =>
+                stringifyForAttributesLog(item, nextSeen)
             ).join(",")}]`;
         }
         if (value instanceof Date) {
@@ -48,11 +53,11 @@ export function stringifyForAttributesLog(value: unknown, seen?: WeakSet<object>
         if (value instanceof RegExp) {
             return String(value);
         }
-        const keys = Object.keys(value as object);
-        const pairs = keys.map((k) => {
+        const keys = Object.keys(obj);
+        const pairs = keys.map(k => {
             let v: unknown;
             try {
-                v = (value as Record<string, unknown>)[k];
+                v = obj[k];
             } catch {
                 return `${formatAttributesLogObjectKey(k)}:[Threw]`;
             }

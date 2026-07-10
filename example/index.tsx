@@ -12,6 +12,7 @@ import {
     createBoard,
     createIframe,
     createPlyr,
+    createPresentation,
 } from "./apps";
 import "../dist/style.css";
 import "@netless/appliance-plugin/dist/style.css";
@@ -461,6 +462,9 @@ const App = () => {
             <div className="side">
                 <button className="side-button" onClick={() => createPlyr(manager)}>
                     Plyr
+                </button>
+                <button className="side-button" onClick={() => createPresentation(manager)}>
+                    Presentation
                 </button>
                 <button className="side-button" onClick={() => createHelloWorld(manager)}>
                     Hello World

@@ -62,7 +62,6 @@ import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
 import { boxEmitter } from "./BoxEmitter";
 import { IframeBridge } from "./View/IframeBridge";
-import { setOptions } from "@netless/app-media-player";
 import type { ExtendPluginInstance } from "./ExtendPluginManager";
 import { ExtendPluginManager } from "./ExtendPluginManager";
 import { getExtendClass } from "./Utils/extendClass";
@@ -255,7 +254,7 @@ export class WindowManager
         super(context);
         WindowManager.displayer = context.displayer;
         (window as any).NETLESS_DEPS = __APP_DEPENDENCIES__;
-        this.emitter.on('mainViewScenePathChange', this.onMainViewScenePathChangeHandler)
+        this.emitter.on("mainViewScenePathChange", this.onMainViewScenePathChangeHandler);
     }
 
     public static onCreate(manager: WindowManager) {
@@ -289,7 +288,11 @@ export class WindowManager
             manager = await this.initManager(room);
             if (manager) {
                 manager._roomLogger = (room as unknown as { logger: Logger }).logger;
-                manager.attributesDeboundceLog = new ArgusLog(manager._roomLogger, "attributes", 300);
+                manager.attributesDeboundceLog = new ArgusLog(
+                    manager._roomLogger,
+                    "attributes",
+                    300
+                );
                 if (WindowManager.registered.size > 0) {
                     manager._roomLogger.info(
                         `[WindowManager] registered apps: ${JSON.stringify(
@@ -304,9 +307,6 @@ export class WindowManager
         }
 
         this.debug = Boolean(debug);
-        if (this.debug) {
-            setOptions({ verbose: true });
-        }
         if (manager?._roomLogger) {
             manager._roomLogger.info(
                 `[WindowManager] Already insert room version: ${manager.version}`
@@ -390,27 +390,43 @@ export class WindowManager
             console.warn("[WindowManager]: indexedDB open failed");
             console.log(error);
         }
-        manager.emitter.on('mainViewScenePathChange', manager.onMainViewScenePathChangeHandler)
+        manager.emitter.on("mainViewScenePathChange", manager.onMainViewScenePathChangeHandler);
         return manager;
     }
 
     public onMainViewScenePathChangeHandler = (scenePath: string) => {
         const mainViewElement = this.mainView.divElement;
         if (mainViewElement) {
-            const backgroundImage = mainViewElement.querySelector('.background img');
+            const backgroundImage = mainViewElement.querySelector(".background img");
             if (backgroundImage) {
                 const backgroundImageRect = backgroundImage?.getBoundingClientRect();
                 const backgroundImageCSS = window.getComputedStyle(backgroundImage);
-                const backgroundImageVisible = backgroundImageRect?.width > 0 && backgroundImageRect?.height > 0 && backgroundImageCSS.display !== 'none';
+                const backgroundImageVisible =
+                    backgroundImageRect?.width > 0 &&
+                    backgroundImageRect?.height > 0 &&
+                    backgroundImageCSS.display !== "none";
                 const camera = this.mainView.camera;
-                console.log("[window-manager] backgroundImageVisible:" + backgroundImageVisible + " camera:" + JSON.stringify(camera));
+                console.log(
+                    "[window-manager] backgroundImageVisible:" +
+                        backgroundImageVisible +
+                        " camera:" +
+                        JSON.stringify(camera)
+                );
                 return;
             }
-            console.log("[window-manager] onMainViewScenePathChange scenePath:" + scenePath + ' backgroundImageVisible is not found');
+            console.log(
+                "[window-manager] onMainViewScenePathChange scenePath:" +
+                    scenePath +
+                    " backgroundImageVisible is not found"
+            );
             return;
         }
-        console.log("[window-manager] onMainViewScenePathChange scenePath:" + scenePath + ' mainViewElement is not found');
-    }
+        console.log(
+            "[window-manager] onMainViewScenePathChange scenePath:" +
+                scenePath +
+                " mainViewElement is not found"
+        );
+    };
 
     private static initManager(room: Room): Promise<WindowManager | undefined> {
         return createInvisiblePlugin(room);
@@ -1081,7 +1097,7 @@ export class WindowManager
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
         }
         WindowManager.params = undefined;
-        this.emitter.off('mainViewScenePathChange', this.onMainViewScenePathChangeHandler);
+        this.emitter.off("mainViewScenePathChange", this.onMainViewScenePathChangeHandler);
         this._iframeBridge?.destroy();
         this._iframeBridge = undefined;
         log("Destroyed");
@@ -1113,7 +1129,10 @@ export class WindowManager
         if (this.canOperate) {
             this.setAttributes(attributes);
             if (this.attributesDeboundceLog) {
-                this.attributesDeboundceLog.logDebouncedShallowMerge("safeSetAttributes", attributes);
+                this.attributesDeboundceLog.logDebouncedShallowMerge(
+                    "safeSetAttributes",
+                    attributes
+                );
             }
         }
     }
@@ -1134,7 +1153,10 @@ export class WindowManager
     public cleanCurrentScene(): void {
         log("clean current scene");
         this.focusedView?.cleanCurrentScene();
-        this.Logger && this.Logger.info(`[WindowManager]: cleanCurrentScene ${this.focusedView?.focusScenePath}`);
+        this.Logger &&
+            this.Logger.info(
+                `[WindowManager]: cleanCurrentScene ${this.focusedView?.focusScenePath}`
+            );
     }
 
     public redo(): number {
@@ -1147,7 +1169,8 @@ export class WindowManager
 
     public delete(): void {
         this.focusedView?.delete();
-        this.Logger && this.Logger.info(`[WindowManager]: delete ${this.focusedView?.focusScenePath}`);
+        this.Logger &&
+            this.Logger.info(`[WindowManager]: delete ${this.focusedView?.focusScenePath}`);
     }
 
     public copy(): void {

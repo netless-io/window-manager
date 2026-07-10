@@ -1,4 +1,3 @@
-import AppDocsViewer from "@netless/app-docs-viewer";
 import { WindowManager } from "./index";
 
 const loadAppMediaPlayer = async () => {
@@ -9,18 +8,38 @@ const loadAppMediaPlayer = async () => {
     return (mod.default || mod) as any;
 };
 
+const loadAppDocsViewer = async () => {
+    const mod = await import("@netless/app-docs-viewer");
+    return (mod.default || mod) as any;
+};
+
+const loadAppPresentation = async () => {
+    const mod = await import("@netless/app-presentation");
+    return (mod.default || mod) as any;
+};
+
 export const setupBuiltin = () => {
     WindowManager.register({
-        kind: AppDocsViewer.kind,
-        src: AppDocsViewer,
+        kind: BuiltinApps.DocsViewer,
+        src: loadAppDocsViewer,
     });
     WindowManager.register({
-        kind: "MediaPlayer",
+        kind: BuiltinApps.MediaPlayer,
         src: loadAppMediaPlayer,
+    });
+    WindowManager.register({
+        kind: BuiltinApps.Presentation,
+        src: loadAppPresentation,
+        appOptions: {
+            reScaleOnPageChange: true,
+            debounceSync: true,
+            useScrollbar: true,
+        },
     });
 };
 
 export const BuiltinApps = {
-    DocsViewer: AppDocsViewer.kind as string,
-    MediaPlayer: "MediaPlayer" as string,
+    DocsViewer: "DocsViewer",
+    MediaPlayer: "MediaPlayer",
+    Presentation: "Presentation",
 };
