@@ -19,3 +19,12 @@
     display: block;
     margin: 1em 0;
 }
+
+.local-log-status {
+    width: 120px;
+    margin: 0 auto 12px;
+    color: #333;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}

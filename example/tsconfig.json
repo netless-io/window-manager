@@ -5,12 +5,17 @@
         "target": "es6",
         "jsx": "react",
         "moduleResolution": "node",
+        "baseUrl": ".",
+        "paths": {
+            "white-web-sdk": ["../../white-sdk/web-sdk/dist/prod/types/index.d.ts"],
+            "white-web-sdk/*": ["../../white-sdk/web-sdk/dist/prod/*"]
+        },
         "allowJs": false,
         "types": ["vite/client"],
         "resolveJsonModule": true,
-        "esModuleInterop": true,
+        "esModuleInterop": true
     },
     "exclude": [
-       "*.js"
+        "*.js"
     ]
 }

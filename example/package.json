@@ -15,14 +15,18 @@
     "@netless/appliance-plugin": "1.1.25-beta.2",
     "@netless/telebox-insider": "0.3.0-beta.14",
     "@netless/video-js-plugin": "^0.3.7",
+    "agora-foundation": "3.11.1-rc.1",
+    "core-js": "^3.45.1",
     "normalize.css": "^8.0.1",
     "p-queue": "^7.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "video.js": "^7.14.3",
-    "white-web-sdk": "^2.16.54"
+    "white-web-sdk": "link:../../white-sdk/web-sdk/dist/prod"
   },
   "devDependencies": {
+    "@types/react": "^17.0.2",
+    "@types/react-dom": "^17.0.2",
     "jspdf": "^2.5.1",
     "vite": "^2.7.13"
   }

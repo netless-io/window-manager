@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
-import { PlayerPhase, WhiteWebSdk } from "white-web-sdk";
+import { LoggerReportMode, PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist";
 import {
     createStatic,
@@ -33,15 +33,36 @@ import type { AppResult as PlyrAppResult } from "@netless/app-plyr";
 import fullWorkerString from "@netless/appliance-plugin/dist/fullWorker.js?raw";
 import subWorkerString from "@netless/appliance-plugin/dist/subWorker.js?raw";
 import { ApplianceMultiPlugin, AppliancePluginOptions } from "@netless/appliance-plugin";
+import FoundationLogWorker from "agora-foundation/lib-es/worker/worker-entry.js?worker";
+
+const apiHosts = import.meta.env.VITE_API_HOSTS?.split(",")
+    .map(host => host.trim())
+    .filter(Boolean);
+const region = import.meta.env.VITE_REGION || undefined;
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
+    region,
+    apiHosts,
     useMobXState: true,
+    loggerOptions: {
+        reportDebugLogMode: LoggerReportMode.AlwaysReport,
+        localLog: {
+            enabled: true,
+            enabledUpload: true,
+            whiteboardPolicyHost: "https://api-solutions-test.shengwang.cn",
+            createWorker: () => new FoundationLogWorker(),
+        },
+    },
 });
 
 const anyWindow = window as any;
 
 (window as any).WindowManager = WindowManager;
+(window as any).whiteWebSdk = sdk;
+sdk.onLocalLogStateChange(state => {
+    console.log("[local-log] state changed", JSON.stringify(state));
+});
 
 let firstPlay = false;
 
@@ -78,7 +99,8 @@ const mountManager = async (room, root) => {
             useBoxesStatus: true,
             supportAppliancePlugin: true,
             // cursorOptions: { style: "custom" },
-            // overwriteStyles: ".netless-window-manager-cursor-name { display: none }",
+            // overwriteStyles: ".netless-window-manager-chess-sizer:before, .netless-window-manager-chess-sizer:after { background-image: none }",
+            overwriteStyles: ".cursor-box .cursor-name { display: none !important; }",
         },
         {
             AppContext: customAppContext,
@@ -111,9 +133,9 @@ const mountManager = async (room, root) => {
           //   contextType: "2d",
           // },
           cursor: {
-            enable: false,
-            expirationTime: 500,
-            moveDelayTime: 300,
+            enable: true,
+            expirationTime: 10000,
+            moveDelayTime: 20,
           },
           syncOpt: {
             interval: 100,
@@ -246,7 +268,8 @@ const replay = () => {
     sdk.replayRoom({
         room: import.meta.env.VITE_ROOM_UUID,
         roomToken: import.meta.env.VITE_ROOM_TOKEN,
-        invisiblePlugins: [WindowManager, ApplianceMultiPlugin],
+        region,
+        invisiblePlugins: [WindowManager as any, ApplianceMultiPlugin],
         useMultiViews: true,
     }).then(async player => {
         await manager?.destroy();
@@ -277,6 +300,7 @@ const joinRoom = ref => {
             .joinRoom({
                 uuid: import.meta.env.VITE_ROOM_UUID,
                 roomToken: import.meta.env.VITE_ROOM_TOKEN,
+                region,
                 invisiblePlugins: [WindowManager, ApplianceMultiPlugin],
                 useMultiViews: true,
                 userPayload: {
@@ -285,7 +309,7 @@ const joinRoom = ref => {
                     avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
                 },
                 isWritable: !(isWritable === "false"),
-                cursorAdapter: undefined,
+                // cursorAdapter: undefined,
                 uid: uid,
                 disableMagixEventDispatchLimit: true,
                 disableNewPencil: false,
@@ -300,6 +324,7 @@ const joinRoom = ref => {
             })
             .then(async room => {
                 (window as any).room = room;
+                console.log("[local-log] initial state", JSON.stringify(sdk.getLocalLogState()));
                 room.syncMode=true;
                 return await mountManager(room, ref);
             });
@@ -328,8 +353,84 @@ const cleanCurrentScene = (manager: WindowManager) => {
     manager.cleanCurrentScene();
 };
 
+const serializeError = (error: unknown) => {
+    if (error instanceof Error) {
+        return {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+        };
+    }
+    return {
+        message: String(error),
+    };
+};
+
+const serializeLocalLogResult = result => {
+    if (result?.status !== "failure") {
+        return result;
+    }
+    return {
+        ...result,
+        error: serializeError(result.error),
+    };
+};
+
+const describeLocalLogResult = result => {
+    if (result.status === "success") {
+        return `上传成功，文件 ${result.fileSize} bytes`;
+    }
+    if (result.status === "skipped") {
+        return `未上传：${result.reason}${result.fileSize === undefined ? "" : `，文件 ${result.fileSize} bytes`}`;
+    }
+    return `上传失败：${result.stage}，${result.error?.message || "unknown error"}`;
+};
+
+const collectLocalLogs = async () => {
+    const result = await sdk.collectLocalLogs();
+    const summary = {
+        labels: result.labels,
+        fileName: result.file.name,
+        fileSize: result.file.size,
+        byteLength: result.byteLength,
+    };
+    console.log("[local-log] collect result", JSON.stringify(summary));
+    return summary;
+};
+
+const uploadLocalLogs = async (onStatus?: (status: string) => void) => {
+    onStatus?.("正在上传...");
+    const room = anyWindow.room;
+    try {
+        const result = room && typeof room.uploadLocalLogs === "function" ?
+            await room.uploadLocalLogs() :
+            await sdk.uploadLocalLogs({
+                roomUuid: import.meta.env.VITE_ROOM_UUID,
+                userUuid: "window-manager-example",
+                trigger: "manual",
+            });
+        const serializable = serializeLocalLogResult(result);
+
+        console.log("[local-log] upload result", JSON.stringify(serializable));
+        onStatus?.(describeLocalLogResult(result));
+        return result;
+    } catch (error) {
+        const serializable = serializeError(error);
+
+        console.error("[local-log] upload thrown", serializable);
+        onStatus?.(`上传异常：${serializable.message}`);
+        throw error;
+    }
+};
+
+anyWindow.collectWhiteboardLocalLogs = collectLocalLogs;
+anyWindow.getWhiteboardLocalLogState = () => sdk.getLocalLogState();
+anyWindow.flushWhiteboardLocalLogs = () => sdk.flushLocalLogs();
+anyWindow.uploadWhiteboardLocalLogs = () => uploadLocalLogs();
+
 const App = () => {
     const [pageState, setPageState] = useState({});
+    const [localLogStatus, setLocalLogStatus] = useState("日志待上传");
     const ref = useRef();
 
     useEffect(() => {
@@ -400,6 +501,10 @@ const App = () => {
                 <button className="side-button" onClick={() => cleanCurrentScene(manager)}>
                     清屏
                 </button>
+                <button className="side-button" onClick={() => uploadLocalLogs(setLocalLogStatus)}>
+                    上传日志
+                </button>
+                <div className="local-log-status">{localLogStatus}</div>
                 <span>
                     {pageState.index}/{pageState.length}
                 </span>
