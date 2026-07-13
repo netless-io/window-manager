@@ -16,7 +16,7 @@ import { ArgusLog, log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
-import { setupBuiltin } from "./BuiltinApps";
+import { BuiltinApps, setupBuiltin } from "./BuiltinApps";
 import "video.js/dist/video-js.css";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
@@ -88,6 +88,54 @@ export type AddAppOptions = {
 };
 
 export type setAppOptions = AddAppOptions & { appOptions?: any };
+
+export type DocsEvent =
+    | "prevPage"
+    | "nextPage"
+    | "prevStep"
+    | "nextStep"
+    | "jumpToPage"
+    | "scalePage";
+
+export type DocsEventOptions = {
+    /** If provided, will dispatch to the specific app. Default to the focused app. */
+    appId?: string;
+    /** Used by `jumpToPage` event, range from 1 to total pages count. */
+    page?: number;
+    /** Used by `scalePage` event. Range from 1 to 4, decimals allowed. `1` means default fitted size. */
+    scale?: number;
+};
+
+type SlideDocsAppResult = {
+    prevPage: () => boolean;
+    nextPage: () => boolean;
+    prevStep: () => boolean;
+    nextStep: () => boolean;
+    jumpToPage: (page: number) => boolean;
+    scaleView: (scale: number) => void;
+};
+
+type PresentationDocsAppResult = {
+    prevPage: () => boolean;
+    nextPage: () => boolean;
+    jumpPage: (index: number) => boolean;
+    moveCamera: (camera: { centerX: number; centerY: number; scale: number }) => void;
+    getOriginScale: () => number;
+};
+
+const SlideAppKind = "Slide";
+const PresentationAppKind = BuiltinApps.Presentation;
+const MinDocsPageScale = 1;
+const MaxDocsPageScale = 4;
+
+function isValidDocsPageScale(scale: unknown): scale is number {
+    return (
+        typeof scale === "number" &&
+        Number.isFinite(scale) &&
+        scale >= MinDocsPageScale &&
+        scale <= MaxDocsPageScale
+    );
+}
 
 export type AddAppParams<TAttributes = any> = {
     kind: string;
@@ -1021,6 +1069,172 @@ export class WindowManager
      */
     public queryOne(appId: string): AppProxy | undefined {
         return this.appManager?.appProxies.get(appId);
+    }
+
+    /**
+     * Send specific command to DocsViewer / Presentation / Slide app.
+     *
+     * Static docs and Presentation do not have animation steps, so `prevStep` / `nextStep`
+     * are treated as `prevPage` / `nextPage`.
+     */
+    public dispatchDocsEvent(event: DocsEvent, options: DocsEventOptions = {}): boolean {
+        const appId = options.appId || this.focused;
+        if (!appId) {
+            console.warn("not found " + (options.appId || "focused app"));
+            return false;
+        }
+
+        const app = this.queryOne(appId);
+        if (!app) {
+            console.warn("not found app with id " + appId);
+            return false;
+        }
+
+        const isDocsViewerApp =
+            appId.startsWith(`${BuiltinApps.DocsViewer}-`) || app.kind === BuiltinApps.DocsViewer;
+        const isPresentationApp =
+            appId.startsWith(`${PresentationAppKind}-`) || app.kind === PresentationAppKind;
+        const isSlideApp = appId.startsWith(`${SlideAppKind}-`) || app.kind === SlideAppKind;
+        let appKind = app.kind;
+        if (isDocsViewerApp) {
+            appKind = BuiltinApps.DocsViewer;
+        } else if (isPresentationApp) {
+            appKind = PresentationAppKind;
+        } else if (isSlideApp) {
+            appKind = SlideAppKind;
+        }
+
+        if (!WindowManager.registered.has(appKind)) {
+            console.warn("not registered app kind " + appKind);
+            return false;
+        }
+
+        let page: number | undefined, input: HTMLInputElement | null, scale: number | undefined;
+
+        if (isDocsViewerApp) {
+            const dom = app.box?.$footer;
+            if (!dom) {
+                console.warn("not found app with id " + appId);
+                return false;
+            }
+
+            const click = (el: Element | null) => {
+                el && el.dispatchEvent(new MouseEvent("click"));
+            };
+
+            switch (event) {
+                case "prevPage":
+                case "prevStep":
+                    click(dom.querySelector('button[class$="btn-page-back"]'));
+                    break;
+                case "nextPage":
+                case "nextStep":
+                    click(dom.querySelector('button[class$="btn-page-next"]'));
+                    break;
+                case "jumpToPage":
+                    page = options.page;
+                    input = dom.querySelector('input[class$="page-number-input"]');
+                    if (!input || typeof page !== "number") {
+                        console.warn("failed to jump" + (page ? " to page " + page : ""));
+                        return false;
+                    }
+                    input.value = "" + page;
+                    input.dispatchEvent(new InputEvent("change"));
+                    break;
+                case "scalePage":
+                    console.warn("not supported event " + event + " for app kind " + appKind);
+                    return false;
+                default:
+                    console.warn("unknown event " + event);
+                    return false;
+            }
+
+            return true;
+        }
+
+        if (isPresentationApp) {
+            const controller = app.appResult as PresentationDocsAppResult | undefined;
+            if (!controller) {
+                console.warn("not found app with id " + appId);
+                return false;
+            }
+
+            switch (event) {
+                case "prevPage":
+                case "prevStep":
+                    return controller.prevPage();
+                case "nextPage":
+                case "nextStep":
+                    return controller.nextPage();
+                case "jumpToPage":
+                    page = options.page;
+                    if (typeof page !== "number") {
+                        console.warn("failed to jump" + (page ? " to page " + page : ""));
+                        return false;
+                    }
+                    return controller.jumpPage(page - 1);
+                case "scalePage":
+                    scale = options.scale;
+                    if (!isValidDocsPageScale(scale)) {
+                        console.warn("failed to scale, scale should be a number from 1 to 4");
+                        return false;
+                    }
+                    try {
+                        controller.moveCamera({
+                            centerX: 0,
+                            centerY: 0,
+                            scale: controller.getOriginScale() * scale,
+                        });
+                        return true;
+                    } catch (error) {
+                        console.warn(error);
+                        return false;
+                    }
+                default:
+                    console.warn("unknown event " + event);
+                    return false;
+            }
+        }
+
+        if (isSlideApp) {
+            const controller = app.appResult as SlideDocsAppResult | undefined;
+            if (!controller) {
+                console.warn("not found app with id " + appId);
+                return false;
+            }
+
+            switch (event) {
+                case "prevPage":
+                    return controller.prevPage();
+                case "nextPage":
+                    return controller.nextPage();
+                case "prevStep":
+                    return controller.prevStep();
+                case "nextStep":
+                    return controller.nextStep();
+                case "jumpToPage":
+                    page = options.page;
+                    if (typeof page !== "number") {
+                        console.warn("failed to jump" + (page ? " to page " + page : ""));
+                        return false;
+                    }
+                    return controller.jumpToPage(page);
+                case "scalePage":
+                    scale = options.scale;
+                    if (!isValidDocsPageScale(scale)) {
+                        console.warn("failed to scale, scale should be a number from 1 to 4");
+                        return false;
+                    }
+                    controller.scaleView(scale);
+                    return true;
+                default:
+                    console.warn("unknown event " + event);
+                    return false;
+            }
+        }
+
+        console.warn("not supported app kind " + app.kind);
+        return false;
     }
 
     /**
