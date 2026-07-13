@@ -1,4 +1,8 @@
-## 1.0.13(2026-04-14)
+## 1.0.15(2026-07-13)
+- `window-manager` 内部集成 `@netless/app-presentation`
+- `MediaPlayer`、`Presentation`、`DocsViewer` 改成异步加载
+
+## 1.0.14(2026-04-14)
 - AppMediaPlayer 改成异步加载
 ## 1.0.13(2026-04-13)
 - 修复 `scalePptToFit` 和 `setContainerSizeRatio` 混用时序问题.
