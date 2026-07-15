@@ -17,6 +17,7 @@ import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
 import { BuiltinApps, setupBuiltin } from "./BuiltinApps";
+import type { BuiltinAppOptions } from "./BuiltinApps";
 import "video.js/dist/video-js.css";
 import "./style.css";
 import "@netless/telebox-insider/dist/style.css";
@@ -66,6 +67,7 @@ import type { ExtendPluginInstance } from "./ExtendPluginManager";
 import { ExtendPluginManager } from "./ExtendPluginManager";
 import { getExtendClass } from "./Utils/extendClass";
 import type { ExtendClass } from "./Utils/extendClass";
+import { resolveAppOptions as mergeAppOptions } from "./Utils/resolveAppOptions";
 
 export * from "./utils/extendClass";
 
@@ -244,6 +246,8 @@ export type MountParams = {
     supportAppliancePlugin?: boolean;
     /** 是否使用 boxesStatus 状态管理窗口 */
     useBoxesStatus?: boolean;
+    /** Local Presentation options applied before restoring apps. Not synchronized. */
+    builtinAppOptions?: BuiltinAppOptions;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
@@ -280,6 +284,8 @@ export class WindowManager
     private _cursorUIDsStyleDOM?: HTMLStyleElement;
 
     public _appliancePlugin?: any;
+
+    public builtinAppOptions?: BuiltinAppOptions;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
@@ -384,6 +390,8 @@ export class WindowManager
         if (!manager) {
             throw new Error("[WindowManager]: create manager failed");
         }
+
+        manager.builtinAppOptions = params.builtinAppOptions;
 
         if (containerSizeRatio) {
             WindowManager.containerSizeRatio = containerSizeRatio;
@@ -584,6 +592,15 @@ export class WindowManager
      */
     public static unregister(kind: string) {
         return appRegister.unregister(kind);
+    }
+
+    public resolveAppOptions(
+        kind: string,
+        registeredOptions?: any | (() => any)
+    ): any | (() => any) {
+        const override =
+            kind === BuiltinApps.Presentation ? this.builtinAppOptions?.Presentation : undefined;
+        return mergeAppOptions(registeredOptions, override);
     }
 
     /**
@@ -1494,6 +1511,7 @@ setupBuiltin();
 export * from "./typings";
 
 export { BuiltinApps } from "./BuiltinApps";
+export type { BuiltinAppOptions } from "./BuiltinApps";
 export type { PublicEvent } from "./callback";
 
 export * from "./ExtendPluginManager";

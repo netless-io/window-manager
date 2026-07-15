@@ -1,4 +1,9 @@
 import { WindowManager } from "./index";
+import type { PresentationAppOptions } from "@netless/app-presentation";
+
+export interface BuiltinAppOptions {
+    Presentation?: PresentationAppOptions;
+}
 
 const loadAppMediaPlayer = async () => {
     const mod = await import("@netless/app-media-player");
@@ -31,7 +36,6 @@ export const setupBuiltin = () => {
         kind: BuiltinApps.Presentation,
         src: loadAppPresentation,
         appOptions: {
-            reScaleOnPageChange: true,
             debounceSync: true,
             useScrollbar: true,
         },

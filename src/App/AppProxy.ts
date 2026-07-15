@@ -154,13 +154,17 @@ export class AppProxy implements PageRemoveService {
         }
         const appImpl = await appRegister.appClasses.get(params.kind)?.();
         const appParams = appRegister.registered.get(params.kind);
+        const appOptions = this.manager.windowManger.resolveAppOptions(
+            params.kind,
+            appParams?.appOptions
+        );
         if (appImpl) {
             await this.setupApp(
                 this.id,
                 skipUpdate,
                 appImpl,
                 params.options,
-                appParams?.appOptions,
+                appOptions,
                 this.manager.useBoxesStatus ? boxStatus : undefined,
                 params.forceTop,
                 params.forceNormal,
