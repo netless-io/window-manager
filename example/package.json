@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "predev": "pnpm run sync-foundation-worker",
+    "sync-foundation-worker": "white-web-sdk-sync-foundation-worker --out public/worker/foundation-worker.js --manifest public/worker/foundation-worker.manifest.json --required --target es5 && white-web-sdk-sync-foundation-worker --out src/generated/foundation-worker.js --manifest src/generated/foundation-worker.manifest.json --required --target es5",
     "dev": "vite --host"
   },
   "keywords": [],
@@ -22,12 +24,20 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "video.js": "^7.14.3",
-    "white-web-sdk": "link:../../white-sdk/web-sdk/dist/prod"
+    "white-web-sdk": "2.16.55"
   },
   "devDependencies": {
+    "@babel/core": "^7.14.8",
+    "@babel/preset-env": "^7.14.8",
     "@types/react": "^17.0.2",
     "@types/react-dom": "^17.0.2",
+    "esbuild": "^0.12.15",
     "jspdf": "^2.5.1",
     "vite": "^2.7.13"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

@@ -6,3 +6,7 @@ dist
 e2e/cypress/*
 !e2e/cypress/integration/
 .codegraph
+example/public/worker/foundation-worker.js
+example/public/worker/foundation-worker.manifest.json
+example/src/generated/foundation-worker.js
+example/src/generated/foundation-worker.manifest.json

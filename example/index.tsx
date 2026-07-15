@@ -34,12 +34,32 @@ import type { AppResult as PlyrAppResult } from "@netless/app-plyr";
 import fullWorkerString from "@netless/appliance-plugin/dist/fullWorker.js?raw";
 import subWorkerString from "@netless/appliance-plugin/dist/subWorker.js?raw";
 import { ApplianceMultiPlugin, AppliancePluginOptions } from "@netless/appliance-plugin";
-import FoundationLogWorker from "agora-foundation/lib-es/worker/worker-entry.js?worker";
+import foundationWorkerString from "./src/generated/foundation-worker.js?raw";
 
 const apiHosts = import.meta.env.VITE_API_HOSTS?.split(",")
     .map(host => host.trim())
     .filter(Boolean);
-const region = import.meta.env.VITE_REGION || undefined;
+const region = import.meta.env.VITE_REGION || "cn-hz";
+
+let foundationWorkerBlobUrl: string | undefined;
+
+function createFoundationLogWorker(): Worker {
+    const workerUrl = new URL("/worker/foundation-worker.js", window.location.href).toString();
+
+    try {
+        return new Worker(workerUrl);
+    } catch (error) {
+        console.warn("[local-log] fallback to Blob foundation worker", error);
+
+        if (!foundationWorkerBlobUrl) {
+            foundationWorkerBlobUrl = URL.createObjectURL(
+                new Blob([foundationWorkerString], { type: "text/javascript" })
+            );
+        }
+
+        return new Worker(foundationWorkerBlobUrl);
+    }
+}
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
@@ -51,8 +71,7 @@ const sdk = new WhiteWebSdk({
         localLog: {
             enabled: true,
             enabledUpload: true,
-            whiteboardPolicyHost: "https://api-solutions-test.shengwang.cn",
-            createWorker: () => new FoundationLogWorker(),
+            createWorker: createFoundationLogWorker,
         },
     },
 });

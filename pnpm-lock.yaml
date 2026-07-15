@@ -130,8 +130,8 @@ importers:
         specifier: ^0.14.1
         version: 0.14.2(@vitest/ui@0.14.2)(jsdom@19.0.0)(less@4.6.4)
       white-web-sdk:
-        specifier: ^2.16.54
-        version: 2.16.54
+        specifier: ^2.16.55
+        version: 2.16.55
 
 packages:
 
@@ -3374,8 +3374,14 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
-  white-web-sdk@2.16.54:
-    resolution: {integrity: sha512-1C4irCa8tSvoknanwJUdQ9e0zFK9rh3lKG+7B4ETGYlWFvI0vhCgW2fiaT5ZjDOc9TyrveX3Cdu5NrhWxdmRkA==}
+  white-web-sdk@2.16.55:
+    resolution: {integrity: sha512-v4vlXqVxCUXltgwWA1OPsYVzPLeJfojCPw6/6IVO9XJmTUOmnwQJBPVQPkRP5NgDUBQz2kNE+ylpyr0+8dJ0xQ==}
+    hasBin: true
+    peerDependencies:
+      agora-foundation: 3.11.1-rc.1 || 3.11.1
+    peerDependenciesMeta:
+      agora-foundation:
+        optional: true
 
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
@@ -6870,7 +6876,7 @@ snapshots:
     dependencies:
       isexe: 2.0.0
 
-  white-web-sdk@2.16.54:
+  white-web-sdk@2.16.55:
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/canvas-polyfill': 0.0.4

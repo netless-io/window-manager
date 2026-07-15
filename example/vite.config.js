@@ -6,10 +6,10 @@ import { defineConfig } from "vite";
 
 const demoDir = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const whiteWebSdkRoot = path.resolve(demoDir, "../../white-sdk/web-sdk/dist/prod");
+const whiteWebSdkPackagePath = require.resolve("white-web-sdk/package.json");
+const whiteWebSdkRequire = createRequire(whiteWebSdkPackagePath);
 const agoraFoundationRoot = path.dirname(require.resolve("agora-foundation/package.json"));
 const agoraFoundationRequire = createRequire(path.join(agoraFoundationRoot, "package.json"));
-const whiteSdkNodeModules = path.resolve(demoDir, "../../white-sdk/node_modules");
 const localLogStubRoot = path.resolve(demoDir, "src/local-log");
 const resolveDemoPackage = packageName => require.resolve(packageName);
 
@@ -85,14 +85,6 @@ export default defineConfig({
                 replacement: path.join(localLogStubRoot, "winston-transport-browser-stub.js"),
             },
             {
-                find: /^white-web-sdk$/,
-                replacement: path.join(whiteWebSdkRoot, "src/index.commonjs.js"),
-            },
-            {
-                find: /^white-web-sdk\/(.*)$/,
-                replacement: `${whiteWebSdkRoot}/$1`,
-            },
-            {
                 find: /^agora-foundation$/,
                 replacement: path.join(agoraFoundationRoot, "lib-es/index.js"),
             },
@@ -110,7 +102,7 @@ export default defineConfig({
             },
             {
                 find: /^mobx$/,
-                replacement: path.join(whiteSdkNodeModules, "mobx/dist/mobx.esm.js"),
+                replacement: whiteWebSdkRequire.resolve("mobx/dist/mobx.esm.js"),
             },
         ],
         dedupe: ["white-web-sdk", "agora-foundation", "react", "react-dom", "mobx"],
@@ -136,7 +128,6 @@ export default defineConfig({
         commonjsOptions: {
             include: [
                 /node_modules/,
-                /white-sdk\/web-sdk\/dist\/prod\/src\/index\.commonjs\.js/,
             ],
             transformMixedEsModules: true,
             ignoreTryCatch: false,

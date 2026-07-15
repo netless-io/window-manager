@@ -23,7 +23,7 @@
   },
   "peerDependencies": {
     "jspdf": "2.5.1",
-    "white-web-sdk": "^2.16.54"
+    "white-web-sdk": "^2.16.55"
   },
   "peerDependenciesMeta": {
     "jspdf": {
@@ -73,6 +73,6 @@
     "typescript": "^4.5.5",
     "vite": "^2.9.9",
     "vitest": "^0.14.1",
-    "white-web-sdk": "^2.16.54"
+    "white-web-sdk": "^2.16.55"
   }
 }
