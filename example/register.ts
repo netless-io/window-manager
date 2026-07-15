@@ -2,17 +2,16 @@ import { WindowManager } from "../dist";
 import "./app/helloworld-app";
 import "./app/counter";
 import { Board } from "./app/board";
+import Slide, { addHooks } from "@netless/app-slide";
 
 WindowManager.register({
     kind: "Slide",
+    src: Slide,
     appOptions: {
         // turn on to show debug controller
         debug: false,
     },
-    src: (async () => {
-        const app = await import("@netless/app-slide");
-        return app.default ?? app;
-    }) as any,
+    addHooks
 });
 
 WindowManager.register({
