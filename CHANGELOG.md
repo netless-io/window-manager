@@ -1,3 +1,8 @@
+## 1.0.16(2026-07-15)
+- 新增 `WindowManager.mount({ builtinAppOptions })`，支持在恢复已有窗口前配置内置 Presentation。
+- 未传 `builtinAppOptions` 时保持原注册配置，不重复注册 App 或写入 IndexedDB。
+- Presentation 内置默认配置移除 `reScaleOnPageChange`。
+
 ## 1.0.15(2026-07-13)
 - `window-manager` 内部集成 `@netless/app-presentation`
 - `MediaPlayer`、`Presentation`、`DocsViewer` 改成异步加载
