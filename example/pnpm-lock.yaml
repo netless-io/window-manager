@@ -16,13 +16,13 @@ importers:
         version: 0.2.99(jspdf@2.5.2)
       '@netless/appliance-plugin':
         specifier: 1.1.38
-        version: 1.1.38(@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1))
+        version: 1.1.38(@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1))
       '@netless/telebox-insider':
         specifier: 0.3.0-beta.14
         version: 0.3.0-beta.14
       '@netless/video-js-plugin':
         specifier: ^0.3.7
-        version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1))
+        version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1))
       agora-foundation:
         specifier: 3.11.1-rc.1
         version: 3.11.1-rc.1
@@ -45,8 +45,8 @@ importers:
         specifier: ^7.14.3
         version: 7.21.7
       white-web-sdk:
-        specifier: 2.16.55
-        version: 2.16.55(agora-foundation@3.11.1-rc.1)
+        specifier: 2.16.56
+        version: 2.16.56(agora-foundation@3.11.1-rc.1)
     devDependencies:
       '@babel/core':
         specifier: ^7.14.8
@@ -1554,8 +1554,8 @@ packages:
       stylus:
         optional: true
 
-  white-web-sdk@2.16.55:
-    resolution: {integrity: sha512-v4vlXqVxCUXltgwWA1OPsYVzPLeJfojCPw6/6IVO9XJmTUOmnwQJBPVQPkRP5NgDUBQz2kNE+ylpyr0+8dJ0xQ==}
+  white-web-sdk@2.16.56:
+    resolution: {integrity: sha512-hPBO72XkDWO/JXUXb85gU0A8I+pkmA/CyqmRcsxjxmFaN1ZQowIZZacJ5UOsn7Vwxpr4VQHf2rRHm+wJd00YCA==}
     hasBin: true
     peerDependencies:
       agora-foundation: 3.11.1-rc.1 || 3.11.1
@@ -2289,9 +2289,9 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/appliance-plugin@1.1.38(@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1))':
+  '@netless/appliance-plugin@1.1.38(@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1))':
     dependencies:
-      '@netless/window-manager': 1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1))
+      '@netless/window-manager': 1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1))
       clipper-lib: 6.4.2
       dom-to-image: 2.6.0
       eventemitter2: 6.4.9
@@ -2303,7 +2303,7 @@ snapshots:
       react-dom: 16.14.0(react@16.14.0)
       react-draggable: 4.5.0(react-dom@16.14.0(react@16.14.0))(react@16.14.0)
       spritejs: 3.8.3
-      white-web-sdk: 2.16.55(agora-foundation@3.11.1-rc.1)
+      white-web-sdk: 2.16.56(agora-foundation@3.11.1-rc.1)
       xss: 1.0.15
 
   '@netless/canvas-polyfill@0.0.4': {}
@@ -2312,14 +2312,14 @@ snapshots:
 
   '@netless/telebox-insider@0.3.0-beta.14': {}
 
-  '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1))':
+  '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1))':
     dependencies:
       react: 17.0.2
       react-dom: 17.0.2(react@17.0.2)
       video.js: 7.21.7
-      white-web-sdk: 2.16.55(agora-foundation@3.11.1-rc.1)
+      white-web-sdk: 2.16.56(agora-foundation@3.11.1-rc.1)
 
-  '@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1))':
+  '@netless/window-manager@1.0.14(jspdf@2.5.2)(white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1))':
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/telebox-insider': 0.3.0
@@ -2328,7 +2328,7 @@ snapshots:
       p-retry: 4.6.2
       uuid: 7.0.3
       video.js: 7.21.7
-      white-web-sdk: 2.16.55(agora-foundation@3.11.1-rc.1)
+      white-web-sdk: 2.16.56(agora-foundation@3.11.1-rc.1)
     optionalDependencies:
       jspdf: 2.5.2
 
@@ -3188,7 +3188,7 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
-  white-web-sdk@2.16.55(agora-foundation@3.11.1-rc.1):
+  white-web-sdk@2.16.56(agora-foundation@3.11.1-rc.1):
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/canvas-polyfill': 0.0.4

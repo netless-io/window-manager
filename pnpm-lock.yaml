@@ -40,8 +40,8 @@ importers:
         specifier: 0.1.4
         version: 0.1.4
       '@netless/app-presentation':
-        specifier: ^0.1.9
-        version: 0.1.9(jspdf@2.5.2)
+        specifier: ^0.1.10
+        version: 0.1.10(jspdf@2.5.2)
       '@rollup/plugin-commonjs':
         specifier: ^20.0.0
         version: 20.0.0(rollup@4.60.1)
@@ -130,8 +130,8 @@ importers:
         specifier: ^0.14.1
         version: 0.14.2(@vitest/ui@0.14.2)(jsdom@19.0.0)(less@4.6.4)
       white-web-sdk:
-        specifier: ^2.16.55
-        version: 2.16.55
+        specifier: ^2.16.56
+        version: 2.16.56
 
 packages:
 
@@ -374,8 +374,8 @@ packages:
   '@netless/app-media-player@0.1.4':
     resolution: {integrity: sha512-CsiLtd3LWGsQrHRZYB3Zl6tj5Q0LDJIevHY60LdYcUgUBR57FfC4fhaD0FP/bn4D82ki7HgKgeG2oflUlPfl3g==}
 
-  '@netless/app-presentation@0.1.9':
-    resolution: {integrity: sha512-V0PxG4kP1CkflZ8/LRqfv2DM4aGF8EAY+ZYCR3i3rf5E9prxRhQUTpmg5twu+tWHsKRnXHbzcBi8AeiR5TOCPg==}
+  '@netless/app-presentation@0.1.10':
+    resolution: {integrity: sha512-Ttqxw7Qe024PXDF0PnTAaGtnJMAZGHGG3rKBEBwMDjSv0raJV0qI15//MQnScabReO2JKwWf73gSm7ajaBTWTw==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
@@ -3374,8 +3374,8 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
-  white-web-sdk@2.16.55:
-    resolution: {integrity: sha512-v4vlXqVxCUXltgwWA1OPsYVzPLeJfojCPw6/6IVO9XJmTUOmnwQJBPVQPkRP5NgDUBQz2kNE+ylpyr0+8dJ0xQ==}
+  white-web-sdk@2.16.56:
+    resolution: {integrity: sha512-hPBO72XkDWO/JXUXb85gU0A8I+pkmA/CyqmRcsxjxmFaN1ZQowIZZacJ5UOsn7Vwxpr4VQHf2rRHm+wJd00YCA==}
     hasBin: true
     peerDependencies:
       agora-foundation: 3.11.1-rc.1 || 3.11.1
@@ -3622,9 +3622,7 @@ snapshots:
 
   '@netless/app-media-player@0.1.4': {}
 
-  '@netless/app-presentation@0.1.9(jspdf@2.5.2)':
-    dependencies:
-      lodash: 4.18.1
+  '@netless/app-presentation@0.1.10(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
@@ -6876,7 +6874,7 @@ snapshots:
     dependencies:
       isexe: 2.0.0
 
-  white-web-sdk@2.16.55:
+  white-web-sdk@2.16.56:
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/canvas-polyfill': 0.0.4

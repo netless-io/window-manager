@@ -1,3 +1,8 @@
+## 1.0.17(2026-07-15)
+- 升级 `@netless/app-presentation` 到 `^0.1.10`，修复内置 Presentation 在 Whiteboard-bridge CJS 打包链路下的加载兼容问题。
+- 升级 `white-web-sdk` peer/dev 依赖到 `^2.16.56`。
+- 保持 DocsViewer、MediaPlayer 以及 fastboard normal/full 现有集成行为不变。
+
 ## 1.0.16(2026-07-15)
 - 新增 `WindowManager.mount({ builtinAppOptions })`，支持在恢复已有窗口前配置内置 Presentation。
 - 未传 `builtinAppOptions` 时保持原注册配置，不重复注册 App 或写入 IndexedDB。

@@ -1,6 +1,6 @@
 {
   "name": "@netless/window-manager",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Multi-window mode for Netless Whiteboard",
   "author": "l1shen <lishen1635@gmail.com> (https://github.com/l1shen)",
   "license": "MIT",
@@ -23,7 +23,7 @@
   },
   "peerDependencies": {
     "jspdf": "2.5.1",
-    "white-web-sdk": "^2.16.55"
+    "white-web-sdk": "^2.16.56"
   },
   "peerDependenciesMeta": {
     "jspdf": {
@@ -43,7 +43,7 @@
     "@hyrious/dts": "^0.2.2",
     "@netless/app-docs-viewer": "^0.2.19",
     "@netless/app-media-player": "0.1.4",
-    "@netless/app-presentation": "^0.1.9",
+    "@netless/app-presentation": "^0.1.10",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
     "@rollup/plugin-url": "^6.1.0",
@@ -73,6 +73,6 @@
     "typescript": "^4.5.5",
     "vite": "^2.9.9",
     "vitest": "^0.14.1",
-    "white-web-sdk": "^2.16.55"
+    "white-web-sdk": "^2.16.56"
   }
 }
