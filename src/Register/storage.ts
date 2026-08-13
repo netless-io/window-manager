@@ -8,8 +8,8 @@ export type Item = {
     sourceCode: string;
 };
 
-export const initDb = async () => {
-    db = await createDb();
+export const initDb = async (onBlocked?: () => void) => {
+    db = await createDb(onBlocked);
 };
 
 export const setItem = (key: string, val: any) => {
@@ -27,11 +27,14 @@ export const removeItem = (key: string) => {
     return deleteRecord(db, key);
 };
 
-function createDb(): Promise<IDBDatabase> {
+function createDb(onBlocked?: () => void): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DatabaseName, 2);
         request.onerror = e => {
             reject(e);
+        };
+        request.onblocked = () => {
+            onBlocked?.();
         };
 
         request.onupgradeneeded = (event: any) => {

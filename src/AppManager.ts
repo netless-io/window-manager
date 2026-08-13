@@ -745,8 +745,19 @@ export class AppManager {
     public setMainViewFocusPath(scenePath?: string) {
         const focusScenePath = scenePath || this.store.getMainViewScenePath();
         if (focusScenePath) {
-            setViewFocusScenePath(this.mainView, focusScenePath);
-            return this.mainView?.focusScenePath === focusScenePath;
+            try {
+                setViewFocusScenePath(this.mainView, focusScenePath);
+                return this.mainView?.focusScenePath === focusScenePath;
+            } catch (error) {
+                const cause = error instanceof Error ? error : new Error(String(error));
+                this.Logger?.error(
+                    `[WindowManager]: set main view focus scene path failed, ` +
+                        `focusScenePath: ${focusScenePath}, ` +
+                        `didRelease: ${Boolean((this.mainView as any).didRelease)}, ` +
+                        `error: ${cause.message}, stack: ${cause.stack || ""}`
+                );
+                return false;
+            }
         }
     }
 

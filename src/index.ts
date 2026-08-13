@@ -357,8 +357,14 @@ export class WindowManager
             }
         }
         if (WindowManager.isCreated) {
+            manager?._roomLogger?.error(
+                "[WindowManager] mount duplicate check failed: isCreated=true"
+            );
             throw new Error("[WindowManager]: Already created cannot be created again");
         }
+        manager?._roomLogger?.info(
+            `[WindowManager] mount duplicate check passed: isCreated=${WindowManager.isCreated}`
+        );
 
         this.debug = Boolean(debug);
         if (manager?._roomLogger) {
@@ -440,7 +446,11 @@ export class WindowManager
             );
         }
         try {
-            await initDb();
+            manager._roomLogger?.info("[WindowManager] indexedDB open start");
+            await initDb(() => {
+                manager?._roomLogger?.warn("[WindowManager] indexedDB open blocked");
+            });
+            manager._roomLogger?.info("[WindowManager] indexedDB open success");
         } catch (error) {
             manager._roomLogger?.warn(`[WindowManager] indexedDB open failed: ${error.message}`);
             console.warn("[WindowManager]: indexedDB open failed");

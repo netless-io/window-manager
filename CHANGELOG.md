@@ -1,3 +1,7 @@
+## 1.0.18 (2026-08-13)
+- 增强初始化日志：记录重复 mount 校验结果以及 IndexedDB 打开开始、成功、失败和阻塞状态。
+- 修复设置主视图聚焦场景失败时异常向外抛出的问题；失败时记录上下文并返回 `false`。
+
 ## 1.0.17(2026-07-15)
 - 升级 `@netless/app-presentation` 到 `^0.1.10`，修复内置 Presentation 在 Whiteboard-bridge CJS 打包链路下的加载兼容问题。
 - 升级 `white-web-sdk` peer/dev 依赖到 `^2.16.56`。
