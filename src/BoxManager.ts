@@ -66,6 +66,7 @@ export type BoxManagerContext = {
     callbacks: CallbacksType;
     canOperate: () => boolean;
     notifyContainerRectUpdate: (rect: TeleBoxRect) => void;
+    scheduleAppBoxSizeSync: (appId?: string) => void;
     cleanFocus: () => void;
     setAppFocus: (appId: string) => void;
 };
@@ -96,6 +97,8 @@ export const createBoxManager = (
             canOperate: () => manager.canOperate,
             notifyContainerRectUpdate: (rect: TeleBoxRect) =>
                 manager.appManager?.notifyContainerRectUpdate(rect),
+            scheduleAppBoxSizeSync: (appId?: string) =>
+                manager.appManager?.scheduleAppBoxSizeSync(appId),
             cleanFocus: () => manager.appManager?.store.cleanFocus(),
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             callbacks,
@@ -180,6 +183,9 @@ export class BoxManager {
                 });
             }, 200)
         );
+        this.teleBoxManager.events.on("visual_resize", (box: ReadonlyTeleBox): void => {
+            this.context.scheduleAppBoxSizeSync(box.id);
+        });
         this.teleBoxManager.events.on("focused", box => {
             if (box) {
                 if (this.canOperate) {
@@ -202,6 +208,7 @@ export class BoxManager {
         this.teleBoxManager.events.on(
             "box_status",
             (box: { id: string; boxStatus?: TeleBoxState }) => {
+                this.context.scheduleAppBoxSizeSync(box.id);
                 if (this.canOperate) {
                     this.context.setBoxStatus(box.id, box.boxStatus);
                 }
@@ -299,6 +306,7 @@ export class BoxManager {
     public setBoxesStatus(status?: Record<string, TeleBoxState>): void {
         const map = new Map(Object.entries(status ?? {}));
         this.teleBoxManager.setBoxesStatus(map, true);
+        this.context.scheduleAppBoxSizeSync();
         this.context.callbacks.emit("onBoxesStatusChange", map);
         this.context.emitter.emit("boxesStatusChange", map);
     }
@@ -409,6 +417,7 @@ export class BoxManager {
                 if (state.minimized != null) {
                     this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
                 }
+                this.context.scheduleAppBoxSizeSync(box.id);
             }, 50);
             if (!state.boxStatus) {
                 this.context.callbacks.emit("boxStateChange", this.teleBoxManager.state);
@@ -422,6 +431,7 @@ export class BoxManager {
             const containerRect = { x: 0, y: 0, width: rect.width, height: rect.height };
             this.teleBoxManager.setContainerRect(containerRect);
             this.context.notifyContainerRectUpdate(this.teleBoxManager.containerRect);
+            this.context.scheduleAppBoxSizeSync();
         }
     }
 
@@ -435,6 +445,7 @@ export class BoxManager {
 
     public resizeBox({ appId, width, height, skipUpdate }: ResizeBoxParams): void {
         this.teleBoxManager.update(appId, { width, height }, skipUpdate);
+        this.context.scheduleAppBoxSizeSync(appId);
     }
 
     public setBoxMinSize(params: SetBoxMinSizeParams): void {
@@ -446,6 +457,7 @@ export class BoxManager {
             },
             true
         );
+        this.context.scheduleAppBoxSizeSync(params.appId);
     }
 
     public setBoxTitle(params: SetBoxTitleParams): void {
@@ -463,11 +475,13 @@ export class BoxManager {
     public setMaximized(maximized: boolean, skipUpdate = true): void {
         if (maximized !== this.maximized) {
             this.teleBoxManager.setMaximized(maximized, skipUpdate);
+            this.context.scheduleAppBoxSizeSync();
         }
     }
 
     public setMinimized(minimized: boolean, skipUpdate = true) {
         this.teleBoxManager.setMinimized(minimized, skipUpdate);
+        this.context.scheduleAppBoxSizeSync();
     }
 
     public focusTopBox(): void {
@@ -482,6 +496,7 @@ export class BoxManager {
 
     public updateBox(id: string, payload: TeleBoxConfig, skipUpdate = true): void {
         this.teleBoxManager.update(id, payload, skipUpdate);
+        this.context.scheduleAppBoxSizeSync(id);
     }
 
     public setReadonly(readonly: boolean) {

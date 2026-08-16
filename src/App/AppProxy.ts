@@ -34,6 +34,7 @@ import { calculateNextIndex } from "../Page";
 import { boxEmitter } from "../BoxEmitter";
 import { callbacks } from "../callback";
 import { getExtendClass } from "../Utils/extendClass";
+import { AppBoxSizeSynchronizer } from "./AppBoxSizeSynchronizer";
 
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
@@ -56,6 +57,7 @@ export class AppProxy implements PageRemoveService {
     private stateKey: string;
     private _pageState: AppPageStateImpl;
     private _prevFullPath: string | undefined;
+    private boxSizeSynchronizer: AppBoxSizeSynchronizer;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -71,6 +73,21 @@ export class AppProxy implements PageRemoveService {
         this.stateKey = `${this.id}_state`;
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
+        this.boxSizeSynchronizer = new AppBoxSizeSynchronizer(
+            this.id,
+            () => this.view,
+            () => this.view?.divElement || this.box?.$content,
+            payload => {
+                this.appEmitter.emit("boxSizeChange", payload).catch(error => {
+                    this.Logger?.error(
+                        `[WindowManager]: failed to notify app box size change: ${error}`
+                    );
+                });
+            },
+            error => {
+                this.Logger?.error(`[WindowManager]: failed to refresh app view size: ${error}`);
+            }
+        );
         this.appListener = this.makeAppEventListener(this.id);
         this.isAddApp = isAddApp;
 
@@ -103,6 +120,10 @@ export class AppProxy implements PageRemoveService {
     public get view(): View | undefined {
         return this.manager.viewManager.getView(this.id);
     }
+
+    public scheduleBoxSizeSync = (): void => {
+        if (this.status !== "destroyed") this.boxSizeSynchronizer.schedule();
+    };
 
     public get viewIndex(): number | undefined {
         return this.view?.focusSceneIndex;
@@ -227,6 +248,7 @@ export class AppProxy implements PageRemoveService {
                         );
                     const result = await app.setup(context);
                     this.appResult = result;
+                    this.scheduleBoxSizeSync();
                     appRegister.notifyApp(this.kind, "created", { appId, result });
                     this.afterSetupApp(boxInitState);
                     this.fixMobileSize();
@@ -542,6 +564,7 @@ export class AppProxy implements PageRemoveService {
     ) {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
+        this.boxSizeSynchronizer.destroy();
         try {
             await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
             await this.appEmitter.emit("destroy", { error });

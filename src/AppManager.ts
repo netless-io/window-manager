@@ -441,6 +441,15 @@ export class AppManager {
             });
             callbacks.emit("onBoxResize", payload);
         }
+        this.scheduleAppBoxSizeSync(payload.appId);
+    };
+
+    public scheduleAppBoxSizeSync = (appId?: string): void => {
+        if (appId) {
+            this.appProxies.get(appId)?.scheduleBoxSizeSync();
+        } else {
+            this.appProxies.forEach(appProxy => appProxy.scheduleBoxSizeSync());
+        }
     };
 
     private onBoxFocus = (payload: BoxFocusPayload) => {

@@ -59,6 +59,8 @@ export type AppEmitterEvent<T = any> = {
     seek: number;
     pageStateChange: PageState;
     boxStatusChange: { appId: string; status: TeleBoxState };
+    /** Actual app content size in CSS pixels after the box layout is applied. */
+    boxSizeChange: { appId: string; width: number; height: number };
 };
 
 export type RegisterEventData = {

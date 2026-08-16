@@ -113,9 +113,11 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
         const view = this.getView();
         if (view) {
             view.divElement = dom as HTMLDivElement;
+            this.appProxy.scheduleBoxSizeSync();
             setTimeout(() => {
                 // 渲染需要时间，延迟 refresh
                 this.getRoom()?.refreshViewSize();
+                this.appProxy.scheduleBoxSizeSync();
                 callbacks.emit("onAppViewMounted", { appId: this.appId, view });
             }, 1000);
         }
