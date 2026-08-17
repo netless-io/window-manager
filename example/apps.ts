@@ -94,6 +94,16 @@ export const createCounter = async (manager: WindowManager) => {
     });
 };
 
+export const createBoxSizeListener = (manager: WindowManager) => {
+    return manager.addApp({
+        kind: "BoxSizeListener",
+        options: {
+            scenePath: "/box-size-listener",
+            title: "Box size listener",
+        },
+    });
+};
+
 export const createStatic = (manager: WindowManager) => {
     return manager.addApp({
         kind: BuiltinApps.DocsViewer,

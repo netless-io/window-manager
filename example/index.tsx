@@ -9,6 +9,7 @@ import {
     createVideo,
     createSlide,
     createCounter,
+    createBoxSizeListener,
     createBoard,
     createIframe,
     createPlyr,
@@ -17,6 +18,7 @@ import {
 import "../dist/style.css";
 import "@netless/appliance-plugin/dist/style.css";
 import "./register";
+import "./app/box-size-listener";
 import "./index.css";
 import { DefaultHotKeys } from "white-web-sdk";
 import {
@@ -490,6 +492,9 @@ const App = () => {
                 </button>
                 <button className="side-button" onClick={() => createCounter(manager)}>
                     Counter
+                </button>
+                <button className="side-button" onClick={() => createBoxSizeListener(manager)}>
+                    Box size listener
                 </button>
                 <button className="side-button" onClick={() => createBoard(manager)}>
                     Board

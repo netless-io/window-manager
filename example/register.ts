@@ -6,7 +6,7 @@ import Slide, { addHooks } from "@netless/app-slide";
 
 WindowManager.register({
     kind: "Slide",
-    src: Slide,
+    src: () => import("@netless/app-slide"),
     appOptions: {
         // turn on to show debug controller
         debug: false,

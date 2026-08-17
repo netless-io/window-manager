@@ -65,6 +65,9 @@ const agoraFoundationDependencyAliases = agoraFoundationOptimizeDeps.map(id => (
 }));
 
 export default defineConfig({
+    esbuild: {
+        target: "chrome71",
+    },
     resolve: {
         alias: [
             {
@@ -108,6 +111,9 @@ export default defineConfig({
         dedupe: ["white-web-sdk", "agora-foundation", "react", "react-dom", "mobx"],
     },
     optimizeDeps: {
+        esbuildOptions: {
+            target: "chrome71",
+        },
         include: [
             "white-web-sdk",
             "agora-foundation/lib/logger",
@@ -125,6 +131,7 @@ export default defineConfig({
         },
     },
     build: {
+        target: "chrome71",
         commonjsOptions: {
             include: [
                 /node_modules/,
