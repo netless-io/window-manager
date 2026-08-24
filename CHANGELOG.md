@@ -1,3 +1,8 @@
+## 1.0.20 (2026-08-24)
+- 增加 App setup 超时与失败诊断日志，并在失败日志中记录 App 当前生命周期状态。
+- 增加容器稳定后的最终状态日志，记录根容器、Playground、Sizer、Wrapper、Main View 与 TeleBox 尺寸及可见性信息。
+- 容器状态采样使用 1 秒尾部防抖，只在布局稳定后读取一次诊断 DOM 状态并上报，避免增加 ResizeObserver 热路径负担和 SLS 日志压力。
+
 ## 1.0.19 (2026-08-17)
 - 同步窗口最终布局尺寸到对应白板 View，并向 App 派发 `boxSizeChange` 事件。
 - 升级 `white-web-sdk` peer/dev 依赖到 `^2.16.57`，优先使用公开的 `View.refreshSize` API。
