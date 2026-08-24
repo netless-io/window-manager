@@ -39,6 +39,7 @@ export default defineConfig(({ mode }) => {
         plugins: [
             svelte({
                 emitCss: false,
+                hot: !process.env.VITEST,
                 experimental: {
                     useVitePreprocess: true,
                 },
