@@ -36,6 +36,8 @@ import { callbacks } from "../callback";
 import { getExtendClass } from "../Utils/extendClass";
 import { AppBoxSizeSynchronizer } from "./AppBoxSizeSynchronizer";
 
+const APP_SETUP_WATCHDOG_TIMEOUT = 10_000;
+
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
 export class AppProxy implements PageRemoveService {
@@ -58,6 +60,7 @@ export class AppProxy implements PageRemoveService {
     private _pageState: AppPageStateImpl;
     private _prevFullPath: string | undefined;
     private boxSizeSynchronizer: AppBoxSizeSynchronizer;
+    private setupWatchdogTimer?: ReturnType<typeof setTimeout>;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -246,7 +249,9 @@ export class AppProxy implements PageRemoveService {
                         this.Logger.info(
                             `[WindowManager]: setup app ${this.kind}, appId: ${appId}`
                         );
-                    const result = await app.setup(context);
+                    const setupResult = await this.runAppSetup(appId, app, context);
+                    if (!setupResult.succeeded) return;
+                    const { result } = setupResult;
                     this.appResult = result;
                     this.scheduleBoxSizeSync();
                     appRegister.notifyApp(this.kind, "created", { appId, result });
@@ -283,6 +288,39 @@ export class AppProxy implements PageRemoveService {
         } catch (error: any) {
             this.Logger && this.Logger.error(`[WindowManager]: app setup error: ${error.message}`);
             throw new Error(`[WindowManager]: app setup error: ${error.message}`);
+        }
+    }
+
+    private async runAppSetup(
+        appId: string,
+        app: NetlessApp,
+        context: AppContext<any, any>
+    ): Promise<{ succeeded: true; result: any } | { succeeded: false }> {
+        this.clearSetupWatchdog();
+        this.setupWatchdogTimer = setTimeout(() => {
+            this.setupWatchdogTimer = undefined;
+            if (this.status === "destroyed") return;
+            this.Logger?.warn(
+                `[WindowManager]: hydrate timeout, stage: app setup, kind: ${this.kind}, appId: ${appId}, timeout: ${APP_SETUP_WATCHDOG_TIMEOUT}ms`
+            );
+        }, APP_SETUP_WATCHDOG_TIMEOUT);
+        try {
+            return { succeeded: true, result: await app.setup(context) };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.Logger?.error(
+                `[WindowManager]: app setup error, kind: ${this.kind}, appId: ${appId}, status: ${this.status}, error: ${message}`
+            );
+            return { succeeded: false };
+        } finally {
+            this.clearSetupWatchdog();
+        }
+    }
+
+    private clearSetupWatchdog(): void {
+        if (this.setupWatchdogTimer != null) {
+            clearTimeout(this.setupWatchdogTimer);
+            this.setupWatchdogTimer = undefined;
         }
     }
 
@@ -564,6 +602,7 @@ export class AppProxy implements PageRemoveService {
     ) {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
+        this.clearSetupWatchdog();
         this.boxSizeSynchronizer.destroy();
         try {
             await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });

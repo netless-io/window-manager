@@ -1,4 +1,5 @@
 import type { View } from "white-web-sdk";
+import { BOX_SIZE_SETTLE_DELAY } from "../constants";
 
 export type AppBoxSize = { width: number; height: number };
 export type AppBoxSizeChange = AppBoxSize & { appId: string };
@@ -15,7 +16,6 @@ type ViewWithRefreshSize = View & {
 };
 
 const BOX_SIZE_EPSILON = 0.5;
-const BOX_SIZE_SETTLE_DELAY = 650;
 const BOX_SIZE_CONFIRM_DELAY = 100;
 
 const sizesEqual = (left: AppBoxSize | undefined, right: AppBoxSize): boolean =>

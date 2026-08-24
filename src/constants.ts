@@ -57,3 +57,7 @@ export const ROOT_DIR = "/";
 export const INIT_DIR = "/init";
 
 export const SETUP_APP_DELAY = 50;
+
+export const BOX_SIZE_SETTLE_DELAY = 650;
+
+export const CONTAINER_STATE_LOG_DEBOUNCE = 1000;

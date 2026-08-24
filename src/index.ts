@@ -528,7 +528,18 @@ export class WindowManager
             playground,
             sizer,
             wrapper,
-            internalEmitter
+            internalEmitter,
+            manager.Logger,
+            () => {
+                const mainView = manager.appManager?.mainViewProxy.view;
+                return {
+                    mainViewElement: mainView?.divElement,
+                    mainViewSize: mainView?.size,
+                    teleBoxContainerRect: manager.boxManager?.teleBoxManager.containerRect,
+                    mainViewDidRelease: Boolean((mainView as any)?.didRelease),
+                    containerSizeRatio: manager.containerSizeRatio,
+                };
+            }
         );
         WindowManager.wrapper = wrapper;
         WindowManager.sizer = sizer;
@@ -577,6 +588,7 @@ export class WindowManager
         this.appManager?.resetMinimized();
         this.appManager?.displayerWritableListener(!this.room.isWritable);
         WindowManager.container = container;
+        this.containerResizeObserver?.logCurrentState("bindContainer");
         this.extendPluginManager?.refreshContainer(container);
     }
 
