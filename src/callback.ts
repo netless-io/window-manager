@@ -17,6 +17,7 @@ import type {
     BoxStateChangePayload,
 } from "./BoxEmitter";
 import type { AppPayload } from "./typings";
+import type { UnifiedPageStateChange } from "./UnifiedPageControl";
 
 export type PublicEvent = {
     mainViewModeChange: ViewVisionMode;
@@ -34,6 +35,7 @@ export type PublicEvent = {
     ready: undefined; // 所有 APP 创建完毕时触发
     sceneStateChange: SceneState;
     pageStateChange: PageState;
+    unifiedPageStateChange: UnifiedPageStateChange;
     fullscreenChange: boolean;
     appsChange: string[]; // APP 列表变化时触发
     onBoxMove: BoxMovePayload;

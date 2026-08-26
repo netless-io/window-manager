@@ -59,6 +59,27 @@ import type {
 } from "@netless/telebox-insider";
 import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
+export type {
+    PageEvent,
+    PageEventTarget,
+    PageEventOptions,
+    PageStateOptions,
+    UnifiedPageState,
+    UnifiedPageStateFailure,
+    UnifiedPageStateObservation,
+    UnifiedPageStateChange,
+} from "./UnifiedPageControl";
+import { executeAppPageCommand, UnifiedPageControlTracker } from "./UnifiedPageControl";
+import type {
+    PageEvent,
+    PageEventOptions,
+    PageEventTarget,
+    PageStateOptions,
+    PresentationPageController,
+    SlidePageController,
+    UnifiedPageState,
+    UnifiedPageStateChange,
+} from "./UnifiedPageControl";
 import type Emittery from "emittery";
 import type { PageController, AddPageParams, PageState } from "./Page";
 import { boxEmitter } from "./BoxEmitter";
@@ -108,25 +129,8 @@ export type DocsEventOptions = {
     scale?: number;
 };
 
-type SlideDocsAppResult = {
-    prevPage: () => boolean;
-    nextPage: () => boolean;
-    prevStep: () => boolean;
-    nextStep: () => boolean;
-    jumpToPage: (page: number) => boolean;
-    scaleView: (scale: number) => void;
-};
-
-type PresentationDocsAppResult = {
-    prevPage: () => boolean;
-    nextPage: () => boolean;
-    jumpPage: (index: number) => boolean;
-    moveCamera: (camera: { centerX: number; centerY: number; scale: number }) => void;
-    getOriginScale: () => number;
-};
-
-const SlideAppKind = "Slide";
-const PresentationAppKind = BuiltinApps.Presentation;
+const SlideAppKind = "Slide" as const;
+const PresentationAppKind = BuiltinApps.Presentation as "Presentation";
 const MinDocsPageScale = 1;
 const MaxDocsPageScale = 4;
 
@@ -274,15 +278,16 @@ export class WindowManager
 
     public readonly?: boolean;
     public emitter: Emittery<PublicEvent> = callbacks;
+    private _unifiedPageControl = new UnifiedPageControlTracker();
     public appManager?: AppManager;
     public cursorManager?: CursorManager;
     public viewMode = ViewMode.Broadcaster;
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
     private _fullscreen?: boolean;
+    private _destroyed = false;
     private _cursorUIDs: string[] = [];
     private _cursorUIDsStyleDOM?: HTMLStyleElement;
-
     public _appliancePlugin?: any;
 
     public builtinAppOptions?: BuiltinAppOptions;
@@ -417,6 +422,7 @@ export class WindowManager
             params.cursorOptions,
             params.applianceIcons
         );
+        manager.ensureUnifiedPageStateListeners();
 
         manager.extendPluginManager = new ExtendPluginManager({
             internalEmitter: internalEmitter,
@@ -533,7 +539,7 @@ export class WindowManager
             () => {
                 const mainView = manager.appManager?.mainViewProxy.view;
                 return {
-                    mainViewElement: mainView?.divElement,
+                    mainViewElement: mainView?.divElement || undefined,
                     mainViewSize: mainView?.size,
                     teleBoxContainerRect: manager.boxManager?.teleBoxManager.containerRect,
                     mainViewDidRelease: Boolean((mainView as any)?.didRelease),
@@ -1192,88 +1198,633 @@ export class WindowManager
         }
 
         if (isPresentationApp) {
-            const controller = app.appResult as PresentationDocsAppResult | undefined;
+            const controller = app.appResult as PresentationPageController | undefined;
             if (!controller) {
                 console.warn("not found app with id " + appId);
                 return false;
             }
 
-            switch (event) {
-                case "prevPage":
-                case "prevStep":
-                    return controller.prevPage();
-                case "nextPage":
-                case "nextStep":
-                    return controller.nextPage();
-                case "jumpToPage":
-                    page = options.page;
-                    if (typeof page !== "number") {
-                        console.warn("failed to jump" + (page ? " to page " + page : ""));
-                        return false;
-                    }
-                    return controller.jumpPage(page - 1);
-                case "scalePage":
-                    scale = options.scale;
-                    if (!isValidDocsPageScale(scale)) {
-                        console.warn("failed to scale, scale should be a number from 1 to 4");
-                        return false;
-                    }
-                    try {
-                        controller.moveCamera({
-                            centerX: 0,
-                            centerY: 0,
-                            scale: controller.getOriginScale() * scale,
-                        });
-                        return true;
-                    } catch (error) {
-                        console.warn(error);
-                        return false;
-                    }
-                default:
-                    console.warn("unknown event " + event);
+            if (event === "scalePage") {
+                scale = options.scale;
+                if (!isValidDocsPageScale(scale)) {
+                    console.warn("failed to scale, scale should be a number from 1 to 4");
                     return false;
+                }
+                try {
+                    controller.moveCamera({
+                        centerX: 0,
+                        centerY: 0,
+                        scale: controller.getOriginScale() * scale,
+                    });
+                    return true;
+                } catch (error) {
+                    console.warn(error);
+                    return false;
+                }
             }
+            const pageEvent: PageEvent =
+                event === "prevStep" ? "prevPage" : event === "nextStep" ? "nextPage" : event;
+            if (pageEvent === "jumpToPage" && typeof options.page !== "number") {
+                console.warn("failed to jump" + (options.page ? " to page " + options.page : ""));
+                return false;
+            }
+            return (
+                executeAppPageCommand(PresentationAppKind, controller, pageEvent, options.page) ===
+                true
+            );
         }
 
         if (isSlideApp) {
-            const controller = app.appResult as SlideDocsAppResult | undefined;
+            const controller = app.appResult as SlidePageController | undefined;
             if (!controller) {
                 console.warn("not found app with id " + appId);
                 return false;
             }
 
-            switch (event) {
-                case "prevPage":
-                    return controller.prevPage();
-                case "nextPage":
-                    return controller.nextPage();
-                case "prevStep":
-                    return controller.prevStep();
-                case "nextStep":
-                    return controller.nextStep();
-                case "jumpToPage":
-                    page = options.page;
-                    if (typeof page !== "number") {
-                        console.warn("failed to jump" + (page ? " to page " + page : ""));
-                        return false;
-                    }
-                    return controller.jumpToPage(page);
-                case "scalePage":
-                    scale = options.scale;
-                    if (!isValidDocsPageScale(scale)) {
-                        console.warn("failed to scale, scale should be a number from 1 to 4");
-                        return false;
-                    }
-                    controller.scaleView(scale);
-                    return true;
-                default:
-                    console.warn("unknown event " + event);
+            if (event === "scalePage") {
+                scale = options.scale;
+                if (!isValidDocsPageScale(scale)) {
+                    console.warn("failed to scale, scale should be a number from 1 to 4");
                     return false;
+                }
+                controller.scaleView(scale);
+                return true;
             }
+            if (event === "jumpToPage" && typeof options.page !== "number") {
+                console.warn("failed to jump" + (options.page ? " to page " + options.page : ""));
+                return false;
+            }
+            return executeAppPageCommand(SlideAppKind, controller, event, options.page) === true;
         }
 
         console.warn("not supported app kind " + app.kind);
         return false;
+    }
+
+    /**
+     * Dispatches the new unified page command. The returned Promise only means
+     * that the command was accepted. unifiedPageStateChange reports observed page
+     * sources; Slide consumers must require status === "success" before treating them as aligned.
+     */
+    public dispatchPageEvent(event: PageEvent, options: PageEventOptions = {}): Promise<boolean> {
+        if (this._destroyed) {
+            return Promise.resolve(false);
+        }
+        this.ensureUnifiedPageStateListeners();
+        if (!options || typeof options !== "object" || Array.isArray(options))
+            return Promise.resolve(false);
+        if (
+            event !== "prevPage" &&
+            event !== "nextPage" &&
+            event !== "prevStep" &&
+            event !== "nextStep" &&
+            event !== "jumpToPage"
+        ) {
+            return Promise.resolve(false);
+        }
+        const target = this.resolveUnifiedPageTarget(options);
+        if (!target) return Promise.resolve(false);
+        if (target === "mainView") {
+            if (
+                !this.appManager ||
+                !this._pageState ||
+                !this.pageState.length ||
+                !this.canOperate
+            ) {
+                return Promise.resolve(false);
+            }
+            const currentPage = this.pageState.index + 1;
+            const pageCount = this.pageState.length;
+            let expectedPage = currentPage;
+            if (event === "prevStep" || event === "nextStep") return Promise.resolve(false);
+            if (event === "prevPage") expectedPage -= 1;
+            if (event === "nextPage") expectedPage += 1;
+            if (event === "jumpToPage") {
+                if (!this.isUnifiedPage(options.page, pageCount)) return Promise.resolve(false);
+                expectedPage = options.page;
+            }
+            if (expectedPage < 1 || expectedPage > pageCount) return Promise.resolve(false);
+            if (expectedPage === currentPage) return Promise.resolve(false);
+            const currentScenePath = this.getUnifiedMainViewScenePath(currentPage);
+            const expectedScenePath = this.getUnifiedMainViewScenePath(expectedPage);
+            if (
+                !currentScenePath ||
+                !expectedScenePath ||
+                !this.isUnifiedMainViewSceneConfirmed(currentPage, currentScenePath)
+            ) {
+                return Promise.resolve(false);
+            }
+            let command: Promise<boolean>;
+            if (event === "prevPage") command = this.prevPage();
+            else if (event === "nextPage") command = this.nextPage();
+            else command = this.jumpPage(expectedPage - 1);
+            void command
+                .then(success => {
+                    if (!success) {
+                        this.emitUnifiedPageCommandFailure(
+                            "mainView",
+                            event,
+                            expectedPage,
+                            pageCount
+                        );
+                    }
+                })
+                .catch(error => {
+                    this.emitUnifiedPageCommandFailure(
+                        "mainView",
+                        event,
+                        expectedPage,
+                        pageCount,
+                        undefined,
+                        String(error)
+                    );
+                });
+            return Promise.resolve(true);
+        }
+
+        const appId = target;
+        if (!appId) return Promise.resolve(false);
+        const app = this.queryOne(appId);
+        const appKind = this.getUnifiedAppKind(app?.kind);
+        if (!app || !appKind || !WindowManager.registered.has(appKind) || !app.appResult) {
+            return Promise.resolve(false);
+        }
+        const state = this.readUnifiedAppPageState(appId, appKind);
+        if (!state || !app.box || !this.canOperate) {
+            return Promise.resolve(false);
+        }
+        this.ensureUnifiedAppObserver(appId, appKind);
+        if (!this.canInitializeUnifiedAppState(appId, appKind, state)) {
+            return Promise.resolve(false);
+        }
+        const isStepEvent = this.isUnifiedStepEvent(event);
+        if (isStepEvent) {
+            if (appKind !== SlideAppKind) return Promise.resolve(false);
+        }
+        if (appKind === SlideAppKind && !this.canDispatchUnifiedSlideCommand(appId, event)) {
+            return Promise.resolve(false);
+        }
+        let expectedPage = state.page;
+        if (event === "prevPage") expectedPage -= 1;
+        if (event === "nextPage") expectedPage += 1;
+        if (event === "jumpToPage") {
+            if (!this.isUnifiedPage(options.page, state.pageCount)) return Promise.resolve(false);
+            expectedPage = options.page;
+        }
+        if (event === "prevPage" || event === "nextPage" || event === "jumpToPage") {
+            if (expectedPage < 1 || expectedPage > state.pageCount) return Promise.resolve(false);
+            if (expectedPage === state.page) return Promise.resolve(false);
+        }
+        if (appKind === SlideAppKind) {
+            this.ensureUnifiedSlideRenderListener(appId, app);
+        }
+        let result: boolean | Promise<boolean>;
+        try {
+            result = executeAppPageCommand(
+                appKind,
+                app.appResult as unknown as PresentationPageController | SlidePageController,
+                event,
+                expectedPage,
+                true
+            );
+        } catch (error) {
+            console.warn(error);
+            return Promise.resolve(false);
+        }
+        if (typeof result === "boolean") {
+            return Promise.resolve(result);
+        }
+        if (!result || typeof (result as any).then !== "function") {
+            return Promise.resolve(false);
+        }
+        void Promise.resolve(result)
+            .then(accepted => {
+                if (!accepted) {
+                    this.emitUnifiedPageCommandFailure(
+                        state.target,
+                        event,
+                        expectedPage,
+                        state.pageCount,
+                        appId
+                    );
+                }
+            })
+            .catch(error => {
+                this.emitUnifiedPageCommandFailure(
+                    state.target,
+                    event,
+                    expectedPage,
+                    state.pageCount,
+                    appId,
+                    String(error)
+                );
+            });
+        return Promise.resolve(true);
+    }
+
+    public getPageState(options: PageStateOptions = {}): Promise<UnifiedPageState> {
+        if (this._destroyed) {
+            return Promise.reject(new Error("window manager was destroyed"));
+        }
+        this.ensureUnifiedPageStateListeners();
+        if (!options || typeof options !== "object" || Array.isArray(options))
+            return Promise.reject(new Error("invalid page state options"));
+        if (Object.prototype.hasOwnProperty.call(options, "page")) {
+            return Promise.reject(new Error("invalid page state options"));
+        }
+        const target = this.resolveUnifiedPageTarget(options);
+        if (!target) return Promise.reject(new Error("invalid page state target"));
+        if (target === "mainView") {
+            if (!this.appManager || !this._pageState || !this.pageState.length)
+                return Promise.reject(new Error("mainView page state unavailable"));
+            const state = {
+                target: "mainView",
+                page: this.pageState.index + 1,
+                pageCount: this.pageState.length,
+            } as const;
+            const scenePath = this.getUnifiedMainViewScenePath(state.page);
+            if (!scenePath || !this.isUnifiedMainViewSceneConfirmed(state.page, scenePath)) {
+                return Promise.reject(new Error("mainView page state is not confirmed"));
+            }
+            return Promise.resolve(state);
+        }
+        const appId = target;
+        const app = appId ? this.queryOne(appId) : undefined;
+        const appKind = appId ? this.getUnifiedAppKind(app?.kind) : undefined;
+        if (appId && appKind) this.ensureUnifiedAppObserver(appId, appKind);
+        if (appId && appKind === SlideAppKind) {
+            const state = this.readUnifiedAppPageState(appId, appKind);
+            if (!state) {
+                return Promise.reject(new Error("page state unavailable"));
+            }
+            return Promise.resolve(state);
+        }
+        const state = appId && appKind ? this.readUnifiedAppPageState(appId, appKind) : undefined;
+        if (
+            !state ||
+            !appId ||
+            !appKind ||
+            !this.canInitializeUnifiedAppState(appId, appKind, state)
+        ) {
+            return Promise.reject(new Error("page state unavailable or not confirmed"));
+        }
+        return Promise.resolve(state);
+    }
+
+    private isUnifiedPage(page: number | undefined, pageCount: number): page is number {
+        return typeof page === "number" && Number.isInteger(page) && page >= 1 && page <= pageCount;
+    }
+
+    private emitUnifiedPageCommandFailure(
+        target: UnifiedPageState["target"],
+        event: PageEvent,
+        page: number,
+        pageCount: number,
+        appId?: string,
+        message?: string
+    ): void {
+        this.emitter.emit("unifiedPageStateChange", {
+            status: "failure",
+            target,
+            appId,
+            event,
+            page,
+            pageCount,
+            reason: "commandFailed",
+            message,
+        });
+    }
+
+    private unifiedPageStateKey(appId?: string, target?: UnifiedPageState["target"]): string {
+        return appId ? `app:${appId}` : `target:${target}`;
+    }
+
+    private isUnifiedStepEvent(event: PageEvent): boolean {
+        return event === "prevStep" || event === "nextStep";
+    }
+
+    private getUnifiedMainViewScenePath(page: number): string | undefined {
+        const sceneName = this.appManager?.sceneState?.scenes?.[page - 1]?.name;
+        return sceneName ? `${ROOT_DIR}${sceneName}` : undefined;
+    }
+
+    private isUnifiedMainViewSceneConfirmed(page: number, expectedScenePath: string): boolean {
+        const focusSceneIndex = this.mainView.focusSceneIndex;
+        return (
+            typeof focusSceneIndex === "number" &&
+            focusSceneIndex + 1 === page &&
+            this.mainView.focusScenePath === expectedScenePath
+        );
+    }
+
+    private resolveUnifiedPageTarget(
+        options: PageEventOptions | PageStateOptions
+    ): PageEventTarget | undefined {
+        // `appId` belonged to an unreleased draft of the unified API. Reject it
+        // instead of silently dispatching to the focused app or mainView.
+        if (Object.prototype.hasOwnProperty.call(options, "appId")) return undefined;
+        if (options.target !== undefined) {
+            if (typeof options.target !== "string" || options.target.length === 0) return undefined;
+            return options.target;
+        }
+        return this.focused || "mainView";
+    }
+
+    private getUnifiedAppKind(
+        kind?: string
+    ): typeof SlideAppKind | typeof PresentationAppKind | undefined {
+        if (kind === SlideAppKind) return SlideAppKind;
+        if (kind === PresentationAppKind) return PresentationAppKind;
+        return undefined;
+    }
+
+    private readUnifiedAppPageState(appId: string, kind: string): UnifiedPageState | undefined {
+        const app = this.queryOne(appId);
+        if (!app) return undefined;
+        if (kind === SlideAppKind) {
+            const position = (app.appResult as any)?.position?.();
+            if (
+                !position ||
+                !Number.isInteger(position[0]) ||
+                !Number.isInteger(position[1]) ||
+                position[0] < 1 ||
+                position[1] < 1 ||
+                position[0] > position[1]
+            )
+                return undefined;
+            return { target: "Slide", appId, page: position[0], pageCount: position[1] };
+        }
+        const state = (app.appResult as PresentationPageController | undefined)?.pageState?.();
+        if (
+            !state ||
+            !Number.isInteger(state.index) ||
+            !Number.isInteger(state.length) ||
+            state.length < 1 ||
+            state.index < 0 ||
+            state.index >= state.length
+        )
+            return undefined;
+        return { target: "Presentation", appId, page: state.index + 1, pageCount: state.length };
+    }
+
+    private canInitializeUnifiedAppState(
+        appId: string,
+        kind: string,
+        state: UnifiedPageState
+    ): boolean {
+        if (kind !== SlideAppKind) return this.isUnifiedAppSceneConfirmed(appId, state.page);
+        if (this._unifiedPageControl.getLastSlideRenderPage(appId) === state.page) return true;
+        const appResult = this.queryOne(appId)?.appResult as any;
+        const controller = appResult?.controller?.();
+        const slide = appResult?.slide?.();
+        return Boolean(
+            controller?.ready &&
+                slide &&
+                slide.isLoading === false &&
+                slide.slideState?.currentSlideIndex === state.page
+        );
+    }
+
+    private canDispatchUnifiedSlideCommand(appId: string, event?: PageEvent): boolean {
+        const appResult = this.queryOne(appId)?.appResult as any;
+        const controller = appResult?.controller?.();
+        const slide = appResult?.slide?.();
+        const ready = Boolean(
+            controller?.ready && slide && slide.isLoading === false && slide.isAnimating !== true
+        );
+        if (!ready || !event || !this.isUnifiedStepEvent(event)) return ready;
+        const hasStep = event === "prevStep" ? slide.hasPrevStep : slide.hasNextStep;
+        if (typeof hasStep !== "function") return false;
+        try {
+            return hasStep.call(slide) === true;
+        } catch (error) {
+            console.warn(error);
+            return false;
+        }
+    }
+
+    private tryEmitUnifiedMainViewState(pageState?: PageState): void {
+        const currentPageState = pageState || (this._pageState ? this.pageState : undefined);
+        if (!currentPageState) return;
+        if (
+            !Number.isInteger(currentPageState.length) ||
+            currentPageState.length < 1 ||
+            !Number.isInteger(currentPageState.index) ||
+            currentPageState.index < 0 ||
+            currentPageState.index >= currentPageState.length
+        )
+            return;
+        const next = {
+            target: "mainView" as const,
+            page: currentPageState.index + 1,
+            pageCount: currentPageState.length,
+            status: "success" as const,
+            mainView: currentPageState.index + 1,
+        };
+        const expectedScenePath = this.getUnifiedMainViewScenePath(next.page);
+        if (
+            !expectedScenePath ||
+            !this.isUnifiedMainViewSceneConfirmed(next.page, expectedScenePath)
+        )
+            return;
+        if (
+            this._unifiedPageControl.emitObservedState(
+                this.unifiedPageStateKey(undefined, "mainView"),
+                next
+            )
+        ) {
+            this.emitter.emit("unifiedPageStateChange", next);
+        }
+    }
+
+    private ensureUnifiedPageStateListeners() {
+        if (this._unifiedPageControl.isListenersInstalled) return;
+        this._unifiedPageControl.markListenersInstalled();
+        this._unifiedPageControl.addListenerDisposer(
+            this.emitter.on("pageStateChange", state => {
+                this.tryEmitUnifiedMainViewState(state);
+            })
+        );
+        this._unifiedPageControl.addListenerDisposer(
+            this.emitter.on("mainViewScenePathChange", () => {
+                this.tryEmitUnifiedMainViewState();
+            })
+        );
+        this._unifiedPageControl.addListenerDisposer(
+            this.emitter.on("onMainViewRebind", () => {
+                this._unifiedPageControl.clearState(
+                    this.unifiedPageStateKey(undefined, "mainView")
+                );
+            })
+        );
+        this._unifiedPageControl.addListenerDisposer(
+            this.emitter.on("appsChange", () => {
+                for (const app of this.queryAll()) {
+                    const kind = this.getUnifiedAppKind(app.kind);
+                    if (kind) this.ensureUnifiedAppObserver(app.id, kind);
+                }
+            })
+        );
+        this._unifiedPageControl.addListenerDisposer(
+            this.emitter.on("onAppSetup", appId => {
+                const app = this.queryOne(appId);
+                const kind = app && this.getUnifiedAppKind(app.kind);
+                if (kind) this.ensureUnifiedAppObserver(appId, kind);
+            })
+        );
+        this._unifiedPageControl.addListenerDisposer(
+            this.emitter.on("onAppScenePathChange", async payload => {
+                // Presentation updates its controller page index from the same event.
+                // Read it after every listener has observed the new View scene path.
+                await Promise.resolve();
+                const app = this.queryOne(payload.appId);
+                const kind = app && this.getUnifiedAppKind(app.kind);
+                if (kind) this.tryEmitUnifiedAppState(payload.appId, kind);
+            })
+        );
+        for (const app of this.queryAll()) {
+            const kind = this.getUnifiedAppKind(app.kind);
+            if (kind) this.ensureUnifiedAppObserver(app.id, kind);
+        }
+    }
+
+    private ensureUnifiedAppObserver(appId: string, kind: string) {
+        const app = this.queryOne(appId);
+        if (!app) return;
+        if (this._unifiedPageControl.hasAppObserver(appId)) {
+            if (kind === SlideAppKind) this.ensureUnifiedSlideRenderListener(appId, app);
+            return;
+        }
+        const destroyDisposer = app.appEmitter.on("destroy", () => {
+            this._unifiedPageControl.clearApp(appId);
+        });
+        const disposers = [destroyDisposer];
+        if (kind === PresentationAppKind) {
+            disposers.push(
+                app.appEmitter.on("pageStateChange", () => {
+                    this.tryEmitUnifiedAppState(appId, kind);
+                })
+            );
+        }
+        this._unifiedPageControl.setAppObserverDisposers(appId, disposers);
+        if (kind === SlideAppKind) this.ensureUnifiedSlideRenderListener(appId, app);
+    }
+
+    private ensureUnifiedSlideRenderListener(appId: string, app: AppProxy) {
+        if (!app.appResult || this._unifiedPageControl.hasSlideObserverDisposer(appId)) return;
+        this.armUnifiedSlideRenderListener(appId, app);
+    }
+
+    private armUnifiedSlideRenderListener(appId: string, app: AppProxy) {
+        const slide = (app.appResult as any)?.slide?.();
+        if (!slide?.on) return;
+        if (this._unifiedPageControl.hasSlideObserverDisposer(appId)) return;
+        this.getOrInitializeUnifiedSlideRenderPage(appId);
+        const renderListener = (page: number) => {
+            if (!Number.isInteger(page) || page < 1) return;
+            this._unifiedPageControl.setLastSlideRenderPage(appId, page);
+            this.emitUnifiedSlidePageComparison(appId, page);
+        };
+        slide.on("renderEnd", renderListener);
+        this._unifiedPageControl.setSlideObserverDisposer(appId, () => {
+            slide.off?.("renderEnd", renderListener);
+        });
+    }
+
+    private tryEmitUnifiedAppState(appId: string, kind: string) {
+        if (kind === SlideAppKind) {
+            this.emitUnifiedSlidePageComparison(appId);
+            return;
+        }
+        const state = this.readUnifiedAppPageState(appId, kind);
+        if (!state || !this.isUnifiedAppSceneConfirmed(appId, state.page)) return;
+        const next: UnifiedPageStateChange = {
+            ...state,
+            status: "success",
+            presentation: state.page,
+        };
+        const changed = this._unifiedPageControl.emitObservedState(
+            this.unifiedPageStateKey(appId),
+            next
+        );
+        if (changed) this.emitter.emit("unifiedPageStateChange", next);
+    }
+
+    private emitUnifiedSlidePageComparison(appId: string, renderPage?: number): void {
+        const state = this.readUnifiedAppPageState(appId, SlideAppKind);
+        const viewPage = this.readUnifiedSlideViewPage(appId);
+        const comparedRenderPage =
+            renderPage ?? this.getOrInitializeUnifiedSlideRenderPage(appId, state?.pageCount);
+        if (
+            !state ||
+            !Number.isInteger(comparedRenderPage) ||
+            (comparedRenderPage as number) < 1 ||
+            (comparedRenderPage as number) > state.pageCount ||
+            viewPage === undefined
+        ) {
+            return;
+        }
+        const slidePage = comparedRenderPage as number;
+        const next: UnifiedPageStateChange = {
+            target: "Slide",
+            appId,
+            page: slidePage,
+            pageCount: state.pageCount,
+            status: viewPage === slidePage ? "success" : "pending",
+            view: viewPage,
+            slide: slidePage,
+        };
+        this._unifiedPageControl.emitObservedState(this.unifiedPageStateKey(appId), next, true);
+        this.emitter.emit("unifiedPageStateChange", next);
+    }
+
+    private getOrInitializeUnifiedSlideRenderPage(
+        appId: string,
+        pageCount?: number
+    ): number | undefined {
+        const cached = this._unifiedPageControl.getLastSlideRenderPage(appId);
+        if (cached !== undefined) return cached;
+        const appResult = this.queryOne(appId)?.appResult as any;
+        const controller = appResult?.controller?.();
+        const slide = appResult?.slide?.();
+        const page = slide?.slideState?.currentSlideIndex;
+        if (
+            controller?.ready !== true ||
+            slide?.isLoading !== false ||
+            !Number.isInteger(page) ||
+            page < 1 ||
+            (pageCount !== undefined && page > pageCount)
+        ) {
+            return undefined;
+        }
+        this._unifiedPageControl.setLastSlideRenderPage(appId, page);
+        return page;
+    }
+
+    private readUnifiedSlideViewPage(appId: string): number | undefined {
+        const scenePath = this.queryOne(appId)?.view?.focusScenePath;
+        if (typeof scenePath !== "string") return undefined;
+        const pageName = scenePath.split("/").filter(Boolean).pop();
+        if (!pageName || !/^\d+$/.test(pageName)) return undefined;
+        const page = Number(pageName);
+        return Number.isSafeInteger(page) && page >= 1 ? page : undefined;
+    }
+
+    private isUnifiedAppSceneConfirmed(appId: string, page: number): boolean {
+        const app = this.queryOne(appId);
+        const view = app?.view;
+        if (!app || !view) return false;
+        const expectedPath = app.getFullScenePath();
+        if (
+            typeof expectedPath !== "string" ||
+            expectedPath.length === 0 ||
+            expectedPath !== view.focusScenePath
+        )
+            return false;
+        if (this.getUnifiedAppKind(app.kind) === PresentationAppKind) {
+            return this.readUnifiedAppPageState(appId, PresentationAppKind)?.page === page;
+        }
+        return view.focusSceneIndex !== undefined && view.focusSceneIndex + 1 === page;
     }
 
     /**
@@ -1336,6 +1887,13 @@ export class WindowManager
     }
 
     private _destroy() {
+        if (this._destroyed) return;
+        this._destroyed = true;
+        this._unifiedPageControl.destroy();
+        this.finishDestroy();
+    }
+
+    private finishDestroy() {
         this.attributesDeboundceLog?.destroy();
         this.attributesDeboundceLog = undefined;
         this.containerResizeObserver?.disconnect();
