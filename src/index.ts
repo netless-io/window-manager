@@ -1315,9 +1315,19 @@ export class WindowManager
                 return Promise.resolve(false);
             }
             let command: Promise<boolean>;
-            if (event === "prevPage") command = this.prevPage();
-            else if (event === "nextPage") command = this.nextPage();
-            else command = this.jumpPage(expectedPage - 1);
+            try {
+                if (event === "prevPage") command = this.prevPage();
+                else if (event === "nextPage") command = this.nextPage();
+                else command = this.jumpPage(expectedPage - 1);
+            } catch (error) {
+                this.logUnifiedPageException(
+                    this.unifiedPageStateKey(undefined, "mainView"),
+                    "dispatchPageEvent",
+                    error,
+                    { target: "mainView", event, page: expectedPage, pageCount }
+                );
+                return Promise.resolve(false);
+            }
             void command
                 .then(success => {
                     if (!success) {
@@ -1388,7 +1398,18 @@ export class WindowManager
                 true
             );
         } catch (error) {
-            console.warn(error);
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(appId),
+                "dispatchPageEvent",
+                error,
+                {
+                    target: state.target,
+                    appId,
+                    event,
+                    page: expectedPage,
+                    pageCount: state.pageCount,
+                }
+            );
             return Promise.resolve(false);
         }
         if (typeof result === "boolean") {
@@ -1483,7 +1504,7 @@ export class WindowManager
         appId?: string,
         message?: string
     ): void {
-        this.emitter.emit("unifiedPageStateChange", {
+        this.emitUnifiedPageStateChange({
             status: "failure",
             target,
             appId,
@@ -1493,6 +1514,46 @@ export class WindowManager
             reason: "commandFailed",
             message,
         });
+    }
+
+    private emitUnifiedPageStateChange(state: UnifiedPageStateChange): void {
+        const key = this.unifiedPageStateKey(state.appId, state.target);
+        const logger = this.Logger;
+        if (state.status === "success") {
+            this._unifiedPageControl.clearLoggedError(key);
+            if (logger && this._unifiedPageControl.shouldLogSuccessState(key, state)) {
+                logger.info(
+                    `[WindowManager]: unifiedPageStateChange success ${JSON.stringify(state)}`
+                );
+            }
+        } else if (state.status === "failure" && logger) {
+            const signature = JSON.stringify(state);
+            if (this._unifiedPageControl.shouldLogError(key, signature)) {
+                const message = `[WindowManager]: unifiedPageStateChange failure ${signature}`;
+                if (state.message) logger.error(message);
+                else logger.warn(message);
+            }
+        }
+        this.emitter.emit("unifiedPageStateChange", state);
+    }
+
+    private logUnifiedPageException(
+        key: string,
+        stage: string,
+        error: unknown,
+        context: Record<string, unknown>
+    ): void {
+        const summary = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        const detail = error instanceof Error ? error.stack || summary : summary;
+        const signature = `${stage}:${summary}`;
+        const logger = this.Logger;
+        if (!logger) return;
+        if (!this._unifiedPageControl.shouldLogError(key, signature)) return;
+        logger.error(
+            `[WindowManager]: unified page control exception, stage=${stage}, context=${JSON.stringify(
+                context
+            )}, error=${detail}`
+        );
     }
 
     private unifiedPageStateKey(appId?: string, target?: UnifiedPageState["target"]): string {
@@ -1539,32 +1600,45 @@ export class WindowManager
     }
 
     private readUnifiedAppPageState(appId: string, kind: string): UnifiedPageState | undefined {
-        const app = this.queryOne(appId);
-        if (!app) return undefined;
-        if (kind === SlideAppKind) {
-            const position = (app.appResult as any)?.position?.();
+        try {
+            const app = this.queryOne(appId);
+            if (!app) return undefined;
+            if (kind === SlideAppKind) {
+                const position = (app.appResult as any)?.position?.();
+                if (
+                    !position ||
+                    !Number.isInteger(position[0]) ||
+                    !Number.isInteger(position[1]) ||
+                    position[0] < 1 ||
+                    position[1] < 1 ||
+                    position[0] > position[1]
+                )
+                    return undefined;
+                return { target: "Slide", appId, page: position[0], pageCount: position[1] };
+            }
+            const state = (app.appResult as PresentationPageController | undefined)?.pageState?.();
             if (
-                !position ||
-                !Number.isInteger(position[0]) ||
-                !Number.isInteger(position[1]) ||
-                position[0] < 1 ||
-                position[1] < 1 ||
-                position[0] > position[1]
+                !state ||
+                !Number.isInteger(state.index) ||
+                !Number.isInteger(state.length) ||
+                state.length < 1 ||
+                state.index < 0 ||
+                state.index >= state.length
             )
                 return undefined;
-            return { target: "Slide", appId, page: position[0], pageCount: position[1] };
-        }
-        const state = (app.appResult as PresentationPageController | undefined)?.pageState?.();
-        if (
-            !state ||
-            !Number.isInteger(state.index) ||
-            !Number.isInteger(state.length) ||
-            state.length < 1 ||
-            state.index < 0 ||
-            state.index >= state.length
-        )
+            return {
+                target: "Presentation",
+                appId,
+                page: state.index + 1,
+                pageCount: state.length,
+            };
+        } catch (error) {
+            this.logUnifiedPageException(this.unifiedPageStateKey(appId), "readPageState", error, {
+                target: kind,
+                appId,
+            });
             return undefined;
-        return { target: "Presentation", appId, page: state.index + 1, pageCount: state.length };
+        }
     }
 
     private canInitializeUnifiedAppState(
@@ -1574,36 +1648,67 @@ export class WindowManager
     ): boolean {
         if (kind !== SlideAppKind) return this.isUnifiedAppSceneConfirmed(appId, state.page);
         if (this._unifiedPageControl.getLastSlideRenderPage(appId) === state.page) return true;
-        const appResult = this.queryOne(appId)?.appResult as any;
-        const controller = appResult?.controller?.();
-        const slide = appResult?.slide?.();
-        return Boolean(
-            controller?.ready &&
-                slide &&
-                slide.isLoading === false &&
-                slide.slideState?.currentSlideIndex === state.page
-        );
+        try {
+            const appResult = this.queryOne(appId)?.appResult as any;
+            const controller = appResult?.controller?.();
+            const slide = appResult?.slide?.();
+            return Boolean(
+                controller?.ready &&
+                    slide &&
+                    slide.isLoading === false &&
+                    slide.slideState?.currentSlideIndex === state.page
+            );
+        } catch (error) {
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(appId),
+                "initializeSlideState",
+                error,
+                { target: "Slide", appId, page: state.page, pageCount: state.pageCount }
+            );
+            return false;
+        }
     }
 
     private canDispatchUnifiedSlideCommand(appId: string, event?: PageEvent): boolean {
-        const appResult = this.queryOne(appId)?.appResult as any;
-        const controller = appResult?.controller?.();
-        const slide = appResult?.slide?.();
-        const ready = Boolean(
-            controller?.ready && slide && slide.isLoading === false && slide.isAnimating !== true
-        );
-        if (!ready || !event || !this.isUnifiedStepEvent(event)) return ready;
-        const hasStep = event === "prevStep" ? slide.hasPrevStep : slide.hasNextStep;
-        if (typeof hasStep !== "function") return false;
         try {
+            const appResult = this.queryOne(appId)?.appResult as any;
+            const controller = appResult?.controller?.();
+            const slide = appResult?.slide?.();
+            const ready = Boolean(
+                controller?.ready &&
+                    slide &&
+                    slide.isLoading === false &&
+                    slide.isAnimating !== true
+            );
+            if (!ready || !event || !this.isUnifiedStepEvent(event)) return ready;
+            const hasStep = event === "prevStep" ? slide.hasPrevStep : slide.hasNextStep;
+            if (typeof hasStep !== "function") return false;
             return hasStep.call(slide) === true;
         } catch (error) {
-            console.warn(error);
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(appId),
+                "checkSlideCommand",
+                error,
+                { target: "Slide", appId, event }
+            );
             return false;
         }
     }
 
     private tryEmitUnifiedMainViewState(pageState?: PageState): void {
+        try {
+            this.emitUnifiedMainViewState(pageState);
+        } catch (error) {
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(undefined, "mainView"),
+                "observeMainViewState",
+                error,
+                { target: "mainView" }
+            );
+        }
+    }
+
+    private emitUnifiedMainViewState(pageState?: PageState): void {
         const currentPageState = pageState || (this._pageState ? this.pageState : undefined);
         if (!currentPageState) return;
         if (
@@ -1633,7 +1738,7 @@ export class WindowManager
                 next
             )
         ) {
-            this.emitter.emit("unifiedPageStateChange", next);
+            this.emitUnifiedPageStateChange(next);
         }
     }
 
@@ -1716,19 +1821,28 @@ export class WindowManager
     }
 
     private armUnifiedSlideRenderListener(appId: string, app: AppProxy) {
-        const slide = (app.appResult as any)?.slide?.();
-        if (!slide?.on) return;
-        if (this._unifiedPageControl.hasSlideObserverDisposer(appId)) return;
-        this.getOrInitializeUnifiedSlideRenderPage(appId);
-        const renderListener = (page: number) => {
-            if (!Number.isInteger(page) || page < 1) return;
-            this._unifiedPageControl.setLastSlideRenderPage(appId, page);
-            this.emitUnifiedSlidePageComparison(appId, page);
-        };
-        slide.on("renderEnd", renderListener);
-        this._unifiedPageControl.setSlideObserverDisposer(appId, () => {
-            slide.off?.("renderEnd", renderListener);
-        });
+        try {
+            const slide = (app.appResult as any)?.slide?.();
+            if (!slide?.on) return;
+            if (this._unifiedPageControl.hasSlideObserverDisposer(appId)) return;
+            this.getOrInitializeUnifiedSlideRenderPage(appId);
+            const renderListener = (page: number) => {
+                if (!Number.isInteger(page) || page < 1) return;
+                this._unifiedPageControl.setLastSlideRenderPage(appId, page);
+                this.emitUnifiedSlidePageComparison(appId, page);
+            };
+            slide.on("renderEnd", renderListener);
+            this._unifiedPageControl.setSlideObserverDisposer(appId, () => {
+                slide.off?.("renderEnd", renderListener);
+            });
+        } catch (error) {
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(appId),
+                "installSlideRenderListener",
+                error,
+                { target: "Slide", appId }
+            );
+        }
     }
 
     private tryEmitUnifiedAppState(appId: string, kind: string) {
@@ -1747,7 +1861,7 @@ export class WindowManager
             this.unifiedPageStateKey(appId),
             next
         );
-        if (changed) this.emitter.emit("unifiedPageStateChange", next);
+        if (changed) this.emitUnifiedPageStateChange(next);
     }
 
     private emitUnifiedSlidePageComparison(appId: string, renderPage?: number): void {
@@ -1775,7 +1889,7 @@ export class WindowManager
             slide: slidePage,
         };
         this._unifiedPageControl.emitObservedState(this.unifiedPageStateKey(appId), next, true);
-        this.emitter.emit("unifiedPageStateChange", next);
+        this.emitUnifiedPageStateChange(next);
     }
 
     private getOrInitializeUnifiedSlideRenderPage(
@@ -1784,47 +1898,77 @@ export class WindowManager
     ): number | undefined {
         const cached = this._unifiedPageControl.getLastSlideRenderPage(appId);
         if (cached !== undefined) return cached;
-        const appResult = this.queryOne(appId)?.appResult as any;
-        const controller = appResult?.controller?.();
-        const slide = appResult?.slide?.();
-        const page = slide?.slideState?.currentSlideIndex;
-        if (
-            controller?.ready !== true ||
-            slide?.isLoading !== false ||
-            !Number.isInteger(page) ||
-            page < 1 ||
-            (pageCount !== undefined && page > pageCount)
-        ) {
+        try {
+            const appResult = this.queryOne(appId)?.appResult as any;
+            const controller = appResult?.controller?.();
+            const slide = appResult?.slide?.();
+            const page = slide?.slideState?.currentSlideIndex;
+            if (
+                controller?.ready !== true ||
+                slide?.isLoading !== false ||
+                !Number.isInteger(page) ||
+                page < 1 ||
+                (pageCount !== undefined && page > pageCount)
+            ) {
+                return undefined;
+            }
+            this._unifiedPageControl.setLastSlideRenderPage(appId, page);
+            return page;
+        } catch (error) {
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(appId),
+                "readSlideRenderState",
+                error,
+                { target: "Slide", appId, pageCount }
+            );
             return undefined;
         }
-        this._unifiedPageControl.setLastSlideRenderPage(appId, page);
-        return page;
     }
 
     private readUnifiedSlideViewPage(appId: string): number | undefined {
-        const scenePath = this.queryOne(appId)?.view?.focusScenePath;
-        if (typeof scenePath !== "string") return undefined;
-        const pageName = scenePath.split("/").filter(Boolean).pop();
-        if (!pageName || !/^\d+$/.test(pageName)) return undefined;
-        const page = Number(pageName);
-        return Number.isSafeInteger(page) && page >= 1 ? page : undefined;
+        try {
+            const scenePath = this.queryOne(appId)?.view?.focusScenePath;
+            if (typeof scenePath !== "string") return undefined;
+            const pageName = scenePath.split("/").filter(Boolean).pop();
+            if (!pageName || !/^\d+$/.test(pageName)) return undefined;
+            const page = Number(pageName);
+            return Number.isSafeInteger(page) && page >= 1 ? page : undefined;
+        } catch (error) {
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(appId),
+                "readSlideViewState",
+                error,
+                { target: "Slide", appId }
+            );
+            return undefined;
+        }
     }
 
     private isUnifiedAppSceneConfirmed(appId: string, page: number): boolean {
-        const app = this.queryOne(appId);
-        const view = app?.view;
-        if (!app || !view) return false;
-        const expectedPath = app.getFullScenePath();
-        if (
-            typeof expectedPath !== "string" ||
-            expectedPath.length === 0 ||
-            expectedPath !== view.focusScenePath
-        )
+        try {
+            const app = this.queryOne(appId);
+            const view = app?.view;
+            if (!app || !view) return false;
+            const expectedPath = app.getFullScenePath();
+            if (
+                typeof expectedPath !== "string" ||
+                expectedPath.length === 0 ||
+                expectedPath !== view.focusScenePath
+            )
+                return false;
+            if (this.getUnifiedAppKind(app.kind) === PresentationAppKind) {
+                return this.readUnifiedAppPageState(appId, PresentationAppKind)?.page === page;
+            }
+            return view.focusSceneIndex !== undefined && view.focusSceneIndex + 1 === page;
+        } catch (error) {
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(appId),
+                "confirmScenePath",
+                error,
+                { appId, page }
+            );
             return false;
-        if (this.getUnifiedAppKind(app.kind) === PresentationAppKind) {
-            return this.readUnifiedAppPageState(appId, PresentationAppKind)?.page === page;
         }
-        return view.focusSceneIndex !== undefined && view.focusSceneIndex + 1 === page;
     }
 
     /**

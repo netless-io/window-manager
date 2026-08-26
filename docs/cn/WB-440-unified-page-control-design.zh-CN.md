@@ -484,6 +484,19 @@ manager.emitter.on("unifiedPageStateChange", handler);
 - mainView/Presentation 相同状态默认去重；Slide 的两个来源事件不按普通页码去重，以保证每个触发及 `pending -> success` 都可见。
 - `status: "failure"` 只用于 controller 在命令被接受后异步返回 `false` 或 reject，并携带 `event/reason/message`。它是持久的终态诊断，不表示 Slide 临时不一致。
 
+### 8.4 日志监控与频率控制
+
+统一分页日志只在 WindowManager JS 层写入 `Room.logger`，由现有日志链路上传 SLS；Native、Bridge、`app-slide` 和 `@netless/slide` 不重复增加相同日志。
+
+- `status: "success"`：写 `info`。mainView、Presentation 在各自状态确认后记录；Slide 仅在 Whiteboard View 页与最近 `renderEnd` 页一致时记录，沿用 `unifiedPageStateChange` 的完整 JSON payload，便于按 `target`、`appId`、`page` 和 `pageCount` 检索。
+- success 日志按目标的 `page + pageCount` 去重；相同目标、相同确认状态的重复来源事件不重复上传。页码或总页数变化后重新记录。只有实际取得 `Room.logger` 时才写入去重状态，避免 logger 注入前的事件压制后续日志。rebind、App 销毁重建或 WindowManager destroy 会清除去重状态，重连后的首次确认状态允许重新记录。
+- `status: "pending"`：不写日志。Slide 自身已有 `renderEnd` 日志，统一层不重复记录单侧 renderEnd，也不把 View/Slide 暂时不一致视为异常。
+- `status: "failure"`：异步 controller 返回 `false` 时写 `warn`；reject 或携带异常消息时写 `error`。相同目标、相同 failure 在下一次 success 前只记录一次，但统一事件仍按原契约正常发出。
+- 同步调用 controller、读取分页状态、安装/执行 Slide 观察器或检查 step 边界抛错时，捕获并写 `error`，包含阶段、目标、命令、页码和异常信息；相同目标、相同异常在恢复成功前去重，首条日志保留完整 stack。
+- 参数非法、只读、越界、当前页重复跳转、非 Slide step 以及 Slide 正常 `pending` 都属于预期控制流，不写异常日志。
+
+日志去重仅影响 SLS 上传频率，不改变 `unifiedPageStateChange` 的触发次数、payload、命令 accepted 语义或 `getPageState` 行为。
+
 Bridge 新增 `sdk.unifiedPageStateChange` 内部通知，Native 对外统一接收 `UnifiedPageStateChange` 对象，避免继续扩展位置参数。该回调与 `RoomState.pageState` 分开：后者继续只代表 mainView，前者覆盖所有统一分页目标、Slide 双源对账状态和明确的终态命令失败。三端不得再增加独立失败回调；`status` 字段、枚举和值大小写必须与上述 TypeScript 契约完全一致。
 
 ## 9. 测试与验收矩阵

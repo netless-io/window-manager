@@ -173,6 +173,8 @@ describe("unified page control", () => {
     it("reports a mainView pageCount change", async () => {
         const manager = createManager();
         const listener = vi.fn();
+        const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        manager._roomLogger = logger;
         manager.appManager = {
             mainViewProxy: { view: { focusSceneIndex: 0, focusScenePath: "/1" } },
             sceneState: { scenes: [{ name: "1" }, { name: "2" }] },
@@ -182,6 +184,7 @@ describe("unified page control", () => {
 
         await manager.emitter.emit("pageStateChange", { index: 0, length: 1 });
         await manager.emitter.emit("pageStateChange", { index: 0, length: 2 });
+        await manager.emitter.emit("pageStateChange", { index: 0, length: 2 });
 
         expect(listener).toHaveBeenLastCalledWith({
             target: "mainView",
@@ -190,6 +193,16 @@ describe("unified page control", () => {
             status: "success",
             mainView: 1,
         });
+        expect(logger.info).toHaveBeenCalledTimes(2);
+        expect(logger.info).toHaveBeenLastCalledWith(
+            `[WindowManager]: unifiedPageStateChange success ${JSON.stringify({
+                target: "mainView",
+                page: 1,
+                pageCount: 2,
+                status: "success",
+                mainView: 1,
+            })}`
+        );
     });
 
     it("keeps mainView addPage append and after-current semantics", async () => {
@@ -666,6 +679,8 @@ describe("unified page control", () => {
     it("uses Presentation controller state for query and callback", async () => {
         const manager = createManager();
         const listener = vi.fn();
+        const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        manager._roomLogger = logger;
         let controllerState = { index: 1, length: 3 };
         let scenePath = "/Presentation/2";
         const app: any = {
@@ -692,6 +707,7 @@ describe("unified page control", () => {
         scenePath = "/Presentation/3";
         app.view.focusScenePath = scenePath;
         await app.appEmitter.emit("pageStateChange", { index: 0, length: 1 });
+        await app.appEmitter.emit("pageStateChange", { index: 0, length: 1 });
 
         expect(listener).toHaveBeenCalledWith({
             target: "Presentation",
@@ -701,6 +717,17 @@ describe("unified page control", () => {
             status: "success",
             presentation: 3,
         });
+        expect(logger.info).toHaveBeenCalledOnce();
+        expect(logger.info).toHaveBeenCalledWith(
+            `[WindowManager]: unifiedPageStateChange success ${JSON.stringify({
+                target: "Presentation",
+                appId: app.id,
+                page: 3,
+                pageCount: 3,
+                status: "success",
+                presentation: 3,
+            })}`
+        );
     });
 
     it("rejects Presentation commands until controller and View agree", async () => {
@@ -974,5 +1001,155 @@ describe("unified page control", () => {
         expect(tracker.emitObservedState("app:Slide-1", { ...mainState, target: "Slide" }, true)).toBe(
             true
         );
+    });
+
+    it("deduplicates success and error logs independently from source events", () => {
+        const tracker = new UnifiedPageControlTracker();
+        const key = "app:Slide-log";
+        const state = { target: "Slide" as const, appId: "Slide-log", page: 1, pageCount: 2 };
+
+        expect(tracker.shouldLogSuccessState(key, state)).toBe(true);
+        expect(tracker.shouldLogSuccessState(key, state)).toBe(false);
+        expect(tracker.shouldLogSuccessState(key, { ...state, pageCount: 3 })).toBe(true);
+        expect(tracker.shouldLogError(key, "render failed")).toBe(true);
+        expect(tracker.shouldLogError(key, "render failed")).toBe(false);
+
+        tracker.clearState(key);
+        expect(tracker.shouldLogSuccessState(key, state)).toBe(true);
+        expect(tracker.shouldLogError(key, "render failed")).toBe(true);
+    });
+
+    it("logs only changed success states and terminal failures", async () => {
+        const manager = createManager();
+        const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        const listener = vi.fn();
+        manager._roomLogger = logger;
+        manager.emitter.on("unifiedPageStateChange", listener);
+        const slideSuccess = {
+            target: "Slide" as const,
+            appId: "Slide-log",
+            page: 2,
+            pageCount: 3,
+            status: "success" as const,
+            view: 2,
+            slide: 2,
+        };
+
+        manager.emitUnifiedPageStateChange({
+            ...slideSuccess,
+            status: "pending",
+            view: 1,
+        });
+        manager.emitUnifiedPageStateChange(slideSuccess);
+        manager.emitUnifiedPageStateChange(slideSuccess);
+        manager.emitUnifiedPageStateChange({ ...slideSuccess, page: 3, view: 3, slide: 3 });
+        manager.emitUnifiedPageStateChange({
+            ...slideSuccess,
+            status: "failure",
+            event: "nextPage",
+            reason: "commandFailed",
+        });
+        manager.emitUnifiedPageStateChange({
+            ...slideSuccess,
+            status: "failure",
+            event: "nextPage",
+            reason: "commandFailed",
+            message: "Error: scene path rejected",
+        });
+        await flushEvents();
+
+        expect(logger.info).toHaveBeenCalledTimes(2);
+        expect(logger.info).toHaveBeenNthCalledWith(
+            1,
+            `[WindowManager]: unifiedPageStateChange success ${JSON.stringify(slideSuccess)}`
+        );
+        expect(logger.warn).toHaveBeenCalledTimes(1);
+        expect(logger.error).toHaveBeenCalledTimes(1);
+        expect(listener).toHaveBeenCalledTimes(6);
+    });
+
+    it("does not consume success log deduplication before the room logger is available", () => {
+        const manager = createManager();
+        const state = {
+            target: "mainView" as const,
+            page: 1,
+            pageCount: 1,
+            status: "success" as const,
+            mainView: 1,
+        };
+
+        manager.emitUnifiedPageStateChange(state);
+        const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        manager._roomLogger = logger;
+        manager.emitUnifiedPageStateChange(state);
+
+        expect(logger.info).toHaveBeenCalledOnce();
+    });
+
+    it("captures synchronous unified command exceptions with the room logger", async () => {
+        const restore = registerAppKind("Presentation");
+        const manager = createManager();
+        const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        const app: any = {
+            id: "Presentation-throw",
+            kind: "Presentation",
+            appEmitter: new Emittery(),
+            box: {},
+            view: { focusScenePath: "/Presentation/1" },
+            getFullScenePath: () => "/Presentation/1",
+            appResult: {
+                pageState: () => ({ index: 0, length: 2 }),
+                nextPageAsync: () => {
+                    throw new Error("controller threw");
+                },
+            },
+        };
+        manager._roomLogger = logger;
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+
+        try {
+            await expect(
+                manager.dispatchPageEvent("nextPage", { target: app.id })
+            ).resolves.toBe(false);
+            await expect(
+                manager.dispatchPageEvent("nextPage", { target: app.id })
+            ).resolves.toBe(false);
+            expect(logger.error).toHaveBeenCalledOnce();
+            expect(logger.error.mock.calls[0][0]).toContain(
+                "[WindowManager]: unified page control exception, stage=dispatchPageEvent"
+            );
+            expect(logger.error.mock.calls[0][0]).toContain("controller threw");
+        } finally {
+            restore();
+        }
+    });
+
+    it("captures repeated page-state reader exceptions without log spam", async () => {
+        const manager = createManager();
+        const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        const app: any = {
+            id: "Presentation-read-throw",
+            kind: "Presentation",
+            appEmitter: new Emittery(),
+            appResult: {
+                pageState: () => {
+                    throw new Error("page state unavailable");
+                },
+            },
+        };
+        manager._roomLogger = logger;
+        manager.queryOne = () => app;
+
+        await expect(manager.getPageState({ target: app.id })).rejects.toThrow(
+            "page state unavailable or not confirmed"
+        );
+        await expect(manager.getPageState({ target: app.id })).rejects.toThrow(
+            "page state unavailable or not confirmed"
+        );
+
+        expect(logger.error).toHaveBeenCalledOnce();
+        expect(logger.error.mock.calls[0][0]).toContain("stage=readPageState");
+        expect(logger.error.mock.calls[0][0]).toContain("page state unavailable");
     });
 });

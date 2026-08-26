@@ -103,6 +103,8 @@ type StateKey = string;
 /** Stores only observed state and listener cleanup for unified page events. */
 export class UnifiedPageControlTracker {
     private states = new Map<StateKey, UnifiedPageState>();
+    private loggedSuccessStates = new Map<StateKey, UnifiedPageState>();
+    private loggedErrorSignatures = new Map<StateKey, Set<string>>();
     private slideObserverDisposers = new Map<string, () => void>();
     private lastSlideRenderPages = new Map<string, number>();
     private appObserverDisposers = new Map<string, Array<() => void>>();
@@ -123,6 +125,8 @@ export class UnifiedPageControlTracker {
 
     public clearState(key: StateKey): void {
         this.states.delete(key);
+        this.loggedSuccessStates.delete(key);
+        this.loggedErrorSignatures.delete(key);
     }
 
     public emitObservedState(key: StateKey, state: UnifiedPageState, force = false): boolean {
@@ -134,6 +138,24 @@ export class UnifiedPageControlTracker {
             previous.page !== state.page ||
             previous.pageCount !== state.pageCount
         );
+    }
+
+    public shouldLogSuccessState(key: StateKey, state: UnifiedPageState): boolean {
+        const previous = this.loggedSuccessStates.get(key);
+        this.loggedSuccessStates.set(key, { ...state });
+        return !previous || previous.page !== state.page || previous.pageCount !== state.pageCount;
+    }
+
+    public shouldLogError(key: StateKey, signature: string): boolean {
+        const signatures = this.loggedErrorSignatures.get(key) || new Set<string>();
+        if (signatures.has(signature)) return false;
+        signatures.add(signature);
+        this.loggedErrorSignatures.set(key, signatures);
+        return true;
+    }
+
+    public clearLoggedError(key: StateKey): void {
+        this.loggedErrorSignatures.delete(key);
     }
 
     public setSlideObserverDisposer(appId: string, disposer: () => void): void {
@@ -176,7 +198,7 @@ export class UnifiedPageControlTracker {
     public clearApp(appId: string): void {
         this.clearSlideObserverDisposer(appId);
         this.clearAppObserverDisposers(appId);
-        this.states.delete(`app:${appId}`);
+        this.clearState(`app:${appId}`);
         this.lastSlideRenderPages.delete(appId);
     }
 
@@ -189,6 +211,8 @@ export class UnifiedPageControlTracker {
         this.appObserverDisposers.clear();
         this.slideObserverDisposers.clear();
         this.states.clear();
+        this.loggedSuccessStates.clear();
+        this.loggedErrorSignatures.clear();
         this.lastSlideRenderPages.clear();
         this.listenersInstalled = false;
     }
