@@ -6,12 +6,24 @@ import Slide, { addHooks } from "@netless/app-slide";
 
 WindowManager.register({
     kind: "Slide",
-    src: () => import("@netless/app-slide"),
+    src: (() => import("@netless/app-slide")) as any,
     appOptions: {
         // turn on to show debug controller
         debug: false,
     },
     addHooks
+});
+
+WindowManager.register({
+    kind: "Presentation",
+    src: async () => {
+        const app = await import("@netless/app-presentation");
+        return app.default || app;
+    },
+    appOptions: {
+        debounceSync: true,
+        useScrollbar: true,
+    },
 });
 
 WindowManager.register({

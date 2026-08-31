@@ -6,7 +6,8 @@
   "scripts": {
     "predev": "pnpm run sync-foundation-worker",
     "sync-foundation-worker": "white-web-sdk-sync-foundation-worker --out public/worker/foundation-worker.js --manifest public/worker/foundation-worker.manifest.json --required --target es5 && white-web-sdk-sync-foundation-worker --out src/generated/foundation-worker.js --manifest src/generated/foundation-worker.manifest.json --required --target es5",
-    "dev": "vite --host"
+    "dev": "vite --host",
+    "build": "pnpm run sync-foundation-worker && vite build"
   },
   "keywords": [],
   "author": "",

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { LoggerReportMode, PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist";
+import type { PageEvent, UnifiedPageState, UnifiedPageStateChange } from "../dist";
 import {
     createStatic,
     createDynamic,
@@ -118,8 +119,13 @@ const mountManager = async (room, root) => {
             // fullscreen: true,
             debug: true,
             cursor,
-            useBoxesStatus: true,
+            useBoxesStatus: false,
             supportAppliancePlugin: true,
+            builtinAppOptions: {
+                Presentation: {
+                    goToPageByClick: true,
+                },
+            },
             // cursorOptions: { style: "custom" },
             // overwriteStyles: ".netless-window-manager-chess-sizer:before, .netless-window-manager-chess-sizer:after { background-image: none }",
             overwriteStyles: ".cursor-box .cursor-name { display: none !important; }",
@@ -323,7 +329,7 @@ const joinRoom = ref => {
                 uuid: import.meta.env.VITE_ROOM_UUID,
                 roomToken: import.meta.env.VITE_ROOM_TOKEN,
                 region,
-                invisiblePlugins: [WindowManager, ApplianceMultiPlugin],
+                invisiblePlugins: [WindowManager as any, ApplianceMultiPlugin],
                 useMultiViews: true,
                 userPayload: {
                     userId: "111",
@@ -360,16 +366,10 @@ const destroy = () => {
 
 anyWindow.mountManager = mountManager;
 anyWindow.destroy = destroy;
-
-const prevPage = (manager: WindowManager) => {
-    manager.prevPage();
-};
-
-const nextPage = (manager: WindowManager) => {
-    manager.nextPage();
-};
-
-const addPage = (manager: WindowManager) => manager.addPage();
+anyWindow.dispatchPageEvent = (event: PageEvent, options = {}) =>
+    manager.dispatchPageEvent(event, options);
+anyWindow.getPageState = (options = {}) => manager.getPageState(options);
+anyWindow.addPage = options => manager.addPage(options);
 
 const cleanCurrentScene = (manager: WindowManager) => {
     manager.cleanCurrentScene();
@@ -451,21 +451,101 @@ anyWindow.flushWhiteboardLocalLogs = () => sdk.flushLocalLogs();
 anyWindow.uploadWhiteboardLocalLogs = () => uploadLocalLogs();
 
 const App = () => {
-    const [pageState, setPageState] = useState({});
+    const [pageState, setPageState] = useState({ index: 0, length: 0 });
     const [localLogStatus, setLocalLogStatus] = useState("日志待上传");
+    const [connectionStatus, setConnectionStatus] = useState("正在连接房间...");
+    const [managerReady, setManagerReady] = useState(false);
+    const [pageTargets, setPageTargets] = useState<Array<{ id: string; kind: string }>>([]);
+    const [selectedTarget, setSelectedTarget] = useState("mainView");
+    const [jumpPage, setJumpPage] = useState("1");
+    const [pageActionResult, setPageActionResult] = useState("等待操作");
+    const [queriedPageState, setQueriedPageState] = useState<UnifiedPageState>();
+    const [unifiedPageEvent, setUnifiedPageEvent] = useState<UnifiedPageStateChange>();
     const ref = useRef();
 
     useEffect(() => {
-        joinRoom(ref.current).then(() => {
-            if (manager) {
-                setPageState(manager.pageState);
-                // createIframe(manager);
-                return manager.emitter.on("pageStateChange", state => {
-                    setPageState(state);
-                });
-            }
-        });
-    }, [ref]);
+        Promise.resolve(joinRoom(ref.current))
+            .then(() => {
+                if (manager) {
+                    const refreshTargets = () => {
+                        setPageTargets(
+                            manager
+                                .queryAll()
+                                .filter(app => app.kind === "Slide" || app.kind === "Presentation")
+                                .map(app => ({ id: app.id, kind: app.kind }))
+                        );
+                    };
+                    setPageState(manager.pageState);
+                    setManagerReady(true);
+                    setConnectionStatus("房间已连接");
+                    refreshTargets();
+                    manager.emitter.on("appsChange", refreshTargets);
+                    manager.emitter.on("unifiedPageStateChange", state => {
+                        console.log("unifiedPageStateChange", state);
+                        setUnifiedPageEvent(state);
+                    });
+                    // createIframe(manager);
+                    return manager.emitter.on("pageStateChange", state => {
+                        setPageState(state);
+                    });
+                }
+            })
+            .catch(error => {
+                const detail = serializeError(error);
+                console.error("[WB-440 demo] join room failed", detail);
+                setConnectionStatus(`入房失败：${detail.message}`);
+            });
+    }, []);
+
+    const pageOptions = () =>
+        selectedTarget === "focused" ? {} : { target: selectedTarget };
+
+    const dispatchUnifiedPageEvent = async (event: PageEvent) => {
+        if (!manager) return;
+        try {
+            const options =
+                event === "jumpToPage"
+                    ? { ...pageOptions(), page: Number(jumpPage) }
+                    : pageOptions();
+            const accepted = await manager.dispatchPageEvent(event, options);
+            setPageActionResult(
+                JSON.stringify({ api: "dispatchPageEvent", event, options, accepted }, null, 2)
+            );
+        } catch (error) {
+            setPageActionResult(
+                JSON.stringify({ api: "dispatchPageEvent", error: serializeError(error) }, null, 2)
+            );
+        }
+    };
+
+    const queryUnifiedPageState = async () => {
+        if (!manager) return;
+        try {
+            const state = await manager.getPageState(pageOptions());
+            setQueriedPageState(state);
+            setPageActionResult(
+                JSON.stringify({ api: "getPageState", options: pageOptions(), state }, null, 2)
+            );
+        } catch (error) {
+            setPageActionResult(
+                JSON.stringify({ api: "getPageState", error: serializeError(error) }, null, 2)
+            );
+        }
+    };
+
+    const addMainViewPage = async (after: boolean) => {
+        if (!manager) return;
+        try {
+            await manager.addPage({ after });
+            setPageActionResult(
+                JSON.stringify({ api: "addPage", options: { after }, accepted: true }, null, 2)
+            );
+        } catch (error) {
+            setPageActionResult(
+                JSON.stringify({ api: "addPage", error: serializeError(error) }, null, 2)
+            );
+        }
+    };
 
     return (
         <div className="app">
@@ -476,11 +556,81 @@ const App = () => {
                     flex: 1,
                     height: "calc(100vh - 32px)",
                     border: "1px solid",
-                    resize: "auto",
+                    resize: "both",
                     overflow: "scroll",
                 }}
             ></div>
             <div className="side">
+                <section className="page-control">
+                    <div className="page-control-title">统一分页</div>
+                    <div
+                        className={`connection-status ${managerReady ? "connection-status-ready" : ""}`}
+                    >
+                        {connectionStatus}
+                    </div>
+                    <label className="page-control-field">
+                        <span>目标</span>
+                        <select
+                            value={selectedTarget}
+                            disabled={!managerReady}
+                            onChange={event => setSelectedTarget(event.target.value)}
+                        >
+                            <option value="mainView">mainView</option>
+                            <option value="focused">当前焦点（省略 target）</option>
+                            {pageTargets.map(target => (
+                                <option key={target.id} value={target.id}>
+                                    {target.kind}: {target.id}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <div className="page-control-actions">
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("prevPage")}>
+                            上一页
+                        </button>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("nextPage")}>
+                            下一页
+                        </button>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("prevStep")}>
+                            上一步
+                        </button>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("nextStep")}>
+                            下一步
+                        </button>
+                    </div>
+                    <div className="page-control-jump">
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={jumpPage}
+                            disabled={!managerReady}
+                            onChange={event => setJumpPage(event.target.value)}
+                        />
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("jumpToPage")}>
+                            跳页
+                        </button>
+                        <button disabled={!managerReady} onClick={queryUnifiedPageState}>
+                            查询页码
+                        </button>
+                    </div>
+                    <div className="page-control-actions">
+                        <button disabled={!managerReady} onClick={() => addMainViewPage(true)}>
+                            主白板当前页后新增
+                        </button>
+                        <button disabled={!managerReady} onClick={() => addMainViewPage(false)}>
+                            主白板末尾新增
+                        </button>
+                    </div>
+                    <div className="page-control-output">
+                        <div>getPageState</div>
+                        <pre>{queriedPageState ? JSON.stringify(queriedPageState, null, 2) : "-"}</pre>
+                        <div>unifiedPageStateChange</div>
+                        <pre>{unifiedPageEvent ? JSON.stringify(unifiedPageEvent, null, 2) : "-"}</pre>
+                        <div>最近调用</div>
+                        <pre>{pageActionResult}</pre>
+                    </div>
+                </section>
                 <button className="side-button" onClick={() => createPlyr(manager)}>
                     Plyr
                 </button>
@@ -516,15 +666,6 @@ const App = () => {
                 </button>
                 <button className="side-button" onClick={replay}>
                     回放
-                </button>
-                <button className="side-button" onClick={() => prevPage(manager)}>
-                    上一页
-                </button>
-                <button className="side-button" onClick={() => nextPage(manager)}>
-                    下一页
-                </button>
-                <button className="side-button" onClick={() => addPage(manager)}>
-                    加一页
                 </button>
                 <button className="side-button" onClick={() => cleanCurrentScene(manager)}>
                     清屏

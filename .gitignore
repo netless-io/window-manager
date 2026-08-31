@@ -1,11 +1,13 @@
 node_modules
 dist
 .env
+.env*.local
 .idea
 .vscode
 e2e/cypress/*
 !e2e/cypress/integration/
 .codegraph
+.playwright-cli
 example/public/worker/foundation-worker.js
 example/public/worker/foundation-worker.manifest.json
 example/src/generated/foundation-worker.js
