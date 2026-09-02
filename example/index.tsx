@@ -113,6 +113,7 @@ const mountManager = async (room, root) => {
     manager = (await WindowManager.mount(
         {
             room,
+            originSize: { width: 1920, height: 1080 },
             // collectorStyles: { bottom: "100px", left: "30px" },
             containerSizeRatio: 9 / 16,
             chessboard: true,

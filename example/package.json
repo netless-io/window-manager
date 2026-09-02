@@ -14,9 +14,9 @@
   "license": "ISC",
   "dependencies": {
     "@netless/app-plyr": "0.2.6-beta.3",
-    "@netless/app-slide": "^0.2.99",
-    "@netless/appliance-plugin": "1.1.38",
-    "@netless/telebox-insider": "0.3.0-beta.14",
+    "@netless/app-slide": "^0.2.103",
+    "@netless/appliance-plugin": "1.1.42",
+    "@netless/telebox-insider": "0.3.0",
     "@netless/video-js-plugin": "^0.3.7",
     "agora-foundation": "3.11.1-rc.1",
     "core-js": "^3.45.1",
@@ -25,7 +25,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "video.js": "^7.14.3",
-    "white-web-sdk": "2.16.56"
+    "white-web-sdk": "2.16.58"
   },
   "devDependencies": {
     "@babel/core": "^7.14.8",

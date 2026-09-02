@@ -32,6 +32,7 @@
     - [`removePage`](#removePage)
     - [`refresh`](#refresh)
     - [`setContainerSizeRatio`](#setContainerSizeRatio)
+    - [`fitOriginSizeAndCamera`](#fitOriginSizeAndCamera)
   - [实例属性](#prototypes)
   - [事件回调](#events)
 
@@ -57,6 +58,7 @@ const manager = await WindowManager.mount(
 | ---------------------- | --------------------------------------- | ------- | ---------------------------- |
 | room                   | [require] Room                          |         | 房间实例                         |
 | container              | [require] HTMLElement                   |         | 房间挂载容器                       |
+| originSize             | [optional] Size                         |         | mainView 固定原始尺寸；同一房间所有端必须一致 |
 | containerSizeRatio     | [optional] number                       | 9 / 16  | 多窗口区域的高宽比，默认为 9 : 16         |
 | chessboard             | [optional] boolean                      | true    | 多窗口区域以外的空间显示 PS 棋盘背景，默认 true |
 | collectorContainer     | [optional] HTMLElement                  |         | 用于多窗口最小化图标挂载的 dom            |
@@ -68,6 +70,10 @@ const manager = await WindowManager.mount(
 | debug                  | [optional] boolean                      | false   | 打印日志信息   
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | 配置光标使用的教具图片           ｜
 | useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 状态管理窗口, 开启后可以单独管理每个窗口的状态               |
+
+> 旧房间已有完整 `mainViewSize/mainViewCamera` 时，配置 `originSize` 只会补齐 origin
+> 基准并保留当前视图，不会自动执行 fit。需要恢复 origin 视图时由业务显式调用
+> `fitOriginSizeAndCamera()`。
 
 <h3 id="register">WindowManager.register</h3>
 
@@ -295,6 +301,15 @@ manager.refresh()
 
 ```ts
 manager.setContainerSizeRatio(10 / 16)
+```
+
+<h3 id="fitOriginSizeAndCamera">fitOriginSizeAndCamera</h3>
+
+> 将当前 mainView 的同步尺寸和 camera 恢复为 `mount({ originSize })` 建立的固定基准。
+> 未配置 `originSize` 时不执行操作。
+
+```ts
+manager.fitOriginSizeAndCamera()
 ```
 
 <br>

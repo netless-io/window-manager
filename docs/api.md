@@ -32,6 +32,7 @@
      - [`removePage`](#removePage)
      - [`refresh`](#refresh)
      - [`setContainerSizeRatio`](#setContainerSizeRatio)
+     - [`fitOriginSizeAndCamera`](#fitOriginSizeAndCamera)
    - [instance properties](#prototypes)
    - [event callback](#events)
 
@@ -58,6 +59,7 @@ parameter
 | ---------------------- | --------------------------------------- | ------- | ---------------------------- |
 | room                   | [require] Room                          |         | room instance                         |
 | container              | [require] HTMLElement                   |         | room mount container                       |
+| originSize             | [optional] Size                         |         | Fixed mainView origin size; it must match on every client in the room |
 | containerSizeRatio     | [optional] number                       | 9 / 16  | The aspect ratio of the multi-window area, the default is 9 : 16        |
 | chessboard             | [optional] boolean                      | true    | The space outside the multi-window area displays PS checkerboard background, default true |
 | collectorContainer     | [optional] HTMLElement                  |         | dom for multi-window minimize icon mount            |
@@ -67,6 +69,10 @@ parameter
 | disableCameraTransform | [optional] boolean                      |         | Disable camera movement for the main whiteboard                   |
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | print log information   |
+
+> When a legacy room already has a complete `mainViewSize/mainViewCamera` pair, configuring
+> `originSize` adds the origin baseline while preserving the current view. It does not fit the
+> view automatically; call `fitOriginSizeAndCamera()` explicitly when needed.
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           |
 | useBoxesStatus         | [optional] boolean                      | false   | Whether to use the boxesStatus status management window, after it is enabled, the status of each window can be managed separately               |
 
@@ -298,6 +304,15 @@ manager.refresh()
 
 ```ts
 manager.setContainerSizeRatio(10 / 16)
+```
+
+<h3 id="fitOriginSizeAndCamera">fitOriginSizeAndCamera</h3>
+
+> Restore the current synchronized mainView size and camera to the fixed baseline established by
+> `mount({ originSize })`. This method has no effect when `originSize` is not configured.
+
+```ts
+manager.fitOriginSizeAndCamera()
 ```
 
 <br>

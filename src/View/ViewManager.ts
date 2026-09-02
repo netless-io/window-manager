@@ -1,4 +1,9 @@
-import type { View, Displayer } from "white-web-sdk";
+import type { CameraBound, View, Displayer } from "white-web-sdk";
+
+export const DefaultCameraBound: CameraBound = {
+    maxContentMode: () => 10,
+    minContentMode: () => 0.1,
+};
 
 export class ViewManager {
     public views: Map<string, View> = new Map();
@@ -53,8 +58,5 @@ export const createView = (displayer: Displayer): View => {
 };
 
 export const setDefaultCameraBound = (view: View) => {
-    view.setCameraBound({
-        maxContentMode: () => 10,
-        minContentMode: () => 0.1,
-    });
+    view.setCameraBound({ ...DefaultCameraBound });
 };

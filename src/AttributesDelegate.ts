@@ -7,6 +7,7 @@ import type { Cursor } from "./Cursor/Cursor";
 import { getExtendClass } from "./Utils/extendClass";
 import type { ExtendClass } from "./Utils/extendClass";
 import type { NotMinimizedBoxState, TeleBoxState } from "@netless/telebox-insider";
+import { MAIN_VIEW_CAMERA_COORDINATE_VERSION } from "./View/MainViewCameraTransform";
 
 export enum Fields {
     Apps = "apps",
@@ -14,8 +15,11 @@ export enum Fields {
     State = "state",
     /** 默认窗口状态, (用于窗口状态的统一管理) */
     BoxState = "boxState",
+    OriginCamera = "originCamera",
+    OriginSize = "originSize",
     MainViewCamera = "mainViewCamera",
     MainViewSize = "mainViewSize",
+    MainViewCameraCoordinateVersion = "_mainViewCameraCoordinateVersion",
     Broadcaster = "broadcaster",
     Cursors = "cursors",
     Position = "position",
@@ -209,6 +213,18 @@ export class AttributesDelegate {
         return get(this.attributes, [Fields.MainViewSize]);
     }
 
+    public getOriginCamera(): MainViewCamera {
+        return get(this.attributes, [Fields.OriginCamera]);
+    }
+
+    public getOriginSize(): MainViewSize {
+        return get(this.attributes, [Fields.OriginSize]);
+    }
+
+    public getMainViewCameraCoordinateVersion(): number | undefined {
+        return get(this.attributes, [Fields.MainViewCameraCoordinateVersion]);
+    }
+
     public setMainViewCamera(camera: ICamera) {
         this.context.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
@@ -223,6 +239,28 @@ export class AttributesDelegate {
         this.context.safeSetAttributes({
             [Fields.MainViewCamera]: { ...camera },
             [Fields.MainViewSize]: { ...size },
+        });
+    }
+
+    public initializeOriginMainViewAttributes(
+        originCamera: ICamera,
+        originSize: ISize,
+        mainViewCamera: ICamera = originCamera,
+        mainViewSize: ISize = originSize
+    ) {
+        if (
+            originSize.width === 0 ||
+            originSize.height === 0 ||
+            mainViewSize.width === 0 ||
+            mainViewSize.height === 0
+        )
+            return;
+        this.context.safeSetAttributes({
+            [Fields.OriginCamera]: { ...originCamera },
+            [Fields.OriginSize]: { ...originSize },
+            [Fields.MainViewCamera]: { ...mainViewCamera },
+            [Fields.MainViewSize]: { ...mainViewSize },
+            [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
         });
     }
 

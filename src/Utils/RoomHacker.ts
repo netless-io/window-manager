@@ -35,9 +35,12 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         });
         const _scalePptToFit = room.scalePptToFit;
         room.scalePptToFit = (...args) => {
-            _scalePptToFit.call(room, ...args);
-            if (manager.appManager?.mainViewProxy) {
-                manager.appManager.mainViewProxy.setCameraAndSize();
+            const mainViewProxy = manager.appManager?.mainViewProxy;
+            if (manager.originSize && mainViewProxy) {
+                mainViewProxy.runScalePptToFit(() => _scalePptToFit.call(room, ...args));
+            } else {
+                _scalePptToFit.call(room, ...args);
+                mainViewProxy?.scheduleSetCameraAndSize();
             }
         };
         const _putScenes = room.putScenes;
@@ -60,7 +63,7 @@ export const replaceRoomFunction = (room: Room | Player, manager: WindowManager)
         room.moveCamera = (camera: Camera) => manager.moveCamera(camera);
         room.moveCameraToContain = (...args) => manager.moveCameraToContain(...args);
         room.convertToPointInWorld = (...args) => manager.mainView.convertToPointInWorld(...args);
-        room.setCameraBound = (...args) => manager.mainView.setCameraBound(...args);
+        room.setCameraBound = (...args) => manager.setCameraBound(...args);
         room.scenePreview = (...args) => manager.mainView.scenePreview(...args);
         room.fillSceneSnapshot = (...args) => manager.mainView.fillSceneSnapshot(...args);
         room.generateScreenshot = (...args) => manager.mainView.generateScreenshot(...args);

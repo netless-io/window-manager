@@ -49,6 +49,7 @@ import type {
     ImageInformation,
     SceneState,
     Logger,
+    Size,
 } from "white-web-sdk";
 import type { AppListeners } from "./AppListener";
 import type { ApplianceIcons, NetlessApp, RegisterParams } from "./typings";
@@ -90,6 +91,14 @@ import { ExtendPluginManager } from "./ExtendPluginManager";
 import { getExtendClass } from "./Utils/extendClass";
 import type { ExtendClass } from "./Utils/extendClass";
 import { resolveAppOptions as mergeAppOptions } from "./Utils/resolveAppOptions";
+import {
+    MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+    isSameOriginSize,
+    isLegacyMainViewCameraContract,
+    isValidCamera,
+    isValidSize,
+    normalizeOriginSize,
+} from "./View/MainViewCameraTransform";
 
 export * from "./utils/extendClass";
 
@@ -232,6 +241,8 @@ export type CursorOptions = {
 export type MountParams = {
     room: Room | Player;
     container?: HTMLElement;
+    /** mainView 固定原始尺寸，用于建立和恢复统一的 camera 基准。 */
+    originSize?: Size;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
     /** @deprecated 显示 PS 透明背景，默认 true */
@@ -255,6 +266,19 @@ export type MountParams = {
     builtinAppOptions?: BuiltinAppOptions;
 };
 
+type MountStaticState = {
+    displayer: Displayer | undefined;
+    wrapper: HTMLElement | undefined;
+    sizer: HTMLElement | undefined;
+    playground: HTMLElement | undefined;
+    container: HTMLElement | undefined;
+    debug: boolean;
+    containerSizeRatio: number;
+    supportAppliancePlugin: boolean | undefined;
+    params: MountParams | undefined;
+    extendClass: ExtendClass | undefined;
+};
+
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
 export class WindowManager
     extends InvisiblePlugin<WindowMangerAttributes, any>
@@ -270,6 +294,7 @@ export class WindowManager
     public static containerSizeRatio = DEFAULT_CONTAINER_RATIO;
     public static supportAppliancePlugin?: boolean;
     private static isCreated = false;
+    private static isMounting = false;
     private static _resolve = (_manager: WindowManager) => void 0;
 
     public version = __APP_VERSION__;
@@ -293,6 +318,8 @@ export class WindowManager
 
     public builtinAppOptions?: BuiltinAppOptions;
 
+    private _originSize?: Readonly<Size>;
+
     private boxManager?: BoxManager;
     private static params?: MountParams;
     static extendClass?: ExtendClass;
@@ -310,6 +337,10 @@ export class WindowManager
         return this._roomLogger;
     }
 
+    public get originSize(): Readonly<Size> | undefined {
+        return this._originSize;
+    }
+
     constructor(context: InvisiblePluginContext) {
         super(context);
         WindowManager.displayer = context.displayer;
@@ -325,30 +356,76 @@ export class WindowManager
         params: MountParams,
         extendClass?: ExtendClass
     ): Promise<WindowManager> {
+        const originSize = normalizeOriginSize(params.originSize);
+        if (
+            originSize &&
+            params.containerSizeRatio !== undefined &&
+            (!Number.isFinite(params.containerSizeRatio) || params.containerSizeRatio <= 0)
+        ) {
+            throw new Error(
+                `[WindowManager]: containerSizeRatio must be a finite positive number in originSize mode, but got ${params.containerSizeRatio}`
+            );
+        }
         const room = params.room;
-        WindowManager.container = params.container;
-        WindowManager.supportAppliancePlugin = params.supportAppliancePlugin;
         const containerSizeRatio = params.containerSizeRatio;
         const debug = params.debug;
-
         const cursor = params.cursor;
-        WindowManager.params = params;
-        WindowManager.extendClass = extendClass;
-        WindowManager.displayer = params.room;
+        const previousStaticState = this.captureMountStaticState();
         checkVersion();
+        if (WindowManager.isCreated || WindowManager.isMounting) {
+            throw new Error("[WindowManager]: Already created cannot be created again");
+        }
+        WindowManager.isMounting = true;
         let manager: WindowManager | undefined = undefined;
-        if (isRoom(room)) {
-            if (room.phase !== RoomPhase.Connected) {
-                throw new Error("[WindowManager]: Room only Connected can be mount");
+        let shouldRollback = false;
+        let mountCommitted = false;
+        let previousDisableSerialization: boolean | undefined;
+        let didChangeDisableSerialization = false;
+
+        try {
+            if (isRoom(room)) {
+                if (room.phase !== RoomPhase.Connected) {
+                    throw new Error("[WindowManager]: Room only Connected can be mount");
+                }
+                manager = await this.initManager(room);
+            } else {
+                await pRetry(
+                    async count => {
+                        manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
+                        if (!manager) {
+                            log(`manager is empty. retrying ${count}`);
+                            throw new Error();
+                        }
+                    },
+                    // 1s, 2s, 4s, 5s, 5s, 5s, 5s, 5s, 5s
+                    { retries: 10, maxTimeout: 5000 } as any
+                );
             }
-            if (room.phase === RoomPhase.Connected && room.isWritable) {
-                // redo undo 需要设置这个属性
-                room.disableSerialization = false;
+
+            if (!manager) {
+                throw new Error("[WindowManager]: create manager failed");
             }
-            manager = await this.initManager(room);
-            if (manager) {
+            shouldRollback = true;
+            manager._originSize = originSize;
+            await manager.ensureAttributes();
+            manager.ensureOriginCameraCompatibility();
+
+            WindowManager.container = params.container;
+            WindowManager.supportAppliancePlugin = params.supportAppliancePlugin;
+            WindowManager.params = params;
+            WindowManager.extendClass = extendClass;
+            WindowManager.displayer = params.room;
+
+            if (isRoom(room)) {
+                const writableRoom = room as Room;
+                if (writableRoom.isWritable) {
+                    // redo undo 需要设置这个属性
+                    previousDisableSerialization = writableRoom.disableSerialization;
+                    writableRoom.disableSerialization = false;
+                    didChangeDisableSerialization = true;
+                }
                 manager._roomLogger = createManagedRoomLogger(
-                    (room as unknown as { logger: Logger }).logger
+                    (writableRoom as unknown as { logger: Logger }).logger
                 );
                 manager.attributesDeboundceLog = new ArgusLog(
                     manager._roomLogger,
@@ -363,110 +440,173 @@ export class WindowManager
                     );
                 }
             }
-        }
-        if (WindowManager.isCreated) {
-            manager?._roomLogger?.error(
-                "[WindowManager] mount duplicate check failed: isCreated=true"
+            manager._roomLogger?.info(
+                `[WindowManager] mount duplicate check passed: isCreated=${WindowManager.isCreated}`
             );
-            throw new Error("[WindowManager]: Already created cannot be created again");
-        }
-        manager?._roomLogger?.info(
-            `[WindowManager] mount duplicate check passed: isCreated=${WindowManager.isCreated}`
-        );
-
-        this.debug = Boolean(debug);
-        if (manager?._roomLogger) {
-            manager._roomLogger.info(
-                `[WindowManager] Already insert room version: ${manager.version}`
-            );
-        } else {
-            log("Already insert room", manager);
-        }
-
-        if (isRoom(this.displayer)) {
-            if (!manager) {
-                throw new Error("[WindowManager]: init InvisiblePlugin failed");
+            this.debug = Boolean(debug);
+            if (manager._roomLogger) {
+                manager._roomLogger.info(
+                    `[WindowManager] Already insert room version: ${manager.version}`
+                );
+            } else {
+                log("Already insert room", manager);
             }
-        } else {
-            await pRetry(
-                async count => {
-                    manager = room.getInvisiblePlugin(WindowManager.kind) as WindowManager;
-                    if (!manager) {
-                        log(`manager is empty. retrying ${count}`);
-                        throw new Error();
-                    }
-                },
-                // 1s, 2s, 4s, 5s, 5s, 5s, 5s, 5s, 5s
-                { retries: 10, maxTimeout: 5000 } as any
+
+            manager.builtinAppOptions = params.builtinAppOptions;
+            if (originSize) {
+                WindowManager.containerSizeRatio = containerSizeRatio ?? DEFAULT_CONTAINER_RATIO;
+            } else if (containerSizeRatio) {
+                WindowManager.containerSizeRatio = containerSizeRatio;
+            }
+
+            const AppManagerClass = getExtendClass(AppManager, WindowManager.extendClass);
+            const CursorManagerClass = getExtendClass(CursorManager, WindowManager.extendClass);
+
+            manager._fullscreen = params.fullscreen;
+            manager.appManager = new AppManagerClass(manager);
+            manager.appManager.polling = params.polling || false;
+            manager._pageState = new PageStateImpl(manager.appManager);
+            manager.cursorManager = new CursorManagerClass(
+                manager.appManager,
+                Boolean(cursor),
+                params.cursorOptions,
+                params.applianceIcons
             );
-        }
+            manager.ensureUnifiedPageStateListeners();
 
-        if (!manager) {
-            throw new Error("[WindowManager]: create manager failed");
-        }
-
-        manager.builtinAppOptions = params.builtinAppOptions;
-
-        if (containerSizeRatio) {
-            WindowManager.containerSizeRatio = containerSizeRatio;
-        }
-        await manager.ensureAttributes();
-
-        const AppManagerClass = getExtendClass(AppManager, WindowManager.extendClass);
-        const CursorManagerClass = getExtendClass(CursorManager, WindowManager.extendClass);
-
-        manager._fullscreen = params.fullscreen;
-        manager.appManager = new AppManagerClass(manager);
-        manager.appManager.polling = params.polling || false;
-        manager._pageState = new PageStateImpl(manager.appManager);
-        manager.cursorManager = new CursorManagerClass(
-            manager.appManager,
-            Boolean(cursor),
-            params.cursorOptions,
-            params.applianceIcons
-        );
-        manager.ensureUnifiedPageStateListeners();
-
-        manager.extendPluginManager = new ExtendPluginManager({
-            internalEmitter: internalEmitter,
-            windowManager: manager,
-        });
-
-        if (containerSizeRatio) {
-            manager.containerSizeRatio = containerSizeRatio;
-        }
-
-        if (params.container) {
-            manager.bindContainer(params.container);
-        }
-
-        replaceRoomFunction(room, manager);
-        internalEmitter.emit("onCreated");
-        WindowManager.isCreated = true;
-        if (
-            manager._roomLogger &&
-            manager.attributes.registered &&
-            Object.keys(manager.attributes.registered).length > 0
-        ) {
-            manager._roomLogger.info(
-                `[WindowManager] attributes registered apps: ${JSON.stringify(
-                    Array.from(Object.keys(manager.attributes.registered))
-                )}`
-            );
-        }
-        try {
-            manager._roomLogger?.info("[WindowManager] indexedDB open start");
-            await initDb(() => {
-                manager?._roomLogger?.warn("[WindowManager] indexedDB open blocked");
+            manager.extendPluginManager = new ExtendPluginManager({
+                internalEmitter: internalEmitter,
+                windowManager: manager,
             });
-            manager._roomLogger?.info("[WindowManager] indexedDB open success");
+
+            if (originSize) {
+                manager.containerSizeRatio = containerSizeRatio ?? DEFAULT_CONTAINER_RATIO;
+            } else if (containerSizeRatio) {
+                manager.containerSizeRatio = containerSizeRatio;
+            }
+
+            if (params.container) {
+                manager.bindContainer(params.container);
+            }
+
+            if (
+                manager._roomLogger &&
+                manager.attributes.registered &&
+                Object.keys(manager.attributes.registered).length > 0
+            ) {
+                manager._roomLogger.info(
+                    `[WindowManager] attributes registered apps: ${JSON.stringify(
+                        Array.from(Object.keys(manager.attributes.registered))
+                    )}`
+                );
+            }
+            replaceRoomFunction(room, manager);
+            internalEmitter.emit("onCreated");
+            try {
+                manager._roomLogger?.info("[WindowManager] indexedDB open start");
+                await initDb(() => {
+                    manager?._roomLogger?.warn("[WindowManager] indexedDB open blocked");
+                });
+                manager._roomLogger?.info("[WindowManager] indexedDB open success");
+            } catch (error) {
+                manager._roomLogger?.warn(
+                    `[WindowManager] indexedDB open failed: ${error.message}`
+                );
+                console.warn("[WindowManager]: indexedDB open failed");
+                console.log(error);
+            }
+            WindowManager.isCreated = true;
+            mountCommitted = true;
+            WindowManager.isMounting = false;
+            return manager;
         } catch (error) {
-            manager._roomLogger?.warn(`[WindowManager] indexedDB open failed: ${error.message}`);
-            console.warn("[WindowManager]: indexedDB open failed");
-            console.log(error);
+            if (shouldRollback && manager && !mountCommitted) {
+                this.rollbackFailedMount(manager, previousStaticState);
+                if (didChangeDisableSerialization && isRoom(room)) {
+                    (room as Room).disableSerialization = previousDisableSerialization as boolean;
+                }
+            } else if (!mountCommitted) {
+                this.restoreMountStaticState(previousStaticState);
+            }
+            WindowManager.isMounting = false;
+            throw error;
         }
-        manager.emitter.on("mainViewScenePathChange", manager.onMainViewScenePathChangeHandler);
-        return manager;
+    }
+
+    private static captureMountStaticState(): MountStaticState {
+        return {
+            displayer: WindowManager.displayer,
+            wrapper: WindowManager.wrapper,
+            sizer: WindowManager.sizer,
+            playground: WindowManager.playground,
+            container: WindowManager.container,
+            debug: WindowManager.debug,
+            containerSizeRatio: WindowManager.containerSizeRatio,
+            supportAppliancePlugin: WindowManager.supportAppliancePlugin,
+            params: WindowManager.params,
+            extendClass: WindowManager.extendClass,
+        };
+    }
+
+    private static restoreMountStaticState(state: MountStaticState): void {
+        WindowManager.displayer = state.displayer as Displayer;
+        WindowManager.wrapper = state.wrapper;
+        WindowManager.sizer = state.sizer;
+        WindowManager.playground = state.playground;
+        WindowManager.container = state.container;
+        WindowManager.debug = state.debug;
+        WindowManager.containerSizeRatio = state.containerSizeRatio;
+        WindowManager.supportAppliancePlugin = state.supportAppliancePlugin;
+        WindowManager.params = state.params;
+        WindowManager.extendClass = state.extendClass;
+    }
+
+    private static rollbackFailedMount(
+        manager: WindowManager,
+        previousStaticState: MountStaticState
+    ): void {
+        const cleanup = (resource: string, callback: (() => void) | undefined): void => {
+            if (!callback) return;
+            try {
+                callback();
+            } catch (error) {
+                console.warn(
+                    `[WindowManager]: failed to clean ${resource} after mount error`,
+                    error
+                );
+            }
+        };
+        cleanup("attributes logger", () => manager.attributesDeboundceLog?.destroy());
+        cleanup("container resize observer", () => manager.containerResizeObserver?.disconnect());
+        cleanup("app manager", () => manager.appManager?.destroy());
+        cleanup("cursor manager", () => manager.cursorManager?.destroy());
+        cleanup("extend plugin manager", () => manager.extendPluginManager?.destroy());
+        cleanup("iframe bridge", () => manager._iframeBridge?.destroy());
+        cleanup("unified page control", () => manager._unifiedPageControl.destroy());
+        manager.attributesDeboundceLog = undefined;
+        manager.containerResizeObserver = undefined;
+        manager.appManager = undefined;
+        manager.cursorManager = undefined;
+        manager.extendPluginManager = undefined;
+        manager.boxManager = undefined;
+        manager._pageState = undefined;
+        manager._iframeBridge = undefined;
+        manager._roomLogger = undefined;
+        manager._originSize = undefined;
+        manager._fullscreen = undefined;
+        manager.builtinAppOptions = undefined;
+        manager.containerSizeRatio = previousStaticState.containerSizeRatio;
+        manager._unifiedPageControl = new UnifiedPageControlTracker();
+        if (
+            WindowManager.playground &&
+            WindowManager.playground !== previousStaticState.playground
+        ) {
+            cleanup("playground", () =>
+                WindowManager.playground?.parentNode?.removeChild(WindowManager.playground)
+            );
+        }
+        WindowManager._resolve = (_manager: WindowManager) => void 0;
+        this.restoreMountStaticState(previousStaticState);
     }
 
     public onMainViewScenePathChangeHandler = (scenePath: string) => {
@@ -911,7 +1051,7 @@ export class WindowManager
      */
     public setViewMode(mode: ViewMode): void {
         if (mode === ViewMode.Broadcaster || mode === ViewMode.Follower) {
-            if (this.canOperate && mode === ViewMode.Broadcaster) {
+            if (!this.originSize && this.canOperate && mode === ViewMode.Broadcaster) {
                 this.appManager?.mainViewProxy.setCameraAndSize();
             }
             this.appManager?.mainViewProxy.start();
@@ -2029,6 +2169,10 @@ export class WindowManager
     public moveCamera(
         camera: Partial<Camera> & { animationMode?: AnimationMode | undefined }
     ): void {
+        if (this.originSize) {
+            this.appManager?.mainViewProxy.moveCameraByApi(camera);
+            return;
+        }
         const pureCamera = omit(camera, ["animationMode"]);
         const mainViewCamera = { ...this.mainView.camera };
         if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
@@ -2044,6 +2188,10 @@ export class WindowManager
                 animationMode?: AnimationMode;
             }>
     ): void {
+        if (this.originSize) {
+            this.appManager?.mainViewProxy.moveCameraToContainByApi(rectangle);
+            return;
+        }
         this.mainView.moveCameraToContain(rectangle);
         setTimeout(() => {
             this.appManager?.mainViewProxy.setCameraAndSize();
@@ -2055,7 +2203,25 @@ export class WindowManager
     }
 
     public setCameraBound(cameraBound: CameraBound): void {
-        this.mainView.setCameraBound(cameraBound);
+        const { damping, centerX, centerY, width, height } = cameraBound;
+        this.Logger?.info(
+            `[WindowManager]: setCameraBound ${JSON.stringify({
+                damping,
+                centerX,
+                centerY,
+                width,
+                height,
+                hasMaxContentMode: typeof cameraBound.maxContentMode === "function",
+                hasMinContentMode: typeof cameraBound.minContentMode === "function",
+                originSize: this.originSize,
+                mainViewSize: this.appManager?.mainViewProxy.view.size,
+            })}`
+        );
+        this.appManager?.mainViewProxy.setCameraBoundByApi(cameraBound);
+    }
+
+    public fitOriginSizeAndCamera(): void {
+        this.appManager?.mainViewProxy.fitOriginSizeAndCamera();
     }
 
     public override onDestroy(): void {
@@ -2211,7 +2377,11 @@ export class WindowManager
     }
 
     public setContainerSizeRatio(ratio: number) {
-        if (!isNumber(ratio) || !(ratio > 0)) {
+        if (
+            !isNumber(ratio) ||
+            !(ratio > 0) ||
+            (this.originSize !== undefined && !Number.isFinite(ratio))
+        ) {
             throw new Error(
                 `[WindowManager]: updateContainerSizeRatio error, ratio must be a positive number. but got ${ratio}`
             );
@@ -2219,6 +2389,86 @@ export class WindowManager
         WindowManager.containerSizeRatio = ratio;
         this.containerSizeRatio = ratio;
         internalEmitter.emit("containerSizeRatioUpdate", ratio);
+    }
+
+    private ensureOriginCameraCompatibility(): void {
+        if (!this.originSize) return;
+        const attributes = this.attributes || {};
+        const originCamera = attributes[Fields.OriginCamera];
+        const originSize = attributes[Fields.OriginSize];
+        const mainViewCamera = attributes[Fields.MainViewCamera];
+        const mainViewSize = attributes[Fields.MainViewSize];
+        const version = attributes[Fields.MainViewCameraCoordinateVersion];
+        const values = [originCamera, originSize, mainViewCamera, mainViewSize, version];
+        if (values.every(value => value === undefined)) return;
+
+        if (
+            isLegacyMainViewCameraContract(
+                originCamera,
+                originSize,
+                mainViewCamera,
+                mainViewSize,
+                version
+            )
+        ) {
+            if (this.canOperate) {
+                const id = this.room.uid;
+                this.safeSetAttributes({
+                    [Fields.OriginCamera]: { centerX: 0, centerY: 0, scale: 1, id },
+                    [Fields.OriginSize]: { ...this.originSize, id },
+                    [Fields.MainViewCamera]: { ...mainViewCamera },
+                    [Fields.MainViewSize]: { ...mainViewSize },
+                    [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+                });
+            }
+            return;
+        }
+
+        if (values.some(value => value === undefined)) {
+            throw new Error(
+                "[WindowManager]: originSize mode attributes must contain a complete origin and mainView camera contract"
+            );
+        }
+        if (version !== MAIN_VIEW_CAMERA_COORDINATE_VERSION) {
+            throw new Error(
+                `[WindowManager]: originSize cannot be enabled for legacy mainView camera attributes (coordinate version: ${String(
+                    version
+                )})`
+            );
+        }
+        if (!isSameOriginSize(originSize, this.originSize)) {
+            throw new Error(
+                `[WindowManager]: room originSize ${JSON.stringify(
+                    originSize
+                )} does not match local originSize ${JSON.stringify(this.originSize)}`
+            );
+        }
+        if (
+            !isValidCamera(originCamera) ||
+            originCamera.centerX !== 0 ||
+            originCamera.centerY !== 0 ||
+            originCamera.scale !== 1
+        ) {
+            throw new Error(
+                `[WindowManager]: room originCamera is invalid in originSize mode: ${JSON.stringify(
+                    originCamera
+                )}`
+            );
+        }
+        if (!isValidSize(mainViewSize)) {
+            throw new Error(
+                `[WindowManager]: room mainViewSize is invalid in originSize mode: ${JSON.stringify(
+                    mainViewSize
+                )}`
+            );
+        }
+        if (!isValidCamera(mainViewCamera)) {
+            throw new Error(
+                `[WindowManager]: room mainViewCamera is invalid in originSize mode: ${JSON.stringify(
+                    mainViewCamera
+                )}`
+            );
+        }
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {
