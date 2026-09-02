@@ -4,6 +4,7 @@ import {
     stringifyForAttributesLog,
 } from "./attributesLogStringify";
 import { WindowManager } from "../index";
+import { ROOM_LOG_DEBOUNCE_MIN } from "../constants";
 
 /** 经 Room logger 上报的单条字符串上限（含前缀） */
 const ROOM_LOG_MAX_LENGTH = 1500;
@@ -15,7 +16,7 @@ const NETLESS_ROOM_TOKEN_PATTERN = /NETLESSROOM_[A-Za-z0-9_=-]+/g;
 const URL_QUERY_PATTERN = /(https?:\/\/[^\s"'<>?]+)\?[^\s"'<>]*/gi;
 
 export type AppLoggerOptions = {
-    /** Trailing debounce delay for `debouncedInfo()`. Default: 300ms. */
+    /** Trailing debounce delay for `debouncedInfo()`. Default/minimum: 300ms. */
     debounceTime?: number;
     /** Force a pending event to be emitted during continuous calls. Default: 2000ms. */
     maxWaitTime?: number;
@@ -178,7 +179,10 @@ export class ScopedAppLogger implements AppLogger {
         private readonly context: AppLoggerContext,
         options: AppLoggerOptions = {}
     ) {
-        this.debounceTime = Math.max(0, options.debounceTime ?? 300);
+        this.debounceTime = Math.max(
+            ROOM_LOG_DEBOUNCE_MIN,
+            options.debounceTime ?? ROOM_LOG_DEBOUNCE_MIN
+        );
         this.maxWaitTime = Math.max(this.debounceTime, options.maxWaitTime ?? 2000);
     }
 
@@ -200,11 +204,6 @@ export class ScopedAppLogger implements AppLogger {
 
     debouncedInfo(event: string, payload?: unknown): void {
         if (this.destroyed || !this.logger) return;
-        if (this.debounceTime === 0) {
-            this.info(event, payload);
-            return;
-        }
-
         let pending = this.pending.get(event);
         if (!pending) {
             pending = { payload };
@@ -271,8 +270,8 @@ export const log = (...args: any[]): void => {
 };
 
 /**
- * 按 `[window-manager][tagName]` 前缀输出。
- * 若传入 `debounceTime`（毫秒）：窗口内多次 `log` 不立即输出，只在连续停止调用满 `debounceTime` 后输出**最后一次**的参数（尾部 debounce）。
+ * Local debug console. This does not write to Room logger or the upload pipeline.
+ * When debounced, only the latest arguments are printed after calls settle.
  */
 export class LocalConsole {
     private pendingArgs: unknown[] | null = null;
@@ -284,9 +283,7 @@ export class LocalConsole {
         this.flushTimer = null;
         const args = this.pendingArgs;
         this.pendingArgs = null;
-        if (args === null) {
-            return;
-        }
+        if (args === null) return;
         console.log(`[window-manager][${this.name}]: ${args.join(", ")}`);
     }
 
@@ -294,19 +291,13 @@ export class LocalConsole {
         const ms = this.debounceTime;
         if (ms != null && ms > 0) {
             this.pendingArgs = args;
-            if (this.flushTimer != null) {
-                clearTimeout(this.flushTimer);
-            }
+            if (this.flushTimer != null) clearTimeout(this.flushTimer);
             this.flushTimer = setTimeout(() => this.flush(), ms);
             return;
         }
         console.log(`[window-manager][${this.name}]: ${args.join(", ")}`);
     }
 
-    /**
-     * 销毁：清除 debounce 定时器与未输出的暂存参数。
-     * 持有 LocalConsole 的类在销毁时应调用。
-     */
     destroy(): void {
         if (this.flushTimer != null) {
             clearTimeout(this.flushTimer);
@@ -335,11 +326,16 @@ export class ArgusLog {
     private pendingUpdateSegments: { keys: string[]; value: unknown }[] | null = null;
     private updateMergeTimer: ReturnType<typeof setTimeout> | null = null;
 
+    private readonly debounceTime?: number;
+
     constructor(
         private readonly logger: Logger,
         private readonly name: string,
-        private readonly debounceTime?: number
-    ) {}
+        debounceTime?: number
+    ) {
+        this.debounceTime =
+            debounceTime == null ? undefined : Math.max(ROOM_LOG_DEBOUNCE_MIN, debounceTime);
+    }
 
     private emitInfo(message: string): void {
         this.logger.info(truncateRoomLogMessage(message));

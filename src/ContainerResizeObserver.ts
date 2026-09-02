@@ -4,7 +4,7 @@ import type { EmitterType } from "./InternalEmitter";
 import type { UnsubscribeFn } from "emittery";
 import type { Logger } from "white-web-sdk";
 import { CONTAINER_STATE_LOG_DEBOUNCE } from "./constants";
-import { ArgusLog, LocalConsole } from "./Utils/log";
+import { ArgusLog } from "./Utils/log";
 
 const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill;
 
@@ -20,7 +20,6 @@ export class ContainerResizeObserver {
     private containerResizeObserver?: ResizeObserver;
     private disposer?: UnsubscribeFn;
 
-    private updateSizerLocalConsole = new LocalConsole("updateSizer", 100);
     private containerStateArgusLog?: ArgusLog;
     private containerStateLogTimer?: ReturnType<typeof setTimeout>;
     private pendingContainerState?: {
@@ -108,11 +107,6 @@ export class ContainerResizeObserver {
             wrapper.style.width = `${width}px`;
             wrapper.style.height = `${height}px`;
             const wrapperRect = wrapper.getBoundingClientRect();
-            this.updateSizerLocalConsole.log(
-                `from ${origin}, traget size: ${JSON.stringify({ width, height })}, wrapperRect: ${
-                    wrapperRect.width
-                } ${wrapperRect.height}`
-            );
             this.emitter.emit("wrapperRectChange", {
                 width: wrapperRect.width,
                 height: wrapperRect.height,
@@ -204,7 +198,6 @@ export class ContainerResizeObserver {
     }
 
     public disconnect() {
-        this.updateSizerLocalConsole.destroy();
         if (this.containerStateLogTimer != null) {
             clearTimeout(this.containerStateLogTimer);
             this.containerStateLogTimer = undefined;

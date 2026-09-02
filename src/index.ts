@@ -6,7 +6,13 @@ import { checkVersion, createInvisiblePlugin, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
-import { DEFAULT_CONTAINER_RATIO, Events, INIT_DIR, ROOT_DIR } from "./constants";
+import {
+    DEFAULT_CONTAINER_RATIO,
+    Events,
+    INIT_DIR,
+    ROOT_DIR,
+    ROOM_LOG_DEBOUNCE_MIN,
+} from "./constants";
 import { internalEmitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
@@ -430,7 +436,7 @@ export class WindowManager
                 manager.attributesDeboundceLog = new ArgusLog(
                     manager._roomLogger,
                     "attributes",
-                    300
+                    ROOM_LOG_DEBOUNCE_MIN
                 );
                 if (WindowManager.registered.size > 0) {
                     manager._roomLogger.info(

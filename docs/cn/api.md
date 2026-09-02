@@ -165,7 +165,7 @@ try {
 <h3 id="appContextCreateLogger">AppContext.createLogger</h3>
 
 > App 内创建带 App 上下文的 Room/SLS logger。logger 随 App 销毁，错误日志立即上报，
-> 高频 info 日志可按 event 名分别防抖。
+> 高频 info 日志可按 event 名分别防抖。防抖时间默认 300ms，小于 300ms 的配置按 300ms 处理。
 
 ```typescript
 setup(context) {

@@ -9,8 +9,7 @@ import { SideEffectManager } from "side-effect-manager";
 import type { Camera, CameraBound, Rectangle, Room, Size, View } from "white-web-sdk";
 import type { AppManager } from "../AppManager";
 import type { MainViewCamera } from "../AttributesDelegate";
-import { Events } from "../constants";
-import { ArgusLog, LocalConsole } from "../Utils/log";
+import { Events, ROOM_LOG_DEBOUNCE_MIN } from "../constants";
 import {
     MAIN_VIEW_CAMERA_COORDINATE_VERSION,
     isSameOriginSize,
@@ -91,14 +90,7 @@ export class MainViewProxy {
 
     private sideEffectManager = new SideEffectManager();
 
-    private playgroundSizeChangeListenerLocalConsole = new LocalConsole(
-        "playgroundSizeChangeListener",
-        100
-    );
-    private sizeUpdatedLocalConsole = new LocalConsole("sizeUpdated", 100);
-    private cameraUpdatedLocalConsole = new LocalConsole("cameraUpdated", 300);
-    private cameraReactionLocalConsole = new LocalConsole("cameraReaction", 100);
-    private mainViewAttributeSyncArgusLog?: ArgusLog;
+    private mainViewStateLogTimer?: ReturnType<typeof setTimeout>;
 
     constructor(private manager: AppManager) {
         this.mainView = this.createMainView();
@@ -110,19 +102,8 @@ export class MainViewProxy {
             this.startListenWritableChange();
         });
         const playgroundSizeChangeListener = () => {
-            this.playgroundSizeChangeListenerLocalConsole.log(
-                JSON.stringify(this.mainView.camera),
-                JSON.stringify(this.mainView.size),
-                JSON.stringify(this.mainViewSize),
-                JSON.stringify(this.mainViewCamera),
-                window.outerHeight,
-                window.outerWidth,
-                window.visualViewport?.width ?? "null",
-                window.visualViewport?.height ?? "null",
-                window.visualViewport?.offsetLeft ?? "null",
-                window.visualViewport?.offsetTop ?? "null"
-            );
             this.sizeChangeHandler(this.mainViewSize);
+            this.scheduleMainViewStateLog();
         };
         this.sideEffectManager.add(() => {
             return internalEmitter.on("playgroundSizeChange", playgroundSizeChangeListener);
@@ -1063,16 +1044,45 @@ export class MainViewProxy {
         }
     }
 
-    private logMainViewAttributeSync(payload: Record<string, unknown>): void {
-        if (!this.mainViewAttributeSyncArgusLog && this.manager.Logger) {
-            this.mainViewAttributeSyncArgusLog = new ArgusLog(
-                this.manager.Logger,
-                "mainViewAttributeSync",
-                200
-            );
-        }
-        this.mainViewAttributeSyncArgusLog?.log(JSON.stringify(payload));
+    private scheduleMainViewStateLog(): void {
+        if (!this.manager.Logger) return;
+        if (this.mainViewStateLogTimer != null) clearTimeout(this.mainViewStateLogTimer);
+        this.mainViewStateLogTimer = setTimeout(this.flushMainViewStateLog, ROOM_LOG_DEBOUNCE_MIN);
     }
+
+    private flushMainViewStateLog = (): void => {
+        this.mainViewStateLogTimer = undefined;
+        const logger = this.manager.Logger;
+        if (!logger) return;
+
+        const visualViewport = window.visualViewport;
+        const mainViewRect = this.view.divElement?.getBoundingClientRect();
+        logger.info(
+            `[WindowManager][mainViewState]: ${JSON.stringify({
+                mode: this.isOriginMode ? "origin" : "legacy",
+                attributeCamera: this.mainViewCamera,
+                attributeSize: this.mainViewSize,
+                coordinateVersion: this.mainViewCameraCoordinateVersion,
+                configuredOriginSize: this.originSize,
+                viewCamera: this.view.camera,
+                viewSize: this.view.size,
+                viewDOMSize: mainViewRect
+                    ? { width: mainViewRect.width, height: mainViewRect.height }
+                    : undefined,
+                focusScenePath: this.view.focusScenePath,
+                outerViewport: { width: window.outerWidth, height: window.outerHeight },
+                visualViewport: visualViewport
+                    ? {
+                          width: visualViewport.width,
+                          height: visualViewport.height,
+                          offsetLeft: visualViewport.offsetLeft,
+                          offsetTop: visualViewport.offsetTop,
+                          scale: visualViewport.scale,
+                      }
+                    : undefined,
+            })}`
+        );
+    };
 
     private cameraReaction = () => {
         if (!this.isOriginMode) {
@@ -1080,31 +1090,11 @@ export class MainViewProxy {
                 () => this.mainViewCamera,
                 (camera: MainViewCamera | undefined) => {
                     const attributeSize = this.mainViewSize;
-                    const localCameraBefore = { ...this.view.camera };
-                    let action = "ignored-empty-camera";
                     if (camera && camera.id !== this.manager.uid) {
                         this.moveCameraToContian(attributeSize);
                         this.moveCamera(camera);
-                        action = "applied-remote-camera";
-                        this.cameraReactionLocalConsole.log(
-                            `camera: ${JSON.stringify(camera)}, current size: ${JSON.stringify(
-                                attributeSize
-                            )}`
-                        );
-                    } else if (camera) {
-                        action = "ignored-local-author";
                     }
-                    this.logMainViewAttributeSync({
-                        mode: "legacy",
-                        action,
-                        localUid: this.manager.uid,
-                        attributeCamera: camera,
-                        attributeSize,
-                        localCameraBefore,
-                        localCameraAfter: { ...this.view.camera },
-                        localViewSize: { ...this.view.size },
-                        containScale: this.scale,
-                    });
+                    this.scheduleMainViewStateLog();
                 },
                 { fireImmediately: true }
             );
@@ -1126,34 +1116,13 @@ export class MainViewProxy {
                 version: number | undefined;
             }) => {
                 const { camera } = snapshot;
-                const localCameraBefore = { ...this.view.camera };
-                let action = "ignored-empty-camera";
                 if (camera && camera.id !== this.manager.uid) {
                     const mainViewCamera = this.currentOriginCameraForApi();
                     if (mainViewCamera && !this.layoutSyncing) {
                         this.applyMainViewCamera(mainViewCamera);
-                        action = "applied-remote-camera";
-                    } else {
-                        action = this.layoutSyncing
-                            ? "deferred-layout-sync"
-                            : "ignored-invalid-camera-contract";
                     }
-                } else if (camera) {
-                    action = "ignored-local-author";
                 }
-                this.logMainViewAttributeSync({
-                    mode: "origin",
-                    action,
-                    localUid: this.manager.uid,
-                    attributeCamera: camera,
-                    attributeSize: snapshot.size,
-                    coordinateVersion: snapshot.version,
-                    configuredOriginSize: this.originSize,
-                    localCameraBefore,
-                    localCameraAfter: { ...this.view.camera },
-                    localViewSize: { ...this.view.size },
-                    layoutSyncing: this.layoutSyncing,
-                });
+                this.scheduleMainViewStateLog();
             },
             { fireImmediately: true }
         );
@@ -1310,8 +1279,7 @@ export class MainViewProxy {
         this.ensureMainViewSize();
     };
 
-    private onCameraUpdated = (camera: Camera) => {
-        this.cameraUpdatedLocalConsole.log(JSON.stringify(camera));
+    private onCameraUpdated = (_camera: Camera) => {
         if (this.cameraAndSizeCommitPending) this.scheduleSetCameraAndSize();
         if (
             this.isOriginMode &&
@@ -1321,16 +1289,17 @@ export class MainViewProxy {
             this.scheduleOriginCameraCommit(100);
         }
         this.handleCameraOrSizeUpdated();
+        this.scheduleMainViewStateLog();
     };
 
-    private onSizeUpdated = (size: Size) => {
-        this.sizeUpdatedLocalConsole.log(JSON.stringify(size));
+    private onSizeUpdated = (_size: Size) => {
         if (this.cameraAndSizeCommitPending) this.scheduleSetCameraAndSize();
         if (this.isOriginMode) {
             if (!this.layoutSyncing) this.beginOriginLayoutSync();
             this.tryFinishOriginLayoutSync();
         }
         this.handleCameraOrSizeUpdated();
+        this.scheduleMainViewStateLog();
     };
 
     private ensureMainViewSize() {
@@ -1434,12 +1403,10 @@ export class MainViewProxy {
         this.pendingCameraAndSizeReferenceSize = undefined;
         this.pendingOriginCameraOperations = [];
         this.originCameraOperationBaseCamera = undefined;
-        this.playgroundSizeChangeListenerLocalConsole.destroy();
-        this.sizeUpdatedLocalConsole.destroy();
-        this.cameraUpdatedLocalConsole.destroy();
-        this.cameraReactionLocalConsole.destroy();
-        this.mainViewAttributeSyncArgusLog?.destroy();
-        this.mainViewAttributeSyncArgusLog = undefined;
+        if (this.mainViewStateLogTimer != null) {
+            clearTimeout(this.mainViewStateLogTimer);
+            this.mainViewStateLogTimer = undefined;
+        }
         this.removeMainViewListener();
         this.stop();
         this.sideEffectManager.flushAll();

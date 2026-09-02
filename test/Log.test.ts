@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Logger } from "white-web-sdk";
-import { createManagedRoomLogger, ScopedAppLogger } from "../src/Utils/log";
+import {
+    ArgusLog,
+    createManagedRoomLogger,
+    LocalConsole,
+    ScopedAppLogger,
+} from "../src/Utils/log";
 
 vi.mock("../src/index", () => ({ WindowManager: { debug: false } }));
 
@@ -93,5 +98,44 @@ describe("managed WindowManager logging", () => {
         logger.destroy();
         expect(roomLogger.info).toHaveBeenCalledTimes(2);
         expect(roomLogger.info.mock.calls[1][0]).toContain('"scale":6');
+    });
+
+    it("clamps Room logger debounce timers to 300ms", () => {
+        vi.useFakeTimers();
+        const roomLogger = createRoomLogger();
+        const managedLogger = createManagedRoomLogger(roomLogger as unknown as Logger);
+        const appLogger = new ScopedAppLogger(
+            managedLogger,
+            "camera",
+            { kind: "Presentation", appId: "app-1" },
+            { debounceTime: 100 }
+        );
+        const argusLogger = new ArgusLog(managedLogger, "mainView", 200);
+
+        appLogger.debouncedInfo("moveCamera", { scale: 2 });
+        argusLogger.log("final camera");
+        vi.advanceTimersByTime(299);
+        expect(roomLogger.info).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(1);
+        expect(roomLogger.info).toHaveBeenCalledTimes(2);
+        appLogger.destroy();
+        argusLogger.destroy();
+    });
+
+    it("keeps LocalConsole available for debounced local debugging", () => {
+        vi.useFakeTimers();
+        const consoleLog = vi.spyOn(console, "log").mockImplementation(() => undefined);
+        const localConsole = new LocalConsole("camera", 100);
+
+        localConsole.log("first");
+        localConsole.log("final");
+        vi.advanceTimersByTime(99);
+        expect(consoleLog).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(1);
+        expect(consoleLog).toHaveBeenCalledOnce();
+        expect(consoleLog).toHaveBeenCalledWith("[window-manager][camera]: final");
+        localConsole.destroy();
     });
 });

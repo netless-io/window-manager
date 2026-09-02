@@ -169,6 +169,7 @@ try {
 
 > Create an App-scoped Room/SLS logger. It is disposed with the App; error logs are
 > immediate while high-frequency info logs can be debounced independently by event.
+> The debounce delay defaults to 300ms and values below 300ms are clamped to 300ms.
 
 ```typescript
 setup(context) {

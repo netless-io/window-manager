@@ -22,13 +22,6 @@ vi.mock("../src/AttributesDelegate", () => ({
 vi.mock("../src/Utils/Common", () => ({
     setViewFocusScenePath: vi.fn(),
 }));
-vi.mock("../src/Utils/log", () => ({
-    LocalConsole: class {
-        log = vi.fn();
-        destroy = vi.fn();
-    },
-}));
-
 import { MainViewProxy } from "../src/View/MainView";
 
 type TestCamera = { centerX: number; centerY: number; scale: number };
@@ -43,6 +36,7 @@ function createHarness(
         roomOriginSize?: TestSize;
         mainViewSize?: TestSize;
         mainViewCamera?: TestCamera;
+        logger?: { info: ReturnType<typeof vi.fn> };
     } = {}
 ) {
     let camera: TestCamera = { centerX: 0, centerY: 0, scale: 1 };
@@ -176,9 +170,10 @@ function createHarness(
         windowManger: {
             originSize: configuredOriginSize,
             viewMode: 0,
-            Logger: undefined,
+            Logger: options.logger,
             onMainViewScenePathChangeHandler: vi.fn(),
         },
+        Logger: options.logger,
         refresher: { add: vi.fn(), remove: vi.fn() },
         room: undefined,
         canOperate: options.canOperate,
@@ -869,5 +864,56 @@ describe("MainViewProxy originSize mode", () => {
         ]);
         expect(harness.initializationWrites).toEqual([]);
         harness.proxy.destroy();
+    });
+
+    it("reports only the final main view state after 300ms", () => {
+        const logger = { info: vi.fn() };
+        const visualViewportDescriptor = Object.getOwnPropertyDescriptor(window, "visualViewport");
+        Object.defineProperty(window, "visualViewport", {
+            configurable: true,
+            value: {
+                width: 390,
+                height: 844,
+                offsetLeft: 2,
+                offsetTop: 3,
+                scale: 1.5,
+            },
+        });
+
+        try {
+            const harness = createHarness(undefined, { logger });
+
+            harness.setCamera({ centerX: 10, centerY: 20, scale: 1.5 });
+            harness.emitCameraUpdated();
+            vi.advanceTimersByTime(200);
+            harness.setCamera({ centerX: 30, centerY: 40, scale: 2 });
+            harness.setSize({ width: 720, height: 1280 });
+            harness.emitSizeUpdated();
+
+            vi.advanceTimersByTime(299);
+            expect(logger.info).not.toHaveBeenCalled();
+            vi.advanceTimersByTime(1);
+
+            expect(logger.info).toHaveBeenCalledOnce();
+            const message = logger.info.mock.calls[0][0] as string;
+            const state = JSON.parse(message.slice(message.indexOf(": ") + 2));
+            expect(message).toContain("[WindowManager][mainViewState]");
+            expect(state.viewCamera).toEqual(harness.view.camera);
+            expect(state.viewSize).toEqual(harness.view.size);
+            expect(state.visualViewport).toEqual({
+                width: 390,
+                height: 844,
+                offsetLeft: 2,
+                offsetTop: 3,
+                scale: 1.5,
+            });
+            harness.proxy.destroy();
+        } finally {
+            if (visualViewportDescriptor) {
+                Object.defineProperty(window, "visualViewport", visualViewportDescriptor);
+            } else {
+                delete (window as Window & { visualViewport?: VisualViewport }).visualViewport;
+            }
+        }
     });
 });

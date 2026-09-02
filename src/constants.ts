@@ -60,4 +60,6 @@ export const SETUP_APP_DELAY = 50;
 
 export const BOX_SIZE_SETTLE_DELAY = 650;
 
+export const ROOM_LOG_DEBOUNCE_MIN = 300;
+
 export const CONTAINER_STATE_LOG_DEBOUNCE = 1000;
