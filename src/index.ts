@@ -12,7 +12,7 @@ import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
 import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, omit, isNumber } from "lodash";
-import { ArgusLog, log } from "./Utils/log";
+import { ArgusLog, createManagedRoomLogger, log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
@@ -69,6 +69,7 @@ export type {
     UnifiedPageStateObservation,
     UnifiedPageStateChange,
 } from "./UnifiedPageControl";
+export type { AppLogger, AppLoggerOptions } from "./Utils/log";
 import { executeAppPageCommand, UnifiedPageControlTracker } from "./UnifiedPageControl";
 import type {
     PageEvent,
@@ -346,7 +347,9 @@ export class WindowManager
             }
             manager = await this.initManager(room);
             if (manager) {
-                manager._roomLogger = (room as unknown as { logger: Logger }).logger;
+                manager._roomLogger = createManagedRoomLogger(
+                    (room as unknown as { logger: Logger }).logger
+                );
                 manager.attributesDeboundceLog = new ArgusLog(
                     manager._roomLogger,
                     "attributes",
@@ -653,6 +656,39 @@ export class WindowManager
             }
         } else {
             throw new Errors.AppManagerNotInitError();
+        }
+    }
+
+    /**
+     * Create an App and wait until its `setup()` has completed.
+     *
+     * Unlike `addApp()`, setup failures reject this Promise and the partially
+     * initialized local App is removed. Existing `addApp()` timing is unchanged.
+     */
+    public async addAppAndWaitForSetup<T = any>(params: AddAppParams<T>): Promise<string> {
+        const appId = await this.addApp(params);
+        if (!appId) {
+            throw new Error("[WindowManager]: app was not created");
+        }
+        const app = this.queryOne(appId);
+        if (!app) {
+            throw new Error(`[WindowManager]: app not found after creation, appId: ${appId}`);
+        }
+        try {
+            await app.waitForSetup();
+            return appId;
+        } catch (error) {
+            const cause = error instanceof Error ? error : new Error(String(error));
+            try {
+                await app.destroy(true, true, false, cause);
+            } catch (cleanupError) {
+                this.Logger?.error(
+                    `[WindowManager]: failed to clean up app after setup error, appId: ${appId}, error: ${String(
+                        cleanupError
+                    )}`
+                );
+            }
+            throw error;
         }
     }
 

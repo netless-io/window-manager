@@ -9,6 +9,7 @@
     - [`setCollectorContainer`](#set-collector-container)
   - [实例方法](#instance-methods)
     - [`addApp`](#addApp)
+    - [`addAppAndWaitForSetup`](#addAppAndWaitForSetup)
     - [`closeApp`](#closeApp)
     - [`focusApp`](#focusApp)
     - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
@@ -136,6 +137,51 @@ const appId = await manager.addApp({
 })
 ```
 具体参数请参考 `APP` 本身的要求
+
+`addApp()` 在窗口创建后即可返回，不等待 App 的 `setup()` 完成。需要捕获 `setup()`
+异常时使用 `addAppAndWaitForSetup()`。
+
+<h3 id="addAppAndWaitForSetup">addAppAndWaitForSetup</h3>
+
+> 添加 App 并等待它的 `setup()` 完成。setup 失败时 Promise reject，并清理本地半初始化 App。
+
+```typescript
+try {
+    const appId = await manager.addAppAndWaitForSetup({
+        kind: "helloWorld",
+        options: { scenePath: "/hello-world" },
+    })
+} catch (error) {
+    // error 是 App setup 抛出的原始异常。
+}
+```
+
+<h3 id="appContextCreateLogger">AppContext.createLogger</h3>
+
+> App 内创建带 App 上下文的 Room/SLS logger。logger 随 App 销毁，错误日志立即上报，
+> 高频 info 日志可按 event 名分别防抖。
+
+```typescript
+setup(context) {
+    const logger = context.createLogger("camera", {
+        debounceTime: 300,
+        maxWaitTime: 2000,
+    })
+
+    logger.info("initialize", { camera: context.getView()?.camera })
+    logger.debouncedInfo("moveCamera", { camera: context.getView()?.camera })
+
+    try {
+        // App 操作
+    } catch (error) {
+        logger.error("operation.failed", error)
+        throw error
+    }
+}
+```
+
+WindowManager 内部日志和 App logger 统一进行安全序列化、敏感字段及 URL query
+脱敏，并限制单条日志长度。`error()` 不进行防抖。
 
 <h3 id="closeApp">closeApp</h3>
 

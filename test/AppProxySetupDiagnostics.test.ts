@@ -44,6 +44,8 @@ const createProxy = () => {
         },
         boxSizeSynchronizer: { destroy: vi.fn() },
         _pageState: { destroy: vi.fn() },
+        setupCompletionSettled: false,
+        resolveSetupCompletion: vi.fn(),
     });
     proxy.manager.appProxies.set(proxy.id, proxy);
     return { proxy, logger };
@@ -72,6 +74,17 @@ describe("AppProxy setup diagnostics", () => {
         expect(logger.error).not.toHaveBeenCalled();
     });
 
+    it("waitForSetup returns the result and rethrows the original setup error", async () => {
+        const { proxy } = createProxy();
+        const result = { controller: true };
+        proxy.setupCompletionPromise = Promise.resolve({ succeeded: true, result });
+        await expect(proxy.waitForSetup()).resolves.toBe(result);
+
+        const error = new Error("setup failed");
+        proxy.setupCompletionPromise = Promise.resolve({ succeeded: false, error });
+        await expect(proxy.waitForSetup()).rejects.toBe(error);
+    });
+
     it("logs one error and clears the watchdog when setup rejects", async () => {
         vi.useFakeTimers();
         const { proxy, logger } = createProxy();
@@ -83,10 +96,12 @@ describe("AppProxy setup diagnostics", () => {
         );
         vi.advanceTimersByTime(10_000);
 
-        expect(setupResult).toEqual({ succeeded: false });
+        expect(setupResult).toEqual({ succeeded: false, error: expect.any(Error) });
         expect(logger.error).toHaveBeenCalledOnce();
         expect(logger.error).toHaveBeenCalledWith(
-            "[WindowManager]: app setup error, kind: Slide, appId: app-1, status: normal, error: setup failed"
+            expect.stringContaining(
+                "[WindowManager]: app setup error, kind: Slide, appId: app-1, status: normal, error: setup failed, stack: Error: setup failed"
+            )
         );
         expect(logger.warn).not.toHaveBeenCalled();
     });
@@ -109,7 +124,9 @@ describe("AppProxy setup diagnostics", () => {
         await pendingSetup;
 
         expect(logger.error).toHaveBeenCalledWith(
-            "[WindowManager]: app setup error, kind: Slide, appId: app-1, status: destroyed, error: setup stopped"
+            expect.stringContaining(
+                "[WindowManager]: app setup error, kind: Slide, appId: app-1, status: destroyed, error: setup stopped, stack: Error: setup stopped"
+            )
         );
     });
 

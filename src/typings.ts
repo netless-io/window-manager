@@ -35,7 +35,9 @@ export interface NetlessApp<
         /** App only single instance. */
         singleton?: boolean;
     };
-    setup: (context: AppContext<Attributes, MagixEventPayloads, AppOptions>) => SetupResult;
+    setup: (
+        context: AppContext<Attributes, MagixEventPayloads, AppOptions>
+    ) => SetupResult | Promise<SetupResult>;
 }
 
 export type AppEmitterEvent<T = any> = {

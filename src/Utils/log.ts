@@ -5,15 +5,251 @@ import {
 } from "./attributesLogStringify";
 import { WindowManager } from "../index";
 
-/** ArgusLog 经 `logger.info` 上报的单条字符串上限（含前缀） */
-const ARGUS_LOG_INFO_MAX_LENGTH = 1500;
+/** 经 Room logger 上报的单条字符串上限（含前缀） */
+const ROOM_LOG_MAX_LENGTH = 1500;
 
-function truncateArgusLogInfoMessage(message: string): string {
-    if (message.length <= ARGUS_LOG_INFO_MAX_LENGTH) {
+const SENSITIVE_KEY_PATTERN = /token|authorization|credential|secret|signature/i;
+const SENSITIVE_QUERY_PATTERN =
+    /([?&](?:token|roomToken|signature|authorization|credential|secret)=)[^&\s]*/gi;
+const NETLESS_ROOM_TOKEN_PATTERN = /NETLESSROOM_[A-Za-z0-9_=-]+/g;
+const URL_QUERY_PATTERN = /(https?:\/\/[^\s"'<>?]+)\?[^\s"'<>]*/gi;
+
+export type AppLoggerOptions = {
+    /** Trailing debounce delay for `debouncedInfo()`. Default: 300ms. */
+    debounceTime?: number;
+    /** Force a pending event to be emitted during continuous calls. Default: 2000ms. */
+    maxWaitTime?: number;
+};
+
+export interface AppLogger {
+    debug(event: string, payload?: unknown): void;
+    info(event: string, payload?: unknown): void;
+    warn(event: string, payload?: unknown): void;
+    /** Error logs are always emitted immediately and are never debounced. */
+    error(event: string, error: unknown, payload?: unknown): void;
+    /** Debounced independently by event name. */
+    debouncedInfo(event: string, payload?: unknown): void;
+    /** Flush all pending debounced info logs immediately. */
+    flush(): void;
+}
+
+export type AppLoggerContext = {
+    kind: string;
+    appId: string;
+    uid?: string;
+};
+
+type LogLevel = "debug" | "info" | "warn" | "error";
+
+function redactSensitiveText(text: string): string {
+    return text
+        .replace(URL_QUERY_PATTERN, "$1?[REDACTED]")
+        .replace(SENSITIVE_QUERY_PATTERN, "$1[REDACTED]")
+        .replace(NETLESS_ROOM_TOKEN_PATTERN, "NETLESSROOM_[REDACTED]");
+}
+
+function serializeLogValue(
+    value: unknown,
+    seen = new WeakSet<Record<PropertyKey, unknown>>(),
+    depth = 0
+): string {
+    if (value === undefined) return "undefined";
+    if (value === null) return "null";
+    if (typeof value === "string") return JSON.stringify(redactSensitiveText(value));
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (typeof value === "bigint") return `${value}n`;
+    if (typeof value === "symbol" || typeof value === "function") return String(value);
+    if (depth >= 6) return "[MaxDepth]";
+
+    const object = value as Record<PropertyKey, unknown>;
+    if (seen.has(object)) return "[Circular]";
+    seen.add(object);
+    try {
+        if (value instanceof Error) {
+            return serializeLogValue(
+                { name: value.name, message: value.message, stack: value.stack },
+                seen,
+                depth + 1
+            );
+        }
+        if (value instanceof Date) return JSON.stringify(value.toISOString());
+        if (value instanceof RegExp) return JSON.stringify(String(value));
+        if (Array.isArray(value)) {
+            return `[${value
+                .slice(0, 50)
+                .map(item => serializeLogValue(item, seen, depth + 1))
+                .join(",")}${value.length > 50 ? ',"[Truncated]"' : ""}]`;
+        }
+
+        const record = value as Record<string, unknown>;
+        const keys = Object.keys(record).slice(0, 50);
+        const parts = keys.map(key => {
+            if (SENSITIVE_KEY_PATTERN.test(key)) {
+                return `${JSON.stringify(key)}:"[REDACTED]"`;
+            }
+            let item: unknown;
+            try {
+                item = record[key];
+            } catch {
+                item = "[Threw]";
+            }
+            return `${JSON.stringify(key)}:${serializeLogValue(item, seen, depth + 1)}`;
+        });
+        if (Object.keys(record).length > keys.length) parts.push('"[Truncated]":true');
+        return `{${parts.join(",")}}`;
+    } catch {
+        return "[Unserializable]";
+    } finally {
+        seen.delete(object);
+    }
+}
+
+function truncateRoomLogMessage(message: string): string {
+    if (message.length <= ROOM_LOG_MAX_LENGTH) {
         return message;
     }
-    const ellipsis = "…";
-    return message.slice(0, ARGUS_LOG_INFO_MAX_LENGTH - ellipsis.length) + ellipsis;
+    const suffix = "...[truncated]";
+    return message.slice(0, ROOM_LOG_MAX_LENGTH - suffix.length) + suffix;
+}
+
+function formatLoggerArguments(messages: unknown[]): string {
+    if (messages.length === 1 && typeof messages[0] === "string") {
+        return redactSensitiveText(messages[0]);
+    }
+    return messages
+        .map(message =>
+            typeof message === "string" ? redactSensitiveText(message) : serializeLogValue(message)
+        )
+        .join(" ");
+}
+
+function emitManagedRoomLog(logger: Logger, level: LogLevel, messages: unknown[]): void {
+    try {
+        const printer = logger[level];
+        if (typeof printer === "function") {
+            printer.call(logger, truncateRoomLogMessage(formatLoggerArguments(messages)));
+        }
+    } catch (error) {
+        if (WindowManager.debug) {
+            console.warn("[WindowManager]: room logger failed", level, error);
+        }
+    }
+}
+
+/**
+ * Wrap the SDK room logger so every WindowManager internal log uses the same
+ * redaction, serialization and length limit.
+ */
+export function createManagedRoomLogger(logger: Logger): Logger {
+    const managed = {
+        context: logger.context,
+        debug: (...messages: unknown[]) => emitManagedRoomLog(logger, "debug", messages),
+        info: (...messages: unknown[]) => emitManagedRoomLog(logger, "info", messages),
+        warn: (...messages: unknown[]) => emitManagedRoomLog(logger, "warn", messages),
+        error: (...messages: unknown[]) => emitManagedRoomLog(logger, "error", messages),
+        withContext: (context: Record<string, unknown>) => {
+            try {
+                return createManagedRoomLogger(
+                    typeof logger.withContext === "function" ? logger.withContext(context) : logger
+                );
+            } catch {
+                return createManagedRoomLogger(logger);
+            }
+        },
+    };
+    return managed as unknown as Logger;
+}
+
+type PendingAppLog = {
+    payload: unknown;
+    debounceTimer?: ReturnType<typeof setTimeout>;
+    maxWaitTimer?: ReturnType<typeof setTimeout>;
+};
+
+export class ScopedAppLogger implements AppLogger {
+    private readonly debounceTime: number;
+    private readonly maxWaitTime: number;
+    private readonly pending = new Map<string, PendingAppLog>();
+    private destroyed = false;
+
+    constructor(
+        private readonly logger: Logger | undefined,
+        private readonly scope: string,
+        private readonly context: AppLoggerContext,
+        options: AppLoggerOptions = {}
+    ) {
+        this.debounceTime = Math.max(0, options.debounceTime ?? 300);
+        this.maxWaitTime = Math.max(this.debounceTime, options.maxWaitTime ?? 2000);
+    }
+
+    debug(event: string, payload?: unknown): void {
+        this.emit("debug", event, payload);
+    }
+
+    info(event: string, payload?: unknown): void {
+        this.emit("info", event, payload);
+    }
+
+    warn(event: string, payload?: unknown): void {
+        this.emit("warn", event, payload);
+    }
+
+    error(event: string, error: unknown, payload?: unknown): void {
+        this.emit("error", event, payload, error);
+    }
+
+    debouncedInfo(event: string, payload?: unknown): void {
+        if (this.destroyed || !this.logger) return;
+        if (this.debounceTime === 0) {
+            this.info(event, payload);
+            return;
+        }
+
+        let pending = this.pending.get(event);
+        if (!pending) {
+            pending = { payload };
+            this.pending.set(event, pending);
+            pending.maxWaitTimer = setTimeout(() => this.flushEvent(event), this.maxWaitTime);
+        } else {
+            pending.payload = payload;
+        }
+        if (pending.debounceTimer != null) clearTimeout(pending.debounceTimer);
+        pending.debounceTimer = setTimeout(() => this.flushEvent(event), this.debounceTime);
+    }
+
+    flush(): void {
+        for (const event of Array.from(this.pending.keys())) this.flushEvent(event);
+    }
+
+    destroy(flushPending = true): void {
+        if (this.destroyed) return;
+        if (flushPending) this.flush();
+        for (const pending of this.pending.values()) this.clearPendingTimers(pending);
+        this.pending.clear();
+        this.destroyed = true;
+    }
+
+    private flushEvent(event: string): void {
+        const pending = this.pending.get(event);
+        if (!pending) return;
+        this.pending.delete(event);
+        this.clearPendingTimers(pending);
+        this.emit("info", event, pending.payload);
+    }
+
+    private clearPendingTimers(pending: PendingAppLog): void {
+        if (pending.debounceTimer != null) clearTimeout(pending.debounceTimer);
+        if (pending.maxWaitTimer != null) clearTimeout(pending.maxWaitTimer);
+    }
+
+    private emit(level: LogLevel, event: string, payload?: unknown, error?: unknown): void {
+        if (this.destroyed || !this.logger) return;
+        const metadata = { ...this.context, scope: this.scope, event };
+        let message = `[WindowManager][App] ${serializeLogValue(metadata)}`;
+        if (error !== undefined) message += ` error=${serializeLogValue(error)}`;
+        if (payload !== undefined) message += ` payload=${serializeLogValue(payload)}`;
+        this.logger[level](message);
+    }
 }
 
 function keysPathEqual(a: string[], b: string[]): boolean {
@@ -106,7 +342,7 @@ export class ArgusLog {
     ) {}
 
     private emitInfo(message: string): void {
-        this.logger.info(truncateArgusLogInfoMessage(message));
+        this.logger.info(truncateRoomLogMessage(message));
     }
 
     private flush(): void {

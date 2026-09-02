@@ -9,6 +9,7 @@
      - [`setCollectorContainer`](#set-collector-container)
    - [instance methods](#instance-methods)
      - [`addApp`](#addApp)
+     - [`addAppAndWaitForSetup`](#addAppAndWaitForSetup)
      - [`closeApp`](#closeApp)
      - [`focusApp`](#focusApp)
      - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
@@ -138,6 +139,52 @@ const appId = await manager.addApp({
 })
 ```
 For specific parameters, please refer to the requirements of `APP` itself
+
+`addApp()` returns after the window is created and does not wait for App `setup()`.
+Use `addAppAndWaitForSetup()` when setup errors must be caught by the caller.
+
+<h3 id="addAppAndWaitForSetup">addAppAndWaitForSetup</h3>
+
+> Add an App and wait for its `setup()` to complete. A setup failure rejects with the
+> original error and removes the partially initialized local App.
+
+```typescript
+try {
+    const appId = await manager.addAppAndWaitForSetup({
+        kind: "helloWorld",
+        options: { scenePath: "/hello-world" },
+    })
+} catch (error) {
+    // The original error thrown by App setup.
+}
+```
+
+<h3 id="appContextCreateLogger">AppContext.createLogger</h3>
+
+> Create an App-scoped Room/SLS logger. It is disposed with the App; error logs are
+> immediate while high-frequency info logs can be debounced independently by event.
+
+```typescript
+setup(context) {
+    const logger = context.createLogger("camera", {
+        debounceTime: 300,
+        maxWaitTime: 2000,
+    })
+
+    logger.info("initialize", { camera: context.getView()?.camera })
+    logger.debouncedInfo("moveCamera", { camera: context.getView()?.camera })
+
+    try {
+        // App operation
+    } catch (error) {
+        logger.error("operation.failed", error)
+        throw error
+    }
+}
+```
+
+WindowManager internal logs and App logs use the same safe serialization, sensitive field
+and URL query redaction, and message length limit. `error()` is never debounced.
 
 <h3 id="closeApp">closeApp</h3>
 

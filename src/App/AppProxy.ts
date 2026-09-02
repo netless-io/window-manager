@@ -38,6 +38,8 @@ import { AppBoxSizeSynchronizer } from "./AppBoxSizeSynchronizer";
 
 const APP_SETUP_WATCHDOG_TIMEOUT = 10_000;
 
+type AppSetupCompletion = { succeeded: true; result: any } | { succeeded: false; error: unknown };
+
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
 export class AppProxy implements PageRemoveService {
@@ -61,6 +63,9 @@ export class AppProxy implements PageRemoveService {
     private _prevFullPath: string | undefined;
     private boxSizeSynchronizer: AppBoxSizeSynchronizer;
     private setupWatchdogTimer?: ReturnType<typeof setTimeout>;
+    private readonly setupCompletionPromise: Promise<AppSetupCompletion>;
+    private resolveSetupCompletion!: (completion: AppSetupCompletion) => void;
+    private setupCompletionSettled = false;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -73,6 +78,9 @@ export class AppProxy implements PageRemoveService {
     ) {
         this.kind = params.kind;
         this.id = appId;
+        this.setupCompletionPromise = new Promise(resolve => {
+            this.resolveSetupCompletion = resolve;
+        });
         this.stateKey = `${this.id}_state`;
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
@@ -146,6 +154,12 @@ export class AppProxy implements PageRemoveService {
 
     public get Logger() {
         return this.manager.windowManger.Logger;
+    }
+
+    public async waitForSetup(): Promise<any> {
+        const completion = await this.setupCompletionPromise;
+        if (!completion.succeeded) throw completion.error;
+        return completion.result;
     }
 
     public getFullScenePath(): string | undefined {
@@ -229,40 +243,34 @@ export class AppProxy implements PageRemoveService {
         const context = new AppContextClass(this.manager, this.boxManager, appId, this, appOptions);
         this.appContext = context;
         try {
-            internalEmitter.once(`${appId}${Events.WindowCreated}` as any).then(async () => {
-                let boxInitState: AppInitState | undefined;
-                if (!skipUpdate) {
-                    boxInitState = this.getAppInitState(appId);
-                    this.boxManager?.updateBoxState(boxInitState);
-                }
-                this.appEmitter.onAny(this.appListener);
-                this.appAttributesUpdateListener(appId);
-                this.setViewFocusScenePath();
-                // 如果当前是回放模式, 则需要记录当前主视图的场景路径, 以便在 app 创建后恢复
-                let currentMainViewScenePath: string | undefined;
-                if (this.manager.isReplay) {
-                    currentMainViewScenePath = (this.manager.mainView as any).scenePath as string;
-                }
-                setTimeout(async () => {
-                    // 延迟执行 setup, 防止初始化的属性没有更新成功
-                    this.Logger &&
-                        this.Logger.info(
-                            `[WindowManager]: setup app ${this.kind}, appId: ${appId}`
-                        );
-                    const setupResult = await this.runAppSetup(appId, app, context);
-                    if (!setupResult.succeeded) return;
-                    const { result } = setupResult;
-                    this.appResult = result;
-                    this.scheduleBoxSizeSync();
-                    appRegister.notifyApp(this.kind, "created", { appId, result });
-                    this.afterSetupApp(boxInitState);
-                    this.fixMobileSize();
-                    if (currentMainViewScenePath) {
-                        this.manager.mainViewProxy.setFocusScenePath(currentMainViewScenePath);
+            internalEmitter
+                .once(`${appId}${Events.WindowCreated}` as any)
+                .then(() => {
+                    let boxInitState: AppInitState | undefined;
+                    if (!skipUpdate) {
+                        boxInitState = this.getAppInitState(appId);
+                        this.boxManager?.updateBoxState(boxInitState);
                     }
-                    callbacks.emit("onAppSetup", appId);
-                }, SETUP_APP_DELAY);
-            });
+                    this.appEmitter.onAny(this.appListener);
+                    this.appAttributesUpdateListener(appId);
+                    this.setViewFocusScenePath();
+                    // 如果当前是回放模式, 则需要记录当前主视图的场景路径, 以便在 app 创建后恢复
+                    let currentMainViewScenePath: string | undefined;
+                    if (this.manager.isReplay) {
+                        currentMainViewScenePath = (this.manager.mainView as any)
+                            .scenePath as string;
+                    }
+                    setTimeout(() => {
+                        void this.finishAppSetup(
+                            appId,
+                            app,
+                            context,
+                            boxInitState,
+                            currentMainViewScenePath
+                        );
+                    }, SETUP_APP_DELAY);
+                })
+                .catch(error => this.handleSetupFailure(error));
             this.boxManager?.createBox({
                 appId: appId,
                 app,
@@ -285,17 +293,76 @@ export class AppProxy implements PageRemoveService {
                 });
                 this.boxManager.focusBox({ appId }, false);
             }
-        } catch (error: any) {
-            this.Logger && this.Logger.error(`[WindowManager]: app setup error: ${error.message}`);
-            throw new Error(`[WindowManager]: app setup error: ${error.message}`);
+        } catch (error) {
+            const cause = error instanceof Error ? error : new Error(String(error));
+            this.Logger?.error(
+                `[WindowManager]: app setup initialization error, kind: ${this.kind}, appId: ${
+                    this.id
+                }, error: ${cause.message}, stack: ${cause.stack || ""}`
+            );
+            throw error;
         }
+    }
+
+    private async finishAppSetup(
+        appId: string,
+        app: NetlessApp,
+        context: AppContext<any, any>,
+        boxInitState?: AppInitState,
+        currentMainViewScenePath?: string
+    ): Promise<void> {
+        try {
+            // 延迟执行 setup, 防止初始化的属性没有更新成功
+            this.Logger?.info(`[WindowManager]: setup app ${this.kind}, appId: ${appId}`);
+            const setupResult = await this.runAppSetup(appId, app, context);
+            if (!setupResult.succeeded) {
+                this.settleSetup(setupResult);
+                return;
+            }
+            const { result } = setupResult;
+            this.appResult = result;
+            this.scheduleBoxSizeSync();
+            this.afterSetupApp(boxInitState);
+            this.fixMobileSize();
+            if (currentMainViewScenePath) {
+                this.manager.mainViewProxy.setFocusScenePath(currentMainViewScenePath);
+            }
+            this.settleSetup(setupResult);
+            void appRegister
+                .notifyApp(this.kind, "created", { appId, result })
+                .catch(error => this.logPostSetupNotificationError("registered hook", error));
+            void callbacks
+                .emit("onAppSetup", appId)
+                .catch(error => this.logPostSetupNotificationError("onAppSetup", error));
+        } catch (error) {
+            this.handleSetupFailure(error);
+        }
+    }
+
+    private handleSetupFailure(error: unknown): void {
+        const cause = error instanceof Error ? error : new Error(String(error));
+        this.Logger?.error(
+            `[WindowManager]: app setup lifecycle error, kind: ${this.kind}, appId: ${
+                this.id
+            }, status: ${this.status}, error: ${cause.message}, stack: ${cause.stack || ""}`
+        );
+        this.settleSetup({ succeeded: false, error: cause });
+    }
+
+    private logPostSetupNotificationError(stage: string, error: unknown): void {
+        const cause = error instanceof Error ? error : new Error(String(error));
+        this.Logger?.error(
+            `[WindowManager]: app post-setup notification error, stage: ${stage}, kind: ${
+                this.kind
+            }, appId: ${this.id}, error: ${cause.message}, stack: ${cause.stack || ""}`
+        );
     }
 
     private async runAppSetup(
         appId: string,
         app: NetlessApp,
         context: AppContext<any, any>
-    ): Promise<{ succeeded: true; result: any } | { succeeded: false }> {
+    ): Promise<AppSetupCompletion> {
         this.clearSetupWatchdog();
         this.setupWatchdogTimer = setTimeout(() => {
             this.setupWatchdogTimer = undefined;
@@ -307,14 +374,22 @@ export class AppProxy implements PageRemoveService {
         try {
             return { succeeded: true, result: await app.setup(context) };
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
+            const cause = error instanceof Error ? error : new Error(String(error));
             this.Logger?.error(
-                `[WindowManager]: app setup error, kind: ${this.kind}, appId: ${appId}, status: ${this.status}, error: ${message}`
+                `[WindowManager]: app setup error, kind: ${this.kind}, appId: ${appId}, status: ${
+                    this.status
+                }, error: ${cause.message}, stack: ${cause.stack || ""}`
             );
-            return { succeeded: false };
+            return { succeeded: false, error };
         } finally {
             this.clearSetupWatchdog();
         }
+    }
+
+    private settleSetup(completion: AppSetupCompletion): void {
+        if (this.setupCompletionSettled) return;
+        this.setupCompletionSettled = true;
+        this.resolveSetupCompletion(completion);
     }
 
     private clearSetupWatchdog(): void {
@@ -602,6 +677,12 @@ export class AppProxy implements PageRemoveService {
     ) {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
+        this.settleSetup({
+            succeeded: false,
+            error:
+                error ||
+                new Error(`[WindowManager]: app destroyed before setup, appId: ${this.id}`),
+        });
         this.clearSetupWatchdog();
         this.boxSizeSynchronizer.destroy();
         try {

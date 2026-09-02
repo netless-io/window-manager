@@ -30,6 +30,8 @@ import type {
 import type { AddPageParams, PageController, PageState } from "../Page";
 import { internalEmitter } from "../InternalEmitter";
 import { callbacks } from "../callback";
+import { ScopedAppLogger } from "../Utils/log";
+import type { AppLogger, AppLoggerOptions } from "../Utils/log";
 
 export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any, TAppOptions = any>
     implements PageController
@@ -73,6 +75,25 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
 
     public getWindowManager = (): WindowManager => {
         return this.manager.windowManger;
+    };
+
+    /**
+     * Create a Room logger scoped to this App. Error logs are immediate while
+     * `debouncedInfo` is rate-limited independently by event name.
+     */
+    public createLogger = (scope: string, options?: AppLoggerOptions): AppLogger => {
+        const logger = new ScopedAppLogger(
+            this.manager.windowManger.Logger,
+            scope,
+            {
+                kind: this.appProxy.kind,
+                appId: this.appId,
+                uid: this.manager.room?.uid || String(this.manager.displayer.observerId),
+            },
+            options
+        );
+        this.emitter.on("destroy", () => logger.destroy());
+        return logger;
     };
 
     public getBoxStatus = (): TeleBoxState | undefined => {
