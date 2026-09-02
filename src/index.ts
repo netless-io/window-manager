@@ -70,6 +70,7 @@ export type {
     PageEvent,
     PageEventTarget,
     PageEventOptions,
+    PageScaleRange,
     PageStateOptions,
     UnifiedPageState,
     UnifiedPageStateFailure,
@@ -77,11 +78,16 @@ export type {
     UnifiedPageStateChange,
 } from "./UnifiedPageControl";
 export type { AppLogger, AppLoggerOptions } from "./Utils/log";
-import { executeAppPageCommand, UnifiedPageControlTracker } from "./UnifiedPageControl";
+import {
+    executeAppPageCommand,
+    normalizePageScaleRange,
+    UnifiedPageControlTracker,
+} from "./UnifiedPageControl";
 import type {
     PageEvent,
     PageEventOptions,
     PageEventTarget,
+    PageScaleRange,
     PageStateOptions,
     PresentationPageController,
     SlidePageController,
@@ -147,6 +153,7 @@ export type DocsEventOptions = {
 
 const SlideAppKind = "Slide" as const;
 const PresentationAppKind = BuiltinApps.Presentation as "Presentation";
+const DocsViewerAppKind = BuiltinApps.DocsViewer as "DocsViewer";
 const MinDocsPageScale = 1;
 const MaxDocsPageScale = 4;
 
@@ -270,6 +277,8 @@ export type MountParams = {
     useBoxesStatus?: boolean;
     /** Local Presentation options applied before restoring apps. Not synchronized. */
     builtinAppOptions?: BuiltinAppOptions;
+    /** Optional business range for scale relative to the fitted page size. */
+    pageScaleRange?: PageScaleRange;
 };
 
 type MountStaticState = {
@@ -317,6 +326,7 @@ export class WindowManager
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
     private _fullscreen?: boolean;
+    private _pageScaleRange?: Readonly<PageScaleRange>;
     private _destroyed = false;
     private _cursorUIDs: string[] = [];
     private _cursorUIDsStyleDOM?: HTMLStyleElement;
@@ -363,6 +373,7 @@ export class WindowManager
         extendClass?: ExtendClass
     ): Promise<WindowManager> {
         const originSize = normalizeOriginSize(params.originSize);
+        const pageScaleRange = normalizePageScaleRange(params.pageScaleRange);
         if (
             originSize &&
             params.containerSizeRatio !== undefined &&
@@ -413,6 +424,7 @@ export class WindowManager
             }
             shouldRollback = true;
             manager._originSize = originSize;
+            manager._pageScaleRange = pageScaleRange;
             await manager.ensureAttributes();
             manager.ensureOriginCameraCompatibility();
 
@@ -599,6 +611,7 @@ export class WindowManager
         manager._iframeBridge = undefined;
         manager._roomLogger = undefined;
         manager._originSize = undefined;
+        manager._pageScaleRange = undefined;
         manager._fullscreen = undefined;
         manager.builtinAppOptions = undefined;
         manager.containerSizeRatio = previousStaticState.containerSizeRatio;
@@ -1443,6 +1456,34 @@ export class WindowManager
         return false;
     }
 
+    private dispatchUnifiedDocsViewerEvent(
+        app: AppProxy,
+        event: PageEvent,
+        page?: number
+    ): boolean {
+        const dom = app.box?.$footer;
+        if (!dom || event === "scalePage") return false;
+        const click = (element: Element | null): void => {
+            element?.dispatchEvent(new MouseEvent("click"));
+        };
+        if (event === "prevPage" || event === "prevStep") {
+            click(dom.querySelector('button[class$="btn-page-back"]'));
+            return true;
+        }
+        if (event === "nextPage" || event === "nextStep") {
+            click(dom.querySelector('button[class$="btn-page-next"]'));
+            return true;
+        }
+        if (event === "jumpToPage") {
+            const input = dom.querySelector<HTMLInputElement>('input[class$="page-number-input"]');
+            if (!input || page === undefined) return false;
+            input.value = String(page);
+            input.dispatchEvent(new InputEvent("change"));
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Dispatches the new unified page command. The returned Promise only means
      * that the command was accepted. unifiedPageStateChange reports observed page
@@ -1460,7 +1501,8 @@ export class WindowManager
             event !== "nextPage" &&
             event !== "prevStep" &&
             event !== "nextStep" &&
-            event !== "jumpToPage"
+            event !== "jumpToPage" &&
+            event !== "scalePage"
         ) {
             return Promise.resolve(false);
         }
@@ -1477,6 +1519,23 @@ export class WindowManager
             }
             const currentPage = this.pageState.index + 1;
             const pageCount = this.pageState.length;
+            if (event === "scalePage") {
+                if (!this.isUnifiedPageScale(options.scale)) return Promise.resolve(false);
+                const cameraScale = this.appManager.mainViewProxy.toLocalScale(options.scale);
+                if (cameraScale === undefined) return Promise.resolve(false);
+                try {
+                    this.moveCamera({ scale: cameraScale });
+                    return Promise.resolve(true);
+                } catch (error) {
+                    this.logUnifiedPageException(
+                        this.unifiedPageStateKey(undefined, "mainView"),
+                        "dispatchPageEvent",
+                        error,
+                        { target: "mainView", event, scale: options.scale }
+                    );
+                    return Promise.resolve(false);
+                }
+            }
             let expectedPage = currentPage;
             if (event === "prevStep" || event === "nextStep") return Promise.resolve(false);
             if (event === "prevPage") expectedPage -= 1;
@@ -1538,7 +1597,12 @@ export class WindowManager
         if (!appId) return Promise.resolve(false);
         const app = this.queryOne(appId);
         const appKind = this.getUnifiedAppKind(app?.kind);
-        if (!app || !appKind || !WindowManager.registered.has(appKind) || !app.appResult) {
+        if (
+            !app ||
+            !appKind ||
+            !WindowManager.registered.has(appKind) ||
+            (appKind !== DocsViewerAppKind && !app.appResult)
+        ) {
             return Promise.resolve(false);
         }
         const state = this.readUnifiedAppPageState(appId, appKind);
@@ -1551,10 +1615,42 @@ export class WindowManager
         }
         const isStepEvent = this.isUnifiedStepEvent(event);
         if (isStepEvent) {
-            if (appKind !== SlideAppKind) return Promise.resolve(false);
+            if (appKind !== SlideAppKind && appKind !== DocsViewerAppKind) {
+                return Promise.resolve(false);
+            }
         }
         if (appKind === SlideAppKind && !this.canDispatchUnifiedSlideCommand(appId, event)) {
             return Promise.resolve(false);
+        }
+        if (event === "scalePage") {
+            if (appKind === DocsViewerAppKind || !this.isUnifiedPageScale(options.scale)) {
+                return Promise.resolve(false);
+            }
+            try {
+                if (appKind === SlideAppKind) {
+                    (app.appResult as unknown as SlidePageController).scaleView(options.scale);
+                } else {
+                    const controller = app.appResult as unknown as PresentationPageController;
+                    const originScale = controller.getOriginScale();
+                    if (!Number.isFinite(originScale) || originScale <= 0) {
+                        return Promise.resolve(false);
+                    }
+                    controller.moveCamera({
+                        centerX: 0,
+                        centerY: 0,
+                        scale: originScale * options.scale,
+                    });
+                }
+                return Promise.resolve(true);
+            } catch (error) {
+                this.logUnifiedPageException(
+                    this.unifiedPageStateKey(appId),
+                    "dispatchPageEvent",
+                    error,
+                    { target: state.target, appId, event, scale: options.scale }
+                );
+                return Promise.resolve(false);
+            }
         }
         let expectedPage = state.page;
         if (event === "prevPage") expectedPage -= 1;
@@ -1569,6 +1665,9 @@ export class WindowManager
         }
         if (appKind === SlideAppKind) {
             this.ensureUnifiedSlideRenderListener(appId, app);
+        }
+        if (appKind === DocsViewerAppKind) {
+            return Promise.resolve(this.dispatchUnifiedDocsViewerEvent(app, event, expectedPage));
         }
         let result: boolean | Promise<boolean>;
         try {
@@ -1644,6 +1743,9 @@ export class WindowManager
                 target: "mainView",
                 page: this.pageState.index + 1,
                 pageCount: this.pageState.length,
+                ...(this.readUnifiedMainViewScale() === undefined
+                    ? {}
+                    : { scale: this.readUnifiedMainViewScale() }),
             } as const;
             const scenePath = this.getUnifiedMainViewScenePath(state.page);
             if (!scenePath || !this.isUnifiedMainViewSceneConfirmed(state.page, scenePath)) {
@@ -1676,6 +1778,14 @@ export class WindowManager
 
     private isUnifiedPage(page: number | undefined, pageCount: number): page is number {
         return typeof page === "number" && Number.isInteger(page) && page >= 1 && page <= pageCount;
+    }
+
+    private isUnifiedPageScale(scale: number | undefined): scale is number {
+        if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) return false;
+        const { minScale, maxScale } = this._pageScaleRange || {};
+        if (minScale !== undefined && scale < minScale) return false;
+        if (maxScale !== undefined && scale > maxScale) return false;
+        return true;
     }
 
     private emitUnifiedPageCommandFailure(
@@ -1775,7 +1885,8 @@ export class WindowManager
 
     private getUnifiedAppKind(
         kind?: string
-    ): typeof SlideAppKind | typeof PresentationAppKind | undefined {
+    ): typeof DocsViewerAppKind | typeof SlideAppKind | typeof PresentationAppKind | undefined {
+        if (kind === DocsViewerAppKind) return DocsViewerAppKind;
         if (kind === SlideAppKind) return SlideAppKind;
         if (kind === PresentationAppKind) return PresentationAppKind;
         return undefined;
@@ -1785,6 +1896,24 @@ export class WindowManager
         try {
             const app = this.queryOne(appId);
             if (!app) return undefined;
+            if (kind === DocsViewerAppKind) {
+                const state = app.pageState;
+                if (
+                    !Number.isInteger(state.index) ||
+                    !Number.isInteger(state.length) ||
+                    state.length < 1 ||
+                    state.index < 0 ||
+                    state.index >= state.length
+                ) {
+                    return undefined;
+                }
+                return {
+                    target: "DocsViewer",
+                    appId,
+                    page: state.index + 1,
+                    pageCount: state.length,
+                };
+            }
             if (kind === SlideAppKind) {
                 const position = (app.appResult as any)?.position?.();
                 if (
@@ -1796,7 +1925,14 @@ export class WindowManager
                     position[0] > position[1]
                 )
                     return undefined;
-                return { target: "Slide", appId, page: position[0], pageCount: position[1] };
+                const scale = this.readUnifiedAppScale(appId, kind);
+                return {
+                    target: "Slide",
+                    appId,
+                    page: position[0],
+                    pageCount: position[1],
+                    ...(scale === undefined ? {} : { scale }),
+                };
             }
             const state = (app.appResult as PresentationPageController | undefined)?.pageState?.();
             if (
@@ -1808,11 +1944,13 @@ export class WindowManager
                 state.index >= state.length
             )
                 return undefined;
+            const scale = this.readUnifiedAppScale(appId, kind);
             return {
                 target: "Presentation",
                 appId,
                 page: state.index + 1,
                 pageCount: state.length,
+                ...(scale === undefined ? {} : { scale }),
             };
         } catch (error) {
             this.logUnifiedPageException(this.unifiedPageStateKey(appId), "readPageState", error, {
@@ -1821,6 +1959,34 @@ export class WindowManager
             });
             return undefined;
         }
+    }
+
+    private readUnifiedAppScale(appId: string, kind: string): number | undefined {
+        const app = this.queryOne(appId);
+        if (!app) return undefined;
+        if (kind === SlideAppKind) {
+            const scale = (app.appResult as SlidePageController | undefined)?.getViewScale?.();
+            return typeof scale === "number" && Number.isFinite(scale) && scale > 0
+                ? scale
+                : undefined;
+        }
+        if (kind === PresentationAppKind) {
+            const controller = app.appResult as PresentationPageController | undefined;
+            const originScale = controller?.getOriginScale?.();
+            const cameraScale = app.view?.camera?.scale;
+            if (
+                typeof originScale !== "number" ||
+                !Number.isFinite(originScale) ||
+                originScale <= 0 ||
+                typeof cameraScale !== "number" ||
+                !Number.isFinite(cameraScale) ||
+                cameraScale <= 0
+            ) {
+                return undefined;
+            }
+            return cameraScale / originScale;
+        }
+        return undefined;
     }
 
     private canInitializeUnifiedAppState(
@@ -1890,6 +2056,49 @@ export class WindowManager
         }
     }
 
+    private readUnifiedMainViewScale(): number | undefined {
+        return this.appManager?.mainViewProxy.getRelativeScale?.();
+    }
+
+    private tryEmitUnifiedMainViewScaleState(): void {
+        try {
+            if (!this._pageState) return;
+            const pageState = this.pageState;
+            const scale = this.readUnifiedMainViewScale();
+            if (
+                scale === undefined ||
+                !Number.isInteger(pageState.index) ||
+                !Number.isInteger(pageState.length) ||
+                pageState.length < 1 ||
+                pageState.index < 0 ||
+                pageState.index >= pageState.length
+            ) {
+                return;
+            }
+            const next: UnifiedPageStateChange = {
+                target: "mainView",
+                page: pageState.index + 1,
+                pageCount: pageState.length,
+                scale,
+                status: "success",
+                changeType: "scale",
+                mainView: pageState.index + 1,
+            };
+            const changed = this._unifiedPageControl.emitObservedState(
+                this.unifiedPageStateKey(undefined, "mainView"),
+                next
+            );
+            if (changed) this.emitUnifiedPageStateChange(next);
+        } catch (error) {
+            this.logUnifiedPageException(
+                this.unifiedPageStateKey(undefined, "mainView"),
+                "observeMainViewScale",
+                error,
+                { target: "mainView" }
+            );
+        }
+    }
+
     private emitUnifiedMainViewState(pageState?: PageState): void {
         const currentPageState = pageState || (this._pageState ? this.pageState : undefined);
         if (!currentPageState) return;
@@ -1905,6 +2114,9 @@ export class WindowManager
             target: "mainView" as const,
             page: currentPageState.index + 1,
             pageCount: currentPageState.length,
+            ...(this.readUnifiedMainViewScale() === undefined
+                ? {}
+                : { scale: this.readUnifiedMainViewScale() }),
             status: "success" as const,
             mainView: currentPageState.index + 1,
         };
@@ -1938,6 +2150,11 @@ export class WindowManager
             })
         );
         this._unifiedPageControl.addListenerDisposer(
+            this.emitter.on("cameraStateChange", () => {
+                this.tryEmitUnifiedMainViewScaleState();
+            })
+        );
+        this._unifiedPageControl.addListenerDisposer(
             this.emitter.on("onMainViewRebind", () => {
                 this._unifiedPageControl.clearState(
                     this.unifiedPageStateKey(undefined, "mainView")
@@ -1956,7 +2173,10 @@ export class WindowManager
             this.emitter.on("onAppSetup", appId => {
                 const app = this.queryOne(appId);
                 const kind = app && this.getUnifiedAppKind(app.kind);
-                if (kind) this.ensureUnifiedAppObserver(appId, kind);
+                if (kind) {
+                    this._unifiedPageControl.clearAppObserverDisposers(appId);
+                    this.ensureUnifiedAppObserver(appId, kind);
+                }
             })
         );
         this._unifiedPageControl.addListenerDisposer(
@@ -1986,12 +2206,29 @@ export class WindowManager
             this._unifiedPageControl.clearApp(appId);
         });
         const disposers = [destroyDisposer];
-        if (kind === PresentationAppKind) {
+        if (kind === PresentationAppKind || kind === DocsViewerAppKind) {
             disposers.push(
                 app.appEmitter.on("pageStateChange", () => {
                     this.tryEmitUnifiedAppState(appId, kind);
                 })
             );
+        }
+        if (kind === SlideAppKind) {
+            const removeScaleListener = (
+                app.appResult as SlidePageController | undefined
+            )?.onScaleChanged?.(() => {
+                this.tryEmitUnifiedAppScaleState(appId, kind);
+            });
+            if (typeof removeScaleListener === "function") {
+                disposers.push(removeScaleListener);
+            }
+        }
+        if (kind === PresentationAppKind && app.view?.callbacks) {
+            const onCameraUpdated = () => {
+                this.tryEmitUnifiedAppScaleState(appId, kind);
+            };
+            app.view.callbacks.on("onCameraUpdated", onCameraUpdated);
+            disposers.push(() => app.view?.callbacks.off("onCameraUpdated", onCameraUpdated));
         }
         this._unifiedPageControl.setAppObserverDisposers(appId, disposers);
         if (kind === SlideAppKind) this.ensureUnifiedSlideRenderListener(appId, app);
@@ -2037,7 +2274,23 @@ export class WindowManager
         const next: UnifiedPageStateChange = {
             ...state,
             status: "success",
-            presentation: state.page,
+            ...(kind === PresentationAppKind ? { presentation: state.page } : {}),
+        };
+        const changed = this._unifiedPageControl.emitObservedState(
+            this.unifiedPageStateKey(appId),
+            next
+        );
+        if (changed) this.emitUnifiedPageStateChange(next);
+    }
+
+    private tryEmitUnifiedAppScaleState(appId: string, kind: string): void {
+        if (kind !== SlideAppKind && kind !== PresentationAppKind) return;
+        const state = this.readUnifiedAppPageState(appId, kind);
+        if (!state || state.scale === undefined) return;
+        const next: UnifiedPageStateChange = {
+            ...state,
+            status: "success",
+            changeType: "scale",
         };
         const changed = this._unifiedPageControl.emitObservedState(
             this.unifiedPageStateKey(appId),
@@ -2066,6 +2319,7 @@ export class WindowManager
             appId,
             page: slidePage,
             pageCount: state.pageCount,
+            ...(state.scale === undefined ? {} : { scale: state.scale }),
             status: viewPage === slidePage ? "success" : "pending",
             view: viewPage,
             slide: slidePage,
@@ -2260,6 +2514,7 @@ export class WindowManager
             WindowManager.playground.parentNode?.removeChild(WindowManager.playground);
         }
         WindowManager.params = undefined;
+        this._pageScaleRange = undefined;
         this.emitter.off("mainViewScenePathChange", this.onMainViewScenePathChangeHandler);
         this._iframeBridge?.destroy();
         this._iframeBridge = undefined;

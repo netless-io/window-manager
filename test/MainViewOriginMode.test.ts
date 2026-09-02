@@ -295,6 +295,11 @@ describe("MainViewProxy originSize mode", () => {
 
         harness.proxy.moveCameraByApi({ centerX: 100, scale: 2 });
         expect(harness.view.camera).toEqual({ centerX: 100, centerY: 0, scale: 1 });
+        expect(harness.proxy.getRelativeScale()).toBe(2);
+
+        // The observable value follows the actual View camera, not the queued API target.
+        harness.setCamera({ centerX: 100, centerY: 0, scale: 0.75 });
+        expect(harness.proxy.getRelativeScale()).toBe(1.5);
 
         vi.advanceTimersByTime(500);
         expect(harness.cameraWrites).toEqual([

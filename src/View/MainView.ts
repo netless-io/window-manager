@@ -1165,6 +1165,29 @@ export class MainViewProxy {
         return { ...this.view.camera, ...this.view.size };
     }
 
+    public getRelativeScale(): number | undefined {
+        if (this.isOriginMode) {
+            const referenceSize = this.readMainViewReferenceSize();
+            const camera =
+                referenceSize &&
+                localCameraToMainView(this.view.camera, referenceSize, this.view.size);
+            const scale = camera?.scale;
+            return typeof scale === "number" && Number.isFinite(scale) && scale > 0
+                ? scale
+                : undefined;
+        }
+        if (!this.scale || !Number.isFinite(this.scale) || this.scale <= 0) return undefined;
+        const relativeScale = this.view.camera.scale / this.scale;
+        return Number.isFinite(relativeScale) && relativeScale > 0 ? relativeScale : undefined;
+    }
+
+    public toLocalScale(relativeScale: number): number | undefined {
+        if (!Number.isFinite(relativeScale) || relativeScale <= 0) return undefined;
+        if (this.isOriginMode) return relativeScale;
+        if (!this.scale || !Number.isFinite(this.scale) || this.scale <= 0) return undefined;
+        return this.scale * relativeScale;
+    }
+
     public createMainView(): View {
         const mainView = createView(this.manager.displayer);
         const mainViewScenePath = this.store.getMainViewScenePath();

@@ -28,6 +28,8 @@
      - [`lockImages`](#lockImages)
      - [`nextPage`](#nextPage)
      - [`prevPage`](#prevPage)
+     - [`dispatchPageEvent`](#dispatchPageEvent)
+     - [`getPageState`](#getPageState)
      - [`addPage`](#addPage)
      - [`removePage`](#removePage)
      - [`refresh`](#refresh)
@@ -60,6 +62,7 @@ parameter
 | room                   | [require] Room                          |         | room instance                         |
 | container              | [require] HTMLElement                   |         | room mount container                       |
 | originSize             | [optional] Size                         |         | Fixed mainView origin size; it must match on every client in the room |
+| pageScaleRange         | [optional] { minScale?: number; maxScale?: number } | | Optional relative scale range for `dispatchPageEvent("scalePage")`; omitted bounds impose no business limit |
 | containerSizeRatio     | [optional] number                       | 9 / 16  | The aspect ratio of the multi-window area, the default is 9 : 16        |
 | chessboard             | [optional] boolean                      | true    | The space outside the multi-window area displays PS checkerboard background, default true |
 | collectorContainer     | [optional] HTMLElement                  |         | dom for multi-window minimize icon mount            |
@@ -271,6 +274,39 @@ if (!success) {
 }
 ```
 
+<h3 id="dispatchPageEvent">dispatchPageEvent</h3>
+
+> Dispatch a unified page or scale command to mainView, DocsViewer, Slide, or Presentation.
+> This is the recommended page-control API. The legacy synchronous `dispatchDocsEvent` remains
+> available only for compatibility.
+
+```ts
+const accepted = await manager.dispatchPageEvent("nextPage", { target: appId })
+await manager.dispatchPageEvent("jumpToPage", { target: appId, page: 3 })
+await manager.dispatchPageEvent("scalePage", { target: "mainView", scale: 1.5 })
+```
+
+`target` can be `"mainView"` or a concrete appId. When omitted, WindowManager uses the focused
+App and falls back to mainView. `page` is 1-based. `scale` is relative to fitted size, where `1`
+means fitted size; mainView scaling is applied through `manager.moveCamera`. There is no default
+business scale range. Configure `mount.pageScaleRange.minScale/maxScale` only when bounds are
+required; out-of-range commands resolve `false` and are not clamped.
+
+The returned `Promise<boolean>` reports whether the command was accepted. Observe
+`unifiedPageStateChange` for the actual page or relative scale.
+
+<h3 id="getPageState">getPageState</h3>
+
+> Read the current unified page state for mainView, DocsViewer, Slide, or Presentation.
+
+```ts
+const state = await manager.getPageState({ target: appId })
+// { target, appId?, page, pageCount, scale? }
+```
+
+`page` is 1-based and `pageCount` is the actual number of pages. `scale` is present for
+mainView, Slide, and Presentation and is relative to fitted size.
+
 <h3 id="addPage">addPage</h3>
 
 > Add a page to the main whiteboard
@@ -358,6 +394,7 @@ manager.emitter.on(events, listener)
 | ready                    | undefined      |         | Triggered when all apps are created   |  
 | sceneStateChange         | SceneState     |         | Fired when sceneState is modified     |
 | pageStateChange          | PageState      |         |                            |
+| unifiedPageStateChange   | UnifiedPageStateChange |   | Actual unified page or relative scale state for mainView, DocsViewer, Slide, or Presentation |
 | fullscreenChange         | boolean        |         | Triggered when the full-screen status changes          ｜
 | onAppSetup             | string      |         | Triggered when the app window is opened     |
 | onBoxesStatusChange          | Map<string, TeleBoxState>|         | Triggered when window state changes, only fires when useBoxesStatus is configured     |
@@ -374,6 +411,25 @@ type LoadAppEvent = {
 type PageState = {
      index: number;
      length: number;
+}
+```
+
+```ts
+type UnifiedPageStateChange = {
+    target: "mainView" | "DocsViewer" | "Slide" | "Presentation";
+    appId?: string;
+    page: number;
+    pageCount: number;
+    scale?: number;
+    status: "pending" | "success" | "failure";
+    changeType?: "page" | "scale";
+    mainView?: number;
+    presentation?: number;
+    view?: number;
+    slide?: number;
+    event?: PageEvent;
+    reason?: "commandFailed";
+    message?: string;
 }
 ```
 

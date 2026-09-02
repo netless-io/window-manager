@@ -28,6 +28,8 @@
     - [`lockImages`](#lockImages)
     - [`nextPage`](#nextPage)
     - [`prevPage`](#prevPage)
+    - [`dispatchPageEvent`](#dispatchPageEvent)
+    - [`getPageState`](#getPageState)
     - [`addPage`](#addPage)
     - [`removePage`](#removePage)
     - [`refresh`](#refresh)
@@ -59,6 +61,7 @@ const manager = await WindowManager.mount(
 | room                   | [require] Room                          |         | 房间实例                         |
 | container              | [require] HTMLElement                   |         | 房间挂载容器                       |
 | originSize             | [optional] Size                         |         | mainView 固定原始尺寸；同一房间所有端必须一致 |
+| pageScaleRange         | [optional] { minScale?: number; maxScale?: number } | | `dispatchPageEvent("scalePage")` 的可选相对倍率范围；未配置的边界不施加业务限制 |
 | containerSizeRatio     | [optional] number                       | 9 / 16  | 多窗口区域的高宽比，默认为 9 : 16         |
 | chessboard             | [optional] boolean                      | true    | 多窗口区域以外的空间显示 PS 棋盘背景，默认 true |
 | collectorContainer     | [optional] HTMLElement                  |         | 用于多窗口最小化图标挂载的 dom            |
@@ -267,6 +270,37 @@ if (!success) {
 }
 ```
 
+<h3 id="dispatchPageEvent">dispatchPageEvent</h3>
+
+> 向 mainView、DocsViewer、Slide 或 Presentation 派发统一的翻页、动画步骤或缩放命令。
+> 这是推荐使用的页面控制接口；同步的旧 `dispatchDocsEvent` 仅作为兼容入口保留。
+
+```ts
+const accepted = await manager.dispatchPageEvent("nextPage", { target: appId })
+await manager.dispatchPageEvent("jumpToPage", { target: appId, page: 3 })
+await manager.dispatchPageEvent("scalePage", { target: "mainView", scale: 1.5 })
+```
+
+`target` 可以是 `"mainView"` 或具体 appId。未传时优先使用当前 focused App，没有 focused
+App 时回退到 mainView。`page` 使用 1-based 页码。`scale` 是相对适配尺寸的倍率，`1` 表示
+适配尺寸；mainView 缩放通过 `manager.moveCamera` 生效。默认没有业务缩放范围；只有显式配置
+`mount.pageScaleRange.minScale/maxScale` 时才检查边界，越界返回 `false`，不会 clamp。
+
+返回的 `Promise<boolean>` 只表示命令是否被接受；实际页码或相对倍率通过
+`unifiedPageStateChange` 观察。
+
+<h3 id="getPageState">getPageState</h3>
+
+> 查询 mainView、DocsViewer、Slide 或 Presentation 当前的统一页面状态。
+
+```ts
+const state = await manager.getPageState({ target: appId })
+// { target, appId?, page, pageCount, scale? }
+```
+
+`page` 为 1-based，`pageCount` 为实际总页数。mainView、Slide、Presentation 额外返回相对
+适配尺寸的实际 `scale`。
+
 <h3 id="addPage">addPage</h3>
 
 > 在主白板添加一页
@@ -354,6 +388,7 @@ manager.emitter.on(events, listener)
 | ready                    | undefined      |         | 当所有 APP 创建完毕时触发      ｜
 | sceneStateChange         | SceneState     |         | 当 sceneState 修改时触发     |
 | pageStateChange          | PageState      |         | 当mainView 的页码变化的时候触发             ｜
+| unifiedPageStateChange   | UnifiedPageStateChange |   | mainView、DocsViewer、Slide 或 Presentation 的实际页码或相对倍率状态 |
 | fullscreenChange          | boolean      |          | 当全屏状态改变时触发          ｜
 | appsChange                 | string[]    |         | 被打开的app列表改变时触发       |
 | onAppSetup             | string      |         | 当 app 窗口被打开时触发     |
@@ -371,6 +406,25 @@ type LoadAppEvent = {
 type PageState = {
     index: number;
     length: number;
+}
+```
+
+```ts
+type UnifiedPageStateChange = {
+    target: "mainView" | "DocsViewer" | "Slide" | "Presentation";
+    appId?: string;
+    page: number;
+    pageCount: number;
+    scale?: number;
+    status: "pending" | "success" | "failure";
+    changeType?: "page" | "scale";
+    mainView?: number;
+    presentation?: number;
+    view?: number;
+    slide?: number;
+    event?: PageEvent;
+    reason?: "commandFailed";
+    message?: string;
 }
 ```
 

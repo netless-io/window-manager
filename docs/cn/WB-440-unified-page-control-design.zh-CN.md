@@ -1,21 +1,22 @@
-# WB-440 课件与主白板统一分页接口需求设计
+# WB-440 课件与主白板统一页面控制接口需求设计
 
-> 状态：已完成首轮代码落地，待三端资源同步与运行探针。
-> 日期：2026-08-26
+> 状态：统一分页与缩放扩展已落地 WindowManager、app-slide、Whiteboard-bridge 和 Fastboard，待 Native 跨端接入与运行探针。
+> 日期：2026-09-02
 > 需求链接：[WB-440](https://jira.agoralab.co/browse/WB-440)
 
 ## 1. 结论摘要
 
-本需求的核心不是在每个 App 中再增加一套翻页实现，而是把“当前可操作内容”的分页命令收敛到 `window-manager` 的统一路由层，再由 `Whiteboard-bridge` 和 iOS、Android、Harmony Native SDK 以一致的公开命名输出。
+本需求的核心不是在每个 App 中再增加一套翻页和缩放实现，而是把“当前可操作内容”的页面控制命令收敛到 `window-manager` 的统一路由层，再由 `Whiteboard-bridge`、Fastboard 和 iOS、Android、Harmony Native SDK 以一致的公开命名输出。
 
 本稿推荐采用三类 API，并由一个统一状态事件同时承载状态对账和 accepted 后的终态失败：
 
-1. 新增异步的统一入口 `dispatchPageEvent`，目标可以是当前焦点 App 或 `mainView`，覆盖动态 PPT、静态 PPT 和主白板。
-2. 新增异步的统一查询入口 `getPageState`，返回当前页码和总页数；对外统一使用 1-based `page` 与实际数量语义的 `pageCount`。
+1. 新增异步的统一入口 `dispatchPageEvent`，目标可以是当前焦点 App 或 `mainView`，分页覆盖 DocsViewer、动态 PPT、静态 PPT和主白板；`scalePage` 覆盖动态 PPT、静态 PPT 和 mainView，仅 DocsViewer 不支持。
+2. 新增异步的统一查询入口 `getPageState`，返回当前页码和总页数；mainView/Slide/Presentation 额外返回实际生效的相对 `scale`。对外统一使用 1-based `page`、实际数量语义的 `pageCount`，并规定 `scale = 1` 表示适配尺寸。
 3. 保留现有 `dispatchDocsEvent` 作为文档 App 兼容入口，语义不变，不把同步返回值悄悄改成 Promise；主白板增页使用已有的 `manager.addPage()`。
-4. 新增 `unifiedPageStateChange`，通过 `status: "pending" | "success" | "failure"` 区分 Slide 临时对账、确认成功和 controller 终态失败；不再增加独立失败事件。
+4. 新增 `unifiedPageStateChange`，通过 `status: "pending" | "success" | "failure"` 区分 Slide 临时对账、确认成功和 controller 终态失败；通过 `changeType: "page" | "scale"` 区分页码与缩放变化，不再增加独立缩放或失败事件。
+5. `WindowManager.mount()` 新增可选 `pageScaleRange`。`minScale`、`maxScale` 均为相对适配尺寸的倍率，不是 `View.camera.scale`；未配置的边界不施加业务限制。
 
-这样可以解决主白板异步切页与文档 App 同步控制之间的返回值冲突，也避免破坏已有 Native 和 Web 调用方。若产品确认必须只保留一个公开入口，则应在评审时明确接受 `dispatchDocsEvent` 改为异步的破坏性变更。
+这样可以解决主白板异步切页与文档 App 同步控制之间的返回值冲突，并保持 WindowManager Web 调用方兼容。Bridge、Native 和 Fastboard 统一使用新入口；旧入口只保留在 WindowManager 本体。
 
 ## 2. 输入与证据边界
 
@@ -23,11 +24,11 @@
 
 | 层级 | 当前实现 | 关键事实 |
 | --- | --- | --- |
-| `window-manager` | `src/index.ts` | `dispatchDocsEvent` 已路由 DocsViewer、Presentation、Slide；`nextPage`/`prevPage`/`jumpPage` 只操作 `mainView`。 |
+| `window-manager` | `src/index.ts` | 新 `dispatchPageEvent` 已统一路由 mainView、DocsViewer、Presentation、Slide；旧 `dispatchDocsEvent` 仅保留兼容行为。 |
 | 主白板 | `src/index.ts`、`src/View/MainView.ts`、`src/Page/PageController.ts` | WindowManager 的权威入口是 `manager.pageState`、`manager.nextPage()`、`manager.prevPage()`、`manager.addPage()`；页面状态为 0-based `index` + `length`，切页和增页由 `AppManager` 异步完成。 |
 | 动态 PPT | `slide-app/packages/app-slide/src/index.ts` | 暴露 `nextPage`、`prevPage`、`nextStep`、`prevStep`、`jumpToPage`；Slide 页码为 1-based，返回同步 `boolean`。 |
 | 静态 PPT | `netless-app-presentation/src/app-presentation.ts` | 暴露 `nextPage`、`prevPage`、`jumpPage(index)`；内部 index 为 0-based，无动画 step。 |
-| Bridge | `Whiteboard-bridge/src/bridge/Room.ts` | `room.dispatchDocsEvent` 只调用 WindowManager 的同名方法；`room.nextPage`/`prevPage` 是 Native/Bridge 转发层，在多窗口模式下调用 `manager.nextPage`/`prevPage`，即只操作主白板。 |
+| Bridge | `Whiteboard-bridge/src/bridge/Room.ts` | 只注册异步 `room.dispatchPageEvent` 并转发到 WindowManager 新统一入口；不再注册旧文档事件 handler。`room.nextPage`/`prevPage` 仍只操作主白板。 |
 | Android | `Room.dispatchDocsEvent`、`WindowDocsEvent` | 已有 `dispatchDocsEvent`、`nextPage`、`prevPage`；事件的 `page` 为 1-based。 |
 | iOS | `WhiteRoom.dispatchDocsEvent:options:completionHandler:` | 已有同名文档事件 API；`WhiteWindowDocsEventOptions.page` 为 1-based。 |
 | Harmony | `WhiteboardController.dispatchDocsEvent`、`WindowDocsEventOptions` | 已有同名 API，但类型当前使用 `pageIndex?`，Bridge 实际读取的是 `page`，存在跳页参数不一致风险。 |
@@ -49,15 +50,15 @@
 | 目标 | 上一页/下一页 | 跳页 | 页码基准 | 当前路由 |
 | --- | --- | --- | --- | --- |
 | mainView | `manager.prevPage()` / `manager.nextPage()` | `manager.jumpPage(index)` | index 0-based | Bridge 的 `room.prevPage` / `room.nextPage` 转发到上述 manager API |
-| Slide | `appResult.prevPage()` / `nextPage()` | `jumpToPage(page)` | page 1-based | `dispatchDocsEvent` |
-| Presentation | `controller.prevPage()` / `nextPage()` | `jumpPage(index)` | controller index 0-based；外部 docs 事件为 1-based | `dispatchDocsEvent` |
+| Slide | `appResult.prevPage()` / `nextPage()` | `jumpToPage(page)` | page 1-based | 新调用方使用 `dispatchPageEvent`；旧入口仅兼容 |
+| Presentation | `controller.prevPage()` / `nextPage()` | `jumpPage(index)` | controller index 0-based；统一接口为 1-based | 新调用方使用 `dispatchPageEvent`；旧入口仅兼容 |
 
-因此存在三个实际问题：
+因此存在四个实际问题：
 
 - Native 调用 `room.nextPage` 时，即使当前焦点是 PPT App，多窗口 Bridge 仍然只切换主白板。
 - Web / Native 要根据目标类型选择 `nextPage`、`dispatchDocsEvent`、`setSceneIndex` 等不同入口。
 - Harmony 的 `pageIndex` 与 Bridge 的 `page` 命名不一致，跨端跳页无法形成稳定契约。
-- 三类目标的当前页和总页数来源不同，且 mainView/Presentation 内部使用 0-based index，不能把内部 `pageState` 原样透传给 Native。
+- 四类目标的当前页和总页数来源不同，且 DocsViewer/mainView/Presentation 内部使用 0-based index，不能把内部 `pageState` 原样透传给 Native。
 
 ## 4. 设计目标与非目标
 
@@ -65,6 +66,7 @@
 
 - 在 `window-manager` 内部统一解析目标、校验参数、转换 0/1-based 页码并调用各 App 适配器。
 - 动态 PPT、静态 PPT、主白板都能通过同一套事件命名控制上一页、下一页和跳页。
+- 动态 PPT、静态 PPT 和 mainView 都能通过同一入口执行 `scalePage`，并收到来源无关、反映实际生效倍率的状态回调。
 - 动态 PPT、静态 PPT、主白板都能通过同一查询接口获得当前页码和总页码。
 - mainView 可以通过既有 `manager.addPage()` 增加页面，并由 Bridge/Native 对外提供同名 `addPage` 能力。
 - iOS、Android、Harmony 对外使用同一个方法名、事件名、参数字段和成功返回语义。
@@ -73,8 +75,8 @@
 
 ### 4.2 非目标
 
-- 不把主白板的缩放强行解释为 PPT `scalePage`；主白板缩放仍使用 camera API。
-- 不在本期新增通用 App 的分页协议；新增统一接口只支持已知 `Slide`、`netless-app-presentation` 和 `mainView`。DocsViewer 不在本期范围内。
+- mainView 的 `scalePage` 只统一相对倍率输入和状态观察，底层仍复用 `manager.moveCamera({ scale })`，不新增另一套 camera 状态。
+- 不在本期新增通用 App 的分页协议；新增统一接口只支持已知 DocsViewer、Slide、`netless-app-presentation` 和 `mainView`。
 - 不新增动画 step 查询；当前三端没有稳定的公开 step index 回调。
 - 不修改 `appliance-plugin` Worker 或渲染实现。它只负责承载 `mainView`，分页路由属于 WindowManager。
 
@@ -90,22 +92,37 @@ export type PageEvent =
   | "nextPage"
   | "prevStep"
   | "nextStep"
-  | "jumpToPage";
+  | "jumpToPage"
+  | "scalePage";
 
-/** "mainView" 或具体的 Slide / netless-app-presentation appId。 */
+/** "mainView" 或具体的 DocsViewer / Slide / netless-app-presentation appId。 */
 export type PageEventTarget = string;
 
 export interface PageEventOptions {
-  /** "mainView" 或已存在的 Slide / netless-app-presentation appId。 */
+  /** "mainView" 或已存在的 DocsViewer / Slide / netless-app-presentation appId。 */
   target?: PageEventTarget;
   /** jumpToPage 使用 1-based 页码；第一页传 1。 */
   page?: number;
+  /** scalePage 使用相对适配尺寸的倍率；1 表示适配尺寸。 */
+  scale?: number;
+}
+
+export interface PageScaleRange {
+  /** 可选最小相对倍率；必须是有限正数。 */
+  minScale?: number;
+  /** 可选最大相对倍率；必须是有限正数且不小于 minScale。 */
+  maxScale?: number;
+}
+
+export interface MountParams {
+  // existing fields omitted
+  pageScaleRange?: PageScaleRange;
 }
 
 dispatchPageEvent(event: PageEvent, options?: PageEventOptions): Promise<boolean>;
 
 export interface PageStateOptions {
-  /** "mainView" 或已存在的 Slide / netless-app-presentation appId。 */
+  /** "mainView" 或已存在的 DocsViewer / Slide / netless-app-presentation appId。 */
   target?: PageEventTarget;
 }
 
@@ -118,17 +135,21 @@ manager.addPage(params?: {
 }): Promise<void>;
 
 export interface UnifiedPageState {
-  target: "mainView" | "Slide" | "Presentation";
+  target: "mainView" | "DocsViewer" | "Slide" | "Presentation";
   appId?: string;
   /** 1-based current page number; first page is 1. */
   page: number;
   /** Actual total page count; for N pages this is N, not N - 1. */
   pageCount: number;
+  /** MainView/Slide/Presentation: actual scale relative to fitted size. */
+  scale?: number;
 }
 
 export type UnifiedPageStateObservation = UnifiedPageState & {
   /** pending 仅表示 Slide 双来源暂未一致。 */
   status: "pending" | "success";
+  /** 新版本始终提供；旧版本缺失时调用方按 page 处理。 */
+  changeType?: "page" | "scale";
   /** 以下来源页码均为 1-based，并按 target 出现。 */
   mainView?: number;
   presentation?: number;
@@ -148,11 +169,16 @@ export type UnifiedPageStateChange = UnifiedPageStateObservation | UnifiedPageSt
 manager.emitter.on("unifiedPageStateChange", (state: UnifiedPageStateChange) => {});
 ```
 
-三类目标使用同一个事件名和对象结构，完整 payload 示例：
+四类目标使用同一个事件名和对象结构，完整 payload 示例：
 
 ```ts
-// mainView
-{ target: "mainView", page: 2, pageCount: 3, status: "success", mainView: 2 }
+// mainView scale
+{ target: "mainView", page: 2, pageCount: 3, scale: 1.5,
+  status: "success", changeType: "scale", mainView: 2 }
+
+// DocsViewer
+{ target: "DocsViewer", appId: "DocsViewer-1", page: 2, pageCount: 3,
+  status: "success", changeType: "page" }
 
 // netless-app-presentation
 { target: "Presentation", appId: "Presentation-1", page: 2, pageCount: 3,
@@ -190,25 +216,48 @@ WindowManager 内部旧 `manager.pageState.index`、`manager.jumpPage(index)` �
 
 ### 5.2 事件语义
 
-| 事件 | Slide | Presentation | mainView |
-| --- | --- | --- | --- |
-| `prevPage` / `nextPage` | 调用对应 Slide controller | 调用对应 Presentation controller | 调用 WindowManager `prevPage` / `nextPage` |
-| `prevStep` / `nextStep` | 调用动画 step | 不支持，返回 `false` | 不支持，返回 `false` |
-| `jumpToPage` | `page` 直接传给 Slide（1-based） | 将 `page - 1` 转换为 controller index | 将 `page - 1` 转换为 mainView index |
+| 事件 | DocsViewer | Slide | Presentation | mainView |
+| --- | --- | --- | --- | --- |
+| `prevPage` / `nextPage` | 调用既有 footer 分页控制 | 调用对应 Slide controller | 调用对应 Presentation controller | 调用 WindowManager `prevPage` / `nextPage` |
+| `prevStep` / `nextStep` | 沿用旧接口行为，等价于翻页 | 调用动画 step | 不支持，返回 `false` | 不支持，返回 `false` |
+| `jumpToPage` | 沿用既有 1-based 输入框控制 | `page` 直接传给 Slide（1-based） | 将 `page - 1` 转换为 controller index | 将 `page - 1` 转换为 mainView index |
+| `scalePage` | 不支持，返回 `false` | 使用相对适配尺寸的 `scale` | 将相对倍率乘以实时 `originScale` 后移动 camera | 通过 MainViewProxy 确定 `manager.moveCamera` 所需 scale，再调用 `manager.moveCamera({ scale })` |
+
+`scalePage` 的输入和配置规则如下：
+
+- `scale` 必须是有限正数；`scale = 1` 表示当前课件在当前 View 中的适配尺寸，而不是 `View.camera.scale = 1`。
+- 默认不设置业务最小值或最大值，不写死 `1~4`。WindowManager 仅在 `mount.pageScaleRange.minScale` / `maxScale` 显式配置时检查对应边界。
+- `pageScaleRange` 允许只配置一侧。已配置值必须是有限正数；两侧同时配置时必须满足 `minScale <= maxScale`，否则 `WindowManager.mount()` reject。
+- 超出显式范围时不 clamp，命令在派发前 resolve `false`。WindowManager 旧 `dispatchDocsEvent("scalePage")` 继续保留原有 `1~4` 校验，不受新配置影响。
+- mainView/Slide/Presentation controller 或底层 View 仍可能有自身物理限制；统一回调和 `getPageState()` 必须返回最终实际倍率，而不是回显请求值。
+
+mainView 的调用链固定为：
+
+```ts
+await manager.dispatchPageEvent("scalePage", {
+  target: "mainView",
+  scale: 1.5,
+});
+
+// WindowManager 内部换算后调用既有公开相机入口：
+manager.moveCamera({ scale: managerCameraScale });
+```
+
+`managerCameraScale` 是 MainViewProxy 根据当前 camera 坐标模式确定的输入：`originSize` 模式沿用相对倍率，由 `manager.moveCamera` 内部继续换算到本地 View；旧模式则先乘以 fitted scale。该分支必须经过 `manager.moveCamera`，不得绕过 manager 直接调用底层 View 或另建相机状态通道。派发后也不得立即回显请求值；只有 `cameraStateChange` 到达后，才能根据当前 View camera 反算实际相对倍率并发出 `unifiedPageStateChange({ changeType: "scale", scale: actualRelativeScale })`。
 
 所有目标最终返回 `Promise<boolean>`，但该 Promise 只表示命令是否被接收：
 
 - `true`：目标存在、参数合法、权限和边界校验通过，并且命令已进入 controller 处理流程；不代表异步 controller 最终返回成功，也不代表目标页已经完成切换或渲染。
 - `false`：命令在派发前就被拒绝，例如目标不存在、未就绪、无权限、参数非法、越界或事件不支持。
 
-controller 在调用后异步返回 `false` 或 reject，不能再改变已经返回的 accepted `true`；这类明确失败由诊断事件通知。WindowManager 不为 page 或 step 命令维护 pending transition，也不等待固定超时。Slide 的 `renderError` 继续由 Slide 自身事件暴露，宿主可随后调用 `getPageState` 读取当前可观察页。
+controller 在调用后异步返回 `false` 或 reject，不能再改变已经返回的 accepted `true`；这类明确失败由诊断事件通知。WindowManager 不为 page、step 或 scale 命令维护 pending transition，也不等待固定超时。Slide 的 `renderError` 继续由 Slide 自身事件暴露，宿主可随后调用 `getPageState` 读取当前可观察状态。
 
 终态失败复用同一个事件，payload 如下：
 
 ```ts
 type UnifiedPageStateFailure = {
   status: "failure";
-  target: "mainView" | "Slide" | "Presentation";
+  target: "mainView" | "DocsViewer" | "Slide" | "Presentation";
   appId?: string;
   event: PageEvent;
   /** 目标页，1-based；pageCount 为命令接收时的总页数。 */
@@ -225,33 +274,47 @@ manager.emitter.on("unifiedPageStateChange", handler);
 
 `jumpToPage` 的目标页等于当前已确认页时按无操作处理，派发前返回 `false`，也不产生失败事件。
 
-`prevStep`/`nextStep` 仅对 `Slide`（`app-slide`）有效；Presentation 和 mainView 不提供 step 语义，收到这两个事件时直接返回 `false`，不得退化为上一页/下一页。目标不存在、未就绪、无权限、参数非法或越界时，命令在派发前被拒绝并 resolve `false`。Presentation/Slide 的同步 controller 返回值只能表示“命令被接受”，不能直接作为统一接口的完成通知。
+`prevStep`/`nextStep` 对 Slide 表示真实动画 step；DocsViewer 沿用其旧接口已有的翻页 alias。Presentation 和 mainView 不提供 step 语义，收到这两个事件时直接返回 `false`。目标不存在、未就绪、无权限、参数非法或越界时，命令在派发前被拒绝并 resolve `false`。Presentation/Slide 的同步 controller 返回值只能表示“命令被接受”，不能直接作为统一接口的完成通知。
 
 #### “命令被接受”与“分页状态被观察到”
 
 这两个时刻必须区分：
 
 1. **命令被接受**：WindowManager 找到了目标 App，参数合法，并已调用 App controller。同步 controller 的 `false` 会直接返回 `false`；异步 controller 的最终失败通过 `unifiedPageStateChange({ status: "failure" })` 诊断。此时不能据此判断用户已经看到目标页。
-2. **分页状态被观察到**：WindowManager 收到目标的权威状态事件后发出 `unifiedPageStateChange`。mainView/Presentation 固定输出 `status: "success"`；Slide 任一侧先变化都发事件，`pending` 表示两侧暂未一致，`success` 表示 Whiteboard View 与 Slide render 页一致。这个事件不改变前面已经返回的 accepted `Promise<boolean>`。
+2. **页面或缩放状态被观察到**：WindowManager 收到目标的权威状态事件后发出 `unifiedPageStateChange`。分页时 DocsViewer/mainView/Presentation 固定输出 `status: "success"`；Slide 任一页来源先变化都发事件，`pending` 表示两侧暂未一致。缩放时 mainView/Slide/Presentation 在读取实际倍率后输出 `status: "success"` 和 `changeType: "scale"`。这个事件不改变前面已经返回的 accepted `Promise<boolean>`。
 
 统一接口的时序示例：
 
-```text
-调用 dispatchPageEvent("nextPage")
-  -> 检查目标、权限和边界
-  -> 调用目标 controller（命令被接受）
-  -> Promise resolve(true)（仅表示 accepted）
-  -> 等待目标状态事件
-  -> 收到目标状态事件
-  -> emit unifiedPageStateChange（调用方读取 status）
+```mermaid
+sequenceDiagram
+    participant Caller as Web/Native Caller
+    participant WM as WindowManager
+    participant Controller as Slide/Presentation/mainView Controller
+    participant Source as scenePath/renderEnd/scale observer
+    Caller->>WM: dispatchPageEvent(event, options)
+    WM->>WM: resolve target + validate permission/boundary/range
+    alt pre-dispatch rejected
+        WM-->>Caller: Promise.resolve(false)
+    else command accepted
+    WM->>Controller: page/step/scale command (mainView scale uses manager.moveCamera)
+        WM-->>Caller: Promise.resolve(true)
+        Controller->>Source: actual state changes
+        Source->>WM: observed page or actual relative scale
+        WM-->>Caller: unifiedPageStateChange(status, changeType, actual state)
+    end
 ```
 
-三类目标的“目标状态事件”不同：
+四类目标的“目标状态事件”不同：
 
 - **mainView**：等待 WindowManager 的 page state/scenePath 变为目标页。`dispatchPageEvent` 先返回 accepted，后续状态确认才触发 `unifiedPageStateChange`。
+- **mainView scale**：先由 MainViewProxy 确定 `manager.moveCamera` 所需 scale，再统一调用 `manager.moveCamera({ scale })`；`originSize` 模式把相对倍率交给 manager 内部继续换算，旧模式需要先乘以保存的 fitted scale。派发阶段不产生 scale 回调，只有 `cameraStateChange` 到达后才从当前 View camera 反算实际相对倍率并输出 `changeType: "scale"`。
+- **DocsViewer**：复用既有 footer DOM 控制路径；`AppProxy.appEmitter.pageStateChange` 产生 1-based 页码和实际总页数，输出 `target: "DocsViewer"`、`changeType: "page"` 和 `status: "success"`。
+- 这里的 DocsViewer 是独立、已停止维护的 DocsViewer App，不是 app-slide 内部的 `SlideDocsViewer`。本需求不修改该项目，只在 WindowManager 中复用原调用路径。
 - **Presentation**：等待 `onAppScenePathChange`（以及对应 page state）确认静态 PPT 的 scenePath 已切换。controller 的同步 `boolean` 和统一 Promise 都只代表请求被接受。
 - **Slide page 命令**：`slide.on("renderEnd", page)` 与 app-slide Whiteboard View 的 `onAppScenePathChange` 都会触发统一回调。每次触发时读取 View scenePath 的 1-based 页码与最近一次 `renderEnd` 页码。两侧不一致输出 `{ status: "pending", view, slide }`，一致后输出 `{ status: "success", view, slide }`；不要求同一 request 内先收到 `renderStart`。
 - **Slide step 命令**：统一入口只校验 `hasPrevStep()`/`hasNextStep()` 并调用 controller，不追踪页内动画状态，也不因页码未变化伪造 `unifiedPageStateChange`。如果 step 跨页，仍由 scenePath/renderEnd 两个真实分页来源分别触发对账事件。
+- **Slide scale 命令与 UI/远端变化**：通过 app-slide 可多订阅的 `onScaleChanged` 观察实际 `getViewScale()`；回调输出 `{ target: "Slide", changeType: "scale", scale, status: "success" }`，销毁 App 或 WindowManager 时执行 disposer。
+- **Presentation scale 命令与 UI/远端变化**：监听 App View 的 `onCameraUpdated`，以 `view.camera.scale / controller.getOriginScale()` 计算实际相对倍率；只在相对倍率真实变化时输出 `changeType: "scale"`。
 
 因此，`unifiedPageStateChange` 不是“翻页按钮被点击”事件，而是状态来源对账和终态失败事件。调用方若只需要知道命令是否进入处理流程，使用 `dispatchPageEvent` 的 `Promise<boolean>`；若需要知道目标页已经一致，则监听 `unifiedPageStateChange` 并判断 `status === "success"`。两者不能互换。
 
@@ -268,14 +331,14 @@ manager.emitter.on("unifiedPageStateChange", handler);
 
 | 对比项 | `dispatchDocsEvent`（旧接口） | `dispatchPageEvent`（新统一接口） |
 | --- | --- | --- |
-| 目标范围 | 旧文档 App：DocsViewer、Presentation、Slide | `mainView`、`netless-app-presentation`、Slide |
-| 事件范围 | 保留旧 `scalePage`、DocsViewer DOM 路径和历史 step 行为 | 仅统一分页事件；不包含 `scalePage`，`prevStep`/`nextStep` 仅 Slide |
+| 目标范围 | 旧文档 App：DocsViewer、Presentation、Slide | `mainView`、DocsViewer、`netless-app-presentation`、Slide |
+| 事件范围 | 保留旧 `scalePage`、DocsViewer DOM 路径和历史 step 行为 | 分页/step 加 `scalePage`；`scalePage` 支持 mainView/Slide/Presentation，DocsViewer 保留 step alias，Slide 使用真实 step |
 | 页码契约 | 保持已发布行为，不改旧字段和旧调用方 | `page`/`jumpToPage` 统一 1-based，`pageCount` 是实际总页数 |
 | 返回语义 | 同步 `boolean`，保持旧兼容行为 | `Promise<boolean>` 仅表示命令已被接收 |
 | 状态通知 | 旧接口签名不变；真实状态变化由来源无关的统一观察器通知 | `unifiedPageStateChange` 统一包含 `status`；Slide 的 scenePath/renderEnd 任一侧都会触发 |
 | 主白板 | 不路由到 mainView | 支持显式 `target: "mainView"` 或无焦点回退 |
 
-实现上，两个入口共享底层 App controller 调用和页码转换工具，但必须各自保留入口语义：旧入口由 compatibility wrapper 同步调用共享执行器，不能把 `dispatchDocsEvent` 直接改成调用公开的异步 `dispatchPageEvent`，也不能让新入口继承旧 `scalePage`、DocsViewer DOM 或历史 alias 行为。
+实现上，两个入口共享底层 App controller/DocsViewer DOM 调用和页码转换工具，但必须各自保留入口语义：旧入口由 compatibility wrapper 同步调用共享执行器，不能把 `dispatchDocsEvent` 直接改成调用公开的异步 `dispatchPageEvent`。新入口的 `scalePage` 使用新参数校验、相对倍率和状态回调契约，不继承旧接口写死的 `1~4`；DocsViewer 则明确复用旧入口已有的分页、step alias 和跳页行为。
 
 `unifiedPageStateChange` 是来源无关的统一事件。页面变化来自 `dispatchPageEvent`、旧 `dispatchDocsEvent`、App UI 或远端同步时都可触发；旧入口不得直接伪造事件，状态回调统一由 watcher 根据真实状态产生。Slide 允许先报告 `pending`，随后再报告 `success`；`pending` 不是失败。只有 controller 在命令被接受后异步返回 `false` 或 reject 才报告 `failure`，该事件本身是终态诊断，不会被重新解释为临时失败。
 
@@ -283,18 +346,23 @@ manager.emitter.on("unifiedPageStateChange", handler);
 
 当前实现将事件去重状态、最近一次 `renderEnd` 页和监听器 disposer 收口在 `src/UnifiedPageControl.ts` 的 `UnifiedPageControlTracker`；WindowManager 负责目标解析、controller 调用和各来源状态适配。Tracker 不保存命令状态，也不参与 `getPageState` 查询：
 
-```text
-dispatchDocsEvent (legacy wrapper)
-  -> legacy DocsEvent validation/return semantics
-  -> shared synchronous App command executor (DocsViewer/scalePage remains legacy-only)
-
-dispatchPageEvent
-  -> resolvePageTarget(options)
-  -> validatePageEvent(event, options, target)
-  -> PageAdapter.dispatch(event, normalizedOptions)
-       mainView adapter       -> manager.pageState / manager.nextPage / manager.prevPage / manager.jumpPage / manager.addPage
-       Slide adapter          -> AppResult
-       Presentation adapter   -> PresentationController
+```mermaid
+flowchart TD
+    Legacy[dispatchDocsEvent legacy] --> LegacyValidation[legacy validation and sync boolean]
+    LegacyValidation --> DocsViewer[DocsViewer DOM path]
+    LegacyValidation --> Shared[shared Slide/Presentation command adapter]
+    Unified[dispatchPageEvent new] --> Resolve[resolve target]
+    Resolve --> Validation[validate event/page/scale/permission/pageScaleRange]
+    Validation --> MainView[mainView page adapter]
+    Validation --> Shared
+    Validation --> DocsViewerNew[DocsViewer existing DOM adapter]
+    Shared --> Slide[Slide AppResult]
+    Shared --> Presentation[Presentation controller]
+    DocsViewerNew --> Observers[page and scale observers]
+    Slide --> Observers
+    Presentation --> Observers
+    MainView --> Observers
+    Observers --> State[unifiedPageStateChange]
 ```
 
 共享 App command executor 只接收规范化后的 1-based `page`，Presentation 在边界处转换为 0-based。旧 `dispatchDocsEvent` 继续调用 controller 的同步 `jumpPage/prevPage/nextPage` 并返回同步 `boolean`；新统一入口优先调用 Presentation 新增的 `jumpPageAsync/prevPageAsync/nextPageAsync`，立即返回命令已接收，并在异步 scenePath 操作返回 `false` 或 reject 时发出 `status: "failure"`。状态事件由独立 watcher 产生，不延迟统一入口的 Promise 以等待 `unifiedPageStateChange`。
@@ -304,6 +372,7 @@ dispatchPageEvent
 - `target` 对应的 appId/kind 是否存在且属于受支持的内置 App；
 - `appResult` / controller / View 是否已 setup；
 - `page` 是否为有限整数且大于等于 1；
+- `scale` 是否为有限正数，并满足已配置的相对 `pageScaleRange`；mainView 还必须取得有效 fitted scale；
 - mainView 是否已初始化、当前用户是否可写；
 - Slide 是否满足公开的 controller ready/loading/step 边界条件。
 
@@ -337,7 +406,7 @@ Slide step request
   -> cross-page step: use the same scenePath/renderEnd comparison events
 ```
 
-- 本设计不要求修改 `@netless/slide` 或 `app-slide`。app-slide 的 Whiteboard View 由 WindowManager `AppProxy` 持有，scenePath 更新已经通过 `onAppScenePathChange` 暴露；WindowManager 只额外消费 Slide 已有的 `renderEnd` 事件。
+- 本设计不修改 `@netless/slide`。app-slide 需要把单槽 `onScaleChanged` 改为可多订阅并返回 disposer，同时移除 `scaleView` 内部 `1~4` clamp；WindowManager 继续消费既有 `renderEnd` 并新增实际 scale 订阅。
 - `prevStep`/`nextStep` 调用前必须消费 Slide 已有的 `hasPrevStep()`/`hasNextStep()` 做整份 PPT 首尾边界判断；返回 `false` 时统一命令直接 resolve `false`，不得调用 controller 或发出失败事件。该检查只放在新统一入口，不改变旧 `dispatchDocsEvent` 行为。
 - View scenePath 页从 app-slide View 的 `focusScenePath` 最后一级数字解析；Slide 页取最近一次有效 `renderEnd(page)`。两侧统一为 1-based，再计算 `status`。顶层 `page` 使用 Slide 页，`pageCount` 使用 `appResult.position()` 的总页数。
 - WindowManager 在 observer 安装时，如果 Slide controller ready 且非 loading，则以公开 `slideState.currentSlideIndex` 初始化最近渲染页，使 scenePath 先变化时可以与旧 Slide 页对账。如果 observer 安装早于 controller ready，后续 scenePath 事件会在同样的 ready/非 loading 条件下补做一次初始化，避免初始页没有 `renderEnd` 而丢失状态事件；初始化完成后只有 `renderEnd` 更新该值。
@@ -351,12 +420,12 @@ Slide step request
 
 ### 7.1 Bridge
 
-新增异步 handler：`room.dispatchPageEvent(event, options, responseCallback)`，只负责把 Web 参数传给 `manager.dispatchPageEvent`，统一输出 JSON bridge 可识别的 boolean 或 `__error`。旧 `room.dispatchDocsEvent` 保持不变。
+Bridge 只注册异步 handler `room.dispatchPageEvent(event, options, responseCallback)`，负责把 Web 参数传给 `manager.dispatchPageEvent`，统一输出 JSON bridge 可识别的 boolean 或 `__error`。该入口覆盖 DocsViewer、Slide、Presentation 和 mainView。Bridge 不再注册 `room.dispatchDocsEvent`；该旧方法只保留在 WindowManager Web API。
 
 Bridge 需要修正/统一的字段：
 
 - canonical 字段为 `page`，不使用 `pageIndex`。
-- 新接口请求只使用 `target`；`target` 为 `mainView` 或具体 appId。旧 docs 事件仍接受其原有 `appId`。
+- 新接口请求只使用 `target`；`target` 为 `mainView` 或具体 appId；`scalePage` 额外使用相对倍率字段 `scale`。
 - 失败时不要把 `undefined` 当作成功；WindowManager 未挂载、目标未就绪必须回调 `false` 或结构化错误。
 - 监听 WindowManager 的 `unifiedPageStateChange`，调用内部 `sdk.unifiedPageStateChange`。payload 原样包含公共字段 `target`、可选 `appId`、`page`、`pageCount`、`status`；状态观察按目标包含 `mainView`、`presentation` 或 Slide 的 `view`/`slide`，终态失败包含 `event/reason/message`。
 
@@ -368,7 +437,7 @@ Bridge 需要修正/统一的字段：
 room.dispatchPageEvent(WindowPageEvent event, Promise<Boolean> promise);
 ```
 
-`WindowPageEvent` 的事件字符串与 Web 完全一致，`Options.page` 使用 1-based，`Options.target` 为 `mainView` 或具体 appId。不新增独立 `appId` 或 `scale` 字段；保留 `WindowDocsEvent` 和 `Room.dispatchDocsEvent`，并在 JavaDoc 中标明旧文档事件（包括既有 `scalePage`）的兼容范围。
+`WindowPageEvent` 的事件字符串与 Web 完全一致，`Options.page` 使用 1-based，`Options.target` 为 `mainView` 或具体 appId，`Options.scale` 为相对适配尺寸的有限正数。Native 不再通过 Bridge 调用 `room.dispatchDocsEvent`。
 
 Android 的 `PrevPage`、`NextPage`、`PrevStep`、`NextStep` 是共享的不可变事件模板，`WindowPageEvent` 和 `Options` 均不可变。使用 `WindowPageEvent.NextPage.withTarget("mainView")`、`withTarget(appId)` 或 `withOptions(options)` 创建独立事件；查询参数使用 `new WindowPageEvent.Options().withTarget(...)`。不提供“setter 可调用但只修改临时副本”的接口，避免静默失效，也避免一次调用的配置污染后续 Room 或其他调用。
 
@@ -393,7 +462,7 @@ interface UnifiedPageStateListener {
          completionHandler:(void (^)(BOOL success))completionHandler;
 ```
 
-新 options 的 `page`、`target` 与 Android/Harmony 同名，其中 `target` 为 `mainView` 或具体 appId；不包含独立 `appId` 或 `scale`。保留 `WhiteWindowDocsEventKey` API，避免已有头文件和调用方立即迁移。
+新 options 的 `page`、`target`、`scale` 与 Android/Harmony 同名，其中 `target` 为 `mainView` 或具体 appId，`scale` 为相对适配尺寸的有限正数；不包含独立 `appId`。
 
 新增统一回调协议，挂载到已存在的 `WhiteRoomCallbackDelegate`：
 
@@ -405,11 +474,20 @@ interface UnifiedPageStateListener {
 
 ### 7.4 Harmony
 
-建议新增与 Android/iOS 相同语义的 `dispatchPageEvent`。新统一接口的 `WindowPageEventOptions.page` 为唯一正式字段，Harmony 与 Android/iOS 保持完全一致，不接受 `pageIndex` 别名。当前已发布旧接口中的 `pageIndex` 暂不改造、不迁移，继续保持原有行为，避免把旧接口兼容变更混入 WB-440。
+建议新增与 Android/iOS 相同语义的 `dispatchPageEvent`。新统一接口的 `WindowPageEventOptions.page` 为唯一页码字段，`scale` 为相对适配尺寸倍率；Harmony 与 Android/iOS 保持完全一致，不接受 `pageIndex` 别名。
 
-新 `dispatchPageEvent` 的 Harmony 示例和单测应补上 `jumpToPage`，验证 JSON 为 `{ "page": n }`，防止 `pageIndex` 进入统一接口；当前 `dispatchDocsEvent` 的 Harmony 示例和实现暂不改造。
+新 `dispatchPageEvent` 的 Harmony 示例和单测应覆盖 `jumpToPage` 与 `scalePage`，分别验证 JSON 中使用 `{ "page": n }` 和 `{ "scale": n }`，防止 `pageIndex` 或 camera 绝对 scale 进入统一接口。
 
 Harmony 新增统一回调 `onUnifiedPageStateChange(state)`，完整透传 `status`、来源页和终态失败字段；已有 Slide 页面回调保持兼容，不能只依赖当前 Harmony 尚未完整实现的 Slide callback handler。
+
+### 7.5 Fastboard
+
+Fastboard 将公开 helper 从 `dispatchDocsEvent` 迁移为异步 `dispatchPageEvent`：
+
+- `dispatchPageEvent(fastboard, event, { target })` 返回 `Promise<boolean>`，直接调用 `fastboard.manager.dispatchPageEvent`，统一用于 DocsViewer、Slide、Presentation 和 mainView，并支持 mainView/Slide/Presentation 的 `scalePage`。
+- 参数使用 `target`，不再把 Fastboard 的 `appId` 字段适配到 WindowManager 旧接口；未传时沿用 WindowManager 的 focused App/mainView 回退规则。
+- Fastboard 不按 App kind 回退调用 `manager.dispatchDocsEvent`。旧 helper 从 Fastboard 公共导出、类型声明和文档中移除，迁移说明明确同步 `boolean` 已变为 `Promise<boolean>`。
+- `managerConfig` 已透传 `WindowManager.mount()` 参数，因此 `pageScaleRange` 不需要 Fastboard 增加第二份配置定义。
 
 ## 8. 统一页码查询、事件回调与主白板增页
 
@@ -417,13 +495,15 @@ Harmony 新增统一回调 `onUnifiedPageStateChange(state)`，完整透传 `sta
 
 ```ts
 getPageState(options?: {
-  /** "mainView" 或具体的 Slide / netless-app-presentation appId。 */
+  /** "mainView" 或具体的 DocsViewer / Slide / netless-app-presentation appId。 */
   target?: string;
 }): Promise<{
-  target: "mainView" | "Slide" | "Presentation";
+  target: "mainView" | "DocsViewer" | "Slide" | "Presentation";
   appId?: string;
   page: number;
   pageCount: number;
+  /** MainView/Slide/Presentation: actual relative scale. */
+  scale?: number;
 }>;
 ```
 
@@ -435,9 +515,10 @@ getPageState(options?: {
 
 | 目标 | 内部读取 | 对外转换 |
 | --- | --- | --- |
-| mainView | `manager.pageState.index`、`manager.pageState.length` | `page = index + 1`、`pageCount = length`（length 是实际总页数） |
-| Slide | `appResult.position()` 返回 `[page, pageCount]` | 原样输出，`page` 1-based、`pageCount` 是实际总页数 |
-| Presentation | `controller.pageState()` 返回 `{ index, length }` | `page = index + 1`、`pageCount = length`（length 是实际总页数） |
+| mainView | `manager.pageState` + MainViewProxy 相对 camera scale | 页码转换为 1-based；`scale` 相对 fitted size |
+| DocsViewer | `AppProxy.pageState` | `page = index + 1`、`pageCount = length`，不返回 `scale` |
+| Slide | `appResult.position()` + `getViewScale()` | 页码原样输出；`scale` 为实际相对适配倍率 |
+| Presentation | `controller.pageState()` + `app.view.camera.scale / controller.getOriginScale()` | 页码转换为 1-based；`scale` 为实际相对适配倍率 |
 
 mainView 增页继续使用已有 WindowManager API：
 
@@ -456,6 +537,7 @@ Bridge/Native 的 `addPage` 只作用于 mainView，不能根据 focused App 改
 ```ts
 type UnifiedPageStateObservation = UnifiedPageState & {
   status: "pending" | "success";
+  changeType?: "page" | "scale";
   mainView?: number;
   presentation?: number;
   view?: number;
@@ -477,10 +559,12 @@ manager.emitter.on("unifiedPageStateChange", handler);
 回调规则：
 
 - `page`、各来源页始终为 1-based 正整数，`pageCount` 始终为实际总页数；`getPageState` 的返回结构不包含这些来源字段。
+- 为兼容已落地的分页 payload，分页事件允许省略 `changeType`，缺失时按 `"page"` 处理；缩放事件必须包含 `changeType: "scale"`，且 `scale` 必须是实际生效的相对倍率。
 - mainView 输出 `{ status: "success", mainView: page }`；原有 `pageStateChange({ index, length })` 保持不变。`pageCount` 变化也触发回调，例如 `manager.addPage()`。
 - Presentation 在 scenePath 与 controller page state 确认后输出 `{ status: "success", presentation: page }`。
 - Slide 的 `renderEnd` 与 Whiteboard View scenePath 变化均触发回调。两侧不一致输出 `{ status: "pending", view, slide }`，一致输出 `{ status: "success", view, slide }`；`pending` 是正常中间状态，不是失败。
 - Slide 顶层 `page` 等于 `slide`，用于保持统一页码消费方式；`view` 保留另一侧真实值，调用方不得在 `status: "pending"` 时把顶层 `page` 当作两侧已一致。
+- mainView/Slide/Presentation 的缩放变化来自新 API、旧 WindowManager API、App UI 或远端同步时都触发统一回调；请求值未实际生效时不得回显请求值。
 - mainView/Presentation 相同状态默认去重；Slide 的两个来源事件不按普通页码去重，以保证每个触发及 `pending -> success` 都可见。
 - `status: "failure"` 只用于 controller 在命令被接受后异步返回 `false` 或 reject，并携带 `event/reason/message`。它是持久的终态诊断，不表示 Slide 临时不一致。
 
@@ -518,18 +602,31 @@ Bridge 新增 `sdk.unifiedPageStateChange` 内部通知，Native 对外统一接
 - 验证 `room.getPageState` 的 `page/pageCount` 统一输出，以及 `room.addPage` 只操作 mainView。
 - 验证新统一接口的 `page` 是 1-based，`pageIndex` 不进入正式输出；旧接口的 `pageIndex` 保持原行为并做回归验证。
 - manager 未挂载、App 未注册、App 未就绪时均有回调。
-- `room.dispatchDocsEvent` 回归：旧同步返回值和 `appId` 路由不变。
-- 双入口隔离与内部复用：`dispatchDocsEvent` 不路由 mainView，保留同步返回及 DocsViewer/scalePage/历史 alias；两个入口对 Slide/Presentation 复用同一内部 command executor。旧入口、UI 或远端同步导致的真实状态完成后，允许由来源无关 watcher 发出统一 `unifiedPageStateChange`；`dispatchPageEvent` 不接受旧 `scalePage`/DocsViewer 路径。
+- WindowManager 独立回归 `dispatchDocsEvent` 的同步返回值和 `appId` 路由；Bridge 确认不再注册该旧 handler。
+- 双入口隔离与内部复用：WindowManager 的 `dispatchDocsEvent` 不路由 mainView，保留同步返回及 DocsViewer/scalePage/历史 alias；两个入口对 DocsViewer、Slide、Presentation 尽量复用底层适配器。旧入口、UI 或远端同步导致的真实状态完成后，允许由来源无关 watcher 发出统一 `unifiedPageStateChange`；新入口支持 DocsViewer 分页以及 mainView/Slide/Presentation `scalePage`。
 
 ### 9.3 Native
 
 - Android/iOS/Harmony 对同一事件生成相同 JSON：事件名、大小写、可选字段、页码基准一致。
 - Android/iOS/Harmony 对 `getPageState` 的方法名、参数字段、返回结构保持一致；`addPage` 的显式 `after/scene` 参数语义一致，旧无参入口默认插入位置保持平台兼容行为，不纳入统一契约。
 - Android/iOS/Harmony 都能收到完整 `UnifiedPageStateChange` 对象，验证公共字段、三种 `status`、按目标出现的来源字段和 failure 专属字段，同时验证 Slide 旧回调不回归。
-- 三端都覆盖 `prevPage`、`nextPage`、`jumpToPage`；`prevStep`/`nextStep` 仅覆盖 app-slide 动态 PPT，Presentation 和 mainView 验证返回 `false`。新统一接口不测试 `scalePage`；旧 `dispatchDocsEvent` 的 DocsViewer/缩放能力继续做兼容回归。
+- 三端都覆盖 DocsViewer/Slide/Presentation/mainView 的 `prevPage`、`nextPage`、`jumpToPage`；DocsViewer 沿用既有 step alias，Slide 使用真实 step，Presentation/mainView 对 step 返回 `false`。新统一接口覆盖 mainView/Slide/Presentation `scalePage` 的正常、非法、显式范围和状态回调；DocsViewer 对 scale 返回 `false`。
 - Harmony 特别覆盖新统一接口的 `page` 字段与 JSON 结构；旧接口的 `pageIndex` 仅做不回归验证，不纳入本次改造。
 - 动态 Slide 分别触发 scenePath 和 `renderEnd`，验证 `pending` 与 `success` 两次回调；静态 Presentation 和 mainView 验证 `status:"success"` 与各自来源页字段。
 - 多窗口开关关闭时，旧单窗口 `nextPage`/`prevPage` 行为不回归。
+
+### 9.4 HLD 自审与测试适用性
+
+| 分类 | 适用性 | 验收重点 |
+| --- | --- | --- |
+| 功能测试 | 适用 | 四类目标的事件矩阵、1-based 页码、scale 相对倍率、非法输入、显式范围、accepted 返回与实际状态回调分别验证。 |
+| 性能测试 | 不单列专项 | 本设计不引入逐帧算法、编解码或渲染链路；通过 listener 数量和销毁后零回调的单测防止持续 CPU/内存开销。 |
+| 兼容性测试 | 适用 | WindowManager 旧同步 API 行为不变；Bridge/Fastboard 新异步 API、Native JSON 字段和旧版本缺失 `changeType/scale` 时的容错需验证。 |
+| Stress case | 适用 | 连续 page/scale 命令、UI 与远端交错变化、App reconnect、WindowManager destroy，验证不重复安装 listener、无残留回调和异常锁死。 |
+| 云测 | 不适用 | 逻辑位于 Web/JS 控制与序列化层，不依赖机型硬件能力；Native 侧以三平台构建和设备/模拟器运行探针替代。 |
+| 回归测试 | 适用 | DocsViewer 旧 DOM 控制、Slide step/render、Presentation camera/mainView page、Fastboard helper、Bridge handler 注册表全部回归。 |
+
+SDK 自检查结论：本次新增公开 API/回调并调整 Bridge/Fastboard 集成入口，但不新增网络接口、权限、敏感信息、第三方库、动态库、算法模块或视频编解码行为；包体积、CPU/GPU、计量计费和 video profile 不受影响。资源风险集中在 observer 生命周期，必须通过 disposer、App destroy/reconnect 和 WindowManager destroy 测试关闭。
 
 ## 10. 实施顺序与发布门槛
 
@@ -545,14 +642,15 @@ Bridge 新增 `sdk.unifiedPageStateChange` 内部通知，Native 对外统一接
 
 1. **已确认：** WB-440 使用新增的异步统一入口 `dispatchPageEvent`，不修改 `dispatchDocsEvent` 的既有签名和同步语义。
 2. **已确认：** Native 旧入口 `room.nextPage`/`prevPage` 及其他既有分页 API 保持业务逻辑不变；“跟随当前焦点”的目标聚合能力只通过新增统一接口 `dispatchPageEvent` 提供。
-3. **已确认：** `prevStep`/`nextStep` 仅支持 `app-slide` 动态 PPT；Presentation 和 mainView 不支持这两个事件。
-4. **已确认：** `scalePage` 不属于本次 WB-440 新统一接口范围；不新增统一缩放能力，旧 `dispatchDocsEvent` 的既有缩放逻辑保持不变。
+3. **已确认：** `prevStep`/`nextStep` 在 app-slide 表示真实 step，在 DocsViewer 沿用翻页 alias；Presentation 和 mainView 不支持这两个事件。
+4. **已确认：** `scalePage` 属于新 `dispatchPageEvent`，支持 mainView/Slide/Presentation；默认无业务范围，显式 `pageScaleRange` 使用相对适配倍率。mainView 复用 `manager.moveCamera`，旧 `dispatchDocsEvent` 的 `1~4` 逻辑保持不变。
 5. **已确认：** 统一分页回调复用 `dispatchDocsEvent` 现有 Native 回调的注册、解绑和生命周期管理方式，使用单一 `onUnifiedPageStateChange(UnifiedPageStateChange state)` 事件完整传递 `status`、来源页和终态失败字段；iOS 挂载到 `WhiteRoomCallbackDelegate`，不新增独立 page delegate。
-6. **已确认：** DocsViewer 不属于本次统一分页接口范围；静态 PPT 仅要求 `netless-app-presentation` 支持。旧 `dispatchDocsEvent` 对 DocsViewer 的兼容逻辑不在本次改造内。
+6. **已确认：** DocsViewer 属于新统一分页接口范围，复用其已有分页、step alias 和跳页能力；DocsViewer 不新增 `scalePage`。
 7. **已确认：** 新统一接口在 Harmony/Android/iOS 统一使用 `page`，不提供 `pageIndex` 别名；旧接口的 `pageIndex` 暂不改造，保持现有行为。
 8. **已确认：** 统一 API 的 Promise 采用“命令已被接收”语义；Promise 不等待回调。`unifiedPageStateChange` 使用 `status` 作为唯一状态判据：mainView/Presentation 输出 `success`；Slide 任一侧变化都触发，不一致为 `pending`、一致为 `success`；controller accepted 后异步失败输出终态 `failure`。不再提供 `result` 或独立失败事件。
-9. **已确认：** 新统一请求只保留 `target?: string` 与 `page?: number`；`target` 为 `mainView` 或具体 appId，不存在独立 `appId`，也不存在 `target: "focused"`。不传 `target` 才表示跟随当前 focused App，无 focused 时回退 mainView。
+9. **已确认：** 新统一请求使用 `target?: string`、`page?: number`、`scale?: number`；`target` 为 `mainView` 或具体 appId，不存在独立 `appId`，也不存在 `target: "focused"`。不传 `target` 才表示跟随当前 focused App，无 focused 时回退 mainView。
+10. **已确认：** WindowManager 保留旧 `dispatchDocsEvent`；Whiteboard-bridge 和 Fastboard 只使用/公开新 `dispatchPageEvent`，Fastboard 不再按 DocsViewer kind 回退旧入口。
 
 ## 12. 结论
 
-当前评审基线已确认采用“新增异步 `dispatchPageEvent` + `getPageState` + `unifiedPageStateChange` + mainView `addPage`，并保留旧 `dispatchDocsEvent`”。两者保留公开名称是为了兼容边界，不代表复制两套实现：底层 controller 能力可共享，入口校验、返回值、目标范围和事件完成语义必须隔离。新增统一接口覆盖动态 `Slide`、静态 `netless-app-presentation` 和 `mainView`，不会破坏现有同步 API，也能让三端 Native 使用同一事件名、字段、页码语义和回调 payload。统一请求只包含 `target` 和可选 `page`，其中 `target` 为 `mainView` 或具体 appId；未传时跟随当前 focused App，无 focused 时回退 mainView。DocsViewer 仅保留旧 `dispatchDocsEvent` 兼容范围；Native 旧分页入口业务逻辑不变，Native 回调复用既有回调通道，iOS 挂载到 `WhiteRoomCallbackDelegate`。
+当前评审基线采用“新增异步 `dispatchPageEvent` + `getPageState` + `unifiedPageStateChange` + mainView `addPage`，并仅在 WindowManager 保留旧 `dispatchDocsEvent`”。底层 controller/DOM/camera 能力可共享，旧入口的同步返回、`1~4` 缩放范围和历史行为不变。新接口覆盖 DocsViewer、动态 Slide、静态 Presentation 和 mainView；`scalePage` 支持 mainView/Slide/Presentation，默认无业务范围，回调返回实际相对倍率。Bridge、Native 和 Fastboard统一使用 `dispatchPageEvent`；请求字段为 `target`、可选 `page` 和可选 `scale`，未传 target 时跟随 focused App，无 focused时回退 mainView。

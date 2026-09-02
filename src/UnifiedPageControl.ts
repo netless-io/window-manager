@@ -1,4 +1,10 @@
-export type PageEvent = "prevPage" | "nextPage" | "prevStep" | "nextStep" | "jumpToPage";
+export type PageEvent =
+    | "prevPage"
+    | "nextPage"
+    | "prevStep"
+    | "nextStep"
+    | "jumpToPage"
+    | "scalePage";
 
 /** `mainView` or a concrete Slide/Presentation appId. */
 export type PageEventTarget = string;
@@ -7,22 +13,59 @@ export type PageEventOptions = {
     target?: PageEventTarget;
     /** 1-based page number. */
     page?: number;
+    /** Scale relative to the fitted content size. `1` means fitted size. */
+    scale?: number;
 };
+
+export type PageScaleRange = {
+    /** Optional minimum scale relative to the fitted content size. */
+    minScale?: number;
+    /** Optional maximum scale relative to the fitted content size. */
+    maxScale?: number;
+};
+
+export function normalizePageScaleRange(
+    range: PageScaleRange | undefined
+): Readonly<PageScaleRange> | undefined {
+    if (range === undefined) return undefined;
+    if (!range || typeof range !== "object" || Array.isArray(range)) {
+        throw new Error("[WindowManager]: pageScaleRange must be an object");
+    }
+    const { minScale, maxScale } = range;
+    if (minScale !== undefined && (!Number.isFinite(minScale) || minScale <= 0)) {
+        throw new Error(
+            "[WindowManager]: pageScaleRange.minScale must be a finite positive number"
+        );
+    }
+    if (maxScale !== undefined && (!Number.isFinite(maxScale) || maxScale <= 0)) {
+        throw new Error(
+            "[WindowManager]: pageScaleRange.maxScale must be a finite positive number"
+        );
+    }
+    if (minScale !== undefined && maxScale !== undefined && minScale > maxScale) {
+        throw new Error("[WindowManager]: pageScaleRange.minScale must not exceed maxScale");
+    }
+    return { minScale, maxScale };
+}
 
 export type PageStateOptions = {
     target?: PageEventTarget;
 };
 
 export type UnifiedPageState = {
-    target: "mainView" | "Slide" | "Presentation";
+    target: "mainView" | "DocsViewer" | "Slide" | "Presentation";
     appId?: string;
     page: number;
     pageCount: number;
+    /** MainView/Slide/Presentation actual scale relative to fitted size. */
+    scale?: number;
 };
 
 export type UnifiedPageStateObservation = UnifiedPageState & {
     /** `pending` means Slide's View and render sources do not agree yet. */
     status: "pending" | "success";
+    /** Missing means a page change for compatibility with earlier versions. */
+    changeType?: "page" | "scale";
     /** MainView-only: current 1-based page. */
     mainView?: number;
     /** Presentation-only: current 1-based page. */
@@ -49,6 +92,8 @@ export type SlidePageController = {
     nextStep: () => boolean;
     jumpToPage: (page: number) => boolean;
     scaleView: (scale: number) => void;
+    getViewScale?: () => number | undefined;
+    onScaleChanged?: (listener: (scale: number) => void) => void | (() => void);
 };
 
 export type PresentationPageController = {
@@ -136,14 +181,20 @@ export class UnifiedPageControlTracker {
             force ||
             !previous ||
             previous.page !== state.page ||
-            previous.pageCount !== state.pageCount
+            previous.pageCount !== state.pageCount ||
+            !sameScale(previous.scale, state.scale)
         );
     }
 
     public shouldLogSuccessState(key: StateKey, state: UnifiedPageState): boolean {
         const previous = this.loggedSuccessStates.get(key);
         this.loggedSuccessStates.set(key, { ...state });
-        return !previous || previous.page !== state.page || previous.pageCount !== state.pageCount;
+        return (
+            !previous ||
+            previous.page !== state.page ||
+            previous.pageCount !== state.pageCount ||
+            !sameScale(previous.scale, state.scale)
+        );
     }
 
     public shouldLogError(key: StateKey, signature: string): boolean {
@@ -216,4 +267,9 @@ export class UnifiedPageControlTracker {
         this.lastSlideRenderPages.clear();
         this.listenersInstalled = false;
     }
+}
+
+function sameScale(left: number | undefined, right: number | undefined): boolean {
+    if (left === undefined || right === undefined) return left === right;
+    return Math.abs(left - right) < 0.000001;
 }

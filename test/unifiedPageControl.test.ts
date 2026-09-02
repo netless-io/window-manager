@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 let WindowManager: typeof import("../src")["WindowManager"];
 let UnifiedPageControlTracker: typeof import("../src/UnifiedPageControl")["UnifiedPageControlTracker"];
 let executeAppPageCommand: typeof import("../src/UnifiedPageControl")["executeAppPageCommand"];
+let normalizePageScaleRange: typeof import("../src/UnifiedPageControl")["normalizePageScaleRange"];
 
 beforeAll(async () => {
     (globalThis as any).CanvasRenderingContext2D = class CanvasRenderingContext2D {};
@@ -11,6 +12,7 @@ beforeAll(async () => {
     const unifiedPageControl = await import("../src/UnifiedPageControl");
     UnifiedPageControlTracker = unifiedPageControl.UnifiedPageControlTracker;
     executeAppPageCommand = unifiedPageControl.executeAppPageCommand;
+    normalizePageScaleRange = unifiedPageControl.normalizePageScaleRange;
 });
 
 const createManager = () => {
@@ -36,6 +38,19 @@ const registerAppKind = (kind: string) => {
 const flushEvents = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe("unified page control", () => {
+    it("validates optional relative page scale bounds without adding defaults", () => {
+        expect(normalizePageScaleRange(undefined)).toBeUndefined();
+        expect(normalizePageScaleRange({ minScale: 0.25 })).toEqual({ minScale: 0.25 });
+        expect(normalizePageScaleRange({ maxScale: 8 })).toEqual({ maxScale: 8 });
+        expect(() => normalizePageScaleRange({ minScale: 0 })).toThrow("minScale");
+        expect(() => normalizePageScaleRange({ maxScale: Number.POSITIVE_INFINITY })).toThrow(
+            "maxScale"
+        );
+        expect(() => normalizePageScaleRange({ minScale: 2, maxScale: 1 })).toThrow(
+            "must not exceed"
+        );
+    });
+
     it("uses target as the appId and falls back from focused app to mainView", () => {
         const manager = createManager();
         Object.defineProperty(manager, "focused", {
@@ -59,6 +74,158 @@ describe("unified page control", () => {
         await expect(manager.getPageState({ page: 1 } as any)).rejects.toThrow(
             "invalid page state options"
         );
+    });
+
+    it("reuses the existing DocsViewer controls in dispatchPageEvent", async () => {
+        const restore = registerAppKind("DocsViewer");
+        const manager = createManager();
+        const footer = document.createElement("div");
+        const next = document.createElement("button");
+        next.className = "btn-page-next";
+        const input = document.createElement("input");
+        input.className = "page-number-input";
+        footer.append(next, input);
+        const nextClick = vi.fn();
+        const inputChange = vi.fn();
+        next.addEventListener("click", nextClick);
+        input.addEventListener("change", inputChange);
+        const app: any = {
+            id: "DocsViewer-existing",
+            kind: "DocsViewer",
+            appEmitter: new Emittery(),
+            box: { $footer: footer },
+            pageState: { index: 0, length: 3 },
+            view: { focusSceneIndex: 0, focusScenePath: "/DocsViewer/1" },
+            getFullScenePath: () => "/DocsViewer/1",
+        };
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+
+        try {
+            await expect(
+                manager.dispatchPageEvent("nextPage", { target: app.id })
+            ).resolves.toBe(true);
+            expect(nextClick).toHaveBeenCalledOnce();
+            await expect(
+                manager.dispatchPageEvent("jumpToPage", { target: app.id, page: 3 })
+            ).resolves.toBe(true);
+            expect(input.value).toBe("3");
+            expect(inputChange).toHaveBeenCalledOnce();
+            await expect(
+                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 2 })
+            ).resolves.toBe(false);
+            await expect(manager.getPageState({ target: app.id })).resolves.toEqual({
+                target: "DocsViewer",
+                appId: app.id,
+                page: 1,
+                pageCount: 3,
+            });
+        } finally {
+            restore();
+        }
+    });
+
+    it("scales mainView through moveCamera and reports the actual relative scale", async () => {
+        const manager = createManager();
+        const listener = vi.fn();
+        let relativeScale = 1;
+        manager.appManager = {
+            mainViewProxy: {
+                view: { focusSceneIndex: 0, focusScenePath: "/1" },
+                toLocalScale: (scale: number) => scale * 2,
+                getRelativeScale: () => relativeScale,
+            },
+            sceneState: { scenes: [{ name: "1" }] },
+        };
+        manager._pageState = { toObject: () => ({ index: 0, length: 1 }) };
+        Object.defineProperty(manager, "canOperate", { value: true });
+        manager.moveCamera = vi.fn(({ scale }: { scale: number }) => {
+            relativeScale = scale / 2;
+        });
+        manager.emitter.on("unifiedPageStateChange", listener);
+
+        await expect(
+            manager.dispatchPageEvent("scalePage", { target: "mainView", scale: 1.5 })
+        ).resolves.toBe(true);
+        expect(manager.moveCamera).toHaveBeenCalledWith({ scale: 3 });
+        expect(listener).not.toHaveBeenCalled();
+
+        await manager.emitter.emit("cameraStateChange", {} as any);
+        expect(listener).toHaveBeenCalledWith({
+            target: "mainView",
+            page: 1,
+            pageCount: 1,
+            scale: 1.5,
+            status: "success",
+            changeType: "scale",
+            mainView: 1,
+        });
+        await expect(manager.getPageState({ target: "mainView" })).resolves.toMatchObject({
+            scale: 1.5,
+        });
+    });
+
+    it("does not clamp Slide scale and applies only configured business bounds", async () => {
+        const restore = registerAppKind("Slide");
+        const manager = createManager();
+        const listener = vi.fn();
+        let actualScale = 1;
+        let scaleListener: ((scale: number) => void) | undefined;
+        const scaleView = vi.fn((scale: number) => {
+            actualScale = scale;
+            scaleListener?.(scale);
+        });
+        const app: any = {
+            id: "Slide-scale",
+            kind: "Slide",
+            appEmitter: new Emittery(),
+            box: {},
+            view: { focusScenePath: "/Slide/1" },
+            appResult: {
+                position: () => [1, 2],
+                controller: () => ({ ready: true }),
+                slide: () => ({
+                    isLoading: false,
+                    isAnimating: false,
+                    slideState: { currentSlideIndex: 1 },
+                    on: vi.fn(),
+                    off: vi.fn(),
+                }),
+                getViewScale: () => actualScale,
+                onScaleChanged: (callback: (scale: number) => void) => {
+                    scaleListener = callback;
+                    return () => (scaleListener = undefined);
+                },
+                scaleView,
+            },
+        };
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+        manager.emitter.on("unifiedPageStateChange", listener);
+
+        try {
+            await expect(
+                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 5 })
+            ).resolves.toBe(true);
+            expect(scaleView).toHaveBeenCalledWith(5);
+            expect(listener).toHaveBeenCalledWith({
+                target: "Slide",
+                appId: app.id,
+                page: 1,
+                pageCount: 2,
+                scale: 5,
+                status: "success",
+                changeType: "scale",
+            });
+
+            manager._pageScaleRange = { minScale: 0.5, maxScale: 2 };
+            await expect(
+                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 3 })
+            ).resolves.toBe(false);
+            expect(scaleView).toHaveBeenCalledTimes(1);
+        } finally {
+            restore();
+        }
     });
 
     it("observes mainView state without dispatching a command first", async () => {
@@ -728,6 +895,64 @@ describe("unified page control", () => {
                 presentation: 3,
             })}`
         );
+    });
+
+    it("reports Presentation camera scale relative to its live origin scale", async () => {
+        const restore = registerAppKind("Presentation");
+        const manager = createManager();
+        const listener = vi.fn();
+        let cameraUpdated: (() => void) | undefined;
+        const view: any = {
+            focusScenePath: "/Presentation/1",
+            camera: { scale: 2 },
+            callbacks: {
+                on: (event: string, callback: () => void) => {
+                    if (event === "onCameraUpdated") cameraUpdated = callback;
+                },
+                off: vi.fn(),
+            },
+        };
+        const moveCamera = vi.fn(({ scale }: { scale: number }) => {
+            view.camera.scale = scale;
+            cameraUpdated?.();
+        });
+        const app: any = {
+            id: "Presentation-scale",
+            kind: "Presentation",
+            appEmitter: new Emittery(),
+            box: {},
+            view,
+            getFullScenePath: () => "/Presentation/1",
+            appResult: {
+                pageState: () => ({ index: 0, length: 2 }),
+                getOriginScale: () => 2,
+                moveCamera,
+            },
+        };
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+        manager.emitter.on("unifiedPageStateChange", listener);
+
+        try {
+            await expect(
+                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 1.75 })
+            ).resolves.toBe(true);
+            expect(moveCamera).toHaveBeenCalledWith({ centerX: 0, centerY: 0, scale: 3.5 });
+            expect(listener).toHaveBeenCalledWith({
+                target: "Presentation",
+                appId: app.id,
+                page: 1,
+                pageCount: 2,
+                scale: 1.75,
+                status: "success",
+                changeType: "scale",
+            });
+            await expect(manager.getPageState({ target: app.id })).resolves.toMatchObject({
+                scale: 1.75,
+            });
+        } finally {
+            restore();
+        }
     });
 
     it("rejects Presentation commands until controller and View agree", async () => {
