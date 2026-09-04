@@ -7,11 +7,12 @@ import { ContainerResizeObserver } from "./ContainerResizeObserver";
 import { createBoxManager } from "./BoxManager";
 import { CursorManager } from "./Cursor";
 import {
+    ATTRIBUTES_LOG_DEBOUNCE_TIME,
     DEFAULT_CONTAINER_RATIO,
     Events,
     INIT_DIR,
     ROOT_DIR,
-    ROOM_LOG_DEBOUNCE_MIN,
+    UNIFIED_PAGE_STATE_LOG_DEBOUNCE_TIME,
 } from "./constants";
 import { internalEmitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
@@ -67,9 +68,11 @@ import type {
 import type { AppProxy } from "./App";
 import type { PublicEvent } from "./callback";
 export type {
-    PageEvent,
-    PageEventTarget,
-    PageEventOptions,
+    DocsEvent,
+    DocsEventTarget,
+    DocsEventOptions,
+    DispatchDocsEventFailureReason,
+    DispatchDocsEventResult,
     PageScaleRange,
     PageStateOptions,
     UnifiedPageState,
@@ -84,9 +87,11 @@ import {
     UnifiedPageControlTracker,
 } from "./UnifiedPageControl";
 import type {
-    PageEvent,
-    PageEventOptions,
-    PageEventTarget,
+    DocsEvent,
+    DocsEventOptions,
+    DocsEventTarget,
+    DispatchDocsEventFailureReason,
+    DispatchDocsEventResult,
     PageScaleRange,
     PageStateOptions,
     PresentationPageController,
@@ -134,37 +139,9 @@ export type AddAppOptions = {
 
 export type setAppOptions = AddAppOptions & { appOptions?: any };
 
-export type DocsEvent =
-    | "prevPage"
-    | "nextPage"
-    | "prevStep"
-    | "nextStep"
-    | "jumpToPage"
-    | "scalePage";
-
-export type DocsEventOptions = {
-    /** If provided, will dispatch to the specific app. Default to the focused app. */
-    appId?: string;
-    /** Used by `jumpToPage` event, range from 1 to total pages count. */
-    page?: number;
-    /** Used by `scalePage` event. Range from 1 to 4, decimals allowed. `1` means default fitted size. */
-    scale?: number;
-};
-
 const SlideAppKind = "Slide" as const;
 const PresentationAppKind = BuiltinApps.Presentation as "Presentation";
 const DocsViewerAppKind = BuiltinApps.DocsViewer as "DocsViewer";
-const MinDocsPageScale = 1;
-const MaxDocsPageScale = 4;
-
-function isValidDocsPageScale(scale: unknown): scale is number {
-    return (
-        typeof scale === "number" &&
-        Number.isFinite(scale) &&
-        scale >= MinDocsPageScale &&
-        scale <= MaxDocsPageScale
-    );
-}
 
 export type AddAppParams<TAttributes = any> = {
     kind: string;
@@ -254,7 +231,7 @@ export type CursorOptions = {
 export type MountParams = {
     room: Room | Player;
     container?: HTMLElement;
-    /** mainView 固定原始尺寸，用于建立和恢复统一的 camera 基准。 */
+    /** mainView 原始尺寸；可写端 mount 时可重建并同步已有的 origin camera contract。 */
     originSize?: Size;
     /** 白板高宽比例, 默认为 9 / 16 */
     containerSizeRatio?: number;
@@ -335,6 +312,7 @@ export class WindowManager
     public builtinAppOptions?: BuiltinAppOptions;
 
     private _originSize?: Readonly<Size>;
+    private legacyCameraCommitTimer = 0;
 
     private boxManager?: BoxManager;
     private static params?: MountParams;
@@ -448,7 +426,7 @@ export class WindowManager
                 manager.attributesDeboundceLog = new ArgusLog(
                     manager._roomLogger,
                     "attributes",
-                    ROOM_LOG_DEBOUNCE_MIN
+                    ATTRIBUTES_LOG_DEBOUNCE_TIME
                 );
                 if (WindowManager.registered.size > 0) {
                     manager._roomLogger.info(
@@ -1311,154 +1289,9 @@ export class WindowManager
         return this.appManager?.appProxies.get(appId);
     }
 
-    /**
-     * Send specific command to DocsViewer / Presentation / Slide app.
-     *
-     * Static docs and Presentation do not have animation steps, so `prevStep` / `nextStep`
-     * are treated as `prevPage` / `nextPage`.
-     */
-    public dispatchDocsEvent(event: DocsEvent, options: DocsEventOptions = {}): boolean {
-        const appId = options.appId || this.focused;
-        if (!appId) {
-            console.warn("not found " + (options.appId || "focused app"));
-            return false;
-        }
-
-        const app = this.queryOne(appId);
-        if (!app) {
-            console.warn("not found app with id " + appId);
-            return false;
-        }
-
-        const isDocsViewerApp =
-            appId.startsWith(`${BuiltinApps.DocsViewer}-`) || app.kind === BuiltinApps.DocsViewer;
-        const isPresentationApp =
-            appId.startsWith(`${PresentationAppKind}-`) || app.kind === PresentationAppKind;
-        const isSlideApp = appId.startsWith(`${SlideAppKind}-`) || app.kind === SlideAppKind;
-        let appKind = app.kind;
-        if (isDocsViewerApp) {
-            appKind = BuiltinApps.DocsViewer;
-        } else if (isPresentationApp) {
-            appKind = PresentationAppKind;
-        } else if (isSlideApp) {
-            appKind = SlideAppKind;
-        }
-
-        if (!WindowManager.registered.has(appKind)) {
-            console.warn("not registered app kind " + appKind);
-            return false;
-        }
-
-        let page: number | undefined, input: HTMLInputElement | null, scale: number | undefined;
-
-        if (isDocsViewerApp) {
-            const dom = app.box?.$footer;
-            if (!dom) {
-                console.warn("not found app with id " + appId);
-                return false;
-            }
-
-            const click = (el: Element | null) => {
-                el && el.dispatchEvent(new MouseEvent("click"));
-            };
-
-            switch (event) {
-                case "prevPage":
-                case "prevStep":
-                    click(dom.querySelector('button[class$="btn-page-back"]'));
-                    break;
-                case "nextPage":
-                case "nextStep":
-                    click(dom.querySelector('button[class$="btn-page-next"]'));
-                    break;
-                case "jumpToPage":
-                    page = options.page;
-                    input = dom.querySelector('input[class$="page-number-input"]');
-                    if (!input || typeof page !== "number") {
-                        console.warn("failed to jump" + (page ? " to page " + page : ""));
-                        return false;
-                    }
-                    input.value = "" + page;
-                    input.dispatchEvent(new InputEvent("change"));
-                    break;
-                case "scalePage":
-                    console.warn("not supported event " + event + " for app kind " + appKind);
-                    return false;
-                default:
-                    console.warn("unknown event " + event);
-                    return false;
-            }
-
-            return true;
-        }
-
-        if (isPresentationApp) {
-            const controller = app.appResult as PresentationPageController | undefined;
-            if (!controller) {
-                console.warn("not found app with id " + appId);
-                return false;
-            }
-
-            if (event === "scalePage") {
-                scale = options.scale;
-                if (!isValidDocsPageScale(scale)) {
-                    console.warn("failed to scale, scale should be a number from 1 to 4");
-                    return false;
-                }
-                try {
-                    controller.moveCamera({
-                        centerX: 0,
-                        centerY: 0,
-                        scale: controller.getOriginScale() * scale,
-                    });
-                    return true;
-                } catch (error) {
-                    console.warn(error);
-                    return false;
-                }
-            }
-            const pageEvent: PageEvent =
-                event === "prevStep" ? "prevPage" : event === "nextStep" ? "nextPage" : event;
-            if (pageEvent === "jumpToPage" && typeof options.page !== "number") {
-                console.warn("failed to jump" + (options.page ? " to page " + options.page : ""));
-                return false;
-            }
-            return (
-                executeAppPageCommand(PresentationAppKind, controller, pageEvent, options.page) ===
-                true
-            );
-        }
-
-        if (isSlideApp) {
-            const controller = app.appResult as SlidePageController | undefined;
-            if (!controller) {
-                console.warn("not found app with id " + appId);
-                return false;
-            }
-
-            if (event === "scalePage") {
-                scale = options.scale;
-                if (!isValidDocsPageScale(scale)) {
-                    console.warn("failed to scale, scale should be a number from 1 to 4");
-                    return false;
-                }
-                controller.scaleView(scale);
-                return true;
-            }
-            if (event === "jumpToPage" && typeof options.page !== "number") {
-                console.warn("failed to jump" + (options.page ? " to page " + options.page : ""));
-                return false;
-            }
-            return executeAppPageCommand(SlideAppKind, controller, event, options.page) === true;
-        }
-
-        console.warn("not supported app kind " + app.kind);
-        return false;
-    }
-
     private dispatchUnifiedDocsViewerEvent(
         app: AppProxy,
-        event: PageEvent,
+        event: DocsEvent,
         page?: number
     ): boolean {
         const dom = app.box?.$footer;
@@ -1485,17 +1318,19 @@ export class WindowManager
     }
 
     /**
-     * Dispatches the new unified page command. The returned Promise only means
-     * that the command was accepted. unifiedPageStateChange reports observed page
-     * sources; Slide consumers must require status === "success" before treating them as aligned.
+     * Dispatches a unified document command. The result only means that the
+     * command was accepted. unifiedPageStateChange reports the observed state.
      */
-    public dispatchPageEvent(event: PageEvent, options: PageEventOptions = {}): Promise<boolean> {
+    public dispatchDocsEvent(
+        event: DocsEvent,
+        options: DocsEventOptions = {}
+    ): Promise<DispatchDocsEventResult> {
         if (this._destroyed) {
-            return Promise.resolve(false);
+            return this.rejectDocsEvent("stateUnavailable", "window manager was destroyed");
         }
         this.ensureUnifiedPageStateListeners();
         if (!options || typeof options !== "object" || Array.isArray(options))
-            return Promise.resolve(false);
+            return this.rejectDocsEvent("invalidOptions", "options must be an object");
         if (
             event !== "prevPage" &&
             event !== "nextPage" &&
@@ -1504,48 +1339,73 @@ export class WindowManager
             event !== "jumpToPage" &&
             event !== "scalePage"
         ) {
-            return Promise.resolve(false);
+            return this.rejectDocsEvent("invalidEvent", `unknown docs event: ${String(event)}`);
         }
         const target = this.resolveUnifiedPageTarget(options);
-        if (!target) return Promise.resolve(false);
+        if (!target) {
+            return this.rejectDocsEvent(
+                "invalidOptions",
+                "target and appId must not specify different targets"
+            );
+        }
         if (target === "mainView") {
-            if (
-                !this.appManager ||
-                !this._pageState ||
-                !this.pageState.length ||
-                !this.canOperate
-            ) {
-                return Promise.resolve(false);
-            }
+            if (!this.canOperate)
+                return this.rejectDocsEvent("notWritable", "mainView is not writable");
+            if (!this.appManager || !this._pageState || !this.pageState.length)
+                return this.rejectDocsEvent(
+                    "stateUnavailable",
+                    "mainView page state is unavailable"
+                );
             const currentPage = this.pageState.index + 1;
             const pageCount = this.pageState.length;
             if (event === "scalePage") {
-                if (!this.isUnifiedPageScale(options.scale)) return Promise.resolve(false);
+                if (!this.isUnifiedPageScale(options.scale))
+                    return this.rejectDocsEvent(
+                        "outOfRange",
+                        "scale must be a finite positive number within pageScaleRange"
+                    );
                 const cameraScale = this.appManager.mainViewProxy.toLocalScale(options.scale);
-                if (cameraScale === undefined) return Promise.resolve(false);
+                if (cameraScale === undefined)
+                    return this.rejectDocsEvent(
+                        "stateUnavailable",
+                        "mainView scale state is unavailable"
+                    );
                 try {
                     this.moveCamera({ scale: cameraScale });
-                    return Promise.resolve(true);
+                    return this.acceptDocsEvent();
                 } catch (error) {
                     this.logUnifiedPageException(
                         this.unifiedPageStateKey(undefined, "mainView"),
-                        "dispatchPageEvent",
+                        "dispatchDocsEvent",
                         error,
                         { target: "mainView", event, scale: options.scale }
                     );
-                    return Promise.resolve(false);
+                    return this.rejectDocsEvent("commandFailed", String(error));
                 }
             }
             let expectedPage = currentPage;
-            if (event === "prevStep" || event === "nextStep") return Promise.resolve(false);
+            if (event === "prevStep" || event === "nextStep")
+                return this.rejectDocsEvent(
+                    "eventNotSupported",
+                    `mainView does not support ${event}`
+                );
             if (event === "prevPage") expectedPage -= 1;
             if (event === "nextPage") expectedPage += 1;
             if (event === "jumpToPage") {
-                if (!this.isUnifiedPage(options.page, pageCount)) return Promise.resolve(false);
+                if (!this.isUnifiedPage(options.page, pageCount))
+                    return this.rejectDocsEvent(
+                        "outOfRange",
+                        `page must be an integer from 1 to ${pageCount}`
+                    );
                 expectedPage = options.page;
             }
-            if (expectedPage < 1 || expectedPage > pageCount) return Promise.resolve(false);
-            if (expectedPage === currentPage) return Promise.resolve(false);
+            if (expectedPage < 1 || expectedPage > pageCount)
+                return this.rejectDocsEvent(
+                    "outOfRange",
+                    `page must be an integer from 1 to ${pageCount}`
+                );
+            if (expectedPage === currentPage)
+                return this.rejectDocsEvent("outOfRange", `page ${expectedPage} is already active`);
             const currentScenePath = this.getUnifiedMainViewScenePath(currentPage);
             const expectedScenePath = this.getUnifiedMainViewScenePath(expectedPage);
             if (
@@ -1553,7 +1413,10 @@ export class WindowManager
                 !expectedScenePath ||
                 !this.isUnifiedMainViewSceneConfirmed(currentPage, currentScenePath)
             ) {
-                return Promise.resolve(false);
+                return this.rejectDocsEvent(
+                    "stateUnavailable",
+                    "mainView scene state is not confirmed"
+                );
             }
             let command: Promise<boolean>;
             try {
@@ -1563,11 +1426,11 @@ export class WindowManager
             } catch (error) {
                 this.logUnifiedPageException(
                     this.unifiedPageStateKey(undefined, "mainView"),
-                    "dispatchPageEvent",
+                    "dispatchDocsEvent",
                     error,
                     { target: "mainView", event, page: expectedPage, pageCount }
                 );
-                return Promise.resolve(false);
+                return this.rejectDocsEvent("commandFailed", String(error));
             }
             void command
                 .then(success => {
@@ -1590,42 +1453,70 @@ export class WindowManager
                         String(error)
                     );
                 });
-            return Promise.resolve(true);
+            return this.acceptDocsEvent();
         }
 
         const appId = target;
-        if (!appId) return Promise.resolve(false);
+        if (!appId) return this.rejectDocsEvent("targetNotFound", "target was not resolved");
         const app = this.queryOne(appId);
+        if (!app) return this.rejectDocsEvent("targetNotFound", `app ${appId} was not found`);
         const appKind = this.getUnifiedAppKind(app?.kind);
-        if (
-            !app ||
-            !appKind ||
-            !WindowManager.registered.has(appKind) ||
-            (appKind !== DocsViewerAppKind && !app.appResult)
-        ) {
-            return Promise.resolve(false);
-        }
+        if (!appKind)
+            return this.rejectDocsEvent(
+                "targetNotSupported",
+                `app kind ${app.kind} is not supported`
+            );
+        if (!WindowManager.registered.has(appKind))
+            return this.rejectDocsEvent(
+                "targetNotSupported",
+                `app kind ${appKind} is not registered`
+            );
+        if (event === "scalePage" && appKind === DocsViewerAppKind)
+            return this.rejectDocsEvent(
+                "eventNotSupported",
+                "DocsViewer does not support scalePage"
+            );
+        if (appKind !== DocsViewerAppKind && !app.appResult)
+            return this.rejectDocsEvent(
+                "stateUnavailable",
+                `app ${appId} controller is unavailable`
+            );
         const state = this.readUnifiedAppPageState(appId, appKind);
-        if (!state || !app.box || !this.canOperate) {
-            return Promise.resolve(false);
-        }
+        if (!this.canOperate)
+            return this.rejectDocsEvent("notWritable", `app ${appId} is not writable`);
+        if (!state || !app.box)
+            return this.rejectDocsEvent(
+                "stateUnavailable",
+                `app ${appId} page state is unavailable`
+            );
         this.ensureUnifiedAppObserver(appId, appKind);
         if (!this.canInitializeUnifiedAppState(appId, appKind, state)) {
-            return Promise.resolve(false);
+            return this.rejectDocsEvent(
+                "stateUnavailable",
+                `app ${appId} page state is not confirmed`
+            );
         }
         const isStepEvent = this.isUnifiedStepEvent(event);
         if (isStepEvent) {
             if (appKind !== SlideAppKind && appKind !== DocsViewerAppKind) {
-                return Promise.resolve(false);
+                return this.rejectDocsEvent(
+                    "eventNotSupported",
+                    `${appKind} does not support ${event}`
+                );
             }
         }
         if (appKind === SlideAppKind && !this.canDispatchUnifiedSlideCommand(appId, event)) {
-            return Promise.resolve(false);
+            return this.rejectDocsEvent(
+                "stateUnavailable",
+                `Slide app ${appId} is not ready for ${event}`
+            );
         }
         if (event === "scalePage") {
-            if (appKind === DocsViewerAppKind || !this.isUnifiedPageScale(options.scale)) {
-                return Promise.resolve(false);
-            }
+            if (!this.isUnifiedPageScale(options.scale))
+                return this.rejectDocsEvent(
+                    "outOfRange",
+                    "scale must be a finite positive number within pageScaleRange"
+                );
             try {
                 if (appKind === SlideAppKind) {
                     (app.appResult as unknown as SlidePageController).scaleView(options.scale);
@@ -1633,7 +1524,10 @@ export class WindowManager
                     const controller = app.appResult as unknown as PresentationPageController;
                     const originScale = controller.getOriginScale();
                     if (!Number.isFinite(originScale) || originScale <= 0) {
-                        return Promise.resolve(false);
+                        return this.rejectDocsEvent(
+                            "stateUnavailable",
+                            `app ${appId} origin scale is unavailable`
+                        );
                     }
                     controller.moveCamera({
                         centerX: 0,
@@ -1641,33 +1535,47 @@ export class WindowManager
                         scale: originScale * options.scale,
                     });
                 }
-                return Promise.resolve(true);
+                return this.acceptDocsEvent();
             } catch (error) {
                 this.logUnifiedPageException(
                     this.unifiedPageStateKey(appId),
-                    "dispatchPageEvent",
+                    "dispatchDocsEvent",
                     error,
                     { target: state.target, appId, event, scale: options.scale }
                 );
-                return Promise.resolve(false);
+                return this.rejectDocsEvent("commandFailed", String(error));
             }
         }
         let expectedPage = state.page;
         if (event === "prevPage") expectedPage -= 1;
         if (event === "nextPage") expectedPage += 1;
         if (event === "jumpToPage") {
-            if (!this.isUnifiedPage(options.page, state.pageCount)) return Promise.resolve(false);
+            if (!this.isUnifiedPage(options.page, state.pageCount))
+                return this.rejectDocsEvent(
+                    "outOfRange",
+                    `page must be an integer from 1 to ${state.pageCount}`
+                );
             expectedPage = options.page;
         }
         if (event === "prevPage" || event === "nextPage" || event === "jumpToPage") {
-            if (expectedPage < 1 || expectedPage > state.pageCount) return Promise.resolve(false);
-            if (expectedPage === state.page) return Promise.resolve(false);
+            if (expectedPage < 1 || expectedPage > state.pageCount)
+                return this.rejectDocsEvent(
+                    "outOfRange",
+                    `page must be an integer from 1 to ${state.pageCount}`
+                );
+            if (expectedPage === state.page)
+                return this.rejectDocsEvent("outOfRange", `page ${expectedPage} is already active`);
         }
         if (appKind === SlideAppKind) {
             this.ensureUnifiedSlideRenderListener(appId, app);
         }
         if (appKind === DocsViewerAppKind) {
-            return Promise.resolve(this.dispatchUnifiedDocsViewerEvent(app, event, expectedPage));
+            return this.dispatchUnifiedDocsViewerEvent(app, event, expectedPage)
+                ? this.acceptDocsEvent()
+                : this.rejectDocsEvent(
+                      "stateUnavailable",
+                      `DocsViewer app ${appId} controls are unavailable`
+                  );
         }
         let result: boolean | Promise<boolean>;
         try {
@@ -1681,7 +1589,7 @@ export class WindowManager
         } catch (error) {
             this.logUnifiedPageException(
                 this.unifiedPageStateKey(appId),
-                "dispatchPageEvent",
+                "dispatchDocsEvent",
                 error,
                 {
                     target: state.target,
@@ -1691,13 +1599,18 @@ export class WindowManager
                     pageCount: state.pageCount,
                 }
             );
-            return Promise.resolve(false);
+            return this.rejectDocsEvent("commandFailed", String(error));
         }
         if (typeof result === "boolean") {
-            return Promise.resolve(result);
+            return result
+                ? this.acceptDocsEvent()
+                : this.rejectDocsEvent("commandFailed", `${appKind} rejected ${event}`);
         }
         if (!result || typeof (result as any).then !== "function") {
-            return Promise.resolve(false);
+            return this.rejectDocsEvent(
+                "commandFailed",
+                `${appKind} returned an invalid command result`
+            );
         }
         void Promise.resolve(result)
             .then(accepted => {
@@ -1721,7 +1634,18 @@ export class WindowManager
                     String(error)
                 );
             });
-        return Promise.resolve(true);
+        return this.acceptDocsEvent();
+    }
+
+    private acceptDocsEvent(): Promise<DispatchDocsEventResult> {
+        return Promise.resolve({ accepted: true });
+    }
+
+    private rejectDocsEvent(
+        reason: DispatchDocsEventFailureReason,
+        message: string
+    ): Promise<DispatchDocsEventResult> {
+        return Promise.resolve({ accepted: false, reason, message });
     }
 
     public getPageState(options: PageStateOptions = {}): Promise<UnifiedPageState> {
@@ -1731,7 +1655,11 @@ export class WindowManager
         this.ensureUnifiedPageStateListeners();
         if (!options || typeof options !== "object" || Array.isArray(options))
             return Promise.reject(new Error("invalid page state options"));
-        if (Object.prototype.hasOwnProperty.call(options, "page")) {
+        if (
+            Object.prototype.hasOwnProperty.call(options, "page") ||
+            Object.prototype.hasOwnProperty.call(options, "scale") ||
+            Object.prototype.hasOwnProperty.call(options, "appId")
+        ) {
             return Promise.reject(new Error("invalid page state options"));
         }
         const target = this.resolveUnifiedPageTarget(options);
@@ -1790,7 +1718,7 @@ export class WindowManager
 
     private emitUnifiedPageCommandFailure(
         target: UnifiedPageState["target"],
-        event: PageEvent,
+        event: DocsEvent,
         page: number,
         pageCount: number,
         appId?: string,
@@ -1814,8 +1742,15 @@ export class WindowManager
         if (state.status === "success") {
             this._unifiedPageControl.clearLoggedError(key);
             if (logger && this._unifiedPageControl.shouldLogSuccessState(key, state)) {
-                logger.info(
-                    `[WindowManager]: unifiedPageStateChange success ${JSON.stringify(state)}`
+                this._unifiedPageControl.debounceSuccessLog(
+                    key,
+                    () =>
+                        logger.info(
+                            `[WindowManager]: unifiedPageStateChange success ${JSON.stringify(
+                                state
+                            )}`
+                        ),
+                    UNIFIED_PAGE_STATE_LOG_DEBOUNCE_TIME
                 );
             }
         } else if (state.status === "failure" && logger) {
@@ -1852,7 +1787,7 @@ export class WindowManager
         return appId ? `app:${appId}` : `target:${target}`;
     }
 
-    private isUnifiedStepEvent(event: PageEvent): boolean {
+    private isUnifiedStepEvent(event: DocsEvent): boolean {
         return event === "prevStep" || event === "nextStep";
     }
 
@@ -1871,14 +1806,20 @@ export class WindowManager
     }
 
     private resolveUnifiedPageTarget(
-        options: PageEventOptions | PageStateOptions
-    ): PageEventTarget | undefined {
-        // `appId` belonged to an unreleased draft of the unified API. Reject it
-        // instead of silently dispatching to the focused app or mainView.
-        if (Object.prototype.hasOwnProperty.call(options, "appId")) return undefined;
-        if (options.target !== undefined) {
-            if (typeof options.target !== "string" || options.target.length === 0) return undefined;
-            return options.target;
+        options: DocsEventOptions | PageStateOptions
+    ): DocsEventTarget | undefined {
+        const legacyAppId = "appId" in options ? options.appId : undefined;
+        if (
+            options.target !== undefined &&
+            legacyAppId !== undefined &&
+            options.target !== legacyAppId
+        ) {
+            return undefined;
+        }
+        const explicitTarget = options.target ?? legacyAppId;
+        if (explicitTarget !== undefined) {
+            if (typeof explicitTarget !== "string" || explicitTarget.length === 0) return undefined;
+            return explicitTarget;
         }
         return this.focused || "mainView";
     }
@@ -2017,7 +1958,7 @@ export class WindowManager
         }
     }
 
-    private canDispatchUnifiedSlideCommand(appId: string, event?: PageEvent): boolean {
+    private canDispatchUnifiedSlideCommand(appId: string, event?: DocsEvent): boolean {
         try {
             const appResult = this.queryOne(appId)?.appResult as any;
             const controller = appResult?.controller?.();
@@ -2084,10 +2025,9 @@ export class WindowManager
                 changeType: "scale",
                 mainView: pageState.index + 1,
             };
-            const changed = this._unifiedPageControl.emitObservedState(
-                this.unifiedPageStateKey(undefined, "mainView"),
-                next
-            );
+            const key = this.unifiedPageStateKey(undefined, "mainView");
+            if (this._unifiedPageControl.hasObservedPageChange(key, next)) return;
+            const changed = this._unifiedPageControl.emitObservedState(key, next);
             if (changed) this.emitUnifiedPageStateChange(next);
         } catch (error) {
             this.logUnifiedPageException(
@@ -2292,10 +2232,9 @@ export class WindowManager
             status: "success",
             changeType: "scale",
         };
-        const changed = this._unifiedPageControl.emitObservedState(
-            this.unifiedPageStateKey(appId),
-            next
-        );
+        const key = this.unifiedPageStateKey(appId);
+        if (this._unifiedPageControl.hasObservedPageChange(key, next)) return;
+        const changed = this._unifiedPageControl.emitObservedState(key, next);
         if (changed) this.emitUnifiedPageStateChange(next);
     }
 
@@ -2437,9 +2376,7 @@ export class WindowManager
         const mainViewCamera = { ...this.mainView.camera };
         if (isEqual({ ...mainViewCamera, ...pureCamera }, mainViewCamera)) return;
         this.mainView.moveCamera(camera);
-        setTimeout(() => {
-            this.appManager?.mainViewProxy.setCameraAndSize();
-        }, 500);
+        this.scheduleLegacyCameraCommit();
     }
 
     public moveCameraToContain(
@@ -2453,7 +2390,13 @@ export class WindowManager
             return;
         }
         this.mainView.moveCameraToContain(rectangle);
-        setTimeout(() => {
+        this.scheduleLegacyCameraCommit();
+    }
+
+    private scheduleLegacyCameraCommit(): void {
+        if (this.legacyCameraCommitTimer) clearTimeout(this.legacyCameraCommitTimer);
+        this.legacyCameraCommitTimer = window.setTimeout(() => {
+            this.legacyCameraCommitTimer = 0;
             this.appManager?.mainViewProxy.setCameraAndSize();
         }, 500);
     }
@@ -2500,6 +2443,10 @@ export class WindowManager
     }
 
     private finishDestroy() {
+        if (this.legacyCameraCommitTimer) {
+            clearTimeout(this.legacyCameraCommitTimer);
+            this.legacyCameraCommitTimer = 0;
+        }
         this.attributesDeboundceLog?.destroy();
         this.attributesDeboundceLog = undefined;
         this.containerResizeObserver?.disconnect();
@@ -2672,16 +2619,26 @@ export class WindowManager
                 version
             )
         ) {
-            if (this.canOperate) {
-                const id = this.room.uid;
-                this.safeSetAttributes({
-                    [Fields.OriginCamera]: { centerX: 0, centerY: 0, scale: 1, id },
-                    [Fields.OriginSize]: { ...this.originSize, id },
-                    [Fields.MainViewCamera]: { ...mainViewCamera },
-                    [Fields.MainViewSize]: { ...mainViewSize },
-                    [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
-                });
+            if (!this.canOperate) {
+                throw new Error(
+                    "[WindowManager]: a writable room must initialize the originSize contract before readonly mount"
+                );
             }
+            const id = this.room.uid;
+            const nextOriginCamera = { centerX: 0, centerY: 0, scale: 1, id };
+            const nextOriginSize = { ...this.originSize, id };
+            log(
+                `[WindowManager]: initialize room originSize ${JSON.stringify(
+                    nextOriginSize
+                )} and reset legacy mainView camera contract`
+            );
+            this.safeSetAttributes({
+                [Fields.OriginCamera]: nextOriginCamera,
+                [Fields.OriginSize]: nextOriginSize,
+                [Fields.MainViewCamera]: { ...nextOriginCamera },
+                [Fields.MainViewSize]: { ...nextOriginSize },
+                [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+            });
             return;
         }
 
@@ -2697,11 +2654,11 @@ export class WindowManager
                 )})`
             );
         }
-        if (!isSameOriginSize(originSize, this.originSize)) {
+        if (!isValidSize(originSize)) {
             throw new Error(
-                `[WindowManager]: room originSize ${JSON.stringify(
+                `[WindowManager]: room originSize is invalid in originSize mode: ${JSON.stringify(
                     originSize
-                )} does not match local originSize ${JSON.stringify(this.originSize)}`
+                )}`
             );
         }
         if (
@@ -2729,6 +2686,32 @@ export class WindowManager
                     mainViewCamera
                 )}`
             );
+        }
+        if (!isSameOriginSize(originSize, this.originSize)) {
+            if (!this.canOperate) {
+                throw new Error(
+                    `[WindowManager]: room originSize ${JSON.stringify(
+                        originSize
+                    )} does not match local originSize ${JSON.stringify(
+                        this.originSize
+                    )}; a writable room must reset the originSize contract before readonly mount`
+                );
+            }
+            const id = this.room.uid;
+            const nextOriginCamera = { centerX: 0, centerY: 0, scale: 1, id };
+            const nextOriginSize = { ...this.originSize, id };
+            log(
+                `[WindowManager]: reset room originSize from ${JSON.stringify(
+                    originSize
+                )} to ${JSON.stringify(nextOriginSize)}`
+            );
+            this.safeSetAttributes({
+                [Fields.OriginCamera]: nextOriginCamera,
+                [Fields.OriginSize]: nextOriginSize,
+                [Fields.MainViewCamera]: { ...nextOriginCamera },
+                [Fields.MainViewSize]: { ...nextOriginSize },
+                [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+            });
         }
     }
 

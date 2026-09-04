@@ -28,7 +28,7 @@
     - [`lockImages`](#lockImages)
     - [`nextPage`](#nextPage)
     - [`prevPage`](#prevPage)
-    - [`dispatchPageEvent`](#dispatchPageEvent)
+    - [`dispatchDocsEvent`](#dispatchDocsEvent)
     - [`getPageState`](#getPageState)
     - [`addPage`](#addPage)
     - [`removePage`](#removePage)
@@ -60,8 +60,8 @@ const manager = await WindowManager.mount(
 | ---------------------- | --------------------------------------- | ------- | ---------------------------- |
 | room                   | [require] Room                          |         | 房间实例                         |
 | container              | [require] HTMLElement                   |         | 房间挂载容器                       |
-| originSize             | [optional] Size                         |         | mainView 固定原始尺寸；同一房间所有端必须一致 |
-| pageScaleRange         | [optional] { minScale?: number; maxScale?: number } | | `dispatchPageEvent("scalePage")` 的可选相对倍率范围；未配置的边界不施加业务限制 |
+| originSize             | [optional] Size                         |         | mainView 原始尺寸；正常运行时同一房间所有端必须一致 |
+| pageScaleRange         | [optional] { minScale?: number; maxScale?: number } | | `dispatchDocsEvent("scalePage")` 的可选相对倍率范围；未配置的边界不施加业务限制 |
 | containerSizeRatio     | [optional] number                       | 9 / 16  | 多窗口区域的高宽比，默认为 9 : 16         |
 | chessboard             | [optional] boolean                      | true    | 多窗口区域以外的空间显示 PS 棋盘背景，默认 true |
 | collectorContainer     | [optional] HTMLElement                  |         | 用于多窗口最小化图标挂载的 dom            |
@@ -74,9 +74,16 @@ const manager = await WindowManager.mount(
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | 配置光标使用的教具图片           ｜
 | useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 状态管理窗口, 开启后可以单独管理每个窗口的状态               |
 
-> 旧房间已有完整 `mainViewSize/mainViewCamera` 时，配置 `originSize` 只会补齐 origin
-> 基准并保留当前视图，不会自动执行 fit。需要恢复 origin 视图时由业务显式调用
-> `fitOriginSizeAndCamera()`。
+> 旧房间只有完整 `mainViewSize/mainViewCamera` 时，首次通过可写端配置 `originSize`，WindowManager
+> 会在创建 MainView 前原子初始化 origin pair、active pair 和坐标版本，并将
+> `mainViewSize/mainViewCamera` 重置为新的 origin pair。只读端不能完成该同步初始化，完整版本 2
+> contract 建立前 mount 会失败。
+>
+> 房间已有完整版本 2 origin contract 且本次可写 mount 显式传入不同 `originSize` 时，
+> WindowManager 会在创建 MainView 前原子重置 origin pair、active pair 和坐标版本。该重置会同步到
+> 房间，并使 MainView 立即按新基准计算本地 camera scale。只读端不能发起重置，配置不一致时 mount
+> 会失败。已有版本 2 contract 与 mount `originSize` 相同时保留当前 active pair。Slide、Presentation
+> 的 `originSize` 仍由 `addApp()` attributes 独立配置，不受此行为影响。
 
 <h3 id="register">WindowManager.register</h3>
 
@@ -190,7 +197,9 @@ setup(context) {
 ```
 
 WindowManager 内部日志和 App logger 统一进行安全序列化、敏感字段及 URL query
-脱敏，并限制单条日志长度。`error()` 不进行防抖。
+脱敏，并限制单条日志长度。`error()` 不进行防抖。App 的防抖 info 日志继续使用
+300ms 默认/最小间隔，WindowManager 的 `attributes` 同步日志使用 500ms 尾部防抖间隔。
+成功的 `unifiedPageStateChange` 诊断日志按目标分别使用 300ms 尾部防抖，事件回调本身仍即时触发。
 
 <h3 id="closeApp">closeApp</h3>
 
@@ -270,24 +279,25 @@ if (!success) {
 }
 ```
 
-<h3 id="dispatchPageEvent">dispatchPageEvent</h3>
+<h3 id="dispatchDocsEvent">dispatchDocsEvent</h3>
 
 > 向 mainView、DocsViewer、Slide 或 Presentation 派发统一的翻页、动画步骤或缩放命令。
-> 这是推荐使用的页面控制接口；同步的旧 `dispatchDocsEvent` 仅作为兼容入口保留。
 
 ```ts
-const accepted = await manager.dispatchPageEvent("nextPage", { target: appId })
-await manager.dispatchPageEvent("jumpToPage", { target: appId, page: 3 })
-await manager.dispatchPageEvent("scalePage", { target: "mainView", scale: 1.5 })
+const result = await manager.dispatchDocsEvent("nextPage", { target: appId })
+await manager.dispatchDocsEvent("jumpToPage", { target: appId, page: 3 })
+await manager.dispatchDocsEvent("scalePage", { target: "mainView", scale: 1.5 })
 ```
 
 `target` 可以是 `"mainView"` 或具体 appId。未传时优先使用当前 focused App，没有 focused
 App 时回退到 mainView。`page` 使用 1-based 页码。`scale` 是相对适配尺寸的倍率，`1` 表示
 适配尺寸；mainView 缩放通过 `manager.moveCamera` 生效。默认没有业务缩放范围；只有显式配置
-`mount.pageScaleRange.minScale/maxScale` 时才检查边界，越界返回 `false`，不会 clamp。
+`mount.pageScaleRange.minScale/maxScale` 时才检查边界，越界返回
+`{ accepted: false, reason: "outOfRange", message }`，不会 clamp。DocsViewer 不支持
+`scalePage`，固定返回 `{ accepted: false, reason: "eventNotSupported", message: "DocsViewer does not support scalePage" }`。
 
-返回的 `Promise<boolean>` 只表示命令是否被接受；实际页码或相对倍率通过
-`unifiedPageStateChange` 观察。
+返回的 `Promise<DispatchDocsEventResult>` 表示命令是否被接受；拒绝时包含稳定的 `reason`
+和可读 `message`。命令接受后的实际页码或相对倍率通过 `unifiedPageStateChange` 观察。
 
 <h3 id="getPageState">getPageState</h3>
 
@@ -422,7 +432,7 @@ type UnifiedPageStateChange = {
     presentation?: number;
     view?: number;
     slide?: number;
-    event?: PageEvent;
+    event?: DocsEvent;
     reason?: "commandFailed";
     message?: string;
 }

@@ -10,6 +10,7 @@ WindowManager.register({
     appOptions: {
         // turn on to show debug controller
         debug: false,
+        enableScale: true,
     },
     addHooks
 });

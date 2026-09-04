@@ -1,5 +1,5 @@
 import Emittery from "emittery";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 let WindowManager: typeof import("../src")["WindowManager"];
 let UnifiedPageControlTracker: typeof import("../src/UnifiedPageControl")["UnifiedPageControlTracker"];
@@ -37,6 +37,10 @@ const registerAppKind = (kind: string) => {
 
 const flushEvents = () => new Promise(resolve => setTimeout(resolve, 0));
 
+afterEach(() => {
+    vi.useRealTimers();
+});
+
 describe("unified page control", () => {
     it("validates optional relative page scale bounds without adding defaults", () => {
         expect(normalizePageScaleRange(undefined)).toBeUndefined();
@@ -51,7 +55,7 @@ describe("unified page control", () => {
         );
     });
 
-    it("uses target as the appId and falls back from focused app to mainView", () => {
+    it("supports target and the deprecated appId alias, then falls back to mainView", () => {
         const manager = createManager();
         Object.defineProperty(manager, "focused", {
             configurable: true,
@@ -65,7 +69,13 @@ describe("unified page control", () => {
         Object.defineProperty(manager, "focused", { configurable: true, value: undefined });
         expect(manager.resolveUnifiedPageTarget({})).toBe("mainView");
         expect(manager.resolveUnifiedPageTarget({ target: "" })).toBeUndefined();
-        expect(manager.resolveUnifiedPageTarget({ appId: "Slide-legacy" } as any)).toBeUndefined();
+        expect(manager.resolveUnifiedPageTarget({ appId: "Slide-legacy" })).toBe("Slide-legacy");
+        expect(
+            manager.resolveUnifiedPageTarget({
+                target: "Slide-explicit",
+                appId: "Slide-legacy",
+            })
+        ).toBeUndefined();
     });
 
     it("rejects command-only fields from getPageState", async () => {
@@ -76,7 +86,7 @@ describe("unified page control", () => {
         );
     });
 
-    it("reuses the existing DocsViewer controls in dispatchPageEvent", async () => {
+    it("reuses the existing DocsViewer controls in dispatchDocsEvent", async () => {
         const restore = registerAppKind("DocsViewer");
         const manager = createManager();
         const footer = document.createElement("div");
@@ -103,22 +113,48 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             expect(nextClick).toHaveBeenCalledOnce();
             await expect(
-                manager.dispatchPageEvent("jumpToPage", { target: app.id, page: 3 })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("jumpToPage", { target: app.id, page: 3 })
+            ).resolves.toEqual({ accepted: true });
             expect(input.value).toBe("3");
             expect(inputChange).toHaveBeenCalledOnce();
             await expect(
-                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 2 })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("scalePage", { target: app.id, scale: 2 })
+            ).resolves.toEqual({
+                accepted: false,
+                reason: "eventNotSupported",
+                message: "DocsViewer does not support scalePage",
+            });
             await expect(manager.getPageState({ target: app.id })).resolves.toEqual({
                 target: "DocsViewer",
                 appId: app.id,
                 page: 1,
                 pageCount: 3,
+            });
+        } finally {
+            restore();
+        }
+    });
+
+    it("rejects DocsViewer scalePage before requiring page state or controls", async () => {
+        const restore = registerAppKind("DocsViewer");
+        const manager = createManager();
+        manager.queryOne = () => ({ id: "DocsViewer-loading", kind: "DocsViewer" });
+        Object.defineProperty(manager, "canOperate", { value: false });
+
+        try {
+            await expect(
+                manager.dispatchDocsEvent("scalePage", {
+                    target: "DocsViewer-loading",
+                    scale: 2,
+                })
+            ).resolves.toEqual({
+                accepted: false,
+                reason: "eventNotSupported",
+                message: "DocsViewer does not support scalePage",
             });
         } finally {
             restore();
@@ -145,8 +181,8 @@ describe("unified page control", () => {
         manager.emitter.on("unifiedPageStateChange", listener);
 
         await expect(
-            manager.dispatchPageEvent("scalePage", { target: "mainView", scale: 1.5 })
-        ).resolves.toBe(true);
+            manager.dispatchDocsEvent("scalePage", { target: "mainView", scale: 1.5 })
+        ).resolves.toEqual({ accepted: true });
         expect(manager.moveCamera).toHaveBeenCalledWith({ scale: 3 });
         expect(listener).not.toHaveBeenCalled();
 
@@ -205,8 +241,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 5 })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("scalePage", { target: app.id, scale: 5 })
+            ).resolves.toEqual({ accepted: true });
             expect(scaleView).toHaveBeenCalledWith(5);
             expect(listener).toHaveBeenCalledWith({
                 target: "Slide",
@@ -220,8 +256,8 @@ describe("unified page control", () => {
 
             manager._pageScaleRange = { minScale: 0.5, maxScale: 2 };
             await expect(
-                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 3 })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("scalePage", { target: app.id, scale: 3 })
+            ).resolves.toMatchObject({ accepted: false });
             expect(scaleView).toHaveBeenCalledTimes(1);
         } finally {
             restore();
@@ -281,8 +317,8 @@ describe("unified page control", () => {
         manager.jumpPage = vi.fn();
 
         await expect(
-            manager.dispatchPageEvent("jumpToPage", { target: "mainView", page: 1 })
-        ).resolves.toBe(false);
+            manager.dispatchDocsEvent("jumpToPage", { target: "mainView", page: 1 })
+        ).resolves.toMatchObject({ accepted: false });
         expect(manager.jumpPage).not.toHaveBeenCalled();
     });
 
@@ -300,8 +336,8 @@ describe("unified page control", () => {
         );
 
         await expect(
-            manager.dispatchPageEvent("nextPage", { target: "mainView" })
-        ).resolves.toBe(true);
+            manager.dispatchDocsEvent("nextPage", { target: "mainView" })
+        ).resolves.toEqual({ accepted: true });
         expect(manager.nextPage).toHaveBeenCalledOnce();
         resolveCommand(true);
     });
@@ -318,12 +354,12 @@ describe("unified page control", () => {
         firstPage.jumpPage = vi.fn(() => Promise.resolve(true));
 
         await expect(
-            firstPage.dispatchPageEvent("prevPage", { target: "mainView" })
-        ).resolves.toBe(false);
+            firstPage.dispatchDocsEvent("prevPage", { target: "mainView" })
+        ).resolves.toMatchObject({ accepted: false });
         expect(firstPage.prevPage).not.toHaveBeenCalled();
         await expect(
-            firstPage.dispatchPageEvent("jumpToPage", { target: "mainView", page: 3 })
-        ).resolves.toBe(true);
+            firstPage.dispatchDocsEvent("jumpToPage", { target: "mainView", page: 3 })
+        ).resolves.toEqual({ accepted: true });
         expect(firstPage.jumpPage).toHaveBeenCalledWith(2);
 
         const readonly = createManager();
@@ -332,12 +368,13 @@ describe("unified page control", () => {
         Object.defineProperty(readonly, "canOperate", { value: false });
         readonly.nextPage = vi.fn();
         await expect(
-            readonly.dispatchPageEvent("nextPage", { target: "mainView" })
-        ).resolves.toBe(false);
+            readonly.dispatchDocsEvent("nextPage", { target: "mainView" })
+        ).resolves.toMatchObject({ accepted: false });
         expect(readonly.nextPage).not.toHaveBeenCalled();
     });
 
     it("reports a mainView pageCount change", async () => {
+        vi.useFakeTimers();
         const manager = createManager();
         const listener = vi.fn();
         const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -360,7 +397,9 @@ describe("unified page control", () => {
             status: "success",
             mainView: 1,
         });
-        expect(logger.info).toHaveBeenCalledTimes(2);
+        expect(logger.info).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(300);
+        expect(logger.info).toHaveBeenCalledOnce();
         expect(logger.info).toHaveBeenLastCalledWith(
             `[WindowManager]: unifiedPageStateChange success ${JSON.stringify({
                 target: "mainView",
@@ -643,8 +682,8 @@ describe("unified page control", () => {
                 Object.defineProperty(manager, "canOperate", { value: true });
 
                 await expect(
-                    manager.dispatchPageEvent(scenario.event, { target: app.id })
-                ).resolves.toBe(false);
+                    manager.dispatchDocsEvent(scenario.event, { target: app.id })
+                ).resolves.toMatchObject({ accepted: false });
                 expect(hasStep).toHaveBeenCalledOnce();
                 expect(command).not.toHaveBeenCalled();
             }
@@ -683,8 +722,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextStep", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("nextStep", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             expect(nextStep).toHaveBeenCalledOnce();
             expect(slide.on).toHaveBeenCalledTimes(1);
             expect(slide.on).toHaveBeenCalledWith("renderEnd", expect.any(Function));
@@ -721,8 +760,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("jumpToPage", { target: app.id, page: 3 })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("jumpToPage", { target: app.id, page: 3 })
+            ).resolves.toEqual({ accepted: true });
             expect(jumpToPage).toHaveBeenCalledWith(3);
         } finally {
             restore();
@@ -757,11 +796,11 @@ describe("unified page control", () => {
         Object.defineProperty(manager, "canOperate", { value: true });
 
         try {
-            await expect(manager.dispatchPageEvent("nextPage")).resolves.toBe(true);
+            await expect(manager.dispatchDocsEvent("nextPage")).resolves.toEqual({ accepted: true });
             expect(nextPage).toHaveBeenCalledOnce();
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: "missing-app" })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("nextPage", { target: "missing-app" })
+            ).resolves.toMatchObject({ accepted: false });
             expect(nextPage).toHaveBeenCalledOnce();
         } finally {
             restore();
@@ -798,18 +837,18 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("prevPage", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("prevPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             expect(prevPage).toHaveBeenCalledOnce();
             expect(nextPage).toHaveBeenCalledOnce();
 
             app.appResult = undefined;
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false });
             expect(nextPage).toHaveBeenCalledOnce();
         } finally {
             restore();
@@ -832,8 +871,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false });
             await expect(manager.getPageState({ target: app.id })).rejects.toThrow(
                 "page state unavailable"
             );
@@ -844,6 +883,7 @@ describe("unified page control", () => {
     });
 
     it("uses Presentation controller state for query and callback", async () => {
+        vi.useFakeTimers();
         const manager = createManager();
         const listener = vi.fn();
         const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -884,6 +924,8 @@ describe("unified page control", () => {
             status: "success",
             presentation: 3,
         });
+        expect(logger.info).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(300);
         expect(logger.info).toHaveBeenCalledOnce();
         expect(logger.info).toHaveBeenCalledWith(
             `[WindowManager]: unifiedPageStateChange success ${JSON.stringify({
@@ -935,8 +977,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("scalePage", { target: app.id, scale: 1.75 })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("scalePage", { target: app.id, scale: 1.75 })
+            ).resolves.toEqual({ accepted: true });
             expect(moveCamera).toHaveBeenCalledWith({ centerX: 0, centerY: 0, scale: 3.5 });
             expect(listener).toHaveBeenCalledWith({
                 target: "Presentation",
@@ -953,6 +995,59 @@ describe("unified page control", () => {
         } finally {
             restore();
         }
+    });
+
+    it("leaves Presentation page transitions to the page observer", async () => {
+        const manager = createManager();
+        const listener = vi.fn();
+        let controllerState = { index: 0, length: 2 };
+        let scenePath = "/Presentation/1";
+        const view: any = {
+            focusScenePath: scenePath,
+            camera: { scale: 1 },
+            callbacks: { on: vi.fn(), off: vi.fn() },
+        };
+        const app: any = {
+            id: "Presentation-page-camera",
+            kind: "Presentation",
+            appEmitter: new Emittery(),
+            box: {},
+            view,
+            getFullScenePath: () => scenePath,
+            appResult: {
+                pageState: () => controllerState,
+                getOriginScale: () => 1,
+            },
+        };
+        manager.queryOne = () => app;
+        manager.emitter.on("unifiedPageStateChange", listener);
+
+        manager.tryEmitUnifiedAppState(app.id, app.kind);
+        await Promise.resolve();
+        listener.mockClear();
+
+        controllerState = { index: 1, length: 2 };
+        scenePath = "/Presentation/2";
+        view.focusScenePath = scenePath;
+        view.camera.scale = 1;
+        manager.tryEmitUnifiedAppScaleState(app.id, app.kind);
+        view.camera.scale = 2;
+        manager.tryEmitUnifiedAppScaleState(app.id, app.kind);
+
+        expect(listener).not.toHaveBeenCalled();
+
+        manager.tryEmitUnifiedAppState(app.id, app.kind);
+        await Promise.resolve();
+        expect(listener).toHaveBeenCalledOnce();
+        expect(listener).toHaveBeenCalledWith({
+            target: "Presentation",
+            appId: app.id,
+            page: 2,
+            pageCount: 2,
+            scale: 2,
+            status: "success",
+            presentation: 2,
+        });
     });
 
     it("rejects Presentation commands until controller and View agree", async () => {
@@ -976,8 +1071,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false });
             expect(nextPage).not.toHaveBeenCalled();
         } finally {
             restore();
@@ -1005,8 +1100,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextStep", { target: app.id })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("nextStep", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false });
             expect(nextPage).not.toHaveBeenCalled();
         } finally {
             restore();
@@ -1042,8 +1137,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             await flushEvents();
             expect(failure).toHaveBeenCalledWith({
                 status: "failure",
@@ -1085,8 +1180,8 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             await flushEvents();
             expect(nextPageAsync).toHaveBeenCalledOnce();
             expect(nextPage).not.toHaveBeenCalled();
@@ -1101,9 +1196,11 @@ describe("unified page control", () => {
                 message: "Error: scene path rejected",
             });
 
-            expect(manager.dispatchDocsEvent("nextPage", { appId: app.id })).toBe(true);
-            expect(nextPage).toHaveBeenCalledOnce();
-            expect(nextPageAsync).toHaveBeenCalledOnce();
+            await expect(
+                manager.dispatchDocsEvent("nextPage", { appId: app.id })
+            ).resolves.toEqual({ accepted: true });
+            expect(nextPage).not.toHaveBeenCalled();
+            expect(nextPageAsync).toHaveBeenCalledTimes(2);
         } finally {
             restore();
         }
@@ -1134,11 +1231,11 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(true);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
             expect(nextPageAsync).toHaveBeenCalledTimes(2);
             resolvers.forEach(resolve => resolve(true));
         } finally {
@@ -1146,19 +1243,29 @@ describe("unified page control", () => {
         }
     });
 
-    it("keeps legacy dispatchDocsEvent behavior while sharing command execution", () => {
+    it("accepts the deprecated appId option in the unified dispatchDocsEvent", async () => {
         const manager = createManager();
         const nextPage = vi.fn(() => true);
         const app: any = {
             id: "Presentation-legacy",
             kind: "Presentation",
-            appResult: { nextPage },
+            appEmitter: new Emittery(),
+            box: {},
+            view: { focusScenePath: "/Presentation/1" },
+            getFullScenePath: () => "/Presentation/1",
+            appResult: {
+                pageState: () => ({ index: 0, length: 2 }),
+                nextPage,
+            },
         };
         manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
         const restore = registerAppKind("Presentation");
 
         try {
-            expect(manager.dispatchDocsEvent("nextStep", { appId: app.id })).toBe(true);
+            await expect(
+                manager.dispatchDocsEvent("nextPage", { appId: app.id })
+            ).resolves.toEqual({ accepted: true });
             expect(nextPage).toHaveBeenCalledOnce();
         } finally {
             restore();
@@ -1212,7 +1319,7 @@ describe("unified page control", () => {
         const manager = createManager();
         manager._destroyed = true;
 
-        await expect(manager.dispatchPageEvent("nextPage")).resolves.toBe(false);
+        await expect(manager.dispatchDocsEvent("nextPage")).resolves.toMatchObject({ accepted: false });
         await expect(manager.getPageState()).rejects.toThrow("window manager was destroyed");
         expect(manager._unifiedPageControl.isListenersInstalled).toBe(false);
     });
@@ -1244,7 +1351,35 @@ describe("unified page control", () => {
         expect(tracker.shouldLogError(key, "render failed")).toBe(true);
     });
 
+    it("debounces success logs independently by target and cancels them on destroy", () => {
+        vi.useFakeTimers();
+        const tracker = new UnifiedPageControlTracker();
+        const firstSlideLog = vi.fn();
+        const finalSlideLog = vi.fn();
+        const presentationLog = vi.fn();
+        const cancelledLog = vi.fn();
+
+        tracker.debounceSuccessLog("app:Slide-1", firstSlideLog, 300);
+        tracker.debounceSuccessLog("app:Presentation-1", presentationLog, 300);
+        vi.advanceTimersByTime(200);
+        tracker.debounceSuccessLog("app:Slide-1", finalSlideLog, 300);
+
+        vi.advanceTimersByTime(100);
+        expect(presentationLog).toHaveBeenCalledOnce();
+        expect(firstSlideLog).not.toHaveBeenCalled();
+        expect(finalSlideLog).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(200);
+        expect(finalSlideLog).toHaveBeenCalledOnce();
+
+        tracker.debounceSuccessLog("app:cancelled", cancelledLog, 300);
+        tracker.destroy();
+        vi.advanceTimersByTime(300);
+        expect(cancelledLog).not.toHaveBeenCalled();
+    });
+
     it("logs only changed success states and terminal failures", async () => {
+        vi.useFakeTimers();
         const manager = createManager();
         const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
         const listener = vi.fn();
@@ -1281,19 +1416,28 @@ describe("unified page control", () => {
             reason: "commandFailed",
             message: "Error: scene path rejected",
         });
-        await flushEvents();
-
-        expect(logger.info).toHaveBeenCalledTimes(2);
-        expect(logger.info).toHaveBeenNthCalledWith(
-            1,
-            `[WindowManager]: unifiedPageStateChange success ${JSON.stringify(slideSuccess)}`
-        );
+        await Promise.resolve();
+        expect(logger.info).not.toHaveBeenCalled();
         expect(logger.warn).toHaveBeenCalledTimes(1);
         expect(logger.error).toHaveBeenCalledTimes(1);
         expect(listener).toHaveBeenCalledTimes(6);
+
+        vi.advanceTimersByTime(299);
+        expect(logger.info).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(logger.info).toHaveBeenCalledOnce();
+        expect(logger.info).toHaveBeenCalledWith(
+            `[WindowManager]: unifiedPageStateChange success ${JSON.stringify({
+                ...slideSuccess,
+                page: 3,
+                view: 3,
+                slide: 3,
+            })}`
+        );
     });
 
     it("does not consume success log deduplication before the room logger is available", () => {
+        vi.useFakeTimers();
         const manager = createManager();
         const state = {
             target: "mainView" as const,
@@ -1308,6 +1452,8 @@ describe("unified page control", () => {
         manager._roomLogger = logger;
         manager.emitUnifiedPageStateChange(state);
 
+        expect(logger.info).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(300);
         expect(logger.info).toHaveBeenCalledOnce();
     });
 
@@ -1335,14 +1481,14 @@ describe("unified page control", () => {
 
         try {
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false });
             await expect(
-                manager.dispatchPageEvent("nextPage", { target: app.id })
-            ).resolves.toBe(false);
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false });
             expect(logger.error).toHaveBeenCalledOnce();
             expect(logger.error.mock.calls[0][0]).toContain(
-                "[WindowManager]: unified page control exception, stage=dispatchPageEvent"
+                "[WindowManager]: unified page control exception, stage=dispatchDocsEvent"
             );
             expect(logger.error.mock.calls[0][0]).toContain("controller threw");
         } finally {

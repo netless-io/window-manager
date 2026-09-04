@@ -101,7 +101,7 @@ describe("WindowManager", () => {
         );
     });
 
-    it("migrates a writable legacy active pair without changing it", () => {
+    it("resets a writable legacy active pair when originSize is first configured", () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
         const wm = new WindowManager(invisiblePluginContext);
         const mainViewCamera = { centerX: 10, centerY: 20, scale: 1.5, id: "legacy" };
@@ -123,13 +123,13 @@ describe("WindowManager", () => {
         expect(safeSetAttributes).toHaveBeenCalledWith({
             originCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
             originSize: { width: 1920, height: 1080, id: "teacher" },
-            mainViewCamera,
-            mainViewSize,
+            mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
+            mainViewSize: { width: 1920, height: 1080, id: "teacher" },
             _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
         });
     });
 
-    it("allows a readonly client to mount with a valid legacy active pair", () => {
+    it("rejects readonly originSize mount until a writable client resets the legacy pair", () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
         const wm = new WindowManager(invisiblePluginContext);
         const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes");
@@ -143,7 +143,9 @@ describe("WindowManager", () => {
         });
         Object.defineProperty(wm, "canOperate", { configurable: true, value: false });
 
-        expect(() => (wm as any).ensureOriginCameraCompatibility()).not.toThrow();
+        expect(() => (wm as any).ensureOriginCameraCompatibility()).toThrow(
+            /writable room must initialize the originSize contract/
+        );
         expect(safeSetAttributes).not.toHaveBeenCalled();
     });
 
@@ -231,6 +233,106 @@ describe("WindowManager", () => {
         expect(() => (wm as any).ensureOriginCameraCompatibility()).not.toThrow();
     });
 
+    it("atomically resets a valid v2 origin contract from a writable mount", () => {
+        const invisiblePluginContext = { kind: "WindowManager", displayer };
+        const wm = new WindowManager(invisiblePluginContext);
+        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes").mockImplementation(() => {});
+        (wm as any)._originSize = { width: 1280, height: 720 };
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: {
+                originCamera: { centerX: 0, centerY: 0, scale: 1, id: "remote" },
+                originSize: { width: 1920, height: 1080, id: "remote" },
+                mainViewCamera: { centerX: 100, centerY: 200, scale: 1.5, id: "remote" },
+                mainViewSize: { width: 1600, height: 900, id: "remote" },
+                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+            },
+        });
+        Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
+        Object.defineProperty(wm, "room", {
+            configurable: true,
+            value: { uid: "teacher" },
+        });
+
+        (wm as any).ensureOriginCameraCompatibility();
+
+        expect(safeSetAttributes).toHaveBeenCalledTimes(1);
+        expect(safeSetAttributes).toHaveBeenCalledWith({
+            originCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
+            originSize: { width: 1280, height: 720, id: "teacher" },
+            mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
+            mainViewSize: { width: 1280, height: 720, id: "teacher" },
+            _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+        });
+    });
+
+    it("rejects a v2 origin reset from a readonly mount", () => {
+        const invisiblePluginContext = { kind: "WindowManager", displayer };
+        const wm = new WindowManager(invisiblePluginContext);
+        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes");
+        (wm as any)._originSize = { width: 1280, height: 720 };
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: {
+                originCamera: { centerX: 0, centerY: 0, scale: 1, id: "remote" },
+                originSize: { width: 1920, height: 1080, id: "remote" },
+                mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "remote" },
+                mainViewSize: { width: 1920, height: 1080, id: "remote" },
+                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+            },
+        });
+        Object.defineProperty(wm, "canOperate", { configurable: true, value: false });
+
+        expect(() => (wm as any).ensureOriginCameraCompatibility()).toThrow(
+            /writable room must reset the originSize contract/
+        );
+        expect(safeSetAttributes).not.toHaveBeenCalled();
+    });
+
+    it("does not rewrite a valid v2 contract when the mount originSize matches", () => {
+        const invisiblePluginContext = { kind: "WindowManager", displayer };
+        const wm = new WindowManager(invisiblePluginContext);
+        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes");
+        (wm as any)._originSize = { width: 1280, height: 720 };
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: {
+                originCamera: { centerX: 0, centerY: 0, scale: 1, id: "remote" },
+                originSize: { width: 1280, height: 720, id: "remote" },
+                mainViewCamera: { centerX: 100, centerY: 200, scale: 1.5, id: "remote" },
+                mainViewSize: { width: 1600, height: 900, id: "remote" },
+                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+            },
+        });
+        Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
+
+        expect(() => (wm as any).ensureOriginCameraCompatibility()).not.toThrow();
+        expect(safeSetAttributes).not.toHaveBeenCalled();
+    });
+
+    it("rejects an invalid v2 contract instead of resetting it", () => {
+        const invisiblePluginContext = { kind: "WindowManager", displayer };
+        const wm = new WindowManager(invisiblePluginContext);
+        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes");
+        (wm as any)._originSize = { width: 1280, height: 720 };
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: {
+                originCamera: { centerX: 0, centerY: 0, scale: 0, id: "remote" },
+                originSize: { width: 1920, height: 1080, id: "remote" },
+                mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "remote" },
+                mainViewSize: { width: 1920, height: 1080, id: "remote" },
+                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
+            },
+        });
+        Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
+
+        expect(() => (wm as any).ensureOriginCameraCompatibility()).toThrow(
+            /originCamera is invalid/
+        );
+        expect(safeSetAttributes).not.toHaveBeenCalled();
+    });
+
     it("routes fitOriginSizeAndCamera through the main-view proxy", () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
         const wm = new WindowManager(invisiblePluginContext);
@@ -240,5 +342,60 @@ describe("WindowManager", () => {
         wm.fitOriginSizeAndCamera();
 
         expect(fitOriginSizeAndCamera).toHaveBeenCalledTimes(1);
+    });
+
+    it("debounces legacy moveCamera metadata commits and cancels them on destroy", () => {
+        vi.useFakeTimers();
+        try {
+            const wm = new WindowManager({ kind: "WindowManager", displayer });
+            let camera = { centerX: 0, centerY: 0, scale: 1 };
+            const moveCamera = vi.fn((next: Partial<typeof camera>) => {
+                camera = { ...camera, ...next };
+            });
+            const moveCameraToContain = vi.fn();
+            const setCameraAndSize = vi.fn();
+            const destroy = vi.fn();
+            wm.appManager = {
+                mainViewProxy: {
+                    view: {
+                        get camera() {
+                            return camera;
+                        },
+                        moveCamera,
+                        moveCameraToContain,
+                    },
+                    setCameraAndSize,
+                },
+                destroy,
+            } as any;
+
+            for (const scale of [1.5, 2, 2.5, 3, 3.5, 4]) {
+                wm.moveCamera({ scale });
+            }
+
+            expect(moveCamera).toHaveBeenCalledTimes(6);
+            expect(vi.getTimerCount()).toBe(1);
+            vi.advanceTimersByTime(499);
+            expect(setCameraAndSize).not.toHaveBeenCalled();
+            vi.advanceTimersByTime(1);
+            expect(setCameraAndSize).toHaveBeenCalledTimes(1);
+
+            wm.moveCamera({ scale: 4.5 });
+            wm.moveCameraToContain({
+                originX: 0,
+                originY: 0,
+                width: 1920,
+                height: 1080,
+            });
+            expect(moveCameraToContain).toHaveBeenCalledTimes(1);
+            expect(vi.getTimerCount()).toBe(1);
+            wm.destroy();
+            expect(vi.getTimerCount()).toBe(0);
+            vi.advanceTimersByTime(500);
+            expect(setCameraAndSize).toHaveBeenCalledTimes(1);
+            expect(destroy).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

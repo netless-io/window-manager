@@ -1,4 +1,4 @@
-export type PageEvent =
+export type DocsEvent =
     | "prevPage"
     | "nextPage"
     | "prevStep"
@@ -7,10 +7,12 @@ export type PageEvent =
     | "scalePage";
 
 /** `mainView` or a concrete Slide/Presentation appId. */
-export type PageEventTarget = string;
+export type DocsEventTarget = string;
 
-export type PageEventOptions = {
-    target?: PageEventTarget;
+export type DocsEventOptions = {
+    target?: DocsEventTarget;
+    /** @deprecated Use `target` instead. */
+    appId?: string;
     /** 1-based page number. */
     page?: number;
     /** Scale relative to the fitted content size. `1` means fitted size. */
@@ -49,8 +51,27 @@ export function normalizePageScaleRange(
 }
 
 export type PageStateOptions = {
-    target?: PageEventTarget;
+    target?: DocsEventTarget;
 };
+
+export type DispatchDocsEventFailureReason =
+    | "invalidEvent"
+    | "invalidOptions"
+    | "targetNotFound"
+    | "targetNotSupported"
+    | "eventNotSupported"
+    | "notWritable"
+    | "stateUnavailable"
+    | "outOfRange"
+    | "commandFailed";
+
+export type DispatchDocsEventResult =
+    | { accepted: true }
+    | {
+          accepted: false;
+          reason: DispatchDocsEventFailureReason;
+          message: string;
+      };
 
 export type UnifiedPageState = {
     target: "mainView" | "DocsViewer" | "Slide" | "Presentation";
@@ -78,7 +99,7 @@ export type UnifiedPageStateObservation = UnifiedPageState & {
 
 export type UnifiedPageStateFailure = UnifiedPageState & {
     status: "failure";
-    event: PageEvent;
+    event: DocsEvent;
     reason: "commandFailed";
     message?: string;
 };
@@ -112,7 +133,7 @@ export type PresentationPageController = {
 export function executeAppPageCommand(
     appKind: "Slide" | "Presentation",
     controller: SlidePageController | PresentationPageController,
-    event: PageEvent,
+    event: DocsEvent,
     page?: number,
     preferAsyncPresentation = false
 ): boolean | Promise<boolean> {
@@ -150,6 +171,7 @@ export class UnifiedPageControlTracker {
     private states = new Map<StateKey, UnifiedPageState>();
     private loggedSuccessStates = new Map<StateKey, UnifiedPageState>();
     private loggedErrorSignatures = new Map<StateKey, Set<string>>();
+    private successLogTimers = new Map<StateKey, ReturnType<typeof setTimeout>>();
     private slideObserverDisposers = new Map<string, () => void>();
     private lastSlideRenderPages = new Map<string, number>();
     private appObserverDisposers = new Map<string, Array<() => void>>();
@@ -172,6 +194,14 @@ export class UnifiedPageControlTracker {
         this.states.delete(key);
         this.loggedSuccessStates.delete(key);
         this.loggedErrorSignatures.delete(key);
+        this.clearSuccessLogTimer(key);
+    }
+
+    public hasObservedPageChange(key: StateKey, state: UnifiedPageState): boolean {
+        const previous = this.states.get(key);
+        return Boolean(
+            previous && (previous.page !== state.page || previous.pageCount !== state.pageCount)
+        );
     }
 
     public emitObservedState(key: StateKey, state: UnifiedPageState, force = false): boolean {
@@ -207,6 +237,23 @@ export class UnifiedPageControlTracker {
 
     public clearLoggedError(key: StateKey): void {
         this.loggedErrorSignatures.delete(key);
+    }
+
+    public debounceSuccessLog(key: StateKey, callback: () => void, debounceTime: number): void {
+        this.clearSuccessLogTimer(key);
+        this.successLogTimers.set(
+            key,
+            setTimeout(() => {
+                this.successLogTimers.delete(key);
+                callback();
+            }, debounceTime)
+        );
+    }
+
+    private clearSuccessLogTimer(key: StateKey): void {
+        const timer = this.successLogTimers.get(key);
+        if (timer !== undefined) clearTimeout(timer);
+        this.successLogTimers.delete(key);
     }
 
     public setSlideObserverDisposer(appId: string, disposer: () => void): void {
@@ -259,8 +306,10 @@ export class UnifiedPageControlTracker {
             for (const disposer of disposers) disposer();
         }
         for (const disposer of this.slideObserverDisposers.values()) disposer();
+        for (const timer of this.successLogTimers.values()) clearTimeout(timer);
         this.appObserverDisposers.clear();
         this.slideObserverDisposers.clear();
+        this.successLogTimers.clear();
         this.states.clear();
         this.loggedSuccessStates.clear();
         this.loggedErrorSignatures.clear();

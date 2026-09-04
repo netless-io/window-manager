@@ -28,7 +28,7 @@
      - [`lockImages`](#lockImages)
      - [`nextPage`](#nextPage)
      - [`prevPage`](#prevPage)
-     - [`dispatchPageEvent`](#dispatchPageEvent)
+     - [`dispatchDocsEvent`](#dispatchDocsEvent)
      - [`getPageState`](#getPageState)
      - [`addPage`](#addPage)
      - [`removePage`](#removePage)
@@ -62,7 +62,7 @@ parameter
 | room                   | [require] Room                          |         | room instance                         |
 | container              | [require] HTMLElement                   |         | room mount container                       |
 | originSize             | [optional] Size                         |         | Fixed mainView origin size; it must match on every client in the room |
-| pageScaleRange         | [optional] { minScale?: number; maxScale?: number } | | Optional relative scale range for `dispatchPageEvent("scalePage")`; omitted bounds impose no business limit |
+| pageScaleRange         | [optional] { minScale?: number; maxScale?: number } | | Optional relative scale range for `dispatchDocsEvent("scalePage")`; omitted bounds impose no business limit |
 | containerSizeRatio     | [optional] number                       | 9 / 16  | The aspect ratio of the multi-window area, the default is 9 : 16        |
 | chessboard             | [optional] boolean                      | true    | The space outside the multi-window area displays PS checkerboard background, default true |
 | collectorContainer     | [optional] HTMLElement                  |         | dom for multi-window minimize icon mount            |
@@ -73,9 +73,12 @@ parameter
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | print log information   |
 
-> When a legacy room already has a complete `mainViewSize/mainViewCamera` pair, configuring
-> `originSize` adds the origin baseline while preserving the current view. It does not fit the
-> view automatically; call `fitOriginSizeAndCamera()` explicitly when needed.
+> When a legacy room only has a complete `mainViewSize/mainViewCamera` pair, the first writable
+> mount with `originSize` atomically initializes the origin pair, active pair, and coordinate
+> version. The legacy active pair is reset to the configured origin pair. A readonly mount is
+> rejected until a writable client has established the complete version 2 contract. A matching
+> existing version 2 contract keeps its current active pair; a different writable `originSize`
+> resets both pairs. Slide and Presentation continue to use their independent addApp attributes.
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           |
 | useBoxesStatus         | [optional] boolean                      | false   | Whether to use the boxesStatus status management window, after it is enabled, the status of each window can be managed separately               |
 
@@ -194,7 +197,11 @@ setup(context) {
 ```
 
 WindowManager internal logs and App logs use the same safe serialization, sensitive field
-and URL query redaction, and message length limit. `error()` is never debounced.
+and URL query redaction, and message length limit. `error()` is never debounced. App
+debounced info logs keep the 300ms default/minimum delay, while the WindowManager
+`attributes` synchronization log uses a 500ms trailing debounce delay. Successful
+`unifiedPageStateChange` diagnostics use a 300ms trailing debounce independently per target;
+the event callback itself remains immediate.
 
 <h3 id="closeApp">closeApp</h3>
 
@@ -274,26 +281,27 @@ if (!success) {
 }
 ```
 
-<h3 id="dispatchPageEvent">dispatchPageEvent</h3>
+<h3 id="dispatchDocsEvent">dispatchDocsEvent</h3>
 
 > Dispatch a unified page or scale command to mainView, DocsViewer, Slide, or Presentation.
-> This is the recommended page-control API. The legacy synchronous `dispatchDocsEvent` remains
-> available only for compatibility.
 
 ```ts
-const accepted = await manager.dispatchPageEvent("nextPage", { target: appId })
-await manager.dispatchPageEvent("jumpToPage", { target: appId, page: 3 })
-await manager.dispatchPageEvent("scalePage", { target: "mainView", scale: 1.5 })
+const result = await manager.dispatchDocsEvent("nextPage", { target: appId })
+await manager.dispatchDocsEvent("jumpToPage", { target: appId, page: 3 })
+await manager.dispatchDocsEvent("scalePage", { target: "mainView", scale: 1.5 })
 ```
 
 `target` can be `"mainView"` or a concrete appId. When omitted, WindowManager uses the focused
 App and falls back to mainView. `page` is 1-based. `scale` is relative to fitted size, where `1`
 means fitted size; mainView scaling is applied through `manager.moveCamera`. There is no default
 business scale range. Configure `mount.pageScaleRange.minScale/maxScale` only when bounds are
-required; out-of-range commands resolve `false` and are not clamped.
+required; out-of-range commands return `{ accepted: false, reason: "outOfRange", message }`
+and are not clamped. DocsViewer does not support `scalePage` and returns
+`{ accepted: false, reason: "eventNotSupported", message: "DocsViewer does not support scalePage" }`.
 
-The returned `Promise<boolean>` reports whether the command was accepted. Observe
-`unifiedPageStateChange` for the actual page or relative scale.
+The returned `Promise<DispatchDocsEventResult>` reports whether the command was accepted and
+includes a stable reason and readable message when rejected. Observe `unifiedPageStateChange`
+for the actual page or relative scale after an accepted command.
 
 <h3 id="getPageState">getPageState</h3>
 
@@ -427,7 +435,7 @@ type UnifiedPageStateChange = {
     presentation?: number;
     view?: number;
     slide?: number;
-    event?: PageEvent;
+    event?: DocsEvent;
     reason?: "commandFailed";
     message?: string;
 }

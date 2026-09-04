@@ -67,6 +67,7 @@
 
 .page-control-field select,
 .page-control-jump input,
+.page-control-scale input,
 .page-control button {
     min-height: 30px;
     box-sizing: border-box;
@@ -91,6 +92,19 @@
 }
 
 .page-control-jump input {
+    width: 100%;
+}
+
+.page-control-scale {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.page-control-scale input {
     width: 100%;
 }
 

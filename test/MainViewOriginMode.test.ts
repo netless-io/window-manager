@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { reaction } from "white-web-sdk";
 import { MAIN_VIEW_CAMERA_COORDINATE_VERSION } from "../src/View/MainViewCameraTransform";
 
 vi.mock("white-web-sdk", () => ({
@@ -251,7 +252,7 @@ describe("MainViewProxy originSize mode", () => {
         harness.proxy.destroy();
     });
 
-    it("migrates a legacy active pair after becoming writable without changing the view", () => {
+    it("resets a legacy active pair after becoming writable", () => {
         const harness = createHarness(
             { width: 1920, height: 1080 },
             {
@@ -261,17 +262,15 @@ describe("MainViewProxy originSize mode", () => {
                 mainViewCamera: { centerX: 10, centerY: 20, scale: 2 },
             }
         );
-        const cameraBeforeMigration = { ...harness.view.camera };
-
         harness.proxy.ensureCameraAndSize();
 
-        expect(harness.view.camera).toEqual(cameraBeforeMigration);
+        expect(harness.view.camera).toEqual({ centerX: 0, centerY: 0, scale: 0.5 });
         expect(harness.initializationWrites).toEqual([
             {
                 originCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
                 originSize: { width: 1920, height: 1080, id: "teacher" },
-                mainViewCamera: { centerX: 10, centerY: 20, scale: 2, id: "legacy" },
-                mainViewSize: { width: 1280, height: 720, id: "legacy" },
+                mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
+                mainViewSize: { width: 1920, height: 1080, id: "teacher" },
             },
         ]);
         harness.proxy.destroy();
@@ -920,5 +919,53 @@ describe("MainViewProxy originSize mode", () => {
                 delete (window as Window & { visualViewport?: VisualViewport }).visualViewport;
             }
         }
+    });
+
+    it("ignores unrelated attributes replacements but observes real origin camera contract changes", () => {
+        const reactionMock = vi.mocked(reaction);
+        reactionMock.mockClear();
+        const harness = createHarness({ width: 1920, height: 1080 });
+        const scheduleMainViewStateLog = vi.fn();
+        (harness.proxy as any).scheduleMainViewStateLog = scheduleMainViewStateLog;
+
+        const disposeReaction = (harness.proxy as any).cameraReaction();
+        const [expression, effect, options] = reactionMock.mock.calls.at(-1) as unknown as [
+            () => unknown,
+            () => void,
+            { equals: (left: unknown, right: unknown) => boolean }
+        ];
+        const runReaction = (previous: unknown): unknown => {
+            const next = expression();
+            if (!options.equals(previous, next)) effect();
+            return next;
+        };
+
+        let snapshot = expression();
+        (harness.attributes as any).apps = {
+            "Presentation-1": { view: { width: 640, height: 360 } },
+        };
+        snapshot = runReaction(snapshot);
+
+        expect(scheduleMainViewStateLog).not.toHaveBeenCalled();
+        expect(harness.view.moveCamera).toHaveBeenCalledTimes(1);
+
+        harness.attributes.mainViewCamera = {
+            centerX: 10,
+            centerY: 20,
+            scale: 2,
+            id: "remote-2",
+        };
+        snapshot = runReaction(snapshot);
+
+        expect(scheduleMainViewStateLog).toHaveBeenCalledOnce();
+        expect(harness.view.moveCamera).toHaveBeenCalledTimes(2);
+
+        harness.attributes.mainViewSize = { width: 1280, height: 720, id: "remote-3" };
+        runReaction(snapshot);
+
+        expect(scheduleMainViewStateLog).toHaveBeenCalledTimes(2);
+        expect(harness.view.moveCamera).toHaveBeenCalledTimes(3);
+        disposeReaction();
+        harness.proxy.destroy();
     });
 });

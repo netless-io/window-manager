@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Logger } from "white-web-sdk";
+import { ATTRIBUTES_LOG_DEBOUNCE_TIME } from "../src/constants";
 import {
     ArgusLog,
     createManagedRoomLogger,
@@ -121,6 +122,42 @@ describe("managed WindowManager logging", () => {
         expect(roomLogger.info).toHaveBeenCalledTimes(2);
         appLogger.destroy();
         argusLogger.destroy();
+    });
+
+    it("keeps App logs at 300ms and debounces attributes sync logs for 500ms", () => {
+        vi.useFakeTimers();
+        const roomLogger = createRoomLogger();
+        const managedLogger = createManagedRoomLogger(roomLogger as unknown as Logger);
+        const appLogger = new ScopedAppLogger(managedLogger, "camera", {
+            kind: "Presentation",
+            appId: "app-1",
+        });
+        const attributesLogger = new ArgusLog(
+            managedLogger,
+            "attributes",
+            ATTRIBUTES_LOG_DEBOUNCE_TIME
+        );
+
+        appLogger.debouncedInfo("moveCamera", { scale: 2 });
+        attributesLogger.logDebouncedUpdateAttributes(["view", "width"], 640);
+
+        vi.advanceTimersByTime(299);
+        expect(roomLogger.info).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(1);
+        expect(roomLogger.info).toHaveBeenCalledOnce();
+        expect(roomLogger.info.mock.calls[0][0]).toContain("[WindowManager][App]");
+
+        vi.advanceTimersByTime(199);
+        expect(roomLogger.info).toHaveBeenCalledOnce();
+
+        vi.advanceTimersByTime(1);
+        expect(roomLogger.info).toHaveBeenCalledTimes(2);
+        expect(roomLogger.info.mock.calls[1][0]).toContain(
+            "[WindowManager][attributes]"
+        );
+        appLogger.destroy();
+        attributesLogger.destroy();
     });
 
     it("keeps LocalConsole available for debounced local debugging", () => {

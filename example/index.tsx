@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { LoggerReportMode, PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist";
-import type { PageEvent, UnifiedPageState, UnifiedPageStateChange } from "../dist";
+import type { DocsEvent, UnifiedPageState, UnifiedPageStateChange } from "../dist";
 import {
     createStatic,
     createDynamic,
@@ -16,6 +16,7 @@ import {
     createPlyr,
     createPresentation,
 } from "./apps";
+import { EXAMPLE_ORIGIN_SIZE } from "./config";
 import "../dist/style.css";
 import "@netless/appliance-plugin/dist/style.css";
 import "./register";
@@ -113,7 +114,7 @@ const mountManager = async (room, root) => {
     manager = (await WindowManager.mount(
         {
             room,
-            originSize: { width: 1920, height: 1080 },
+            originSize: { ...EXAMPLE_ORIGIN_SIZE },
             // collectorStyles: { bottom: "100px", left: "30px" },
             containerSizeRatio: 9 / 16,
             chessboard: true,
@@ -350,6 +351,7 @@ const joinRoom = ref => {
                     changeToPencil: "p",
                     changeToEraser: "e",
                 },
+                disableCameraTransform: true,
             })
             .then(async room => {
                 (window as any).room = room;
@@ -367,8 +369,8 @@ const destroy = () => {
 
 anyWindow.mountManager = mountManager;
 anyWindow.destroy = destroy;
-anyWindow.dispatchPageEvent = (event: PageEvent, options = {}) =>
-    manager.dispatchPageEvent(event, options);
+anyWindow.dispatchDocsEvent = (event: DocsEvent, options = {}) =>
+    manager.dispatchDocsEvent(event, options);
 anyWindow.getPageState = (options = {}) => manager.getPageState(options);
 anyWindow.addPage = options => manager.addPage(options);
 
@@ -459,10 +461,60 @@ const App = () => {
     const [pageTargets, setPageTargets] = useState<Array<{ id: string; kind: string }>>([]);
     const [selectedTarget, setSelectedTarget] = useState("mainView");
     const [jumpPage, setJumpPage] = useState("1");
+    const [pageScale, setPageScale] = useState("1");
     const [pageActionResult, setPageActionResult] = useState("等待操作");
     const [queriedPageState, setQueriedPageState] = useState<UnifiedPageState>();
-    const [unifiedPageEvent, setUnifiedPageEvent] = useState<UnifiedPageStateChange>();
+    const [unifiedDocsEvent, setUnifiedDocsEvent] = useState<UnifiedPageStateChange>();
+    const [scaleChangeEvent, setScaleChangeEvent] = useState<UnifiedPageStateChange>();
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [viewScaleSnapshot, setViewScaleSnapshot] = useState<
+        Array<{
+            target: UnifiedPageState["target"];
+            appId?: string;
+            viewSize: { width: number; height: number };
+            viewScale: number;
+            relativeScale?: number;
+            pageSize?: { width: number; height: number };
+        }>
+    >([]);
     const ref = useRef();
+
+    const collectViewScaleSnapshot = async () => {
+        if (!manager) return;
+        const mainState = await manager.getPageState({ target: "mainView" });
+        const appTargets = manager
+            .queryAll()
+            .filter(app => app.kind === "Slide" || app.kind === "Presentation");
+        const appStates = await Promise.all(
+            appTargets.map(async app => {
+                const state = await manager.getPageState({ target: app.id });
+                const getPageSize = (app.appResult as
+                    | { getPageSize?: () => { width: number; height: number } }
+                    | undefined)?.getPageSize;
+                return {
+                    target: state.target,
+                    appId: app.id,
+                    viewSize: { width: app.view.size.width, height: app.view.size.height },
+                    viewScale: app.view.camera.scale,
+                    relativeScale: state.scale,
+                    ...(typeof getPageSize === "function" ? { pageSize: getPageSize() } : {}),
+                };
+            })
+        );
+
+        setViewScaleSnapshot([
+            {
+                target: "mainView",
+                viewSize: {
+                    width: manager.mainView.size.width,
+                    height: manager.mainView.size.height,
+                },
+                viewScale: manager.mainView.camera.scale,
+                relativeScale: mainState.scale,
+            },
+            ...appStates,
+        ]);
+    };
 
     useEffect(() => {
         Promise.resolve(joinRoom(ref.current))
@@ -478,12 +530,22 @@ const App = () => {
                     };
                     setPageState(manager.pageState);
                     setManagerReady(true);
+                    setIsFullscreen(manager.fullscreen);
                     setConnectionStatus("房间已连接");
                     refreshTargets();
                     manager.emitter.on("appsChange", refreshTargets);
+                    manager.emitter.on("onAppSetup", refreshTargets);
+                    manager.emitter.on("fullscreenChange", fullscreen => {
+                        setIsFullscreen(fullscreen);
+                        window.setTimeout(() => void collectViewScaleSnapshot(), 300);
+                    });
                     manager.emitter.on("unifiedPageStateChange", state => {
                         console.log("unifiedPageStateChange", state);
-                        setUnifiedPageEvent(state);
+                        setUnifiedDocsEvent(state);
+                        if (state.status !== "failure" && state.changeType === "scale") {
+                            console.log("scalePageStateChange", state);
+                            setScaleChangeEvent(state);
+                        }
                     });
                     // createIframe(manager);
                     return manager.emitter.on("pageStateChange", state => {
@@ -501,20 +563,22 @@ const App = () => {
     const pageOptions = () =>
         selectedTarget === "focused" ? {} : { target: selectedTarget };
 
-    const dispatchUnifiedPageEvent = async (event: PageEvent) => {
+    const dispatchUnifiedDocsEvent = async (event: DocsEvent) => {
         if (!manager) return;
         try {
             const options =
                 event === "jumpToPage"
                     ? { ...pageOptions(), page: Number(jumpPage) }
+                    : event === "scalePage"
+                    ? { ...pageOptions(), scale: Number(pageScale) }
                     : pageOptions();
-            const accepted = await manager.dispatchPageEvent(event, options);
+            const accepted = await manager.dispatchDocsEvent(event, options);
             setPageActionResult(
-                JSON.stringify({ api: "dispatchPageEvent", event, options, accepted }, null, 2)
+                JSON.stringify({ api: "dispatchDocsEvent", event, options, accepted }, null, 2)
             );
         } catch (error) {
             setPageActionResult(
-                JSON.stringify({ api: "dispatchPageEvent", error: serializeError(error) }, null, 2)
+                JSON.stringify({ api: "dispatchDocsEvent", error: serializeError(error) }, null, 2)
             );
         }
     };
@@ -586,16 +650,16 @@ const App = () => {
                         </select>
                     </label>
                     <div className="page-control-actions">
-                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("prevPage")}>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedDocsEvent("prevPage")}>
                             上一页
                         </button>
-                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("nextPage")}>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedDocsEvent("nextPage")}>
                             下一页
                         </button>
-                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("prevStep")}>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedDocsEvent("prevStep")}>
                             上一步
                         </button>
-                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("nextStep")}>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedDocsEvent("nextStep")}>
                             下一步
                         </button>
                     </div>
@@ -608,11 +672,39 @@ const App = () => {
                             disabled={!managerReady}
                             onChange={event => setJumpPage(event.target.value)}
                         />
-                        <button disabled={!managerReady} onClick={() => dispatchUnifiedPageEvent("jumpToPage")}>
+                        <button disabled={!managerReady} onClick={() => dispatchUnifiedDocsEvent("jumpToPage")}>
                             跳页
                         </button>
                         <button disabled={!managerReady} onClick={queryUnifiedPageState}>
                             查询页码
+                        </button>
+                    </div>
+                    <div className="page-control-scale">
+                        <label htmlFor="page-scale">相对倍率</label>
+                        <input
+                            id="page-scale"
+                            type="number"
+                            step="0.1"
+                            value={pageScale}
+                            disabled={!managerReady}
+                            onChange={event => setPageScale(event.target.value)}
+                        />
+                        <button
+                            disabled={!managerReady}
+                            onClick={() => dispatchUnifiedDocsEvent("scalePage")}
+                        >
+                            缩放
+                        </button>
+                    </div>
+                    <div className="page-control-actions">
+                        <button
+                            disabled={!managerReady}
+                            onClick={() => manager.setFullscreen(!isFullscreen)}
+                        >
+                            {isFullscreen ? "退出全屏" : "进入全屏"}
+                        </button>
+                        <button disabled={!managerReady} onClick={collectViewScaleSnapshot}>
+                            读取 scale
                         </button>
                     </div>
                     <div className="page-control-actions">
@@ -627,7 +719,22 @@ const App = () => {
                         <div>getPageState</div>
                         <pre>{queriedPageState ? JSON.stringify(queriedPageState, null, 2) : "-"}</pre>
                         <div>unifiedPageStateChange</div>
-                        <pre>{unifiedPageEvent ? JSON.stringify(unifiedPageEvent, null, 2) : "-"}</pre>
+                        <pre>{unifiedDocsEvent ? JSON.stringify(unifiedDocsEvent, null, 2) : "-"}</pre>
+                        <div>scale 变化回调</div>
+                        <pre>{scaleChangeEvent ? JSON.stringify(scaleChangeEvent, null, 2) : "-"}</pre>
+                        <div>view scale 对比（{isFullscreen ? "全屏" : "普通"}）</div>
+                        <pre>
+                            {viewScaleSnapshot.length
+                                ? JSON.stringify(
+                                      {
+                                          originSize: EXAMPLE_ORIGIN_SIZE,
+                                          views: viewScaleSnapshot,
+                                      },
+                                      null,
+                                      2
+                                  )
+                                : "-"}
+                        </pre>
                         <div>最近调用</div>
                         <pre>{pageActionResult}</pre>
                     </div>

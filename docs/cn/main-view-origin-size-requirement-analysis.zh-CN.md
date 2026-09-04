@@ -8,15 +8,16 @@ WindowManager 当前使用第一个写入 attributes 的可写端本地 `mainVie
 本设计为 mainView 增加固定的房间原始基准，同时保留 `scalePptToFit()` 显式替换当前同步视口的能力：
 
 - 四端通过 `WindowManager.mount({ originSize })` 配置完全相同的原始尺寸；
-- `originSize` 只能在 mount 时传入，manager 生命周期内不能动态修改；
+- `originSize` 只能在 mount 时传入，单个 manager 生命周期内不能被 camera API 动态修改；
+- 新的可写端显式 mount 不同 `originSize` 时，可以原子重建房间 origin contract；
 - origin camera 固定为 `{ centerX: 0, centerY: 0, scale: 1 }`；
 - 正常 camera API 只修改当前 camera，不受写入端本地像素尺寸影响；
 - `scalePptToFit()` 的优先级高于 origin 基准，可以原子替换当前同步 size/camera；
 - `fitOriginSizeAndCamera()` 将当前同步 size/camera 恢复为 origin 基准；
 - 未配置 `originSize` 时完整保留 legacy 行为。
 
-第一阶段只覆盖 WindowManager mainView。动态 PPT、静态 PPT App View 的 origin 配置与缩放需要后续按各自
-View 模型继续设计。
+该规则只覆盖 WindowManager mainView。Slide、Presentation 的 App View 继续使用 `addApp()` attributes
+中的 `originSize`，不读取也不跟随本次 mainView mount 重置。
 
 ## 2. 数据模型
 
@@ -38,8 +39,8 @@ type OriginMainViewAttributes = {
 
 | 字段 | 是否可变 | 含义 |
 | --- | --- | --- |
-| `originSize` | 否 | mount 配置建立的房间原始参考尺寸 |
-| `originCamera` | 否 | 固定恢复目标 `{ centerX: 0, centerY: 0, scale: 1 }` |
+| `originSize` | 生命周期内否 | mount 配置建立的房间原始参考尺寸；新的 writable mount 可以重建 |
+| `originCamera` | 生命周期内否 | 固定恢复目标 `{ centerX: 0, centerY: 0, scale: 1 }`；重建时恢复默认值 |
 | `mainViewSize` | 是 | 当前生效的共享参考尺寸 |
 | `mainViewCamera` | 是 | 相对当前 `mainViewSize` 表达的共享 camera |
 
@@ -57,21 +58,33 @@ coordinateVersion = 2
 一旦 `mainViewSize` 被 `scalePptToFit()` 替换，本地换算必须使用 `mainViewSize`，不能继续固定使用
 `originSize`。
 
-已有完整 legacy `mainViewSize/mainViewCamera` 的旧房间启用 origin 模式时，不能执行上述默认 active
-pair 初始化。首个可写的新版本客户端只原子补齐 origin pair 和坐标版本，已有 active pair（包括 `id`）
-保持不变：
+已有完整 legacy `mainViewSize/mainViewCamera` 的旧房间首次启用 origin 模式时，首个可写的新版本客户端
+必须按 mount 配置原子重建 origin pair、active pair 和坐标版本：
 
 ```text
 originSize       = mount originSize
 originCamera     = { centerX: 0, centerY: 0, scale: 1 }
-mainViewSize     = existing legacy mainViewSize
-mainViewCamera   = existing legacy mainViewCamera
+mainViewSize     = mount originSize
+mainViewCamera   = originCamera
 coordinateVersion = 2
 ```
 
-legacy camera 本来就是相对 legacy mainViewSize 表达，因此补齐 contract 前后使用同一 active pair 换算，
-初始化显示不发生变化。迁移本身不调用 `fitOriginSizeAndCamera()`；是否恢复到 origin 视图由客户集成侧
-在 mount 成功后显式决定。
+这次初始化会丢弃历史房间由首个旧客户端本地尺寸生成的 active pair，使 `originSize` 第一次设置时立即
+成为 MainView 的同步换算基准。只读端不能完成该同步写入，因此必须拒绝 mount，等待可写端先初始化
+完整版本 2 contract。
+
+已有完整版本 2 contract 且显式 mount 的 `originSize` 不同时，可写端必须原子重建完整 contract：
+
+```text
+originSize       = new mount originSize
+originCamera     = { centerX: 0, centerY: 0, scale: 1 }
+mainViewSize     = new mount originSize
+mainViewCamera   = originCamera
+coordinateVersion = 2
+```
+
+重建同时替换 origin pair 和 active pair，语义等同于以新基准执行一次同步的 fit origin。只替换
+`originSize` 会让 active pair 继续引用旧尺寸，无法保证新基准立即作用到 MainView scale，因此不允许。
 
 ## 3. 配置与房间契约
 
@@ -88,15 +101,17 @@ await WindowManager.mount({
 限制：
 
 - width、height 必须是有限正数；
-- 同一个房间的所有端必须传入完全相同的 width、height；
-- 不提供运行时 setter；更换 originSize 必须销毁 manager 并由所有端使用新值重新 mount；
-- 本地 mount 配置与 attributes `originSize` 不一致时，该端禁止发布 camera，并上报明确错误；
+- 正常运行时，同一个房间的所有端应传入完全相同的 width、height；
+- 不提供运行时 setter；更换 originSize 必须销毁当前 manager，再由可写端使用新值重新 mount；
+- 可写端 mount 配置与完整版本 2 attributes `originSize` 不一致时，以本次 mount 配置为准原子重建 contract；
+- 只读端无法同步重建；配置不一致时 mount 失败并提示需要可写端先完成重置；
 - 版本 2 attributes 必须同时存在四个字段，不接受部分字段；
 - `originCamera` 必须等于固定默认值，业务不能通过 attributes 修改。
 
 多个可写端同时初始化时，只要 mount 的 `originSize` 一致，写入内容完全相同，不再由先进入房间的终端
 尺寸决定原始基准。多个可写端同时发布不同 camera 仍然是最后写入生效，originSize 不解决 camera
-控制权竞争。
+控制权竞争。若多个可写端使用不同 originSize 反复 mount，最后写入的完整 contract 生效，其他已挂载端
+会出现 contract 不一致；该重置能力用于受控配置升级，不能替代多端统一配置。
 
 ## 4. active pair 与本地 View 换算
 
@@ -151,7 +166,8 @@ resize、横竖屏和 `setContainerSizeRatio()` 期间不能使用旧 local came
 | 业务入口 | `originSize` | `originCamera` | `mainViewSize` | `mainViewCamera` |
 | --- | --- | --- | --- | --- |
 | 空房间初始化 origin 模式 | 设置为 mount 配置 | 设置为默认 origin camera | 设置为 `originSize` | 设置为 `originCamera` |
-| 旧房间迁移 origin 模式 | 设置为 mount 配置 | 设置为默认 origin camera | 保留 legacy 值 | 保留 legacy 值 |
+| 旧房间首次启用 origin 模式 | 设置为 mount 配置 | 设置为默认 origin camera | 设置为 `originSize` | 设置为 `originCamera` |
+| writable mount 重置已有 v2 origin 模式 | 设置为新 mount 配置 | 恢复默认 origin camera | 设置为新 `originSize` | 设置为默认 origin camera |
 | `moveCamera()` | 不变 | 不变 | 不变 | 更新 |
 | `moveCameraToContain()` | 不变 | 不变 | 不变 | 更新 |
 | `scalePptToFit()` | 不变 | 不变 | 更新 | 更新 |
@@ -273,7 +289,11 @@ White SDK 对多次 `setCameraBound()` 使用有效值增量语义：
 | 场景 | origin 模式要求 |
 | --- | --- |
 | attributes 为空 | 可写 Broadcaster 原子初始化四字段和版本；只读端仅本地应用默认 pair |
-| attributes 已存在 | 校验固定 origin contract，读取 active pair 并转换到本地 |
+| 完整 legacy active pair + writable mount | 在创建 MainView 前按 mount `originSize` 原子初始化 origin pair、active pair 和版本 |
+| 完整 legacy active pair + readonly mount | mount 失败，等待可写端先初始化完整版本 2 contract |
+| 完整且同 originSize 的版本 2 attributes | 读取 active pair 并转换到本地，不重置当前视角 |
+| writable mount 的 originSize 与完整 v2 contract 不同 | 在创建 MainView 前原子重建 origin pair、active pair 和版本 |
+| readonly mount 的 originSize 与完整 v2 contract 不同 | mount 失败，等待可写端用相同配置完成重置后重试 |
 | 获得可写权限 | attributes 已存在时不得用本地 View 覆盖 active pair |
 | 切换 Broadcaster | 不调用 active-pair snapshot，只开始同步当前 attributes |
 | scenePath 切换 | active pair 不变，切换后重放 |
@@ -289,6 +309,9 @@ mount 必须串行，已有成功实例或正在 mount 时，后续调用应在�
 失败。contract 校验或提交 mount 前的初始化抛错时，WindowManager 只销毁本次 mount 创建的本地 logger、
 observer 和 manager 子组件并恢复静态状态；不能调用 InvisiblePlugin 的公开 `destroy()`，因为该 API 会把
 房间内所有端的同类插件一起销毁。
+
+writable mount 重建发生在 MainView 构造前。`safeSetAttributes()` 的原子写入既同步给远端，也让随后创建的
+MainView 直接读取新的 `mainViewSize/mainViewCamera`；本地 View camera scale 按新 reference size 换算。
 
 resize/ratio 期间积压的 camera operation 按顺序重放。任一 operation 抛错时，它不应把逻辑状态回退到
 整批操作开始前的 base camera，而应继承前一个成功 operation 的 camera 和 reference size。这样后续
@@ -327,11 +350,14 @@ origin 模式支持新房间和已有 legacy active pair 的旧房间：
 
 - legacy `mainViewSize/mainViewCamera` 必须成对存在且数值有效；部分字段或非法值属于配置错误，不能
   静默重置视图；
-- 首个可写的新版本客户端原子补齐 `originSize/originCamera` 和版本 2 标记，同时原样保留 legacy
+- 首个可写的新版本客户端按 mount 配置原子写入 origin pair、active pair 和版本 2 标记，不保留 legacy
   active pair；
-- 只读客户端可以先按 legacy active pair 完成初始化显示，不写 attributes；它取得可写权限后执行同样
-  的原子迁移；
-- 迁移只建立 origin 恢复基准，不改变 active pair，不自动调用 `fitOriginSizeAndCamera()`；
+- 只读客户端不能只在本地覆盖 legacy active pair；完整版本 2 contract 建立前拒绝 mount；
+- 首次设置 `originSize` 的迁移语义等同于同步执行一次 fit origin；
+- 已有完整版本 2 contract 与新的 writable mount 配置不同时，原子替换五个字段并将 active pair 恢复为
+  新 origin pair；
+- 已有完整版本 2 contract 与 mount `originSize` 相同时保留 active pair，避免重连或重新 mount 重置用户视角；
+- 只读端遇到上述不一致时不能做仅本地覆盖，必须拒绝 mount；
 - 四端都升级后再统一传入 originSize；旧客户端仍按 legacy 语义写 camera，可能破坏版本 2 active pair；
 - 旧版本可写端不得进入版本 2 房间，否则可能覆盖四字段语义；
 - 未传 originSize 时不写 origin 字段和坐标版本，所有旧逻辑保持不变。
@@ -341,10 +367,12 @@ origin 模式支持新房间和已有 legacy active pair 的旧房间：
 ### 9.1 数据与换算
 
 - 初始化原子写入四字段和版本；
-- legacy active pair 迁移时保持 camera、size 和 `id` 不变；
-- legacy 迁移前后本地初始化 camera 不变，且不会隐式执行 fit origin；
-- 只读端可消费 legacy active pair，变为可写后再原子迁移；
-- 本地 originSize 与 attributes 不一致时阻止发布；
+- writable legacy 迁移时将 active pair 重置为 mount `originSize` 和默认 origin camera；
+- legacy 迁移在 MainView 创建前完成，本地 camera 直接按新 origin 基准初始化；
+- readonly legacy mount 被阻止，直到可写端完成版本 2 contract 初始化；
+- writable mount 的 originSize 与完整 v2 attributes 不一致时原子重置五个字段，字段 `id` 使用当前 uid；
+- 重置后的 MainView 以逻辑 scale `1` 和新 reference size 计算本地 View scale；
+- readonly mount 的 originSize 与完整 v2 attributes 不一致时阻止 mount；
 - active `mainViewSize` 与 originSize 不同时，换算使用 active size；
 - active/local 正反换算在同一 revision 内可逆；
 - 零尺寸、NaN、Infinity 和浮点边界；
@@ -365,6 +393,7 @@ origin 模式支持新房间和已有 legacy active pair 的旧房间：
 - `setCameraBound()` 不写任何 attributes；
 - CameraBound 连续 partial update 与 rebind 保持 White SDK 的 effective bound 语义；
 - resize 与 `setContainerSizeRatio()` 不写任何 attributes；
+- originSize 模式的 camera reaction 只比较 `mainViewCamera/mainViewSize/coordinateVersion` 标量快照；更新任意 App storage 不触发 MainView camera 响应或 `mainViewState` 日志，真实 camera、size 或版本变化仍正常触发；
 - layout operation 中间失败时，前序成功 camera 不回退，后续 partial operation 继续基于它计算；
 - layout base camera 重放异常时仍继续处理队列并建立提交 timer；
 - origin contract 校验失败时不残留本地挂载资源、`isCreated` 或静态 mount 参数，且不广播销毁 InvisiblePlugin；
@@ -374,6 +403,8 @@ origin 模式支持新房间和已有 legacy active pair 的旧房间：
 
 - 只读端先加入、老师后加入；
 - 多端 originSize 相同、本地 View 尺寸与宽高比不同；
+- writable mount 重置后远端收到完整的新 origin/active contract；
+- Slide、Presentation 的 `addApp` originSize 和 View camera 不受 mainView mount 重置影响；
 - scalePptToFit 后各端消费相同 active pair；
 - fitOrigin 后恢复相同 origin 视口；
 - 横竖屏快速切换期间 API 排队，不发布混合 revision；
@@ -385,13 +416,15 @@ origin 模式支持新房间和已有 legacy active pair 的旧房间：
 | 决策 | 结论 |
 | --- | --- |
 | originSize 配置入口 | 只能通过 `WindowManager.mount()` |
-| originSize 多端约束 | 四端必须完全一致 |
+| originSize 多端约束 | 正常运行时四端必须完全一致；受控升级由最后一次 writable mount 原子重建 |
 | originCamera | 固定 `{ centerX: 0, centerY: 0, scale: 1 }` |
-| origin pair 是否可变 | 不可变 |
+| origin pair 是否可变 | manager 生命周期内不可变；新的 writable mount 可连同 active pair 一次性重建 |
 | active pair | `mainViewSize/mainViewCamera`，用于实际同步和本地换算 |
-| 旧房间迁移 | 补齐 origin pair 和版本，原样保留 active pair，不改变初始化显示 |
+| 旧房间首次启用 originSize | writable mount 原子初始化五字段并重置 active pair；readonly mount 拒绝 |
+| 已有 v2 房间重置 | writable mount 原子重置五字段；readonly mismatch 拒绝 mount |
 | `scalePptToFit()` | 优先于 origin，原子替换 active pair |
 | `fitOriginSizeAndCamera()` | 客户显式调用时才将 active pair 恢复为 origin pair |
 | resize / ratio | 只影响本地换算，不写 attributes |
 | CameraBound | 仅影响当前本地 View；PPT 延迟提交也不得采集其修改后的本地 camera |
 | 未配置 originSize | 保持完整 legacy 行为 |
+| Slide / Presentation | 继续由 `addApp` attributes 配置，不跟随 mainView mount 重置 |

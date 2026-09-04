@@ -149,13 +149,20 @@ export class MainViewProxy {
         if (this.viewMode !== ViewMode.Broadcaster) return;
         if (this.isOriginMode) {
             const originSize = this.originSize;
+            if (originSize && this.hasLegacyOriginAttributes() && this.manager.canOperate) {
+                this.migrateLegacyOriginAttributes();
+                this.applyMainViewCamera(
+                    DefaultOriginCamera,
+                    AnimationMode.Immediately,
+                    originSize
+                );
+                return;
+            }
             const camera = this.currentOriginCameraForApi();
             if (camera && originSize) {
                 this.applyMainViewCamera(camera);
                 if (this.hasEmptyOriginAttributes()) {
                     this.initializeOriginAttributes(camera, originSize);
-                } else if (this.hasLegacyOriginAttributes()) {
-                    this.migrateLegacyOriginAttributes();
                 }
             }
             return;
@@ -337,13 +344,7 @@ export class MainViewProxy {
     private migrateLegacyOriginAttributes(): void {
         const originSize = this.originSize;
         if (!originSize || !this.manager.canOperate || !this.hasLegacyOriginAttributes()) return;
-        const originCamera = { ...DefaultOriginCamera, id: this.manager.uid };
-        this.store.initializeOriginMainViewAttributes(
-            originCamera,
-            { ...originSize, id: this.manager.uid },
-            { ...this.mainViewCamera },
-            { ...this.mainViewSize }
-        );
+        this.initializeOriginAttributes(DefaultOriginCamera, originSize);
     }
 
     private publishMainViewCamera(camera: Camera): void {
@@ -354,6 +355,7 @@ export class MainViewProxy {
         }
         if (this.hasLegacyOriginAttributes()) {
             this.migrateLegacyOriginAttributes();
+            return;
         }
         if (!this.hasValidOriginAttributes("block")) return;
         this.store.setMainViewCamera({ ...camera, id: this.manager.uid });
@@ -1100,22 +1102,22 @@ export class MainViewProxy {
             );
         }
         return reaction(
-            () =>
-                ({
-                    camera: this.mainViewCamera as MainViewCamera | undefined,
-                    size: this.mainViewSize as Size | undefined,
+            () => {
+                const camera = this.mainViewCamera;
+                const size = this.mainViewSize;
+                return {
+                    cameraCenterX: camera?.centerX,
+                    cameraCenterY: camera?.centerY,
+                    cameraScale: camera?.scale,
+                    cameraId: camera?.id,
+                    sizeWidth: size?.width,
+                    sizeHeight: size?.height,
+                    sizeId: size?.id,
                     version: this.mainViewCameraCoordinateVersion,
-                } as {
-                    camera: MainViewCamera | undefined;
-                    size: Size | undefined;
-                    version: number | undefined;
-                }),
-            (snapshot: {
-                camera: MainViewCamera | undefined;
-                size: Size | undefined;
-                version: number | undefined;
-            }) => {
-                const { camera } = snapshot;
+                };
+            },
+            () => {
+                const camera = this.mainViewCamera;
                 if (camera && camera.id !== this.manager.uid) {
                     const mainViewCamera = this.currentOriginCameraForApi();
                     if (mainViewCamera && !this.layoutSyncing) {
@@ -1124,7 +1126,7 @@ export class MainViewProxy {
                 }
                 this.scheduleMainViewStateLog();
             },
-            { fireImmediately: true }
+            { fireImmediately: true, equals: isEqual }
         );
     };
 

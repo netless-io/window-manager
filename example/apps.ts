@@ -1,5 +1,6 @@
 import type { WindowManager } from "../dist";
 import { BuiltinApps } from "../dist";
+import { EXAMPLE_ORIGIN_SIZE } from "./config";
 import * as docs from "./docs.json";
 
 export const createHelloWorld = (manager: WindowManager) => {
@@ -15,7 +16,8 @@ export const createHelloWorld = (manager: WindowManager) => {
 };
 
 export const createPresentation = (manager: WindowManager) => {
-    const { width, height } = manager.mainView.size;
+    const width = 714;
+    const height = 1010;
 
     manager.addApp({
         kind: "Presentation",
@@ -72,6 +74,9 @@ export const createPresentation = (manager: WindowManager) => {
                     },
                 },
             ],
+        },
+        attributes: {
+            originSize: { ...EXAMPLE_ORIGIN_SIZE },
         },
     });
 };
@@ -144,7 +149,7 @@ export const createSlide = (manager: WindowManager) => {
         },
         attributes: {
             taskId: "9340e8e067bc11ec8f582b1b98453394", // [2]
-            originSize: manager.mainView.size,
+            originSize: { ...EXAMPLE_ORIGIN_SIZE },
             url: "https://convertcdn.netless.link/dynamicConvert", // [3]
         },
     });
