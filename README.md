@@ -228,6 +228,17 @@ manager.emitter.on("boxesStatusChange", (map: Map<appId, TeleBoxState>) => {
 })
 ```
 
+When `useBoxesStatus` is enabled, the WindowManager wrapper has the
+`netless-window-manager-use-boxes-status` class. Scope styles that rely on the global window
+state to wrappers without this class:
+
+```css
+.netless-window-manager-wrapper:not(.netless-window-manager-use-boxes-status)
+    > .telebox-box.telebox-maximized.telebox-blur {
+    display: none;
+}
+```
+
 ### Listening for `broadcaster` changes
 ```javascript
 manager.emitter.on("broadcastChange", id => {

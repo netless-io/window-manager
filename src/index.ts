@@ -651,13 +651,17 @@ export class WindowManager
             chessboard?: boolean;
             overwriteStyles?: string;
             fullscreen?: boolean;
+            useBoxesStatus?: boolean;
         }
     ) {
-        const { chessboard, overwriteStyles, fullscreen } = params;
+        const { chessboard, overwriteStyles, fullscreen, useBoxesStatus } = params;
         if (!WindowManager.container) {
             WindowManager.container = container;
         }
-        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(container);
+        const { playground, wrapper, sizer, mainViewElement } = setupWrapper(
+            container,
+            Boolean(useBoxesStatus)
+        );
         WindowManager.playground = playground;
         if (chessboard) {
             sizer.classList.add("netless-window-manager-chess-sizer");

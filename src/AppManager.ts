@@ -608,8 +608,17 @@ export class AppManager {
                 "asc"
             );
             const orderedAppIds = appsWithCreatedAt.map(({ id }) => id);
+            const focusedAppId = this.store.focus;
+            const shouldPrioritizeFocusedApp =
+                !this.useBoxesStatus &&
+                this.attributes.maximized === true &&
+                focusedAppId !== undefined &&
+                orderedAppIds.includes(focusedAppId);
+            const creationOrder = shouldPrioritizeFocusedApp
+                ? [focusedAppId, ...orderedAppIds.filter(id => id !== focusedAppId)]
+                : orderedAppIds;
             this.notifyAppsChange(orderedAppIds);
-            for (const id of orderedAppIds) {
+            for (const id of creationOrder) {
                 if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
                     const app = apps[id];
                     try {

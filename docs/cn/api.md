@@ -72,7 +72,7 @@ const manager = await WindowManager.mount(
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | 打印日志信息   
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | 配置光标使用的教具图片           ｜
-| useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 状态管理窗口, 开启后可以单独管理每个窗口的状态               |
+| useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 状态管理窗口；开启后可以单独管理每个窗口的状态，并在 `.netless-window-manager-wrapper` 上添加 `.netless-window-manager-use-boxes-status` class |
 
 > 旧房间只有完整 `mainViewSize/mainViewCamera` 时，首次通过可写端配置 `originSize`，WindowManager
 > 会在创建 MainView 前原子初始化 origin pair、active pair 和坐标版本，并将

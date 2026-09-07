@@ -80,7 +80,7 @@ parameter
 > existing version 2 contract keeps its current active pair; a different writable `originSize`
 > resets both pairs. Slide and Presentation continue to use their independent addApp attributes.
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           |
-| useBoxesStatus         | [optional] boolean                      | false   | Whether to use the boxesStatus status management window, after it is enabled, the status of each window can be managed separately               |
+| useBoxesStatus         | [optional] boolean                      | false   | Whether to manage each window state independently; when enabled, `.netless-window-manager-use-boxes-status` is added to `.netless-window-manager-wrapper` |
 
 
 <h3 id="register">WindowManager. register</h3>

@@ -8,7 +8,8 @@ import { WhiteWebSDKInvalidError } from "./Utils/error";
 import { log } from "./Utils/log";
 
 export const setupWrapper = (
-    root: HTMLElement
+    root: HTMLElement,
+    useBoxesStatus = false
 ): {
     playground: HTMLDivElement;
     wrapper: HTMLDivElement;
@@ -23,6 +24,7 @@ export const setupWrapper = (
 
     const wrapper = document.createElement("div");
     wrapper.className = "netless-window-manager-wrapper";
+    wrapper.classList.toggle("netless-window-manager-use-boxes-status", useBoxesStatus);
 
     const mainViewElement = document.createElement("div");
     mainViewElement.className = "netless-window-manager-main-view";
