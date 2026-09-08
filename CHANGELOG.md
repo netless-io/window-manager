@@ -1,3 +1,9 @@
+## 1.0.21 (2026-09-08)
+- 新增统一文档控制 API `dispatchDocsEvent`、`getPageState` 和 `unifiedPageStateChange`，统一 MainView、DocsViewer、Slide 与 Presentation 的翻页、步进和相对缩放状态。
+- 新增 `originSize` 主视图坐标契约及 `pageScaleRange`，在容器尺寸变化、重连和视图重新绑定时保持活动尺寸与相机状态，并支持恢复原始视角。
+- 统一 App、主视图、容器和分页状态诊断日志，通过 Room logger 上报；全局最大化恢复时优先创建当前可见的焦点 App。
+- 升级内置 `@netless/app-presentation` 到 `^0.1.11`，升级 example 的 `@netless/app-slide` 到 `^0.2.104`，并恢复从 npm 安装包解析两个 App。
+
 ## 1.0.20 (2026-08-24)
 - 增加 App setup 超时与失败诊断日志，并在失败日志中记录 App 当前生命周期状态。
 - 增加容器稳定后的最终状态日志，记录根容器、Playground、Sizer、Wrapper、Main View 与 TeleBox 尺寸及可见性信息。

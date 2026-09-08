@@ -12,8 +12,8 @@ importers:
         specifier: 0.2.6-beta.3
         version: 0.2.6-beta.3
       '@netless/app-slide':
-        specifier: ^0.2.103
-        version: 0.2.103(jspdf@2.5.2)
+        specifier: ^0.2.104
+        version: 0.2.104(jspdf@2.5.2)
       '@netless/appliance-plugin':
         specifier: 1.1.42
         version: 1.1.42(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
@@ -601,8 +601,8 @@ packages:
   '@netless/app-plyr@0.2.6-beta.3':
     resolution: {integrity: sha512-0H8BII9f0VeefBOWI4Q5MiZnZguHrQ4IWJQSAwO9fCF2LYMQNZbtqBQrWNrz+QlHyPS1s/AYD/BxRZSLFqGZ9w==}
 
-  '@netless/app-slide@0.2.103':
-    resolution: {integrity: sha512-3GeOmDYb+ILLr4e+/Ie1jvZNyr6YcYf4ps3xqnT8TXRO1AUvGd1L+2Wg+LYB9bRvJThNma2CEPEKVauhTNcjOA==}
+  '@netless/app-slide@0.2.104':
+    resolution: {integrity: sha512-hf+13ZYw4BEq/MExLJHshm+YTJ4xvr/USxnmj1iXSbHoF90cU5AOIhEkK0G2R2yNfaUWEpoINVpJ4RMZSpOqHg==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
@@ -2170,7 +2170,7 @@ snapshots:
 
   '@netless/app-plyr@0.2.6-beta.3': {}
 
-  '@netless/app-slide@0.2.103(jspdf@2.5.2)':
+  '@netless/app-slide@0.2.104(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 

@@ -8,3 +8,4 @@ vite.config.js
 **/*.md
 pnpm-lock.yaml
 example/
+.playwright-cli/

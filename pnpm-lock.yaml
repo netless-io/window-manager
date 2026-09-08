@@ -40,8 +40,8 @@ importers:
         specifier: 0.1.4
         version: 0.1.4
       '@netless/app-presentation':
-        specifier: ^0.1.10
-        version: 0.1.10(jspdf@2.5.2)
+        specifier: ^0.1.11
+        version: 0.1.11(jspdf@2.5.2)
       '@rollup/plugin-commonjs':
         specifier: ^20.0.0
         version: 20.0.0(rollup@4.60.1)
@@ -374,8 +374,8 @@ packages:
   '@netless/app-media-player@0.1.4':
     resolution: {integrity: sha512-CsiLtd3LWGsQrHRZYB3Zl6tj5Q0LDJIevHY60LdYcUgUBR57FfC4fhaD0FP/bn4D82ki7HgKgeG2oflUlPfl3g==}
 
-  '@netless/app-presentation@0.1.10':
-    resolution: {integrity: sha512-Ttqxw7Qe024PXDF0PnTAaGtnJMAZGHGG3rKBEBwMDjSv0raJV0qI15//MQnScabReO2JKwWf73gSm7ajaBTWTw==}
+  '@netless/app-presentation@0.1.11':
+    resolution: {integrity: sha512-rSqv30a9nS7Onsz84ViZs2fdP4UBoFJ9m0UKWykuHyNgy64sGZQFcAYMwpdX8ZZiHWv4rtFOqaqsWW5WtyT3+w==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
@@ -3622,7 +3622,7 @@ snapshots:
 
   '@netless/app-media-player@0.1.4': {}
 
-  '@netless/app-presentation@0.1.10(jspdf@2.5.2)':
+  '@netless/app-presentation@0.1.11(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 

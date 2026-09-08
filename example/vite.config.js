@@ -12,14 +12,6 @@ const agoraFoundationRoot = path.dirname(require.resolve("agora-foundation/packa
 const agoraFoundationRequire = createRequire(path.join(agoraFoundationRoot, "package.json"));
 const localLogStubRoot = path.resolve(demoDir, "src/local-log");
 const resolveDemoPackage = packageName => require.resolve(packageName);
-const localSlideEntry = path.resolve(
-    demoDir,
-    "../../slide-app/packages/app-slide/dist/main.es.js"
-);
-const localPresentationEntry = path.resolve(
-    demoDir,
-    "../../netless-app-presentation/dist/index.mjs"
-);
 
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -78,14 +70,6 @@ export default defineConfig({
     },
     resolve: {
         alias: [
-            {
-                find: /^@netless\/app-slide$/,
-                replacement: localSlideEntry,
-            },
-            {
-                find: /^@netless\/app-presentation$/,
-                replacement: localPresentationEntry,
-            },
             {
                 find: /^vite\/preload-helper$/,
                 replacement: path.join(demoDir, "src/vite-preload-helper.js"),
