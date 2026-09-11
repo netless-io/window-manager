@@ -20,6 +20,7 @@ import type { NetlessApp } from "./typings";
 import type { View } from "white-web-sdk";
 import type { CallbacksType } from "./callback";
 import type { EmitterType } from "./InternalEmitter";
+import type { AppBoxSizeSyncOptions } from "./App/AppBoxSizeSynchronizer";
 import { getExtendClass, TeleBoxManager, TeleBoxCollector } from "./Utils/extendClass";
 
 export { TELE_BOX_STATE };
@@ -66,7 +67,7 @@ export type BoxManagerContext = {
     callbacks: CallbacksType;
     canOperate: () => boolean;
     notifyContainerRectUpdate: (rect: TeleBoxRect) => void;
-    scheduleAppBoxSizeSync: (appId?: string) => void;
+    scheduleAppBoxSizeSync: (appId?: string, options?: AppBoxSizeSyncOptions) => void;
     cleanFocus: () => void;
     setAppFocus: (appId: string) => void;
 };
@@ -97,8 +98,8 @@ export const createBoxManager = (
             canOperate: () => manager.canOperate,
             notifyContainerRectUpdate: (rect: TeleBoxRect) =>
                 manager.appManager?.notifyContainerRectUpdate(rect),
-            scheduleAppBoxSizeSync: (appId?: string) =>
-                manager.appManager?.scheduleAppBoxSizeSync(appId),
+            scheduleAppBoxSizeSync: (appId?: string, syncOptions?: AppBoxSizeSyncOptions) =>
+                manager.appManager?.scheduleAppBoxSizeSync(appId, syncOptions),
             cleanFocus: () => manager.appManager?.store.cleanFocus(),
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             callbacks,
@@ -188,6 +189,9 @@ export class BoxManager {
         });
         this.teleBoxManager.events.on("focused", box => {
             if (box) {
+                if (!this.createTeleBoxManagerConfig?.useBoxesStatus && this.maximized) {
+                    this.context.scheduleAppBoxSizeSync(box.id, { forceRefresh: true });
+                }
                 if (this.canOperate) {
                     boxEmitter.emit("focus", { appId: box.id });
                 } else {

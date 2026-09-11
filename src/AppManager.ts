@@ -2,6 +2,7 @@ import { AppAttributes, AppStatus, Events, INIT_DIR, MagixEventName, ROOT_DIR } 
 import { AppCreateQueue } from "./Utils/AppCreateQueue";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./App";
+import type { AppBoxSizeSyncOptions } from "./App/AppBoxSizeSynchronizer";
 import { appRegister } from "./Register";
 import { autorun, isPlayer, isRoom, ScenePathType, UpdateEventKind } from "white-web-sdk";
 import { boxEmitter } from "./BoxEmitter";
@@ -444,11 +445,11 @@ export class AppManager {
         this.scheduleAppBoxSizeSync(payload.appId);
     };
 
-    public scheduleAppBoxSizeSync = (appId?: string): void => {
+    public scheduleAppBoxSizeSync = (appId?: string, options?: AppBoxSizeSyncOptions): void => {
         if (appId) {
-            this.appProxies.get(appId)?.scheduleBoxSizeSync();
+            this.appProxies.get(appId)?.scheduleBoxSizeSync(options);
         } else {
-            this.appProxies.forEach(appProxy => appProxy.scheduleBoxSizeSync());
+            this.appProxies.forEach(appProxy => appProxy.scheduleBoxSizeSync(options));
         }
     };
 

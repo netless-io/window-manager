@@ -33,4 +33,54 @@ describe("BoxManager box size synchronization", () => {
         );
         expect(scheduleAppBoxSizeSync).toHaveBeenCalledWith("app-1");
     });
+
+    it.each([
+        ["globally maximized", false, true, true],
+        ["normal", false, false, false],
+        ["independent box status", true, true, false],
+    ])(
+        "forces focused app size sync only when %s",
+        async (_name, useBoxesStatus, maximized, shouldForce) => {
+            vi.stubGlobal("CanvasRenderingContext2D", class CanvasRenderingContext2D {});
+            vi.stubGlobal("CustomEvent", window.CustomEvent);
+            vi.spyOn(window, "dispatchEvent").mockReturnValue(true);
+            const { BoxManager } = await import("../src/BoxManager");
+            const handlers = new Map<string, (value: any) => void>();
+            const reaction = vi.fn();
+            const teleBoxManager = {
+                maximized,
+                events: {
+                    on: vi.fn((event: string, handler: (value: any) => void) => {
+                        handlers.set(event, handler);
+                    }),
+                },
+                _state$: { reaction },
+                _darkMode$: { reaction },
+                _prefersColorScheme$: { reaction },
+                _minimized$: { reaction },
+            };
+            vi.spyOn(BoxManager.prototype as any, "setupBoxManager").mockReturnValue(
+                teleBoxManager
+            );
+            const scheduleAppBoxSizeSync = vi.fn();
+            const context = {
+                emitter: { emit: vi.fn(), on: vi.fn() },
+                callbacks: { emit: vi.fn() },
+                boxEmitter: { emit: vi.fn() },
+                canOperate: () => true,
+                scheduleAppBoxSizeSync,
+            };
+            new BoxManager(context as any, { useBoxesStatus });
+
+            handlers.get("focused")?.({ id: "app-1" });
+
+            if (shouldForce) {
+                expect(scheduleAppBoxSizeSync).toHaveBeenCalledWith("app-1", {
+                    forceRefresh: true,
+                });
+            } else {
+                expect(scheduleAppBoxSizeSync).not.toHaveBeenCalled();
+            }
+        }
+    );
 });

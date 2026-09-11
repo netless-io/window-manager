@@ -35,6 +35,7 @@ import { boxEmitter } from "../BoxEmitter";
 import { callbacks } from "../callback";
 import { getExtendClass } from "../Utils/extendClass";
 import { AppBoxSizeSynchronizer } from "./AppBoxSizeSynchronizer";
+import type { AppBoxSizeSyncOptions } from "./AppBoxSizeSynchronizer";
 
 const APP_SETUP_WATCHDOG_TIMEOUT = 10_000;
 
@@ -132,8 +133,8 @@ export class AppProxy implements PageRemoveService {
         return this.manager.viewManager.getView(this.id);
     }
 
-    public scheduleBoxSizeSync = (): void => {
-        if (this.status !== "destroyed") this.boxSizeSynchronizer.schedule();
+    public scheduleBoxSizeSync = (options?: AppBoxSizeSyncOptions): void => {
+        if (this.status !== "destroyed") this.boxSizeSynchronizer.schedule(options);
     };
 
     public get viewIndex(): number | undefined {

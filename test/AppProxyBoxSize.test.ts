@@ -114,6 +114,37 @@ describe("AppProxy box size synchronization", () => {
         expect(listener).toHaveBeenCalledTimes(1);
     });
 
+    it("forces a same-size view refresh after a maximized app becomes visible", () => {
+        const runFrame = installAnimationFrame();
+        const element = document.createElement("div");
+        vi.spyOn(element, "getBoundingClientRect").mockReturnValue({
+            width: 640,
+            height: 360,
+        } as DOMRect);
+        const refreshSize = vi.fn();
+        const view: TestView = {
+            divElement: element,
+            size: { width: 640, height: 360 },
+            refreshSize,
+        };
+        const listener = vi.fn();
+        const synchronizer = new AppBoxSizeSynchronizer(
+            "app-1",
+            () => view as any,
+            () => element,
+            listener
+        );
+
+        synchronizer.schedule({ forceRefresh: true });
+        vi.advanceTimersByTime(650);
+        runFrame();
+        vi.advanceTimersByTime(100);
+        runFrame();
+
+        expect(refreshSize).toHaveBeenCalledWith(640, 360);
+        expect(listener).toHaveBeenCalledWith({ appId: "app-1", width: 640, height: 360 });
+    });
+
     it("falls back to resetting the legacy screen observer", () => {
         const runFrame = installAnimationFrame();
         const element = document.createElement("div");

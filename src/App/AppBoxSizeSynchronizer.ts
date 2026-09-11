@@ -3,6 +3,7 @@ import { BOX_SIZE_SETTLE_DELAY } from "../constants";
 
 export type AppBoxSize = { width: number; height: number };
 export type AppBoxSizeChange = AppBoxSize & { appId: string };
+export type AppBoxSizeSyncOptions = { forceRefresh?: boolean };
 
 type ViewWithRefreshSize = View & {
     refreshSize?: (width: number, height: number) => void;
@@ -30,6 +31,7 @@ export class AppBoxSizeSynchronizer {
     private timer?: ReturnType<typeof setTimeout>;
     private pendingSize?: AppBoxSize;
     private lastNotifiedSize?: AppBoxSize;
+    private forceRefresh = false;
     private destroyed = false;
 
     public constructor(
@@ -40,8 +42,9 @@ export class AppBoxSizeSynchronizer {
         private readonly onError?: (error: unknown) => void
     ) {}
 
-    public schedule = (): void => {
+    public schedule = (options: AppBoxSizeSyncOptions = {}): void => {
         if (this.destroyed) return;
+        this.forceRefresh ||= Boolean(options.forceRefresh);
         if (this.timer != null) clearTimeout(this.timer);
         if (this.frame != null) {
             cancelAnimationFrame(this.frame);
@@ -66,6 +69,7 @@ export class AppBoxSizeSynchronizer {
         }
         this.pendingSize = undefined;
         this.lastNotifiedSize = undefined;
+        this.forceRefresh = false;
     }
 
     private confirmDOMSize = (): void => {
@@ -84,6 +88,7 @@ export class AppBoxSizeSynchronizer {
             size.height <= 0
         ) {
             this.pendingSize = undefined;
+            this.forceRefresh = false;
             return;
         }
 
@@ -97,8 +102,10 @@ export class AppBoxSizeSynchronizer {
         }
 
         this.pendingSize = undefined;
+        const forceRefresh = this.forceRefresh;
+        this.forceRefresh = false;
         const view = this.getView() as ViewWithRefreshSize | undefined;
-        if (view && !sizesEqual(view.size, size)) {
+        if (view && (forceRefresh || !sizesEqual(view.size, size))) {
             try {
                 if (typeof view.refreshSize === "function") {
                     view.refreshSize(size.width, size.height);
