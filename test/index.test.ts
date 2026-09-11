@@ -81,6 +81,36 @@ describe("WindowManager", () => {
         expect(info).toHaveBeenCalledWith(expect.stringContaining('"mainViewSize":{"width":960'));
     });
 
+    it("synchronizes app view sizes when fullscreen layout changes", () => {
+        const previousSizer = WindowManager.sizer;
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const scheduleAppBoxSizeSync = vi.fn();
+        const sizer = document.createElement("div");
+        wm.appManager = { scheduleAppBoxSizeSync } as any;
+        WindowManager.sizer = sizer;
+
+        try {
+            wm.setFullscreen(true);
+            expect(sizer.classList.contains("netless-window-manager-fullscreen")).toBe(true);
+            expect(scheduleAppBoxSizeSync).toHaveBeenCalledTimes(1);
+            expect(scheduleAppBoxSizeSync).toHaveBeenLastCalledWith(undefined, {
+                forceRefresh: true,
+            });
+
+            wm.setFullscreen(true);
+            expect(scheduleAppBoxSizeSync).toHaveBeenCalledTimes(1);
+
+            wm.setFullscreen(false);
+            expect(sizer.classList.contains("netless-window-manager-fullscreen")).toBe(false);
+            expect(scheduleAppBoxSizeSync).toHaveBeenCalledTimes(2);
+            expect(scheduleAppBoxSizeSync).toHaveBeenLastCalledWith(undefined, {
+                forceRefresh: true,
+            });
+        } finally {
+            WindowManager.sizer = previousSizer;
+        }
+    });
+
     it("rejects an invalid origin camera room contract", () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
         const wm = new WindowManager(invisiblePluginContext);

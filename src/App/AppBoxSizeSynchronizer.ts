@@ -39,7 +39,8 @@ export class AppBoxSizeSynchronizer {
         private readonly getView: () => View | undefined,
         private readonly getElement: () => Element | undefined,
         private readonly notify: (payload: AppBoxSizeChange) => void,
-        private readonly onError?: (error: unknown) => void
+        private readonly onError?: (error: unknown) => void,
+        private readonly getFallbackElement?: () => Element | undefined
     ) {}
 
     public schedule = (options: AppBoxSizeSyncOptions = {}): void => {
@@ -76,7 +77,8 @@ export class AppBoxSizeSynchronizer {
         this.frame = undefined;
         if (this.destroyed) return;
 
-        const element = this.getElement();
+        const element =
+            (this.forceRefresh ? this.getFallbackElement?.() : undefined) || this.getElement();
         if (!element) return;
 
         const rect = element.getBoundingClientRect();

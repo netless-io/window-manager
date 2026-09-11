@@ -98,7 +98,8 @@ export class AppProxy implements PageRemoveService {
             },
             error => {
                 this.Logger?.error(`[WindowManager]: failed to refresh app view size: ${error}`);
-            }
+            },
+            () => this.box?.$content
         );
         this.appListener = this.makeAppEventListener(this.id);
         this.isAddApp = isAddApp;

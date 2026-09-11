@@ -1112,6 +1112,7 @@ export class WindowManager
         if (this._fullscreen !== fullscreen) {
             this._fullscreen = fullscreen;
             WindowManager.sizer?.classList.toggle("netless-window-manager-fullscreen", fullscreen);
+            this.appManager?.scheduleAppBoxSizeSync(undefined, { forceRefresh: true });
             callbacks.emit("fullscreenChange", fullscreen);
         }
     }
