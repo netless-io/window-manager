@@ -1,3 +1,8 @@
+## 1.0.22-beta.0 (2026-09-11)
+- 未显式传入 `originSize` 的客户端会读取房间已有配置；新的可写端显式传入不同配置时，房间内已挂载客户端会采用新值并重新计算 MainView camera。
+- 升级内置 `@netless/app-presentation` 到 `^0.1.12`，移除 Presentation 对 `_originSizeCoordinateVersion` 的依赖；开发依赖升级到 `white-web-sdk@^2.16.58`。
+- WindowManager example 支持通过 URL 切换、关闭或覆盖 `originSize`，用于同房间多端验证。
+
 ## 1.0.21 (2026-09-08)
 - 新增统一文档控制 API `dispatchDocsEvent`、`getPageState` 和 `unifiedPageStateChange`，统一 MainView、DocsViewer、Slide 与 Presentation 的翻页、步进和相对缩放状态。
 - 新增 `originSize` 主视图坐标契约及 `pageScaleRange`，在容器尺寸变化、重连和视图重新绑定时保持活动尺寸与相机状态，并支持恢复原始视角。
