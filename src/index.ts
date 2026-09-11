@@ -17,7 +17,7 @@ import {
 import { internalEmitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { InvisiblePlugin, isPlayer, isRoom, RoomPhase, ViewMode } from "white-web-sdk";
+import { InvisiblePlugin, isPlayer, isRoom, reaction, RoomPhase, ViewMode } from "white-web-sdk";
 import { isEqual, isNull, isObject, omit, isNumber } from "lodash";
 import { ArgusLog, createManagedRoomLogger, log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
@@ -401,9 +401,19 @@ export class WindowManager
                 throw new Error("[WindowManager]: create manager failed");
             }
             shouldRollback = true;
-            manager._originSize = originSize;
             manager._pageScaleRange = pageScaleRange;
             await manager.ensureAttributes();
+            manager._originSize = manager.resolveOriginSize(originSize);
+            if (
+                !originSize &&
+                manager.originSize &&
+                params.containerSizeRatio !== undefined &&
+                (!Number.isFinite(params.containerSizeRatio) || params.containerSizeRatio <= 0)
+            ) {
+                throw new Error(
+                    `[WindowManager]: containerSizeRatio must be a finite positive number in originSize mode, but got ${params.containerSizeRatio}`
+                );
+            }
             manager.ensureOriginCameraCompatibility();
 
             WindowManager.container = params.container;
@@ -449,7 +459,7 @@ export class WindowManager
             }
 
             manager.builtinAppOptions = params.builtinAppOptions;
-            if (originSize) {
+            if (manager.originSize) {
                 WindowManager.containerSizeRatio = containerSizeRatio ?? DEFAULT_CONTAINER_RATIO;
             } else if (containerSizeRatio) {
                 WindowManager.containerSizeRatio = containerSizeRatio;
@@ -461,6 +471,7 @@ export class WindowManager
             manager._fullscreen = params.fullscreen;
             manager.appManager = new AppManagerClass(manager);
             manager.appManager.polling = params.polling || false;
+            manager.startOriginSizeSync();
             manager._pageState = new PageStateImpl(manager.appManager);
             manager.cursorManager = new CursorManagerClass(
                 manager.appManager,
@@ -475,7 +486,7 @@ export class WindowManager
                 windowManager: manager,
             });
 
-            if (originSize) {
+            if (manager.originSize) {
                 manager.containerSizeRatio = containerSizeRatio ?? DEFAULT_CONTAINER_RATIO;
             } else if (containerSizeRatio) {
                 manager.containerSizeRatio = containerSizeRatio;
@@ -2602,6 +2613,49 @@ export class WindowManager
         WindowManager.containerSizeRatio = ratio;
         this.containerSizeRatio = ratio;
         internalEmitter.emit("containerSizeRatioUpdate", ratio);
+    }
+
+    private resolveOriginSize(
+        configuredOriginSize: Readonly<Size> | undefined
+    ): Readonly<Size> | undefined {
+        if (configuredOriginSize) return configuredOriginSize;
+        return normalizeOriginSize(this.attributes?.[Fields.OriginSize]);
+    }
+
+    private startOriginSizeSync(): void {
+        this.appManager?.refresher.add("roomOriginSize", () =>
+            reaction(
+                () => {
+                    const originSize = this.attributes?.[Fields.OriginSize];
+                    return { width: originSize?.width, height: originSize?.height };
+                },
+                () => this.syncOriginSizeFromAttributes(),
+                { equals: isEqual }
+            )
+        );
+    }
+
+    private syncOriginSizeFromAttributes(): void {
+        const roomOriginSize = this.attributes?.[Fields.OriginSize];
+        if (roomOriginSize === undefined) return;
+        let nextOriginSize: Readonly<Size>;
+        try {
+            nextOriginSize = normalizeOriginSize(roomOriginSize) as Readonly<Size>;
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : `[WindowManager]: invalid room originSize ${String(error)}`;
+            this.Logger?.error(message);
+            console.error(message);
+            return;
+        }
+        if (isSameOriginSize(this._originSize, nextOriginSize)) return;
+        this._originSize = nextOriginSize;
+        this.Logger?.info(
+            `[WindowManager]: adopt updated room originSize ${JSON.stringify(nextOriginSize)}`
+        );
+        this.appManager?.mainViewProxy.onOriginSizeChanged();
     }
 
     private ensureOriginCameraCompatibility(): void {

@@ -95,6 +95,21 @@ const url = new URLSearchParams(search);
 const isWritable = url.get("isWritable");
 const isReplay = url.get("isReplay");
 const cursor = url.get("cursor") === "false" ? false : true;
+const originSizeParam = url.get("originSize");
+const originSizeMatch = originSizeParam?.match(/^(\d+)x(\d+)$/);
+const customOriginSize = originSizeMatch
+    ? { width: Number(originSizeMatch[1]), height: Number(originSizeMatch[2]) }
+    : undefined;
+const exampleOriginSize =
+    originSizeParam === "false"
+        ? undefined
+        : customOriginSize &&
+          Number.isFinite(customOriginSize.width) &&
+          Number.isFinite(customOriginSize.height) &&
+          customOriginSize.width > 0 &&
+          customOriginSize.height > 0
+        ? customOriginSize
+        : EXAMPLE_ORIGIN_SIZE;
 
 let manager: WindowManager;
 
@@ -114,12 +129,12 @@ const mountManager = async (room, root) => {
     manager = (await WindowManager.mount(
         {
             room,
-            originSize: { ...EXAMPLE_ORIGIN_SIZE },
+            ...(exampleOriginSize ? { originSize: { ...exampleOriginSize } } : {}),
             // collectorStyles: { bottom: "100px", left: "30px" },
             containerSizeRatio: 9 / 16,
             chessboard: true,
             // fullscreen: true,
-            debug: true,
+            // debug: true,
             cursor,
             useBoxesStatus: false,
             supportAppliancePlugin: true,
@@ -727,7 +742,7 @@ const App = () => {
                             {viewScaleSnapshot.length
                                 ? JSON.stringify(
                                       {
-                                          originSize: EXAMPLE_ORIGIN_SIZE,
+                                          originSize: exampleOriginSize,
                                           views: viewScaleSnapshot,
                                       },
                                       null,

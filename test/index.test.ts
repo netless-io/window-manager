@@ -131,6 +131,55 @@ describe("WindowManager", () => {
         );
     });
 
+    it("inherits originSize from the room contract when mount does not configure one", () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: {
+                originSize: { width: 1280, height: 900, id: "teacher" },
+            },
+        });
+
+        (wm as any)._originSize = (wm as any).resolveOriginSize(undefined);
+
+        expect(wm.originSize).toEqual({ width: 1280, height: 900 });
+        expect(Object.isFrozen(wm.originSize)).toBe(true);
+    });
+
+    it("keeps an explicit mount originSize authoritative over the room contract", () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: {
+                originSize: { width: 1280, height: 900, id: "teacher" },
+            },
+        });
+        const configuredOriginSize = { width: 1600, height: 900 };
+
+        (wm as any)._originSize = (wm as any).resolveOriginSize(configuredOriginSize);
+
+        expect(wm.originSize).toBe(configuredOriginSize);
+    });
+
+    it("adopts a newer room originSize for an already mounted client", () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const onOriginSizeChanged = vi.fn();
+        (wm as any)._originSize = { width: 1280, height: 900 };
+        wm.appManager = { mainViewProxy: { onOriginSizeChanged } } as any;
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: {
+                originSize: { width: 1600, height: 1000, id: "teacher" },
+            },
+        });
+
+        (wm as any).syncOriginSizeFromAttributes();
+
+        expect(wm.originSize).toEqual({ width: 1600, height: 1000 });
+        expect(Object.isFrozen(wm.originSize)).toBe(true);
+        expect(onOriginSizeChanged).toHaveBeenCalledOnce();
+    });
+
     it("resets a writable legacy active pair when originSize is first configured", () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
         const wm = new WindowManager(invisiblePluginContext);

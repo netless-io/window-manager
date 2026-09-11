@@ -947,6 +947,16 @@ export class MainViewProxy {
         this.manager.refresher.add(Fields.MainViewCamera, this.cameraReaction);
     };
 
+    public onOriginSizeChanged(): void {
+        this.originConfigurationError = undefined;
+        this.clearPendingOriginCameraOperations();
+        this.cancelCameraAndSizeCommit();
+        if (!this.started) return;
+        this.addCameraReaction();
+        this.sizeChangeHandler(this.mainViewSize);
+        this.scheduleMainViewStateLog();
+    }
+
     public setCameraAndSize(): void {
         if (this.isOriginMode) {
             if (this.layoutSyncing) return;
