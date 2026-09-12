@@ -183,7 +183,10 @@ describe("unified page control", () => {
         await expect(
             manager.dispatchDocsEvent("scalePage", { target: "mainView", scale: 1.5 })
         ).resolves.toEqual({ accepted: true });
-        expect(manager.moveCamera).toHaveBeenCalledWith({ scale: 3 });
+        expect(manager.moveCamera).toHaveBeenCalledWith({
+            scale: 3,
+            animationMode: "immediately",
+        });
         expect(listener).not.toHaveBeenCalled();
 
         await manager.emitter.emit("cameraStateChange", {} as any);
@@ -979,7 +982,12 @@ describe("unified page control", () => {
             await expect(
                 manager.dispatchDocsEvent("scalePage", { target: app.id, scale: 1.75 })
             ).resolves.toEqual({ accepted: true });
-            expect(moveCamera).toHaveBeenCalledWith({ centerX: 0, centerY: 0, scale: 3.5 });
+            expect(moveCamera).toHaveBeenCalledWith({
+                centerX: 0,
+                centerY: 0,
+                scale: 3.5,
+                animationMode: "immediately",
+            });
             expect(listener).toHaveBeenCalledWith({
                 target: "Presentation",
                 appId: app.id,

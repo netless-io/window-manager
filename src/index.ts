@@ -17,7 +17,15 @@ import {
 import { internalEmitter } from "./InternalEmitter";
 import { Fields } from "./AttributesDelegate";
 import { initDb } from "./Register/storage";
-import { InvisiblePlugin, isPlayer, isRoom, reaction, RoomPhase, ViewMode } from "white-web-sdk";
+import {
+    AnimationMode,
+    InvisiblePlugin,
+    isPlayer,
+    isRoom,
+    reaction,
+    RoomPhase,
+    ViewMode,
+} from "white-web-sdk";
 import { isEqual, isNull, isObject, omit, isNumber } from "lodash";
 import { ArgusLog, createManagedRoomLogger, log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
@@ -47,7 +55,6 @@ import type {
     Room,
     InvisiblePluginContext,
     Camera,
-    AnimationMode,
     CameraBound,
     Point,
     Rectangle,
@@ -1388,7 +1395,10 @@ export class WindowManager
                         "mainView scale state is unavailable"
                     );
                 try {
-                    this.moveCamera({ scale: cameraScale });
+                    this.moveCamera({
+                        scale: cameraScale,
+                        animationMode: AnimationMode.Immediately,
+                    });
                     return this.acceptDocsEvent();
                 } catch (error) {
                     this.logUnifiedPageException(
@@ -1546,10 +1556,18 @@ export class WindowManager
                             `app ${appId} origin scale is unavailable`
                         );
                     }
-                    controller.moveCamera({
+                    (
+                        controller.moveCamera as (camera: {
+                            centerX: number;
+                            centerY: number;
+                            scale: number;
+                            animationMode: AnimationMode;
+                        }) => void
+                    )({
                         centerX: 0,
                         centerY: 0,
                         scale: originScale * options.scale,
+                        animationMode: AnimationMode.Immediately,
                     });
                 }
                 return this.acceptDocsEvent();

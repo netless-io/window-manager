@@ -2,7 +2,12 @@ import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { LoggerReportMode, PlayerPhase, WhiteWebSdk } from "white-web-sdk";
 import { BuiltinApps, WindowManager } from "../dist";
-import type { DocsEvent, UnifiedPageState, UnifiedPageStateChange } from "../dist";
+import type {
+    DocsEvent,
+    DocsEventOptions,
+    UnifiedPageState,
+    UnifiedPageStateChange,
+} from "../dist";
 import {
     createStatic,
     createDynamic,
@@ -138,9 +143,11 @@ const mountManager = async (room, root) => {
             cursor,
             useBoxesStatus: false,
             supportAppliancePlugin: true,
+            disableCameraTransform: true,
             builtinAppOptions: {
                 Presentation: {
                     goToPageByClick: true,
+                    disableDeviceCameraTransform: true,
                 },
             },
             // cursorOptions: { style: "custom" },
@@ -572,6 +579,9 @@ const App = () => {
     const pageOptions = () =>
         selectedTarget === "focused" ? {} : { target: selectedTarget };
 
+    const dispatchPageEvent = (event: DocsEvent, options: DocsEventOptions = {}) =>
+        manager.dispatchDocsEvent(event, options);
+
     const dispatchUnifiedDocsEvent = async (event: DocsEvent) => {
         if (!manager) return;
         try {
@@ -581,7 +591,7 @@ const App = () => {
                     : event === "scalePage"
                     ? { ...pageOptions(), scale: Number(pageScale) }
                     : pageOptions();
-            const accepted = await manager.dispatchDocsEvent(event, options);
+            const accepted = await dispatchPageEvent(event, options);
             setPageActionResult(
                 JSON.stringify({ api: "dispatchDocsEvent", event, options, accepted }, null, 2)
             );
@@ -591,6 +601,54 @@ const App = () => {
             );
         }
     };
+
+    useEffect(() => {
+        if (!managerReady || !manager || !ref.current) return;
+
+        const container = ref.current as HTMLDivElement;
+        let pendingDeltaY = 0;
+        let timer: number | undefined;
+        let flushing = false;
+
+        const flushWheelScale = async () => {
+            timer = undefined;
+            if (flushing || !manager || pendingDeltaY === 0) return;
+
+            const deltaY = pendingDeltaY;
+            pendingDeltaY = 0;
+            flushing = true;
+            try {
+                // Omit target/appId so the unified router follows the focused App,
+                // then falls back to mainView when no App is focused.
+                const state = await manager.getPageState();
+                const currentScale = state.scale ?? 1;
+                const scale = Math.max(0.1, currentScale + (deltaY < 0 ? 0.1 : -0.1));
+                const result = await dispatchPageEvent("scalePage", { scale });
+                console.log("[wheel-scale]", { deltaY, currentScale, scale, result });
+            } catch (error) {
+                console.error("[wheel-scale] failed", error);
+            } finally {
+                flushing = false;
+                if (pendingDeltaY !== 0 && timer === undefined) {
+                    timer = window.setTimeout(flushWheelScale, 100);
+                }
+            }
+        };
+
+        const onWheel = (event: WheelEvent) => {
+            event.preventDefault();
+            pendingDeltaY += event.deltaY;
+            if (!flushing && timer === undefined) {
+                timer = window.setTimeout(flushWheelScale, 100);
+            }
+        };
+
+        container.addEventListener("wheel", onWheel, { passive: false });
+        return () => {
+            container.removeEventListener("wheel", onWheel);
+            if (timer !== undefined) window.clearTimeout(timer);
+        };
+    }, [managerReady]);
 
     const queryUnifiedPageState = async () => {
         if (!manager) return;
