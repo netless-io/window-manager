@@ -226,12 +226,6 @@ const mountManager = async (room, root) => {
         }
     });
 
-    manager.emitter.on("ready", async () => {
-        if (isWritable === "false") {
-            manager.setViewMode("freedom" as any);
-        }
-    });
-
     manager.bindContainer(root);
 
     console.log("manager apps", manager.queryAll());

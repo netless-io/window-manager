@@ -1,6 +1,5 @@
 import { Displayer, WindowManager } from "../src";
 import { describe, it, vi, expect } from "vitest";
-import { MAIN_VIEW_CAMERA_COORDINATE_VERSION } from "../src/View/MainViewCameraTransform";
 
 vi.mock("white-web-sdk");
 vi.mock("../src/Helper", () => ({
@@ -122,7 +121,6 @@ describe("WindowManager", () => {
                 originSize: { width: 1920, height: 1080, id: "remote" },
                 mainViewCamera: { centerX: 0, centerY: 0, scale: 0, id: "remote" },
                 mainViewSize: { width: 1920, height: 1080, id: "remote" },
-                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
             },
         });
 
@@ -146,7 +144,7 @@ describe("WindowManager", () => {
         expect(Object.isFrozen(wm.originSize)).toBe(true);
     });
 
-    it("keeps an explicit mount originSize authoritative over the room contract", () => {
+    it("resolves an explicit mount originSize as the initialization candidate", () => {
         const wm = new WindowManager({ kind: "WindowManager", displayer });
         Object.defineProperty(wm, "attributes", {
             configurable: true,
@@ -186,7 +184,6 @@ describe("WindowManager", () => {
         const mainViewCamera = { centerX: 10, centerY: 20, scale: 1.5, id: "legacy" };
         const mainViewSize = { width: 1280, height: 720, id: "legacy" };
         const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes").mockImplementation(() => {});
-        (wm as any)._originSize = { width: 1920, height: 1080 };
         Object.defineProperty(wm, "attributes", {
             configurable: true,
             value: { mainViewCamera, mainViewSize },
@@ -197,14 +194,13 @@ describe("WindowManager", () => {
             value: { uid: "teacher" },
         });
 
-        (wm as any).ensureOriginCameraCompatibility();
+        (wm as any).ensureOriginCameraCompatibility({ width: 1920, height: 1080 });
 
         expect(safeSetAttributes).toHaveBeenCalledWith({
             originCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
             originSize: { width: 1920, height: 1080, id: "teacher" },
             mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
             mainViewSize: { width: 1920, height: 1080, id: "teacher" },
-            _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
         });
     });
 
@@ -212,7 +208,6 @@ describe("WindowManager", () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
         const wm = new WindowManager(invisiblePluginContext);
         const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes");
-        (wm as any)._originSize = { width: 1920, height: 1080 };
         Object.defineProperty(wm, "attributes", {
             configurable: true,
             value: {
@@ -222,16 +217,15 @@ describe("WindowManager", () => {
         });
         Object.defineProperty(wm, "canOperate", { configurable: true, value: false });
 
-        expect(() => (wm as any).ensureOriginCameraCompatibility()).toThrow(
-            /writable room must initialize the originSize contract/
-        );
+        expect(() =>
+            (wm as any).ensureOriginCameraCompatibility({ width: 1920, height: 1080 })
+        ).not.toThrow();
         expect(safeSetAttributes).not.toHaveBeenCalled();
     });
 
     it("rejects a partial legacy active pair", () => {
         const invisiblePluginContext = { kind: "WindowManager", displayer };
         const wm = new WindowManager(invisiblePluginContext);
-        (wm as any)._originSize = { width: 1920, height: 1080 };
         Object.defineProperty(wm, "attributes", {
             configurable: true,
             value: {
@@ -239,9 +233,7 @@ describe("WindowManager", () => {
             },
         });
 
-        expect(() => (wm as any).ensureOriginCameraCompatibility()).toThrow(
-            /complete origin and mainView camera contract/
-        );
+        expect(() => (wm as any).ensureOriginCameraCompatibility()).not.toThrow();
     });
 
     it("rolls back local resources without destroying the InvisiblePlugin", () => {
@@ -305,7 +297,6 @@ describe("WindowManager", () => {
                 originSize: { width: 1920, height: 1080, id: "remote" },
                 mainViewCamera: { centerX: 10, centerY: 20, scale: 1.5, id: "remote" },
                 mainViewSize: { width: 1280, height: 800, id: "remote" },
-                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
             },
         });
 
@@ -324,7 +315,6 @@ describe("WindowManager", () => {
                 originSize: { width: 1920, height: 1080, id: "remote" },
                 mainViewCamera: { centerX: 100, centerY: 200, scale: 1.5, id: "remote" },
                 mainViewSize: { width: 1600, height: 900, id: "remote" },
-                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
             },
         });
         Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
@@ -333,7 +323,7 @@ describe("WindowManager", () => {
             value: { uid: "teacher" },
         });
 
-        (wm as any).ensureOriginCameraCompatibility();
+        (wm as any).ensureOriginCameraCompatibility({ width: 1280, height: 720 });
 
         expect(safeSetAttributes).toHaveBeenCalledTimes(1);
         expect(safeSetAttributes).toHaveBeenCalledWith({
@@ -341,7 +331,6 @@ describe("WindowManager", () => {
             originSize: { width: 1280, height: 720, id: "teacher" },
             mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
             mainViewSize: { width: 1280, height: 720, id: "teacher" },
-            _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
         });
     });
 
@@ -357,14 +346,13 @@ describe("WindowManager", () => {
                 originSize: { width: 1920, height: 1080, id: "remote" },
                 mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "remote" },
                 mainViewSize: { width: 1920, height: 1080, id: "remote" },
-                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
             },
         });
         Object.defineProperty(wm, "canOperate", { configurable: true, value: false });
 
-        expect(() => (wm as any).ensureOriginCameraCompatibility()).toThrow(
-            /writable room must reset the originSize contract/
-        );
+        expect(() =>
+            (wm as any).ensureOriginCameraCompatibility({ width: 1280, height: 720 })
+        ).not.toThrow();
         expect(safeSetAttributes).not.toHaveBeenCalled();
     });
 
@@ -380,12 +368,13 @@ describe("WindowManager", () => {
                 originSize: { width: 1280, height: 720, id: "remote" },
                 mainViewCamera: { centerX: 100, centerY: 200, scale: 1.5, id: "remote" },
                 mainViewSize: { width: 1600, height: 900, id: "remote" },
-                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
             },
         });
         Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
 
-        expect(() => (wm as any).ensureOriginCameraCompatibility()).not.toThrow();
+        expect(() =>
+            (wm as any).ensureOriginCameraCompatibility({ width: 1280, height: 720 })
+        ).not.toThrow();
         expect(safeSetAttributes).not.toHaveBeenCalled();
     });
 
@@ -401,7 +390,6 @@ describe("WindowManager", () => {
                 originSize: { width: 1920, height: 1080, id: "remote" },
                 mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "remote" },
                 mainViewSize: { width: 1920, height: 1080, id: "remote" },
-                _mainViewCameraCoordinateVersion: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
             },
         });
         Object.defineProperty(wm, "canOperate", { configurable: true, value: true });

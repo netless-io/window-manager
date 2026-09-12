@@ -1,7 +1,5 @@
 import type { Camera, Rectangle, Size } from "white-web-sdk";
 
-export const MAIN_VIEW_CAMERA_COORDINATE_VERSION = 2;
-
 export type OriginSize = Readonly<Size>;
 
 export function isValidCamera(camera: Camera | undefined): camera is Camera {
@@ -38,22 +36,6 @@ export function normalizeOriginSize(size: Size | undefined): OriginSize | undefi
 
 export function isSameOriginSize(a: Size | undefined, b: Size | undefined): boolean {
     return Boolean(a && b && a.width === b.width && a.height === b.height);
-}
-
-export function isLegacyMainViewCameraContract(
-    originCamera: Camera | undefined,
-    originSize: Size | undefined,
-    mainViewCamera: Camera | undefined,
-    mainViewSize: Size | undefined,
-    coordinateVersion: number | undefined
-): boolean {
-    return (
-        originCamera === undefined &&
-        originSize === undefined &&
-        (coordinateVersion === undefined || coordinateVersion === 1) &&
-        isValidCamera(mainViewCamera) &&
-        isValidSize(mainViewSize)
-    );
 }
 
 export function getMainViewBaseScale(referenceSize: Size, localSize: Size): number | undefined {

@@ -4,7 +4,6 @@ import {
     AttributesDelegate,
     Fields,
 } from "../src/AttributesDelegate";
-import { MAIN_VIEW_CAMERA_COORDINATE_VERSION } from "../src/View/MainViewCameraTransform";
 
 describe("AttributesDelegate mainView camera", () => {
     it("writes the immutable origin pair and active pair atomically", () => {
@@ -38,7 +37,6 @@ describe("AttributesDelegate mainView camera", () => {
                 id: "teacher",
             },
             [Fields.MainViewSize]: { width: 1280, height: 720, id: "teacher" },
-            [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
         });
     });
 

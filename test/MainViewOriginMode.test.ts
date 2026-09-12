@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { reaction } from "white-web-sdk";
-import { MAIN_VIEW_CAMERA_COORDINATE_VERSION } from "../src/View/MainViewCameraTransform";
 
 vi.mock("white-web-sdk", () => ({
     AnimationMode: { Immediately: 0, Continuous: 1 },
@@ -17,7 +16,6 @@ vi.mock("../src/AttributesDelegate", () => ({
         OriginSize: "originSize",
         MainViewCamera: "mainViewCamera",
         MainViewSize: "mainViewSize",
-        MainViewCameraCoordinateVersion: "_mainViewCameraCoordinateVersion",
     },
 }));
 vi.mock("../src/Utils/Common", () => ({
@@ -90,7 +88,6 @@ function createHarness(
                       ...(options.mainViewSize ?? { width: 960, height: 540 }),
                       id: "legacy",
                   },
-                  version: undefined,
               }
             : {
               originCamera: empty
@@ -114,14 +111,12 @@ function createHarness(
                         ...(options.mainViewSize ?? configuredOriginSize),
                         id: "remote",
                     },
-              version: empty ? undefined : MAIN_VIEW_CAMERA_COORDINATE_VERSION,
           }
         : {
               originCamera: undefined,
               originSize: undefined,
               mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "legacy" },
               mainViewSize: { width: 960, height: 540, id: "legacy" },
-              version: undefined,
           };
 
     const initializationWrites: any[] = [];
@@ -132,7 +127,6 @@ function createHarness(
         getOriginSize: () => attributes.originSize,
         getMainViewCamera: () => attributes.mainViewCamera,
         getMainViewSize: () => attributes.mainViewSize,
-        getMainViewCameraCoordinateVersion: () => attributes.version,
         getMainViewScenePath: () => undefined,
         initializeOriginMainViewAttributes: (
             originCamera: any,
@@ -150,7 +144,6 @@ function createHarness(
             attributes.originSize = originSize;
             attributes.mainViewCamera = mainViewCamera;
             attributes.mainViewSize = mainViewSize;
-            attributes.version = MAIN_VIEW_CAMERA_COORDINATE_VERSION;
         },
         setMainViewCamera: (nextCamera: any) => {
             cameraWrites.push(nextCamera);
@@ -218,20 +211,13 @@ describe("MainViewProxy originSize mode", () => {
         vi.useRealTimers();
     });
 
-    it("initializes the immutable origin pair and active pair atomically", () => {
+    it("keeps legacy mode when attributes has no originSize", () => {
         const harness = createHarness({ width: 1920, height: 1080 }, { empty: true });
 
         harness.proxy.ensureCameraAndSize();
 
-        expect(harness.view.camera.scale).toBe(0.5);
-        expect(harness.initializationWrites).toEqual([
-            {
-                originCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
-                originSize: { width: 1920, height: 1080, id: "teacher" },
-                mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
-                mainViewSize: { width: 1920, height: 1080, id: "teacher" },
-            },
-        ]);
+        expect(harness.view.camera.scale).toBe(1);
+        expect(harness.initializationWrites).toEqual([]);
         harness.proxy.destroy();
     });
 
@@ -245,9 +231,9 @@ describe("MainViewProxy originSize mode", () => {
             }
         );
 
-        expect(harness.view.camera).toEqual({ centerX: 10, centerY: 20, scale: 1.5 });
+        expect(harness.view.camera).toEqual({ centerX: 10, centerY: 20, scale: 2 });
         harness.proxy.ensureCameraAndSize();
-        expect(harness.view.camera).toEqual({ centerX: 10, centerY: 20, scale: 1.5 });
+        expect(harness.view.camera).toEqual({ centerX: 10, centerY: 20, scale: 2 });
         expect(harness.initializationWrites).toEqual([]);
         harness.proxy.destroy();
     });
@@ -264,15 +250,8 @@ describe("MainViewProxy originSize mode", () => {
         );
         harness.proxy.ensureCameraAndSize();
 
-        expect(harness.view.camera).toEqual({ centerX: 0, centerY: 0, scale: 0.5 });
-        expect(harness.initializationWrites).toEqual([
-            {
-                originCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
-                originSize: { width: 1920, height: 1080, id: "teacher" },
-                mainViewCamera: { centerX: 0, centerY: 0, scale: 1, id: "teacher" },
-                mainViewSize: { width: 1920, height: 1080, id: "teacher" },
-            },
-        ]);
+        expect(harness.view.camera).toEqual({ centerX: 10, centerY: 20, scale: 2 });
+        expect(harness.initializationWrites).toEqual([]);
         harness.proxy.destroy();
     });
 
@@ -825,8 +804,7 @@ describe("MainViewProxy originSize mode", () => {
         harness.proxy.destroy();
     });
 
-    it("blocks publishing when the room originSize differs from mount", () => {
-        const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    it("publishes using room origin attributes without comparing the mount candidate", () => {
         const harness = createHarness(
             { width: 1920, height: 1080 },
             { roomOriginSize: { width: 1280, height: 720 } }
@@ -835,9 +813,9 @@ describe("MainViewProxy originSize mode", () => {
         harness.proxy.moveCameraByApi({ scale: 2 });
         vi.advanceTimersByTime(500);
 
-        expect(harness.cameraWrites).toEqual([]);
-        expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("room originSize"));
-        consoleError.mockRestore();
+        expect(harness.cameraWrites).toEqual([
+            { centerX: 0, centerY: 0, scale: 2, id: "teacher" },
+        ]);
         harness.proxy.destroy();
     });
 

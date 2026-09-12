@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
     getEffectiveOriginSize,
     getMainViewBaseScale,
-    isLegacyMainViewCameraContract,
     localCameraToMainView,
     mainViewCameraToContain,
     mainViewCameraToLocal,
@@ -10,18 +9,6 @@ import {
 } from "../src/View/MainViewCameraTransform";
 
 describe("MainViewCameraTransform", () => {
-    it.each([undefined, 1])("recognizes coordinate version %s as a legacy pair", version => {
-        expect(
-            isLegacyMainViewCameraContract(
-                undefined,
-                undefined,
-                { centerX: 10, centerY: 20, scale: 1.5 },
-                { width: 1280, height: 720 },
-                version
-            )
-        ).toBe(true);
-    });
-
     it("normalizes and freezes originSize", () => {
         expect(normalizeOriginSize(undefined)).toBeUndefined();
         const size = normalizeOriginSize({ width: 1920, height: 1080 });

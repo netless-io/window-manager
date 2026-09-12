@@ -11,9 +11,6 @@ import type { AppManager } from "../AppManager";
 import type { MainViewCamera } from "../AttributesDelegate";
 import { Events, ROOM_LOG_DEBOUNCE_MIN } from "../constants";
 import {
-    MAIN_VIEW_CAMERA_COORDINATE_VERSION,
-    isSameOriginSize,
-    isLegacyMainViewCameraContract,
     isValidCamera,
     isValidSize,
     localCameraToMainView,
@@ -149,21 +146,9 @@ export class MainViewProxy {
         if (this.viewMode !== ViewMode.Broadcaster) return;
         if (this.isOriginMode) {
             const originSize = this.originSize;
-            if (originSize && this.hasLegacyOriginAttributes() && this.manager.canOperate) {
-                this.migrateLegacyOriginAttributes();
-                this.applyMainViewCamera(
-                    DefaultOriginCamera,
-                    AnimationMode.Immediately,
-                    originSize
-                );
-                return;
-            }
             const camera = this.currentOriginCameraForApi();
             if (camera && originSize) {
                 this.applyMainViewCamera(camera);
-                if (this.hasEmptyOriginAttributes()) {
-                    this.initializeOriginAttributes(camera, originSize);
-                }
             }
             return;
         }
@@ -181,10 +166,6 @@ export class MainViewProxy {
         return this.store.getMainViewSize();
     }
 
-    private get mainViewCameraCoordinateVersion() {
-        return this.store.getMainViewCameraCoordinateVersion();
-    }
-
     private get roomOriginCamera() {
         return this.store.getOriginCamera();
     }
@@ -194,7 +175,7 @@ export class MainViewProxy {
     }
 
     private get originSize(): Size | undefined {
-        return this.manager.windowManger.originSize;
+        return this.roomOriginSize;
     }
 
     private get isOriginMode(): boolean {
@@ -207,21 +188,9 @@ export class MainViewProxy {
 
     private hasEmptyOriginAttributes(): boolean {
         return (
-            this.roomOriginCamera === undefined &&
             this.roomOriginSize === undefined &&
             this.mainViewCamera === undefined &&
-            this.mainViewSize === undefined &&
-            this.mainViewCameraCoordinateVersion === undefined
-        );
-    }
-
-    private hasLegacyOriginAttributes(): boolean {
-        return isLegacyMainViewCameraContract(
-            this.roomOriginCamera,
-            this.roomOriginSize,
-            this.mainViewCamera,
-            this.mainViewSize,
-            this.mainViewCameraCoordinateVersion
+            this.mainViewSize === undefined
         );
     }
 
@@ -236,25 +205,11 @@ export class MainViewProxy {
         action: "ignore" | "block",
         validateActivePair = true
     ): boolean {
-        const originSize = this.originSize;
-        if (!originSize) return false;
-        if (this.hasEmptyOriginAttributes()) {
-            this.originConfigurationError = undefined;
-            return true;
-        }
-        if (this.mainViewCameraCoordinateVersion !== MAIN_VIEW_CAMERA_COORDINATE_VERSION) {
+        if (!isValidSize(this.roomOriginSize)) {
             this.reportOriginConfigurationError(
-                `[WindowManager]: ${action} mainView camera with coordinate version ${String(
-                    this.mainViewCameraCoordinateVersion
-                )} in originSize mode`
-            );
-            return false;
-        }
-        if (!isSameOriginSize(this.roomOriginSize, originSize)) {
-            this.reportOriginConfigurationError(
-                `[WindowManager]: ${action} room originSize ${JSON.stringify(
+                `[WindowManager]: ${action} invalid room originSize ${JSON.stringify(
                     this.roomOriginSize
-                )}; expected ${JSON.stringify(originSize)}`
+                )}`
             );
             return false;
         }
@@ -296,10 +251,7 @@ export class MainViewProxy {
     }
 
     private readMainViewCamera(): Camera | undefined {
-        if (!this.originSize) return undefined;
-        if (this.hasEmptyOriginAttributes()) return { ...DefaultOriginCamera };
-        if (!this.hasLegacyOriginAttributes() && !this.hasValidOriginAttributes("ignore"))
-            return undefined;
+        if (!this.isOriginMode || !this.hasValidOriginAttributes("ignore")) return undefined;
         return {
             centerX: this.mainViewCamera.centerX,
             centerY: this.mainViewCamera.centerY,
@@ -308,10 +260,7 @@ export class MainViewProxy {
     }
 
     private readMainViewReferenceSize(): Size | undefined {
-        if (!this.originSize) return undefined;
-        if (this.hasEmptyOriginAttributes()) return this.originSize;
-        if (!this.hasLegacyOriginAttributes() && !this.hasValidOriginAttributes("ignore"))
-            return undefined;
+        if (!this.isOriginMode || !this.hasValidOriginAttributes("ignore")) return undefined;
         return { width: this.mainViewSize.width, height: this.mainViewSize.height };
     }
 
@@ -330,7 +279,7 @@ export class MainViewProxy {
     }
 
     private initializeOriginAttributes(camera: Camera, mainViewSize: Size): void {
-        const originSize = this.originSize;
+        const originSize = this.roomOriginSize;
         if (!originSize || !isValidCamera(camera) || !isValidSize(mainViewSize)) return;
         const originCamera = { ...DefaultOriginCamera, id: this.manager.uid };
         this.store.initializeOriginMainViewAttributes(
@@ -341,22 +290,8 @@ export class MainViewProxy {
         );
     }
 
-    private migrateLegacyOriginAttributes(): void {
-        const originSize = this.originSize;
-        if (!originSize || !this.manager.canOperate || !this.hasLegacyOriginAttributes()) return;
-        this.initializeOriginAttributes(DefaultOriginCamera, originSize);
-    }
-
     private publishMainViewCamera(camera: Camera): void {
-        if (!this.originSize || !isValidCamera(camera)) return;
-        if (this.hasEmptyOriginAttributes()) {
-            this.initializeOriginAttributes(camera, this.originSize);
-            return;
-        }
-        if (this.hasLegacyOriginAttributes()) {
-            this.migrateLegacyOriginAttributes();
-            return;
-        }
+        if (!this.isOriginMode || !isValidCamera(camera)) return;
         if (!this.hasValidOriginAttributes("block")) return;
         this.store.setMainViewCamera({ ...camera, id: this.manager.uid });
     }
@@ -1074,7 +1009,6 @@ export class MainViewProxy {
                 mode: this.isOriginMode ? "origin" : "legacy",
                 attributeCamera: this.mainViewCamera,
                 attributeSize: this.mainViewSize,
-                coordinateVersion: this.mainViewCameraCoordinateVersion,
                 configuredOriginSize: this.originSize,
                 viewCamera: this.view.camera,
                 viewSize: this.view.size,
@@ -1123,7 +1057,6 @@ export class MainViewProxy {
                     sizeWidth: size?.width,
                     sizeHeight: size?.height,
                     sizeId: size?.id,
-                    version: this.mainViewCameraCoordinateVersion,
                 };
             },
             () => {

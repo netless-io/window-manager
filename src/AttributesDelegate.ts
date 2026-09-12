@@ -7,7 +7,6 @@ import type { Cursor } from "./Cursor/Cursor";
 import { getExtendClass } from "./Utils/extendClass";
 import type { ExtendClass } from "./Utils/extendClass";
 import type { NotMinimizedBoxState, TeleBoxState } from "@netless/telebox-insider";
-import { MAIN_VIEW_CAMERA_COORDINATE_VERSION } from "./View/MainViewCameraTransform";
 
 export enum Fields {
     Apps = "apps",
@@ -19,7 +18,6 @@ export enum Fields {
     OriginSize = "originSize",
     MainViewCamera = "mainViewCamera",
     MainViewSize = "mainViewSize",
-    MainViewCameraCoordinateVersion = "_mainViewCameraCoordinateVersion",
     Broadcaster = "broadcaster",
     Cursors = "cursors",
     Position = "position",
@@ -221,10 +219,6 @@ export class AttributesDelegate {
         return get(this.attributes, [Fields.OriginSize]);
     }
 
-    public getMainViewCameraCoordinateVersion(): number | undefined {
-        return get(this.attributes, [Fields.MainViewCameraCoordinateVersion]);
-    }
-
     public setMainViewCamera(camera: ICamera) {
         this.context.safeSetAttributes({ [Fields.MainViewCamera]: { ...camera } });
     }
@@ -260,7 +254,6 @@ export class AttributesDelegate {
             [Fields.OriginSize]: { ...originSize },
             [Fields.MainViewCamera]: { ...mainViewCamera },
             [Fields.MainViewSize]: { ...mainViewSize },
-            [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
         });
     }
 

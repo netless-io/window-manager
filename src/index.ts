@@ -109,9 +109,7 @@ import { getExtendClass } from "./Utils/extendClass";
 import type { ExtendClass } from "./Utils/extendClass";
 import { resolveAppOptions as mergeAppOptions } from "./Utils/resolveAppOptions";
 import {
-    MAIN_VIEW_CAMERA_COORDINATE_VERSION,
     isSameOriginSize,
-    isLegacyMainViewCameraContract,
     isValidCamera,
     isValidSize,
     normalizeOriginSize,
@@ -403,7 +401,9 @@ export class WindowManager
             shouldRollback = true;
             manager._pageScaleRange = pageScaleRange;
             await manager.ensureAttributes();
-            manager._originSize = manager.resolveOriginSize(originSize);
+            // The mount value is only an initialization candidate. Runtime state is
+            // always re-read from attributes after the initialization decision.
+            manager._originSize = manager.resolveOriginSize(undefined);
             if (
                 !originSize &&
                 manager.originSize &&
@@ -414,7 +414,8 @@ export class WindowManager
                     `[WindowManager]: containerSizeRatio must be a finite positive number in originSize mode, but got ${params.containerSizeRatio}`
                 );
             }
-            manager.ensureOriginCameraCompatibility();
+            manager.ensureOriginCameraCompatibility(originSize);
+            manager._originSize = manager.resolveOriginSize(undefined);
 
             WindowManager.container = params.container;
             WindowManager.supportAppliancePlugin = params.supportAppliancePlugin;
@@ -2637,10 +2638,9 @@ export class WindowManager
 
     private syncOriginSizeFromAttributes(): void {
         const roomOriginSize = this.attributes?.[Fields.OriginSize];
-        if (roomOriginSize === undefined) return;
-        let nextOriginSize: Readonly<Size>;
+        let nextOriginSize: Readonly<Size> | undefined;
         try {
-            nextOriginSize = normalizeOriginSize(roomOriginSize) as Readonly<Size>;
+            nextOriginSize = normalizeOriginSize(roomOriginSize);
         } catch (error) {
             const message =
                 error instanceof Error
@@ -2650,7 +2650,14 @@ export class WindowManager
             console.error(message);
             return;
         }
-        if (isSameOriginSize(this._originSize, nextOriginSize)) return;
+        if (
+            (this._originSize === undefined && nextOriginSize === undefined) ||
+            (this._originSize !== undefined &&
+                nextOriginSize !== undefined &&
+                isSameOriginSize(this._originSize, nextOriginSize))
+        ) {
+            return;
+        }
         this._originSize = nextOriginSize;
         this.Logger?.info(
             `[WindowManager]: adopt updated room originSize ${JSON.stringify(nextOriginSize)}`
@@ -2658,120 +2665,71 @@ export class WindowManager
         this.appManager?.mainViewProxy.onOriginSizeChanged();
     }
 
-    private ensureOriginCameraCompatibility(): void {
-        if (!this.originSize) return;
+    private ensureOriginCameraCompatibility(candidate?: Readonly<Size>): void {
         const attributes = this.attributes || {};
+        const roomOriginSize = attributes[Fields.OriginSize];
         const originCamera = attributes[Fields.OriginCamera];
-        const originSize = attributes[Fields.OriginSize];
         const mainViewCamera = attributes[Fields.MainViewCamera];
         const mainViewSize = attributes[Fields.MainViewSize];
-        const version = attributes[Fields.MainViewCameraCoordinateVersion];
-        const values = [originCamera, originSize, mainViewCamera, mainViewSize, version];
-        if (values.every(value => value === undefined)) return;
+        const normalizedRoomOrigin = normalizeOriginSize(roomOriginSize);
+        const normalizedCandidate = normalizeOriginSize(candidate);
 
-        if (
-            isLegacyMainViewCameraContract(
-                originCamera,
-                originSize,
-                mainViewCamera,
-                mainViewSize,
-                version
-            )
-        ) {
-            if (!this.canOperate) {
+        if (normalizedRoomOrigin === undefined && normalizedCandidate === undefined) return;
+
+        if (normalizedRoomOrigin !== undefined) {
+            if (
+                !isValidCamera(originCamera) ||
+                originCamera.centerX !== 0 ||
+                originCamera.centerY !== 0 ||
+                originCamera.scale !== 1
+            ) {
                 throw new Error(
-                    "[WindowManager]: a writable room must initialize the originSize contract before readonly mount"
+                    `[WindowManager]: room originCamera is invalid in originSize mode: ${JSON.stringify(
+                        originCamera
+                    )}`
                 );
             }
-            const id = this.room.uid;
-            const nextOriginCamera = { centerX: 0, centerY: 0, scale: 1, id };
-            const nextOriginSize = { ...this.originSize, id };
-            log(
-                `[WindowManager]: initialize room originSize ${JSON.stringify(
-                    nextOriginSize
-                )} and reset legacy mainView camera contract`
-            );
-            this.safeSetAttributes({
-                [Fields.OriginCamera]: nextOriginCamera,
-                [Fields.OriginSize]: nextOriginSize,
-                [Fields.MainViewCamera]: { ...nextOriginCamera },
-                [Fields.MainViewSize]: { ...nextOriginSize },
-                [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
-            });
-            return;
-        }
-
-        if (values.some(value => value === undefined)) {
-            throw new Error(
-                "[WindowManager]: originSize mode attributes must contain a complete origin and mainView camera contract"
-            );
-        }
-        if (version !== MAIN_VIEW_CAMERA_COORDINATE_VERSION) {
-            throw new Error(
-                `[WindowManager]: originSize cannot be enabled for legacy mainView camera attributes (coordinate version: ${String(
-                    version
-                )})`
-            );
-        }
-        if (!isValidSize(originSize)) {
-            throw new Error(
-                `[WindowManager]: room originSize is invalid in originSize mode: ${JSON.stringify(
-                    originSize
-                )}`
-            );
-        }
-        if (
-            !isValidCamera(originCamera) ||
-            originCamera.centerX !== 0 ||
-            originCamera.centerY !== 0 ||
-            originCamera.scale !== 1
-        ) {
-            throw new Error(
-                `[WindowManager]: room originCamera is invalid in originSize mode: ${JSON.stringify(
-                    originCamera
-                )}`
-            );
-        }
-        if (!isValidSize(mainViewSize)) {
-            throw new Error(
-                `[WindowManager]: room mainViewSize is invalid in originSize mode: ${JSON.stringify(
-                    mainViewSize
-                )}`
-            );
-        }
-        if (!isValidCamera(mainViewCamera)) {
-            throw new Error(
-                `[WindowManager]: room mainViewCamera is invalid in originSize mode: ${JSON.stringify(
-                    mainViewCamera
-                )}`
-            );
-        }
-        if (!isSameOriginSize(originSize, this.originSize)) {
-            if (!this.canOperate) {
+            if (!isValidSize(mainViewSize)) {
                 throw new Error(
-                    `[WindowManager]: room originSize ${JSON.stringify(
-                        originSize
-                    )} does not match local originSize ${JSON.stringify(
-                        this.originSize
-                    )}; a writable room must reset the originSize contract before readonly mount`
+                    `[WindowManager]: room mainViewSize is invalid in originSize mode: ${JSON.stringify(
+                        mainViewSize
+                    )}`
                 );
             }
-            const id = this.room.uid;
-            const nextOriginCamera = { centerX: 0, centerY: 0, scale: 1, id };
-            const nextOriginSize = { ...this.originSize, id };
-            log(
-                `[WindowManager]: reset room originSize from ${JSON.stringify(
-                    originSize
-                )} to ${JSON.stringify(nextOriginSize)}`
-            );
-            this.safeSetAttributes({
-                [Fields.OriginCamera]: nextOriginCamera,
-                [Fields.OriginSize]: nextOriginSize,
-                [Fields.MainViewCamera]: { ...nextOriginCamera },
-                [Fields.MainViewSize]: { ...nextOriginSize },
-                [Fields.MainViewCameraCoordinateVersion]: MAIN_VIEW_CAMERA_COORDINATE_VERSION,
-            });
+            if (!isValidCamera(mainViewCamera)) {
+                throw new Error(
+                    `[WindowManager]: room mainViewCamera is invalid in originSize mode: ${JSON.stringify(
+                        mainViewCamera
+                    )}`
+                );
+            }
+            if (
+                normalizedCandidate === undefined ||
+                isSameOriginSize(normalizedRoomOrigin, normalizedCandidate) ||
+                !this.canOperate
+            ) {
+                return;
+            }
         }
+
+        // A readonly mount cannot establish an origin when attributes do not
+        // contain one; it remains on the legacy path.
+        if (!this.canOperate || !normalizedCandidate) return;
+
+        const id = this.room.uid;
+        const nextOriginCamera = { centerX: 0, centerY: 0, scale: 1, id };
+        const nextOriginSize = { ...normalizedCandidate, id };
+        log(
+            `[WindowManager]: initialize room originSize ${JSON.stringify(
+                nextOriginSize
+            )} and reset mainView camera contract`
+        );
+        this.safeSetAttributes({
+            [Fields.OriginCamera]: nextOriginCamera,
+            [Fields.OriginSize]: nextOriginSize,
+            [Fields.MainViewCamera]: { ...nextOriginCamera },
+            [Fields.MainViewSize]: { ...nextOriginSize },
+        });
     }
 
     private isDynamicPPT(scenes: SceneDefinition[]) {
