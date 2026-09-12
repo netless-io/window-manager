@@ -15,8 +15,8 @@ importers:
         specifier: ^0.2.104
         version: 0.2.104(jspdf@2.5.2)
       '@netless/appliance-plugin':
-        specifier: 1.1.43-beta.2
-        version: 1.1.43-beta.2(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
+        specifier: 1.1.43-beta.3
+        version: 1.1.43-beta.3(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       '@netless/telebox-insider':
         specifier: 0.3.0
         version: 0.3.0
@@ -609,8 +609,8 @@ packages:
       jspdf:
         optional: true
 
-  '@netless/appliance-plugin@1.1.43-beta.2':
-    resolution: {integrity: sha512-2GxduBwmBFmhfmNkkgqxuYxS88xXoyI4dVGgCO1NSJH+DAsUrt3qqaNxh0uoLXfUuapXYBfxEIxKYIdb6fujeQ==}
+  '@netless/appliance-plugin@1.1.43-beta.3':
+    resolution: {integrity: sha512-ejBrhDX8B4pvueeBOsd3ZMJR4O7DRU4jo4VhGy8tctWBOhpRQtY/ID+nT+4tetLy/BY2zYr/LxoD/fzwJ2qEsw==}
     peerDependencies:
       '@netless/window-manager': '>=1.0'
       markmap-lib: ^0.18.12
@@ -2174,7 +2174,7 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/appliance-plugin@1.1.43-beta.2(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
+  '@netless/appliance-plugin@1.1.43-beta.3(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
     dependencies:
       '@netless/window-manager': 1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       clipper-lib: 6.4.2
