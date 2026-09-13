@@ -1,12 +1,11 @@
-## 1.0.22-beta.1 (2026-09-12)
+## 1.0.22 (2026-09-13)
 - 仅以房间 attributes 是否存在 `originSize` 判定 MainView 坐标模式，移除 `_mainViewCameraCoordinateVersion` 及旧迁移状态。
 - `mount({ originSize })` 仅作为可写端初始化或覆盖房间配置的候选值；挂载完成后统一以房间 attributes 为运行时基准。
-- WindowManager example 升级到 `@netless/appliance-plugin@1.1.43-beta.2`，并移除只读端自动切换 `Freedom` 导致 MainView 停止同步的逻辑。
-
-## 1.0.22-beta.0 (2026-09-11)
 - 未显式传入 `originSize` 的客户端会读取房间已有配置；新的可写端显式传入不同配置时，房间内已挂载客户端会采用新值并重新计算 MainView camera。
+- 移除只读端自动切换 `Freedom` 导致 MainView 停止同步的逻辑。
 - 升级内置 `@netless/app-presentation` 到 `^0.1.12`，移除 Presentation 对 `_originSizeCoordinateVersion` 的依赖；开发依赖升级到 `white-web-sdk@^2.16.58`。
-- WindowManager example 支持通过 URL 切换、关闭或覆盖 `originSize`，用于同房间多端验证。
+- WindowManager example 支持通过 URL 切换、关闭或覆盖 `originSize`，并升级到 `@netless/appliance-plugin@1.1.43-beta.2` 用于同房间多端验证。
+- `dispatchDocsEvent("scalePage")` 在 `mainView` 与 `Presentation` 上固定使用 `AnimationMode.Immediately`，不向 `DocsEventOptions` 暴露 `animationMode` 配置。
 
 ## 1.0.21 (2026-09-08)
 - 新增统一文档控制 API `dispatchDocsEvent`、`getPageState` 和 `unifiedPageStateChange`，统一 MainView、DocsViewer、Slide 与 Presentation 的翻页、步进和相对缩放状态。
