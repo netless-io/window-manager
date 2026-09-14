@@ -579,7 +579,7 @@ const App = () => {
     const pageOptions = () =>
         selectedTarget === "focused" ? {} : { target: selectedTarget };
 
-    const dispatchPageEvent = (event: DocsEvent, options: DocsEventOptions = {}) =>
+    const dispatchDocsEvent = (event: DocsEvent, options: DocsEventOptions = {}) =>
         manager.dispatchDocsEvent(event, options);
 
     const dispatchUnifiedDocsEvent = async (event: DocsEvent) => {
@@ -591,7 +591,7 @@ const App = () => {
                     : event === "scalePage"
                     ? { ...pageOptions(), scale: Number(pageScale) }
                     : pageOptions();
-            const accepted = await dispatchPageEvent(event, options);
+            const accepted = await dispatchDocsEvent(event, options);
             setPageActionResult(
                 JSON.stringify({ api: "dispatchDocsEvent", event, options, accepted }, null, 2)
             );
@@ -623,7 +623,7 @@ const App = () => {
                 const state = await manager.getPageState();
                 const currentScale = state.scale ?? 1;
                 const scale = Math.max(0.1, currentScale + (deltaY < 0 ? 0.1 : -0.1));
-                const result = await dispatchPageEvent("scalePage", { scale });
+                const result = await dispatchDocsEvent("scalePage", { scale });
                 console.log("[wheel-scale]", { deltaY, currentScale, scale, result });
             } catch (error) {
                 console.error("[wheel-scale] failed", error);

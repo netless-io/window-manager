@@ -28,7 +28,7 @@
 | 主白板 | `src/index.ts`、`src/View/MainView.ts`、`src/Page/PageController.ts` | WindowManager 的权威入口是 `manager.pageState`、`manager.nextPage()`、`manager.prevPage()`、`manager.addPage()`；页面状态为 0-based `index` + `length`，切页和增页由 `AppManager` 异步完成。 |
 | 动态 PPT | `slide-app/packages/app-slide/src/index.ts` | 暴露 `nextPage`、`prevPage`、`nextStep`、`prevStep`、`jumpToPage`；Slide 页码为 1-based，返回同步 `boolean`。 |
 | 静态 PPT | `netless-app-presentation/src/app-presentation.ts` | 暴露 `nextPage`、`prevPage`、`jumpPage(index)`；内部 index 为 0-based，无动画 step。 |
-| Bridge | `Whiteboard-bridge/src/bridge/Room.ts` | 将既有 `room.dispatchDocsEvent` handler 升级为异步结构化返回并转发到 WindowManager 统一入口；不注册 `room.dispatchPageEvent`。`room.nextPage`/`prevPage` 仍只操作主白板。 |
+| Bridge | `Whiteboard-bridge/src/bridge/Room.ts` | 将既有 `room.dispatchDocsEvent` handler 升级为异步结构化返回并转发到 WindowManager 统一入口；不注册另一套分页 handler。`room.nextPage`/`prevPage` 仍只操作主白板。 |
 | Android | `Room.dispatchDocsEvent`、`WindowDocsEvent` | 已有 `dispatchDocsEvent`、`nextPage`、`prevPage`；事件的 `page` 为 1-based。 |
 | iOS | `WhiteRoom.dispatchDocsEvent:options:completionHandler:` | 已有同名文档事件 API；`WhiteWindowDocsEventOptions.page` 为 1-based。 |
 | Harmony | `WhiteboardController.dispatchDocsEvent`、`WindowDocsEventOptions` | 使用统一的 `target/page/scale` 参数和结构化返回。 |
@@ -610,7 +610,7 @@ Bridge 新增 `sdk.unifiedPageStateChange` 内部通知，Native 对外统一接
 - 验证 `room.getPageState` 的 `page/pageCount` 统一输出，以及 `room.addPage` 只操作 mainView。
 - 验证统一接口的 `page` 是 1-based，`pageIndex` 不进入正式输出。
 - manager 未挂载、App 未注册、App 未就绪时均有回调。
-- WindowManager、Bridge 与 Fastboard 都验证 `dispatchDocsEvent` 的异步结构化返回、目标路由和 `appId` deprecated alias；确认不存在 `dispatchPageEvent` handler 或运行时回退。
+- WindowManager、Bridge 与 Fastboard 都验证 `dispatchDocsEvent` 的异步结构化返回、目标路由和 `appId` deprecated alias；确认不存在另一套分页 handler 或运行时回退。
 - 单入口内部复用：`dispatchDocsEvent` 对 DocsViewer、Slide、Presentation 与 mainView 复用各自已有 controller/DOM/camera 能力。API、App UI 或远端同步导致的真实状态变化均由来源无关 watcher 发出 `unifiedPageStateChange`。
 
 ### 9.3 Native
@@ -639,7 +639,7 @@ SDK 自检查结论：本次新增公开 API/回调并调整 Bridge/Fastboard �
 ## 10. 实施顺序与发布门槛
 
 1. Jira 认证恢复后补齐 WB-440 原文、验收标准和是否必须新增公开方法名。
-2. 在 WindowManager 扩展 `dispatchDocsEvent`，落地 adapter、路由、结构化返回和类型测试，并删除未发布的 `dispatchPageEvent` 草案。
+2. 在 WindowManager 扩展 `dispatchDocsEvent`，落地 adapter、路由、结构化返回和类型测试，不保留另一套分页草案。
 3. 在 Bridge 将同名 handler 升级为异步结构化返回，并补 Harmony `page` 字段修正。
 4. Android、iOS、Harmony 按同一 JSON 契约增加 Native wrapper（分页事件、页码查询、mainView 增页、page state 回调）、JavaDoc/头文件/README 和单测。
 5. 构建并同步三端内嵌 Bridge 资源；分别验证资源 marker、handler 和产物 hash。
@@ -657,8 +657,8 @@ SDK 自检查结论：本次新增公开 API/回调并调整 Bridge/Fastboard �
 7. **已确认：** 统一接口在 Harmony/Android/iOS 使用 `page`，不提供 `pageIndex` 别名。
 8. **已确认：** 统一 API 的 Promise 采用“命令已被接收”语义；Promise 不等待回调。`unifiedPageStateChange` 使用 `status` 作为唯一状态判据：mainView/Presentation 输出 `success`；Slide 任一侧变化都触发，不一致为 `pending`、一致为 `success`；controller accepted 后异步失败输出终态 `failure`。不再提供 `result` 或独立失败事件。
 9. **已确认：** 统一请求使用 `target?: string`、`page?: number`、`scale?: number`；`target` 为 `mainView` 或具体 appId，不存在 `target: "focused"`。WindowManager 与 Fastboard 暂时接受 `appId` deprecated alias；不传 `target/appId` 时跟随 focused App，无 focused 时回退 mainView。
-10. **已确认：** WindowManager、Whiteboard-bridge、Fastboard 与 Native 只使用/公开 `dispatchDocsEvent`；删除尚未发布的 `dispatchPageEvent`，不保留双入口或按 DocsViewer kind 回退。
+10. **已确认：** WindowManager、Whiteboard-bridge、Fastboard 与 Native 只使用/公开 `dispatchDocsEvent`，不保留双入口或按 DocsViewer kind 回退。
 
 ## 12. 结论
 
-当前评审基线采用“扩展单一异步 `dispatchDocsEvent` + `getPageState` + `unifiedPageStateChange` + mainView `addPage`”。底层 controller/DOM/camera 能力共享；`dispatchDocsEvent` 从同步 boolean 升级为异步结构化返回，不保留未发布的 `dispatchPageEvent`。统一入口覆盖 DocsViewer、动态 Slide、静态 Presentation 和 mainView；`scalePage` 支持 mainView/Slide/Presentation，默认无业务范围，回调返回实际相对倍率，DocsViewer 返回明确的 `eventNotSupported`。Bridge、Native 和 Fastboard 统一使用 `dispatchDocsEvent`；请求字段为 `target`、可选 `page` 和可选 `scale`，未传 target 时跟随 focused App，无 focused 时回退 mainView。
+当前评审基线采用“扩展单一异步 `dispatchDocsEvent` + `getPageState` + `unifiedPageStateChange` + mainView `addPage`”。底层 controller/DOM/camera 能力共享；`dispatchDocsEvent` 从同步 boolean 升级为异步结构化返回，不保留另一套分页入口。统一入口覆盖 DocsViewer、动态 Slide、静态 Presentation 和 mainView；`scalePage` 支持 mainView/Slide/Presentation，默认无业务范围，回调返回实际相对倍率，DocsViewer 返回明确的 `eventNotSupported`。Bridge、Native 和 Fastboard 统一使用 `dispatchDocsEvent`；请求字段为 `target`、可选 `page` 和可选 `scale`，未传 target 时跟随 focused App，无 focused 时回退 mainView。
