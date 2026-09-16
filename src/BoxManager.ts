@@ -210,7 +210,7 @@ export class BoxManager {
                 }
                 if (this.canOperate) {
                     boxEmitter.emit("focus", { appId: box.id });
-                } else {
+                } else if (!this.context.isLazySetup?.()) {
                     this.teleBoxManager.blurBox(box.id);
                 }
             }

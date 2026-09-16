@@ -83,4 +83,54 @@ describe("BoxManager box size synchronization", () => {
             }
         }
     );
+
+    it.each([
+        ["non-lazy readonly", false, true],
+        ["lazy readonly", true, false],
+    ])("%s does not blur a focused box", async (_name, isLazySetup, shouldBlur) => {
+        vi.stubGlobal("CanvasRenderingContext2D", class CanvasRenderingContext2D {});
+        vi.stubGlobal("CustomEvent", window.CustomEvent);
+        vi.spyOn(window, "dispatchEvent").mockReturnValue(true);
+        const { BoxManager } = await import("../src/BoxManager");
+        const handlers = new Map<string, (value: any) => void>();
+        const teleBoxManager = {
+            maximized: true,
+            events: {
+                on: vi.fn((event: string, handler: (value: any) => void) => {
+                    handlers.set(event, handler);
+                }),
+            },
+            _state$: { reaction: vi.fn() },
+            _darkMode$: { reaction: vi.fn() },
+            _prefersColorScheme$: { reaction: vi.fn() },
+            _minimized$: { reaction: vi.fn() },
+        };
+        vi.spyOn(BoxManager.prototype as any, "setupBoxManager").mockReturnValue(
+            teleBoxManager
+        );
+        const scheduleAppBoxSizeSync = vi.fn();
+        const context = {
+            emitter: { emit: vi.fn(), on: vi.fn() },
+            callbacks: { emit: vi.fn() },
+            boxEmitter: { emit: vi.fn() },
+            canOperate: () => false,
+            isLazySetup: () => isLazySetup,
+            scheduleAppBoxSizeSync,
+        };
+        const blurBox = vi.fn();
+        Object.defineProperty(teleBoxManager, "blurBox", { value: blurBox });
+
+        new BoxManager(context as any);
+
+        handlers.get("focused")?.({ id: "app-1" });
+
+        expect(scheduleAppBoxSizeSync).toHaveBeenCalledWith("app-1", {
+            forceRefresh: true,
+        });
+        if (shouldBlur) {
+            expect(blurBox).toHaveBeenCalledWith("app-1");
+        } else {
+            expect(blurBox).not.toHaveBeenCalled();
+        }
+    });
 });
