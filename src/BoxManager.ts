@@ -54,6 +54,7 @@ export type CreateTeleBoxManagerConfig = {
     collectorStyles?: Partial<CSSStyleDeclaration>;
     prefersColorScheme?: TeleBoxColorScheme;
     useBoxesStatus?: boolean;
+    forceMaximized?: boolean;
 };
 
 export type BoxManagerContext = {
@@ -70,6 +71,9 @@ export type BoxManagerContext = {
     scheduleAppBoxSizeSync: (appId?: string, options?: AppBoxSizeSyncOptions) => void;
     cleanFocus: () => void;
     setAppFocus: (appId: string) => void;
+    requestAppFocus?: (appId: string) => void;
+    isLazySetup?: () => boolean;
+    isForceMaximized?: () => boolean;
 };
 
 export const createBoxManager = (
@@ -102,6 +106,9 @@ export const createBoxManager = (
                 manager.appManager?.scheduleAppBoxSizeSync(appId, syncOptions),
             cleanFocus: () => manager.appManager?.store.cleanFocus(),
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
+            requestAppFocus: (appId: string) => manager.appManager?.requestFocus(appId),
+            isLazySetup: () => manager.lazySetupInMaximizedMode,
+            isForceMaximized: () => manager.forceMaximized,
             callbacks,
             emitter,
             boxEmitter,
@@ -155,12 +162,21 @@ export class BoxManager {
             } else {
                 const topBox = this.getTopBox();
                 if (topBox) {
-                    this.context.setAppFocus(topBox.id);
-                    this.focusBox({ appId: topBox.id }, false);
+                    if (this.context.isLazySetup?.()) {
+                        this.context.requestAppFocus?.(topBox.id);
+                    } else {
+                        this.context.setAppFocus(topBox.id);
+                        this.focusBox({ appId: topBox.id }, false);
+                    }
                 }
             }
         });
         this.teleBoxManager.events.on("maximized", maximized => {
+            if (!maximized && this.context.isForceMaximized?.()) {
+                this.teleBoxManager.setMaximized(true, true);
+                this.context.safeSetAttributes({ maximized: true });
+                return;
+            }
             this.context.safeSetAttributes({ maximized });
         });
         this.teleBoxManager.events.on("removed", boxes => {
@@ -346,6 +362,9 @@ export class BoxManager {
             fence: false,
             prefersColorScheme: createTeleBoxManagerConfig?.prefersColorScheme,
             useBoxesStatus: createTeleBoxManagerConfig?.useBoxesStatus || false,
+            ...(createTeleBoxManagerConfig?.forceMaximized != null
+                ? { forceMaximized: createTeleBoxManagerConfig.forceMaximized }
+                : {}),
         };
 
         const TeleBoxManagerClass = getExtendClass(TeleBoxManager, WindowManager.extendClass);
@@ -477,13 +496,26 @@ export class BoxManager {
     }
 
     public setMaximized(maximized: boolean, skipUpdate = true): void {
+        if (!maximized && (this.teleBoxManager as any).forceMaximized) {
+            return;
+        }
         if (maximized !== this.maximized) {
             this.teleBoxManager.setMaximized(maximized, skipUpdate);
             this.context.scheduleAppBoxSizeSync();
         }
     }
 
+    public setForceMaximized(forceMaximized: boolean): void {
+        const manager = this.teleBoxManager as any;
+        if (typeof manager.setForceMaximized === "function") {
+            manager.setForceMaximized(forceMaximized, true);
+        }
+    }
+
     public setMinimized(minimized: boolean, skipUpdate = true) {
+        if (!minimized && (this.teleBoxManager as any).forceMaximized && !this.maximized) {
+            return;
+        }
         this.teleBoxManager.setMinimized(minimized, skipUpdate);
         this.context.scheduleAppBoxSizeSync();
     }

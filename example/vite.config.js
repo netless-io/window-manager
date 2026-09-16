@@ -131,6 +131,9 @@ export default defineConfig({
         fs: {
             allow: [
                 path.resolve(demoDir, "../.."),
+                path.resolve(demoDir, "../../slide-app"),
+                path.resolve(demoDir, "../../netless-app-presentation"),
+                path.resolve(demoDir, "../../app-media-player"),
             ],
         },
     },

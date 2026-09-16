@@ -142,6 +142,8 @@ const mountManager = async (room, root) => {
             // debug: true,
             cursor,
             useBoxesStatus: false,
+            forceMaximized: true,
+            lazySetupInMaximizedMode: true,
             supportAppliancePlugin: true,
             disableCameraTransform: true,
             builtinAppOptions: {

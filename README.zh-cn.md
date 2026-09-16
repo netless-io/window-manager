@@ -9,6 +9,7 @@
     - [视角跟随](docs/advanced.md#view-mode)
   - [开发自定义 APP](docs/develop-app.md)
   - [导出 PDF](docs/export-pdf.md)
+  - [最大化模式下的本地 Lazy Setup 设计](docs/cn/lazy-setup-in-maximized-mode-design.zh-CN.md)
   - [Changelog](./CHANGELOG.md)
 ## MainView
 

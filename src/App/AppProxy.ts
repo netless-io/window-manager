@@ -64,9 +64,32 @@ export class AppProxy implements PageRemoveService {
     private _prevFullPath: string | undefined;
     private boxSizeSynchronizer: AppBoxSizeSynchronizer;
     private setupWatchdogTimer?: ReturnType<typeof setTimeout>;
-    private readonly setupCompletionPromise: Promise<AppSetupCompletion>;
+    private setupCompletionPromise!: Promise<AppSetupCompletion>;
     private resolveSetupCompletion!: (completion: AppSetupCompletion) => void;
     private setupCompletionSettled = false;
+    private setupStarted = false;
+    private setupSucceeded = false;
+    private setupDescriptorReady?: Promise<void>;
+    private resolveSetupDescriptorReady?: () => void;
+    private setupInitializationError?: Error;
+    private setupInitializationPromise?: Promise<void>;
+    private resolveSetupInitialization?: () => void;
+    private pendingZIndex?: number;
+    private setupScopeAttached = false;
+    private deferredSetup?: {
+        app: NetlessApp;
+        context: AppContext<any, any>;
+        boxInitState?: AppInitState;
+        currentMainViewScenePath?: string;
+    };
+    private setupDescriptor?: {
+        app: NetlessApp;
+        context: AppContext<any, any>;
+        boxInitState?: AppInitState;
+        currentMainViewScenePath?: string;
+    };
+    private setupResult: any;
+    private appDefinition?: NetlessApp;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -79,9 +102,7 @@ export class AppProxy implements PageRemoveService {
     ) {
         this.kind = params.kind;
         this.id = appId;
-        this.setupCompletionPromise = new Promise(resolve => {
-            this.resolveSetupCompletion = resolve;
-        });
+        this.resetSetupCompletion();
         this.stateKey = `${this.id}_state`;
         this.appProxies.set(this.id, this);
         this.appEmitter = new Emittery();
@@ -103,6 +124,12 @@ export class AppProxy implements PageRemoveService {
         );
         this.appListener = this.makeAppEventListener(this.id);
         this.isAddApp = isAddApp;
+
+        // The proxy is inserted before the async App factory and WindowCreated
+        // notification complete. Lazy focus must wait for that lifecycle boundary.
+        this.setupInitializationPromise = new Promise(resolve => {
+            this.resolveSetupInitialization = resolve;
+        });
 
         this.initScenes();
 
@@ -144,6 +171,10 @@ export class AppProxy implements PageRemoveService {
 
     public get isWritable(): boolean {
         return this.manager.canOperate && !this.box?.readonly;
+    }
+
+    public get isSetup(): boolean {
+        return this.setupSucceeded;
     }
 
     public get attributes() {
@@ -192,34 +223,47 @@ export class AppProxy implements PageRemoveService {
             this.Logger && this.Logger.error(`[WindowManager]: kind require`);
             throw new Error("[WindowManager]: kind require");
         }
-        const appImpl = await appRegister.appClasses.get(params.kind)?.();
-        const appParams = appRegister.registered.get(params.kind);
-        const appOptions = this.manager.windowManger.resolveAppOptions(
-            params.kind,
-            appParams?.appOptions
-        );
-        if (appImpl) {
-            await this.setupApp(
-                this.id,
-                skipUpdate,
-                appImpl,
-                params.options,
-                appOptions,
-                this.manager.useBoxesStatus ? boxStatus : undefined,
-                params.forceTop,
-                params.forceNormal,
-                params.isDragContent
+        try {
+            const appImpl = await appRegister.appClasses.get(params.kind)?.();
+            const appParams = appRegister.registered.get(params.kind);
+            const appOptions = this.manager.windowManger.resolveAppOptions(
+                params.kind,
+                appParams?.appOptions
             );
-        } else {
-            this.Logger &&
-                this.Logger.error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
-            throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
+            if (appImpl) {
+                // setupApp installs setupDescriptorReady synchronously before its
+                // first await, so resolve only after that lifecycle has started.
+                const setupPromise = this.setupApp(
+                    this.id,
+                    skipUpdate,
+                    appImpl,
+                    params.options,
+                    appOptions,
+                    this.manager.useBoxesStatus ? boxStatus : undefined,
+                    params.forceTop,
+                    params.forceNormal,
+                    params.isDragContent,
+                    params.lazySetup
+                );
+                this.resolveSetupInitialization?.();
+                this.resolveSetupInitialization = undefined;
+                await setupPromise;
+            } else {
+                this.Logger &&
+                    this.Logger.error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
+                throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
+            }
+            internalEmitter.emit("updateManagerRect");
+            return {
+                appId: this.id,
+                app: appImpl,
+            };
+        } catch (error) {
+            this.setupInitializationError = error instanceof Error ? error : new Error(String(error));
+            this.resolveSetupInitialization?.();
+            this.resolveSetupInitialization = undefined;
+            throw error;
         }
-        internalEmitter.emit("updateManagerRect");
-        return {
-            appId: this.id,
-            app: appImpl,
-        };
     }
 
     public get box(): ReadonlyTeleBox | undefined {
@@ -235,9 +279,11 @@ export class AppProxy implements PageRemoveService {
         boxStatus?: TeleBoxState,
         forceTop?: boolean,
         forceNormal?: boolean,
-        isDragContent?: boolean
+        isDragContent?: boolean,
+        lazySetup = false
     ) {
         log("setupApp", appId, app, options, boxStatus, forceTop, forceNormal, isDragContent);
+        this.appDefinition = app;
         if (!this.boxManager) {
             throw new BoxManagerNotFoundError();
         }
@@ -245,6 +291,10 @@ export class AppProxy implements PageRemoveService {
         const context = new AppContextClass(this.manager, this.boxManager, appId, this, appOptions);
         this.appContext = context;
         try {
+            this.setupInitializationError = undefined;
+            this.setupDescriptorReady = new Promise(resolve => {
+                this.resolveSetupDescriptorReady = resolve;
+            });
             internalEmitter
                 .once(`${appId}${Events.WindowCreated}` as any)
                 .then(() => {
@@ -253,8 +303,7 @@ export class AppProxy implements PageRemoveService {
                         boxInitState = this.getAppInitState(appId);
                         this.boxManager?.updateBoxState(boxInitState);
                     }
-                    this.appEmitter.onAny(this.appListener);
-                    this.appAttributesUpdateListener(appId);
+                    this.attachSetupScope(appId);
                     this.setViewFocusScenePath();
                     // 如果当前是回放模式, 则需要记录当前主视图的场景路径, 以便在 app 创建后恢复
                     let currentMainViewScenePath: string | undefined;
@@ -262,17 +311,36 @@ export class AppProxy implements PageRemoveService {
                         currentMainViewScenePath = (this.manager.mainView as any)
                             .scenePath as string;
                     }
-                    setTimeout(() => {
-                        void this.finishAppSetup(
-                            appId,
-                            app,
-                            context,
-                            boxInitState,
-                            currentMainViewScenePath
-                        );
-                    }, SETUP_APP_DELAY);
+                    this.setupDescriptor = {
+                        app,
+                        context,
+                        boxInitState,
+                        currentMainViewScenePath,
+                    };
+                    this.resolveSetupDescriptorReady?.();
+                    this.resolveSetupDescriptorReady = undefined;
+                    if (lazySetup) {
+                        this.deferredSetup = this.setupDescriptor;
+                    } else {
+                        this.setupStarted = true;
+                        setTimeout(() => {
+                            void this.finishAppSetup(
+                                appId,
+                                app,
+                                context,
+                                boxInitState,
+                                currentMainViewScenePath
+                            );
+                        }, SETUP_APP_DELAY);
+                    }
                 })
-                .catch(error => this.handleSetupFailure(error));
+                .catch(error => {
+                    this.setupInitializationError =
+                        error instanceof Error ? error : new Error(String(error));
+                    this.resolveSetupDescriptorReady?.();
+                    this.resolveSetupDescriptorReady = undefined;
+                    this.handleSetupFailure(error);
+                });
             this.boxManager?.createBox({
                 appId: appId,
                 app,
@@ -306,6 +374,76 @@ export class AppProxy implements PageRemoveService {
         }
     }
 
+    private attachSetupScope(appId: string): void {
+        if (this.setupScopeAttached) return;
+        this.appEmitter.onAny(this.appListener);
+        this.appAttributesUpdateListener(appId);
+        this.setupScopeAttached = true;
+    }
+
+    private detachSetupScope(): void {
+        if (!this.setupScopeAttached) return;
+        this.appEmitter.offAny(this.appListener);
+        this.manager.refresher.remove(this.id);
+        this.manager.refresher.remove(this.stateKey);
+        this.manager.refresher.remove(`${this.id}-fullPath`);
+        this.setupScopeAttached = false;
+    }
+
+    public async ensureSetup(): Promise<any> {
+        if (this.setupStarted) return this.waitForSetup();
+        await this.waitForSetupInitialization();
+        let deferred = this.deferredSetup || this.setupDescriptor;
+        if (!deferred && this.setupDescriptorReady) {
+            await this.setupDescriptorReady;
+            if (this.setupStarted) return this.waitForSetup();
+            deferred = this.deferredSetup || this.setupDescriptor;
+        }
+        if (this.setupInitializationError) {
+            throw this.setupInitializationError;
+        }
+        if (!deferred) {
+            const error = new Error(
+                `[WindowManager]: app setup descriptor is unavailable, appId: ${this.id}`
+            );
+            this.settleSetup({ succeeded: false, error });
+            throw error;
+        }
+        this.deferredSetup = undefined;
+        // Teardown removes the app attribute listeners. Reattach them before
+        // re-running setup so scenePath/fullPath changes continue to update the View.
+        this.attachSetupScope(this.id);
+        this.setViewFocusScenePath();
+        this.setupStarted = true;
+        this.resetSetupCompletion();
+        await this.finishAppSetup(
+            this.id,
+            deferred.app,
+            deferred.context,
+            deferred.boxInitState,
+            deferred.currentMainViewScenePath
+        );
+        return this.waitForSetup();
+    }
+
+    /** Wait until async App factory loading has entered setupApp. */
+    public async waitForSetupInitialization(): Promise<void> {
+        if (this.setupInitializationPromise) {
+            await this.setupInitializationPromise;
+        }
+        if (this.setupInitializationError) {
+            throw this.setupInitializationError;
+        }
+    }
+
+    private resetSetupCompletion(): void {
+        this.setupCompletionSettled = false;
+        this.setupSucceeded = false;
+        this.setupCompletionPromise = new Promise(resolve => {
+            this.resolveSetupCompletion = resolve;
+        });
+    }
+
     private async finishAppSetup(
         appId: string,
         app: NetlessApp,
@@ -323,8 +461,11 @@ export class AppProxy implements PageRemoveService {
             }
             const { result } = setupResult;
             this.appResult = result;
+            this.setupResult = result;
+            this.setupSucceeded = true;
             this.scheduleBoxSizeSync();
             this.afterSetupApp(boxInitState);
+            this.flushPendingZIndex();
             this.fixMobileSize();
             if (currentMainViewScenePath) {
                 this.manager.mainViewProxy.setFocusScenePath(currentMainViewScenePath);
@@ -392,6 +533,15 @@ export class AppProxy implements PageRemoveService {
         if (this.setupCompletionSettled) return;
         this.setupCompletionSettled = true;
         this.resolveSetupCompletion(completion);
+    }
+
+    private flushPendingZIndex(): void {
+        const zIndex = this.pendingZIndex;
+        this.pendingZIndex = undefined;
+        if (zIndex != null && zIndex > 0 && zIndex !== this.box?.zIndex) {
+            this.boxManager?.setZIndex(this.id, zIndex);
+            this.boxManager?.focusBox({ appId: this.id });
+        }
     }
 
     private clearSetupWatchdog(): void {
@@ -574,6 +724,10 @@ export class AppProxy implements PageRemoveService {
             return autorun(() => {
                 const appState = this.appAttributes?.state;
                 if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
+                    if (!this.isSetup) {
+                        this.pendingZIndex = appState.zIndex;
+                        return;
+                    }
                     this.boxManager?.setZIndex(appId, appState.zIndex);
                     this.boxManager?.focusBox({ appId });
                 }
@@ -614,8 +768,8 @@ export class AppProxy implements PageRemoveService {
         return fullPath;
     }
 
-    private async createView(): Promise<View> {
-        const view = await this.viewManager.createView(this.id);
+    private createView(): View {
+        const view = this.viewManager.createView(this.id);
         this.setViewFocusScenePath();
         return view;
     }
@@ -671,6 +825,24 @@ export class AppProxy implements PageRemoveService {
         }
     }
 
+    public async teardown(): Promise<void> {
+        if (!this.setupStarted || !this.appContext) return;
+        const app = this.appDefinition;
+        if (app?.teardown) {
+            await app.teardown(this.appContext, this.setupResult);
+            this.appResult = undefined;
+            this.setupResult = undefined;
+            this.setupSucceeded = false;
+            this.detachSetupScope();
+            this.setupStarted = false;
+            this.deferredSetup = this.setupDescriptor;
+        } else {
+            this.Logger?.warn(
+                `[WindowManager]: app ${this.kind} does not implement teardown; keeping runtime alive`
+            );
+        }
+    }
+
     public async destroy(
         needCloseBox: boolean,
         cleanAttrs: boolean,
@@ -679,11 +851,16 @@ export class AppProxy implements PageRemoveService {
     ) {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
+        const setupError =
+            error || new Error(`[WindowManager]: app destroyed before setup, appId: ${this.id}`);
+        this.setupInitializationError = setupError;
+        this.resolveSetupInitialization?.();
+        this.resolveSetupInitialization = undefined;
+        this.resolveSetupDescriptorReady?.();
+        this.resolveSetupDescriptorReady = undefined;
         this.settleSetup({
             succeeded: false,
-            error:
-                error ||
-                new Error(`[WindowManager]: app destroyed before setup, appId: ${this.id}`),
+            error: setupError,
         });
         this.clearSetupWatchdog();
         this.boxSizeSynchronizer.destroy();

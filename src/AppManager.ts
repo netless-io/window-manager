@@ -76,12 +76,25 @@ export class AppManager {
     private _focusAppCreatedResolve?: (appProxy?: AppProxy) => void;
     private _focusAppId: string | undefined;
     private _resolveTimer: number | undefined;
+    private lazyFocusGeneration = 0;
+    private activeLazyAppId?: string;
+    private lazyFocusQueue: Promise<void> = Promise.resolve();
+    // Mark apps as soon as their creation task is queued. appStatus is set only
+    // when the queue starts a task, which is too late to prevent duplicate tasks
+    // during slow module loading.
+    private pendingAppIds = new Set<string>();
+    // Keep the shared focus on the previous ready App while a local lazy focus is preparing.
+    private pendingLazyBlurredAppId?: string;
 
     private sideEffectManager = new SideEffectManager();
 
     public sceneState: SceneState | null = null;
 
     public rootDirRemoving = false;
+
+    private get lazySetupEnabled(): boolean {
+        return Boolean(this.windowManger?.lazySetupInMaximizedMode);
+    }
 
     private _useBoxesStatus = false;
 
@@ -375,6 +388,16 @@ export class AppManager {
         this.refresher.add("maximized", () => {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
+                if (!maximized && this.attributes.forceMaximized === true) {
+                    this.Logger?.warn(
+                        "[WindowManager] ignored remote normal state while forceMaximized is enabled"
+                    );
+                    if (this.windowManger.canOperate) {
+                        this.windowManger.safeSetAttributes({ maximized: true });
+                    }
+                    this.boxManager?.setMaximized(true);
+                    return;
+                }
                 this.boxManager?.setMaximized(Boolean(maximized));
             });
         });
@@ -394,6 +417,11 @@ export class AppManager {
             return autorun(() => {
                 const focused = get(this.attributes, "focus");
                 this.onFocusChange(focused);
+            });
+        });
+        this.refresher.add("forceMaximized", () => {
+            return autorun(() => {
+                this.windowManger.applyForceMaximized(this.attributes.forceMaximized === true);
             });
         });
         this.refresher.add("registeredChange", () => {
@@ -454,6 +482,39 @@ export class AppManager {
     };
 
     private onBoxFocus = (payload: BoxFocusPayload) => {
+        if (this.lazySetupEnabled && !this.appProxies.get(payload.appId)?.isSetup) {
+            this.pendingLazyBlurredAppId = this.attributes.focus;
+            this.boxManager?.blurAllBox();
+            const previous = this.activeLazyAppId;
+            const generation = ++this.lazyFocusGeneration;
+            this.lazyFocusQueue = this.lazyFocusQueue
+                .catch(() => undefined)
+                .then(async () => {
+                    try {
+                        const appProxy = this.appProxies.get(payload.appId);
+                        if (!appProxy) return;
+                        try {
+                            await appProxy.ensureSetup();
+                        } catch (error) {
+                            this.Logger?.warn(
+                                `[WindowManager] lazy setup failed for ${payload.appId}: ${error}`
+                            );
+                            return;
+                        }
+                        if (generation !== this.lazyFocusGeneration) return;
+                        this.windowManger.safeSetAttributes({ focus: payload.appId });
+                        callbacks.emit("onBoxFocus", payload);
+                        if (previous && previous !== payload.appId) {
+                            await this.appProxies.get(previous)?.teardown();
+                        }
+                    } finally {
+                        if (generation === this.lazyFocusGeneration) {
+                            this.pendingLazyBlurredAppId = undefined;
+                        }
+                    }
+                });
+            return;
+        }
         this.windowManger.safeSetAttributes({ focus: payload.appId });
         callbacks.emit("onBoxFocus", payload);
     };
@@ -461,6 +522,10 @@ export class AppManager {
     private onBoxBlurred = (payload: BoxBlurredPayload) => {
         const focus = this.attributes.focus;
         if (focus === payload.appId) {
+            if (this.pendingLazyBlurredAppId === payload.appId) {
+                this.pendingLazyBlurredAppId = undefined;
+                return;
+            }
             this.windowManger.safeSetAttributes({ focus: undefined });
             callbacks.emit("onBoxBlurred", payload);
         }
@@ -554,10 +619,17 @@ export class AppManager {
 
     private onFocusChange = (focused: string | undefined) => {
         if (this._prevFocused !== focused) {
+            this.pendingLazyBlurredAppId = undefined;
             callbacks.emit("focusedChange", focused);
             internalEmitter.emit("focusedChange", { focused, prev: this._prevFocused });
             this._prevFocused = focused;
-            if (focused !== undefined) {
+            if (focused !== undefined && this.lazySetupEnabled && !this.attributes.minimized) {
+                const previous = this.activeLazyAppId;
+                const generation = ++this.lazyFocusGeneration;
+                this.lazyFocusQueue = this.lazyFocusQueue
+                    .catch(() => undefined)
+                    .then(() => this.ensureLazyFocus(focused, previous, generation));
+            } else if (focused !== undefined) {
                 this.boxManager?.focusBox({ appId: focused });
                 // 确保 focus 修改的时候, appProxy 已经创建
                 setTimeout(() => {
@@ -569,6 +641,69 @@ export class AppManager {
             }
         }
     };
+
+    private async ensureLazyFocus(
+        focused: string,
+        previous: string | undefined,
+        generation: number
+    ): Promise<void> {
+        if (this.attributes.minimized) return;
+        let appProxy = this.appProxies.get(focused);
+        for (let i = 0; !appProxy && i < 100; i += 1) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+            appProxy = this.appProxies.get(focused);
+        }
+        if (!appProxy) {
+            this.Logger?.warn(
+                `[WindowManager] lazy focus app proxy unavailable after 2000ms, appId: ${focused}`
+            );
+            return;
+        }
+        try {
+            await appProxy.ensureSetup();
+        } catch (error) {
+            this.Logger?.warn(`[WindowManager] lazy setup failed for ${focused}: ${error}`);
+            return;
+        }
+        if (generation !== this.lazyFocusGeneration || this.store.focus !== focused) {
+            await appProxy.teardown();
+            return;
+        }
+        const box = this.boxManager?.getBox(focused);
+        if (box) {
+            (this.boxManager?.teleBoxManager as any).makeBoxTop(box, false);
+        }
+        this.boxManager?.focusBox({ appId: focused }, false);
+        this.activeLazyAppId = focused;
+        await appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
+        if (previous && previous !== focused) {
+            const previousProxy = this.appProxies.get(previous);
+            if (previousProxy) await previousProxy.teardown();
+        }
+    }
+
+    public async setupAllApps(): Promise<void> {
+        for (const appProxy of this.appProxies.values()) {
+            try {
+                await appProxy.ensureSetup();
+            } catch (error) {
+                this.Logger?.warn(
+                    `[WindowManager] eager setup failed for ${appProxy.id}: ${error}`
+                );
+            }
+        }
+    }
+
+    public requestFocus(appId: string): void {
+        this.store.setAppFocus(appId, true);
+        if (this.lazySetupEnabled && this._prevFocused === appId) {
+            const previous = this.activeLazyAppId;
+            const generation = ++this.lazyFocusGeneration;
+            this.lazyFocusQueue = this.lazyFocusQueue
+                .catch(() => undefined)
+                .then(() => this.ensureLazyFocus(appId, previous, generation));
+        }
+    }
 
     public attributesUpdateCallback = debounce(
         (apps: any) => this._attributesUpdateCallback(apps),
@@ -619,10 +754,16 @@ export class AppManager {
                 ? [focusedAppId, ...orderedAppIds.filter(id => id !== focusedAppId)]
                 : orderedAppIds;
             this.notifyAppsChange(orderedAppIds);
+            const pendingAppIds = this.pendingAppIds || new Set<string>();
             for (const id of creationOrder) {
-                if (!this.appProxies.has(id) && !this.appStatus.has(id)) {
+                if (
+                    !this.appProxies.has(id) &&
+                    !this.appStatus.has(id) &&
+                    !pendingAppIds.has(id)
+                ) {
                     const app = apps[id];
                     try {
+                        pendingAppIds.add(id);
                         const appAttributes = this.attributes[id];
                         if (!appAttributes) {
                             this.Logger &&
@@ -633,6 +774,7 @@ export class AppManager {
                         }
 
                         this.appCreateQueue.push<AppProxy>(async () => {
+                            pendingAppIds.delete(id);
                             this.appStatus.set(id, AppStatus.StartCreate);
                             const appProxy = await this.baseInsertApp(
                                 {
@@ -642,6 +784,7 @@ export class AppManager {
                                     forceNormal: app.forceNormal,
                                     forceTop: app.forceTop,
                                     isDragContent: app.isDragContent,
+                                    lazySetup: this.lazySetupEnabled,
                                 },
                                 id,
                                 false
@@ -660,9 +803,13 @@ export class AppManager {
                         });
                         this.focusByAttributes(apps);
                     } catch (error) {
+                        pendingAppIds.delete(id);
                         console.warn(`[WindowManager]: Insert App Error`, error);
                     }
                 }
+            }
+            if (this.lazySetupEnabled) {
+                setTimeout(() => this.focusByAttributes(this.attributes.apps), 100);
             }
         }
     }
@@ -681,6 +828,12 @@ export class AppManager {
     };
 
     private onMinimized = (minimized: boolean | undefined) => {
+        if (!minimized && this.attributes.forceMaximized === true && !this.attributes.maximized) {
+            this.Logger?.warn(
+                "[WindowManager] ignored remote unminimize to normal while forceMaximized is enabled"
+            );
+            return;
+        }
         if (this.boxManager?.minimized !== minimized) {
             if (minimized === true) {
                 this.boxManager?.blurAllBox();
@@ -793,7 +946,12 @@ export class AppManager {
             `[WindowManager]: addApp ${params.kind}, isDynamicPPT: ${isDynamicPPT}`
         );
         const { appId, needFocus } = await this.beforeAddApp(params, isDynamicPPT);
-        const appProxy = await this.baseInsertApp(params, appId, true, needFocus);
+        const appProxy = await this.baseInsertApp(
+            { ...params, lazySetup: this.lazySetupEnabled },
+            appId,
+            true,
+            needFocus
+        );
         this.afterAddApp(appProxy);
         return appProxy?.id;
     }
@@ -821,7 +979,7 @@ export class AppManager {
             });
             this.store.updateAppState(appProxy.id, AppAttributes.ZIndex, box.zIndex);
         }
-        if (this.boxManager?.minimized) {
+        if (this.boxManager?.minimized && !this.lazySetupEnabled) {
             this.boxManager?.setMinimized(false, false);
         }
     }
@@ -848,9 +1006,22 @@ export class AppManager {
         const AppProxyClass = getExtendClass(AppProxy, WindowManager.extendClass);
         const appProxy = new AppProxyClass(params, this, appId, isAddApp);
         if (appProxy) {
-            await appProxy.baseInsertApp(focus);
-            this.appStatus.delete(appId);
-            return appProxy;
+            try {
+                await appProxy.baseInsertApp(focus);
+                this.appStatus.delete(appId);
+                return appProxy;
+            } catch (error) {
+                this.appStatus.delete(appId);
+                if (this.appProxies.get(appId) === appProxy) {
+                    await appProxy.destroy(
+                        true,
+                        false,
+                        true,
+                        error instanceof Error ? error : new Error(String(error))
+                    );
+                }
+                throw error;
+            }
         } else {
             this.appStatus.delete(appId);
             this.Logger &&
@@ -979,7 +1150,15 @@ export class AppManager {
         if (apps && Object.keys(apps).length === this.boxManager?.boxSize) {
             const focusAppId = this.store.focus;
             if (focusAppId) {
-                this.boxManager.focusBox({ appId: focusAppId });
+                if (this.lazySetupEnabled && !this.attributes.minimized) {
+                    const previous = this.activeLazyAppId;
+                    const generation = ++this.lazyFocusGeneration;
+                    this.lazyFocusQueue = this.lazyFocusQueue
+                        .catch(() => undefined)
+                        .then(() => this.ensureLazyFocus(focusAppId, previous, generation));
+                } else {
+                    this.boxManager.focusBox({ appId: focusAppId });
+                }
             }
         }
     }

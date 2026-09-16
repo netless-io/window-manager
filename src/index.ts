@@ -129,6 +129,7 @@ export type WindowMangerAttributes = {
     boxState: TELE_BOX_STATE;
     maximized?: boolean;
     minimized?: boolean;
+    forceMaximized?: boolean;
     [key: string]: any;
 };
 
@@ -179,6 +180,8 @@ export type BaseInsertParams = {
     forceNormal?: boolean;
     // 是否可以在内容区域拖动
     isDragContent?: boolean;
+    /** Internal: create the shell and defer app.setup until focus. */
+    lazySetup?: boolean;
 };
 
 export type AppSyncAttributes = {
@@ -257,6 +260,10 @@ export type MountParams = {
     supportAppliancePlugin?: boolean;
     /** 是否使用 boxesStatus 状态管理窗口 */
     useBoxesStatus?: boolean;
+    /** Only setup the focused app while the room is force-maximized. Local only. */
+    lazySetupInMaximizedMode?: boolean;
+    /** Establish the room-wide force-maximized policy when writable. */
+    forceMaximized?: boolean;
     /** Local Presentation options applied before restoring apps. Not synchronized. */
     builtinAppOptions?: BuiltinAppOptions;
     /** Optional business range for scale relative to the fitted page size. */
@@ -308,6 +315,8 @@ export class WindowManager
     public isReplay = isPlayer(this.displayer);
     private _pageState?: PageStateImpl;
     private _fullscreen?: boolean;
+    private _lazySetupInMaximizedMode = false;
+    private _forceMaximized = false;
     private _pageScaleRange?: Readonly<PageScaleRange>;
     private _destroyed = false;
     private _cursorUIDs: string[] = [];
@@ -334,6 +343,14 @@ export class WindowManager
 
     get Logger(): Logger | undefined {
         return this._roomLogger;
+    }
+
+    public get lazySetupInMaximizedMode(): boolean {
+        return this._lazySetupInMaximizedMode;
+    }
+
+    public get forceMaximized(): boolean {
+        return this._forceMaximized;
     }
 
     public get originSize(): Readonly<Size> | undefined {
@@ -381,6 +398,10 @@ export class WindowManager
         let mountCommitted = false;
         let previousDisableSerialization: boolean | undefined;
         let didChangeDisableSerialization = false;
+        let previousForceMaximized: boolean | undefined;
+        let previousMaximized: boolean | undefined;
+        let didWriteForceMaximized = false;
+        let didWriteMaximized = false;
 
         try {
             if (isRoom(room)) {
@@ -408,6 +429,32 @@ export class WindowManager
             shouldRollback = true;
             manager._pageScaleRange = pageScaleRange;
             await manager.ensureAttributes();
+            previousForceMaximized = manager.attributes?.forceMaximized;
+            previousMaximized = manager.attributes?.maximized;
+            const requestedForceMaximized = Boolean(params.forceMaximized && manager.canOperate);
+            if (requestedForceMaximized) {
+                if (previousForceMaximized !== true) {
+                    manager.safeSetAttributes({ forceMaximized: true });
+                    didWriteForceMaximized = true;
+                }
+                // Attributes propagation is asynchronous. Keep the local mount decision
+                // consistent with the room-level request until the observable catches up.
+                manager.setMaximized(true);
+            }
+            manager._forceMaximized =
+                requestedForceMaximized || manager.attributes?.forceMaximized === true;
+            const currentBoxState = requestedForceMaximized
+                ? "maximized"
+                : manager.attributes?.minimized
+                ? "minimized"
+                : manager.attributes?.maximized
+                ? "maximized"
+                : "normal";
+            manager._lazySetupInMaximizedMode = Boolean(
+                params.lazySetupInMaximizedMode &&
+                    manager._forceMaximized &&
+                    currentBoxState !== "normal"
+            );
             // The mount value is only an initialization candidate. Runtime state is
             // always re-read from attributes after the initialization decision.
             manager._originSize = manager.resolveOriginSize(undefined);
@@ -453,6 +500,21 @@ export class WindowManager
                         )}`
                     );
                 }
+            }
+            if (params.forceMaximized && !manager.canOperate) {
+                manager._roomLogger?.warn(
+                    "[WindowManager] forceMaximized requires writable room access; request ignored"
+                );
+            }
+            if (params.lazySetupInMaximizedMode && !manager._lazySetupInMaximizedMode) {
+                manager._roomLogger?.warn(
+                    "[WindowManager] lazySetupInMaximizedMode requires attributes.forceMaximized=true and a minimized or maximized room; falling back to eager setup"
+                );
+            }
+            if (params.lazySetupInMaximizedMode && params.useBoxesStatus) {
+                manager._roomLogger?.warn(
+                    "[WindowManager] useBoxesStatus is ignored while lazySetupInMaximizedMode is enabled"
+                );
             }
             manager._roomLogger?.info(
                 `[WindowManager] mount duplicate check passed: isCreated=${WindowManager.isCreated}`
@@ -503,6 +565,12 @@ export class WindowManager
             if (params.container) {
                 manager.bindContainer(params.container);
             }
+            if (manager._forceMaximized && manager.canOperate) {
+                if (manager.attributes?.maximized !== true) {
+                    manager.setMaximized(true);
+                    didWriteMaximized = true;
+                }
+            }
 
             if (
                 manager._roomLogger &&
@@ -536,6 +604,14 @@ export class WindowManager
             return manager;
         } catch (error) {
             if (shouldRollback && manager && !mountCommitted) {
+                if (manager.canOperate) {
+                    if (didWriteForceMaximized && manager.attributes?.forceMaximized === true) {
+                        manager.safeSetAttributes({ forceMaximized: previousForceMaximized });
+                    }
+                    if (didWriteMaximized && manager.attributes?.maximized === true) {
+                        manager.boxManager?.setMaximized(Boolean(previousMaximized), false);
+                    }
+                }
                 this.rollbackFailedMount(manager, previousStaticState);
                 if (didChangeDisableSerialization && isRoom(room)) {
                     (room as Room).disableSerialization = previousDisableSerialization as boolean;
@@ -610,6 +686,8 @@ export class WindowManager
         manager._originSize = undefined;
         manager._pageScaleRange = undefined;
         manager._fullscreen = undefined;
+        manager._lazySetupInMaximizedMode = false;
+        manager._forceMaximized = false;
         manager.builtinAppOptions = undefined;
         manager.containerSizeRatio = previousStaticState.containerSizeRatio;
         manager._unifiedPageControl = new UnifiedPageControlTracker();
@@ -738,11 +816,14 @@ export class WindowManager
                     collectorContainer: params.collectorContainer,
                     collectorStyles: params.collectorStyles,
                     prefersColorScheme: params.prefersColorScheme,
-                    useBoxesStatus: params.useBoxesStatus,
+                    useBoxesStatus: this.lazySetupInMaximizedMode ? false : params.useBoxesStatus,
+                    forceMaximized: this.forceMaximized,
                 });
                 this.boxManager = boxManager;
                 if (this.appManager) {
-                    this.appManager.useBoxesStatus = params.useBoxesStatus || false;
+                    this.appManager.useBoxesStatus = this.lazySetupInMaximizedMode
+                        ? false
+                        : params.useBoxesStatus || false;
                     this.appManager.setBoxManager(boxManager);
                 }
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
@@ -754,6 +835,9 @@ export class WindowManager
         internalEmitter.emit("updateManagerRect");
         this.appManager?.refresh();
         this.appManager?.resetMaximized();
+        if (this.forceMaximized && this.canOperate) {
+            this.setMaximized(true);
+        }
         this.appManager?.resetMinimized();
         this.appManager?.displayerWritableListener(!this.room.isWritable);
         WindowManager.container = container;
@@ -835,7 +919,11 @@ export class WindowManager
             throw new Error(`[WindowManager]: app not found after creation, appId: ${appId}`);
         }
         try {
-            await app.waitForSetup();
+            if (typeof (app as any).ensureSetup === "function") {
+                await (app as any).ensureSetup();
+            } else {
+                await app.waitForSetup();
+            }
             return appId;
         } catch (error) {
             const cause = error instanceof Error ? error : new Error(String(error));
@@ -1085,6 +1173,12 @@ export class WindowManager
 
     public setBoxState(boxState: TeleBoxState): void {
         if (!this.canOperate) return;
+        if (boxState === "normal" && this.attributes?.forceMaximized === true) {
+            this._roomLogger?.warn(
+                "[WindowManager] setBoxState(normal) ignored while forceMaximized is enabled"
+            );
+            return;
+        }
         switch (boxState) {
             case "normal":
                 this.setMaximized(false);
@@ -1104,11 +1198,64 @@ export class WindowManager
 
     public setMaximized(maximized: boolean): void {
         if (!this.canOperate) return;
+        if (!maximized && this.attributes?.forceMaximized === true) {
+            this._roomLogger?.warn(
+                "[WindowManager] setMaximized(false) ignored while forceMaximized is enabled"
+            );
+            return;
+        }
         this.boxManager?.setMaximized(maximized, false);
+    }
+
+    /** Set or clear the room-wide force-maximized policy. */
+    public setForceMaximized(force: boolean): void {
+        if (!this.canOperate) {
+            this._roomLogger?.warn(
+                "[WindowManager] setForceMaximized requires writable room access"
+            );
+            return;
+        }
+        if (force) {
+            this.safeSetAttributes({ forceMaximized: true });
+            this._forceMaximized = true;
+            this.boxManager?.setForceMaximized(true);
+            this.setMaximized(true);
+            return;
+        }
+        this.safeSetAttributes({ forceMaximized: undefined });
+        this.applyForceMaximized(false);
+    }
+
+    /** Apply a room-level force policy observed from attributes. */
+    public applyForceMaximized(force: boolean): void {
+        this._forceMaximized = force;
+        this.boxManager?.setForceMaximized(force);
+        if (!force && this._lazySetupInMaximizedMode) {
+            this._lazySetupInMaximizedMode = false;
+            void this.appManager?.setupAllApps();
+        }
+        if (
+            force &&
+            this._lazySetupInMaximizedMode &&
+            !this.attributes?.minimized &&
+            !this.attributes?.maximized
+        ) {
+            this._roomLogger?.warn(
+                "[WindowManager] forceMaximized is enabled but the room is normal; falling back to eager setup"
+            );
+            this._lazySetupInMaximizedMode = false;
+            void this.appManager?.setupAllApps();
+        }
     }
 
     public setMinimized(minimized: boolean): void {
         if (!this.canOperate) return;
+        if (!minimized && this.attributes?.forceMaximized === true && !this.attributes?.maximized) {
+            this._roomLogger?.warn(
+                "[WindowManager] setMinimized(false) ignored while forceMaximized room is normal"
+            );
+            return;
+        }
         this.boxManager?.setMinimized(minimized, false);
     }
 
@@ -2394,6 +2541,10 @@ export class WindowManager
     public focusApp(appId: string) {
         const box = this.boxManager?.getBox(appId);
         if (box) {
+            if (this.lazySetupInMaximizedMode) {
+                this.appManager?.requestFocus(appId);
+                return;
+            }
             this.boxManager?.focusBox({ appId }, false);
             // 1.0 版本这里会有正式的 api
             (this.boxManager?.teleBoxManager as any).makeBoxTop(box, false);

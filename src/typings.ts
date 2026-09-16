@@ -38,6 +38,10 @@ export interface NetlessApp<
     setup: (
         context: AppContext<Attributes, MagixEventPayloads, AppOptions>
     ) => SetupResult | Promise<SetupResult>;
+    teardown?: (
+        context: AppContext<Attributes, MagixEventPayloads, AppOptions>,
+        setupResult: SetupResult
+    ) => void | Promise<void>;
 }
 
 export type AppEmitterEvent<T = any> = {

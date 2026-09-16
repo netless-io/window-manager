@@ -88,4 +88,34 @@ describe("AppManager app creation order", () => {
         expect(result.creationOrder).toEqual(["oldest", "focused", "newest"]);
         expect(result.notifiedOrder).toEqual(["oldest", "focused", "newest"]);
     });
+
+    it("does not enqueue the same app twice while its creation task is pending", async () => {
+        const tasks: Array<() => Promise<unknown>> = [];
+        const manager = {
+            appCreateQueue: {
+                emitReady: vi.fn(),
+                push: (task: () => Promise<unknown>) => tasks.push(task),
+            },
+            appProxies: new Map(),
+            appStatus: new Map(),
+            pendingAppIds: new Set<string>(),
+            attributes: {
+                apps,
+                maximized: true,
+                oldest: {},
+                focused: {},
+                newest: {},
+            },
+            store: { focus: "focused" },
+            useBoxesStatus: false,
+            notifyAppsChange: vi.fn(),
+            baseInsertApp: vi.fn().mockResolvedValue(undefined),
+            focusByAttributes: vi.fn(),
+        };
+
+        await AppManager.prototype._attributesUpdateCallback.call(manager as any, apps);
+        await AppManager.prototype._attributesUpdateCallback.call(manager as any, apps);
+
+        expect(tasks).toHaveLength(3);
+    });
 });

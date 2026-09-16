@@ -12,8 +12,8 @@ importers:
         specifier: ^3.3.1
         version: 3.4.0
       '@netless/telebox-insider':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: file:../telebox-insider
+        version: file:../telebox-insider
       emittery:
         specifier: ^0.9.2
         version: 0.9.2
@@ -34,14 +34,14 @@ importers:
         specifier: ^0.2.2
         version: 0.2.11
       '@netless/app-docs-viewer':
-        specifier: ^0.2.19
-        version: 0.2.20(jspdf@2.5.2)
+        specifier: 0.2.21-beta.0
+        version: 0.2.21-beta.0(jspdf@2.5.2)
       '@netless/app-media-player':
-        specifier: 0.1.4
-        version: 0.1.4
+        specifier: 0.1.5-beta.0
+        version: 0.1.5-beta.0
       '@netless/app-presentation':
-        specifier: ^0.1.12
-        version: 0.1.12(jspdf@2.5.2)
+        specifier: ^0.1.13-beta.0
+        version: 0.1.13-beta.0(jspdf@2.5.2)
       '@rollup/plugin-commonjs':
         specifier: ^20.0.0
         version: 20.0.0(rollup@4.60.1)
@@ -363,19 +363,19 @@ packages:
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
-  '@netless/app-docs-viewer@0.2.20':
-    resolution: {integrity: sha512-37WcrBE/YIebz1of8doC9r0JXhohIv+9zyBxxo/91HwoDB0IZ2/Y2w8AZWm0Nj4X92Q/e2rQEbLBPBiAAEfCcQ==}
+  '@netless/app-docs-viewer@0.2.21-beta.0':
+    resolution: {integrity: sha512-NCQTrV0XPw+MhywLprMoTM4BVZ2tMb7Q9I8yvDEnGADHZSJD9/eVgJGrfvatJ6ClWZsOMjNQieD+RpRUDcjYwQ==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-media-player@0.1.4':
-    resolution: {integrity: sha512-CsiLtd3LWGsQrHRZYB3Zl6tj5Q0LDJIevHY60LdYcUgUBR57FfC4fhaD0FP/bn4D82ki7HgKgeG2oflUlPfl3g==}
+  '@netless/app-media-player@0.1.5-beta.0':
+    resolution: {integrity: sha512-MohsTT/AqNRO6QGZeAWDz6JEtNyKFUk+0JhQtGU8fYOz5foQ+LNwgCn1hReQ+P8OsIVPj9Z0edWtjj1BsMJDNg==}
 
-  '@netless/app-presentation@0.1.12':
-    resolution: {integrity: sha512-VXzUSuucpuUOgrg5MPvi6l7leqFUx9Zbn/g667h6iprOkgYMrXxuh4WO+3Uu8MyAYS+e56K+B3yRsQXAlyeS6A==}
+  '@netless/app-presentation@0.1.13-beta.0':
+    resolution: {integrity: sha512-AY+pm0ycHC1Jvo2osdv7q5de23VLPRY80aoOs2au11dxMa/hLQUnWI61KhJmFF0SZt1/7aGnPW057yJJQfKyHQ==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
@@ -385,8 +385,8 @@ packages:
   '@netless/canvas-polyfill@0.0.4':
     resolution: {integrity: sha512-7NzsJrba0R/mq/l10SkIZQwbrNVJyPxZYrjK6xL3Ts732iWAVuS2UB0u3s6iGeUVcqV39A679yva8APWRl4M0A==}
 
-  '@netless/telebox-insider@0.3.0':
-    resolution: {integrity: sha512-KoQg5SmUdIA/XV520jVR9pKZlf5GbTwVUbkmTfOIrXBingwYBQIbX/W4ISPWpCO98De5YXgciidbDh3vx9Ppnw==}
+  '@netless/telebox-insider@file:../telebox-insider':
+    resolution: {directory: ../telebox-insider, type: directory}
 
   '@netless/xml-js@1.6.16':
     resolution: {integrity: sha512-QnSH8y3j3DDEW0S3MalYBmR0opeyaecAkzx0ocKYncMDiOdQkhByJgD7AVhXQqH8bA/PVHU0VFP445AbJq6fDQ==}
@@ -3612,7 +3612,7 @@ snapshots:
 
   '@juggle/resize-observer@3.4.0': {}
 
-  '@netless/app-docs-viewer@0.2.20(jspdf@2.5.2)':
+  '@netless/app-docs-viewer@0.2.21-beta.0(jspdf@2.5.2)':
     dependencies:
       '@juggle/resize-observer': 3.4.0
       debounce-fn: 5.1.2
@@ -3620,15 +3620,15 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-media-player@0.1.4': {}
+  '@netless/app-media-player@0.1.5-beta.0': {}
 
-  '@netless/app-presentation@0.1.12(jspdf@2.5.2)':
+  '@netless/app-presentation@0.1.13-beta.0(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
   '@netless/canvas-polyfill@0.0.4': {}
 
-  '@netless/telebox-insider@0.3.0': {}
+  '@netless/telebox-insider@file:../telebox-insider': {}
 
   '@netless/xml-js@1.6.16': {}
 

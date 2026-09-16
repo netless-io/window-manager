@@ -24,7 +24,7 @@ const createProxy = () => {
     };
     const proxy = Object.create(AppProxyClass.prototype) as any;
     const appProxies = new Map();
-    const viewManager = { destroyView: vi.fn() };
+    const viewManager = { destroyView: vi.fn(), createView: vi.fn(() => ({})) };
     Object.assign(proxy, {
         id: "app-1",
         kind: "Slide",
@@ -34,17 +34,21 @@ const createProxy = () => {
             appProxies,
             viewManager,
             appStatus: new Map(),
-            refresher: { remove: vi.fn() },
+            refresher: { add: vi.fn(), remove: vi.fn() },
         },
         appProxies,
         viewManager,
         appEmitter: {
             emit: vi.fn().mockResolvedValue(undefined),
             clearListeners: vi.fn(),
+            onAny: vi.fn(),
+            offAny: vi.fn(),
         },
+        appAttributesUpdateListener: vi.fn(),
         boxSizeSynchronizer: { destroy: vi.fn() },
         _pageState: { destroy: vi.fn() },
         setupCompletionSettled: false,
+        setupSucceeded: false,
         resolveSetupCompletion: vi.fn(),
     });
     proxy.manager.appProxies.set(proxy.id, proxy);
@@ -83,6 +87,78 @@ describe("AppProxy setup diagnostics", () => {
         const error = new Error("setup failed");
         proxy.setupCompletionPromise = Promise.resolve({ succeeded: false, error });
         await expect(proxy.waitForSetup()).rejects.toBe(error);
+    });
+
+    it("ensureSetup rejects a failed setup instead of returning an empty result", async () => {
+        const { proxy } = createProxy();
+        const error = new Error("setup failed");
+        proxy.setupStarted = true;
+        proxy.setupCompletionPromise = Promise.resolve({ succeeded: false, error });
+
+        await expect(proxy.ensureSetup()).rejects.toBe(error);
+    });
+
+    it("ensureSetup rejects when app setup never produced a descriptor", async () => {
+        const { proxy } = createProxy();
+
+        await expect(proxy.ensureSetup()).rejects.toThrow(
+            "app setup descriptor is unavailable"
+        );
+    });
+
+    it("waits for async app initialization before checking the setup descriptor", async () => {
+        const { proxy } = createProxy();
+        let resolveInitialization!: () => void;
+        proxy.setupInitializationPromise = new Promise(resolve => {
+            resolveInitialization = resolve;
+        });
+        proxy.setupDescriptor = { app: {}, context: {} };
+        proxy.attachSetupScope = vi.fn();
+        proxy.setViewFocusScenePath = vi.fn();
+        proxy.resetSetupCompletion = vi.fn();
+        proxy.finishAppSetup = vi.fn().mockResolvedValue(undefined);
+        proxy.setupCompletionPromise = Promise.resolve({ succeeded: true, result: "ready" });
+
+        const setup = proxy.ensureSetup();
+        await Promise.resolve();
+        expect(proxy.finishAppSetup).not.toHaveBeenCalled();
+
+        resolveInitialization();
+        await expect(setup).resolves.toBe("ready");
+        expect(proxy.finishAppSetup).toHaveBeenCalledOnce();
+    });
+
+    it("reports setup only after setup completion succeeds", () => {
+        const { proxy } = createProxy();
+
+        proxy.setupStarted = true;
+        expect(proxy.isSetup).toBe(false);
+        proxy.setupSucceeded = true;
+        expect(proxy.isSetup).toBe(true);
+    });
+
+    it("reattaches the setup scope after teardown before a lazy re-setup", () => {
+        const { proxy } = createProxy();
+        proxy.appListener = vi.fn();
+
+        proxy.attachSetupScope("app-1");
+        proxy.detachSetupScope();
+        proxy.attachSetupScope("app-1");
+
+        expect(proxy.appEmitter.onAny).toHaveBeenCalledTimes(2);
+        expect(proxy.appEmitter.offAny).toHaveBeenCalledTimes(1);
+        expect(proxy.appAttributesUpdateListener).toHaveBeenCalledTimes(2);
+    });
+
+    it("creates the View synchronously for the initial page state", () => {
+        const { proxy } = createProxy();
+        proxy.setViewFocusScenePath = vi.fn();
+
+        const view = proxy.viewManager.createView();
+        proxy.viewManager.createView.mockReturnValue(view);
+
+        expect(proxy.createView()).toBe(view);
+        expect(proxy.viewManager.createView).toHaveBeenCalledWith(proxy.id);
     });
 
     it("logs one error and clears the watchdog when setup rejects", async () => {
