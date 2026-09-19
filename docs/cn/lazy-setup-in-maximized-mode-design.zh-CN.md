@@ -1,61 +1,146 @@
-# 最大化模式下的本地 Lazy Setup 设计
+# 最大化模式 Lazy Setup 与多 App Runtime 缓存设计
 
-> 状态：设计中，尚未实现
+> 状态：v2 设计。v1 的"单 runtime 缓存 lazy setup"已随 `b182b15`、`ba2750a` 部分实现（当前 `window-manager@1.0.23-beta.0`）；本文档在 v1 基础上增补四项设计并移除已过时的结论：
 >
-> 目标版本：待确定
+> 1. `maxCachedAppsInMaximizedMode` 多 App runtime LRU 缓存（v1 只保留一个 top App runtime 的结论作废）；
+> 2. 严格串行的真实 `setup()` 队列（上一个 App `setup()` 完成后才开始下一个，而不只是创建串行）；
+> 3. 初始化与批量重建时，`activeAppId`（focusedId）优先渲染；
+> 4. `app-presentation` 失焦缩略图降级（参考 `app-slide` frozen/unfrozen，只依据 `isFocused`，直接走 DOM 变化，不调用 white-sdk scene API）。
+>
+> 目标版本：window-manager 1.0.23（进行中）；配套 `app-slide`、`app-docs-viewer`、`app-presentation`、`app-media-player`。
+> 注意：工作区 `docs/apis/whiteboard-upstream-apis.md` 仍记录 `window-manager@1.0.22`、`app-slide@0.2.104` 等已发版版本，与本文档描述的本地源码版本（`1.0.23-beta.0`、`0.2.105-beta.0` 等）存在滞后。
 
 ## 1. 背景
 
-`WindowManager` 在恢复房间时，会为 `attributes.apps` 中的每个 App 创建窗口，并立即调用 App 的 `setup()`。
-`app-slide`、`app-docs-viewer` 和 `app-presentation` 的 `setup()` 会创建页面渲染器、控制器、监听器和 DOM。
+`WindowManager` 在恢复房间时，会为 `attributes.apps` 中的每个 App 创建窗口，并调用 App 的 `setup()`。
+`app-slide`、`app-docs-viewer`、`app-presentation`、`app-media-player` 的 `setup()` 会创建页面渲染器、控制器、播放器和 DOM。
 当一个房间同时打开多个课件时，低端设备会在初始化阶段同时承担多个课件 runtime 的内存和渲染开销，可能影响首屏、交互响应和后续切换。
 
-本设计增加一个 `WindowManager.mount()` 本地配置：
+本设计围绕 `WindowManager.mount()` 的本地配置展开：
 
 ```ts
 lazySetupInMaximizedMode?: boolean;
 forceMaximized?: boolean;
+maxCachedAppsInMaximizedMode?: number;
 ```
 
-`lazySetupInMaximizedMode` 只改变当前 `WindowManager` 实例如何初始化 App runtime，不写入房间 attributes，也不要求房间中的其他客户端启用同一配置；`forceMaximized` 是独立的房间级策略请求。
+`lazySetupInMaximizedMode` 只改变当前 `WindowManager` 实例如何初始化与缓存 App runtime，不写入房间 attributes，也不要求房间中的其他客户端启用同一配置；`forceMaximized` 是独立的房间级策略请求；`maxCachedAppsInMaximizedMode` 是 lazy 模式下的 runtime 缓存上限。
 
 `manager.setMaximized(true)` 仍然使用现有 WindowManager/TeleBox 同步逻辑，因此它会继续影响房间中的其他客户端。这个共享状态变化是显式的产品行为，与本地 lazy setup 策略分开处理。
 
 `forceMaximized` 是有写权限的房间入口用于声明房间级策略的 mount 请求；当它为 `true` 且当前实例可写时，WindowManager 在初始化阶段同时把房间级 `attributes.forceMaximized` 设置为 `true`，并调用现有 `setMaximized(true)` 把最大化状态同步到 `attributes`。该字段是共享策略，不是当前实例的本地配置：所有支持该字段的 WindowManager/TeleBox 客户端都必须禁止进入 normal，直到房间级策略被显式解除。开启 lazy 的客户端不要求也不依赖该参数写入字段，只读取房间已有值，也不能因为 lazy 配置自行调用 `setMaximized(true)`。
 
-## 2. 目标与非目标
+## 2. 现状与差距（代码事实）
 
-### 2.1 目标
+以下为 v2 实现前（`window-manager@1.0.23-beta.0`，commit `ba2750a`）已核实的**审计基线**。本节描述的差距（单缓存、setup 并发、reconnect 并发、App 提前返回）已在 1.0.23 的 v2 实现中修复（见 §20 勾选项），保留本节作为设计依据与回归对照。文中源码行号为基线快照，现行代码以符号名为准。
 
-- 在配置开启时，恢复全部 App 的 shell 和 Box，但只初始化最大化模式下当前最顶层 App 的 runtime。
+### 2.1 lazy setup 已部分实现，但只有单 runtime 缓存
+
+- `_attributesUpdateCallback()` 将所有 App 加入 `AppCreateQueue` 依次创建。
+- lazy 模式已生效：`AppManager.activeLazyAppId` 只记录一个当前 lazy App（`src/AppManager.ts`）；`ensureLazyFocus()` 等待新 App `ensureSetup()` 完成、提交 focus 后 teardown 旧 App（`src/AppManager.ts` ensureLazyFocus）。
+- `AppProxy.teardown()` 已实现 App 侧 teardown 契约调用：未实现 teardown 的 App 会 warning 并保留 runtime（`src/App/AppProxy.ts` teardown）。
+- 因此 v1 文档中"设计中，尚未实现"以及"`setupApps` 本次仍然只允许一个最大化 top App 进入 runtime"的结论已过时：lazy 单缓存已实现，本文档 v2 将其推广为可配置的多缓存。
+
+### 2.2 现有队列只保证"创建串行"，不保证"setup 完成串行"
+
+- `AppCreateQueue.invoke()` 依次等待每个 invoker Promise 完成（`src/Utils/AppCreateQueue.ts` invoke），但 eager 模式中 `AppProxy.setupApp()` 是通过 `setTimeout(..., SETUP_APP_DELAY)` 异步启动真正的 `finishAppSetup()`（`src/App/AppProxy.ts` setupApp），invoker 本身不等待 `app.setup()` 完成。
+- 因此队列任务结束时，实际的 `app.setup()` 可能尚未开始或仍在执行，多个课件的真实 setup 仍是并发的，初始化内存峰值没有消除。
+- `setupAllApps()` 是 `for...of + await ensureSetup()`，本身串行（`src/AppManager.ts` setupAllApps，唯一调用点 `src/index.ts`），但初始化主流程没有统一等待它。
+- 重连 `onReconnected()` 对所有 AppProxy 使用 `Promise.all()` 并发重建（`src/AppManager.ts` onReconnected），会并发触发多个 App 的 setup。
+- lazy focus 路径（`ensureLazyFocus`）虽然 `await ensureSetup()`，但各焦点切换 Promise 之间只按到达顺序排队，没有与初始 eager setup、reconnect 共享同一个串行队列。
+
+**结论：需要一个跨路径统一的"真实 setup 串行队列"，队列任务必须等待 `app.setup()` 完成（见第 7 节）。**
+
+### 2.3 内置 App `setup()` 都会提前返回，资源加载尾部异步
+
+| App | `setup()` 返回时机 | 真实资源就绪时机 | 结论 |
+| --- | --- | --- | --- |
+| app-slide | 同步返回；创建并 mount `SlideDocsViewer` | `SlideController` 构造函数中立即 `initialize()` 启动资源加载，`readyPromise` 在首个 `renderEnd` 后才完成，但只注册回调、未返回给 WindowManager 等待 | 当前不是 setup 完成串行 |
+| app-docs-viewer | 同步返回；静态文档创建 viewer | 静态页面在 `PageEl` 中直接设置 `<img src>`，图片加载在返回后继续 | 不等待资源 ready |
+| app-presentation | 返回 `prepareScenesPromise`（场景写入完成） | `Presentation` 构造时即 `new Preload(...)` 并 `touch(0, true)`，默认最多预加载 5 个链接；重 runtime 在此之前已创建 | 部分异步，不是完整 runtime ready |
+| app-media-player | 同步返回；`ReactDOM.render()` 后立即返回 | `componentDidMount()` 异步执行 `initPlayer()`，中间至少等待一帧后才初始化 video.js | 明显不等待播放器初始化 |
+
+代码依据：
+
+- app-slide：`setup()` 创建并 mount `SlideDocsViewer`（`slide-app/packages/app-slide/src/index.ts:120`）；`SlideController` 构造即 `initialize()`（`slide-app/packages/app-slide/src/SlideController/index.ts:497`）；`readyPromise` 仅注册回调（`slide-app/packages/app-slide/src/index.ts:187`）。
+- app-docs-viewer：setup 同步构造 viewer（`slide-app/packages/app-docs-viewer/src/index.ts:37`）；静态页面图片直接设 `src`（`slide-app/packages/app-docs-viewer/src/PageRenderer/PageEl.ts:29`）。
+- app-presentation：`Preload` 构造即 `touch(0, true)`（`netless-app-presentation/src/preload.ts:38-45`），并继续安排后续预加载（`netless-app-presentation/src/preload.ts:46-62`）；setup 最后只等待场景写入（`netless-app-presentation/src/app-presentation.ts:1207-1212`）。
+- app-media-player：setup 内直接 `ReactDOM.render()`（`app-media-player/packages/app-media-player/src/index.tsx:35`）；播放器初始化在 `componentDidMount()` 异步进行（`app-media-player/packages/app-media-player/src/components/MediaPlayer.tsx:193`、`:313`）。
+
+四个 App 当前都已实现 `teardown`，满足 runtime cache 的释放入口：
+
+- app-slide：`slide-app/packages/app-slide/src/index.ts:400`
+- app-docs-viewer：`slide-app/packages/app-docs-viewer/src/index.ts:114`
+- app-presentation：`netless-app-presentation/src/app-presentation.ts:1214`
+- app-media-player：`app-media-player/packages/app-media-player/src/index.tsx:84`
+
+**结论：即使 WindowManager 侧完成串行改造，各 App 仍需把"首个可见资源 ready"纳入 `setup()` 返回值（见第 14 节），否则串行只是形式上的。**
+
+## 3. 目标与非目标
+
+### 3.1 目标
+
+- 在 lazy 配置开启时，恢复全部 App 的 shell 和 Box；runtime 缓存上限由 `maxCachedAppsInMaximizedMode` 控制：
+  - 默认 `1`，保持已实现的现状行为（只保留当前 top App runtime）；
+  - 配置为 N（N ≥ 2）时，最多保留 N 个已成功 setup 的 App runtime；第 N+1 个 App 需要 runtime 时，按 LRU 淘汰最久未使用的缓存项。
+- 命中缓存的 App 切换回来时不重新 `setup()`，只更新 LRU 使用时间。
+- 所有真实 `setup()` 严格串行：上一个 App 的 `setup()` Promise 完成后，才开始下一个 App 的 `setup()`；初始化、重连、seek 重建、补齐、显式等待 API 全部走同一队列。
+- 初始化与批量重建时，`activeAppId`（`attributes.focus` / top App）优先渲染：串行队列中的待 setup 任务按"聚焦 App 优先"排序。
 - lazy 模式允许全局状态为 `minimized` 或 `maximized`，不允许进入 `normal`。
-- 当前顶层 App 切换时，先完成新 App 的 `setup()`，再把 focus 提交给 TeleBox。
-- 新 App ready 后，再释放旧 focused App 的 Slide/DocsViewer/Presentation runtime 和 DOM。
+- 新 App ready 后，才提交 focus；被淘汰的缓存 App 在确定不再需要展示后 teardown，teardown 与 setup 不并发。
 - 最大化标题栏关闭当前 App 后，先准备下一个 top App，再执行 focus。
-- 配置关闭时，保留现有 AppManager、AppProxy、TeleBox 和同步行为。
+- `app-presentation` 失焦且仍被缓存时，把当前页大图降级为 `previewURL` 缩略图（直接 DOM 变化），重新聚焦时恢复，降低缓存 runtime 的内存占用。
+- 配置关闭时，保留现有 AppManager、AppProxy、TeleBox 和同步行为（唯一例外见第 7 节：初始化 setup 也纳入串行队列，用于消除 eager 模式的内存峰值）。
 - scene、View、attributes、Box 等轻量 shell 可以提前创建，不把 scene 初始化与 App runtime setup 混为一谈。
 
-### 2.2 非目标
+### 3.2 非目标
 
 - 不改变房间中 `attributes.apps`、`focus`、`zIndex`、`boxStatus` 的数据结构；新增的 `attributes.forceMaximized` 是本设计明确要求的共享策略字段。
-- 不把 `lazySetupInMaximizedMode` 这个本地 setup 配置同步给其他客户端，但会同步 `forceMaximized` 房间策略。
-- 不改变默认 `AppProxy.destroy()` 的“彻底关闭 App”语义。
+- 不把 `lazySetupInMaximizedMode`、`maxCachedAppsInMaximizedMode` 这类本地配置同步给其他客户端，但会同步 `forceMaximized` 房间策略。
+- 不改变默认 `AppProxy.destroy()` 的"彻底关闭 App"语义。
 - 不在本次设计中重新设计普通窗口、最小化窗口或内容区域 close 按钮的交互。
 - 不要求其他客户端也延迟 `setup()`。其他客户端根据自己的 mount 参数独立决定 eager 或 lazy。
 - 不在 lazy 模式下支持 `useBoxesStatus=true`；该组合配置会告警并按 `useBoxesStatus=false` 运行。
+- `maxCachedAppsInMaximizedMode` 是缓存上限，不是 setup 并发数；setup 并发数恒为 1。
+- 初始化阶段不因缓存配置为 N 而预热 N 个 runtime：初始化仍然只 setup 当前 top App，缓存按需填充。若未来需要预热，应另设 `initialWarmupCount` 并复用同一串行队列，本文不展开。
 
-## 3. 配置语义
+## 4. 配置语义
 
-### 3.1 配置关闭
+### 4.1 配置总览
 
 ```ts
 WindowManager.mount({
-    // 默认 false
+    // 默认 false：关闭 lazy，全部 App eager setup（但真实 setup 串行，见第 7 节）
     lazySetupInMaximizedMode: false,
-    // 仅在需要把房间锁定为 maximized 时显式传 true
+    // 仅在需要把房间锁定为 maximized 时由可写入口显式传 true
     forceMaximized: false,
+    // 默认 1：仅 lazySetupInMaximizedMode=true 时生效
+    maxCachedAppsInMaximizedMode: 1,
 });
 ```
+
+### 4.2 `maxCachedAppsInMaximizedMode` 语义
+
+- 类型 `number`，默认 `1`；仅在 `lazySetupInMaximizedMode=true` 时生效，lazy 关闭时忽略。
+- 表示"最多保留多少个已成功 `setup()` 的 App runtime"。
+- 非法值回退：`undefined`/`NaN`/小于 1/非整数 时回退为 `1`，并通过 `manager.Logger?.warn(...)` 告警，不抛错。
+- 上限建议：由接入方自行约束（例如 ≤ 10）；WindowManager 不做硬上限，但会在值过大时 warning 提示内存风险。
+
+示例（cache = 5）：
+
+```text
+打开 1 -> setup 1，缓存 [1]
+打开 2 -> setup 2，缓存 [1, 2]
+打开 3 -> setup 3，缓存 [1, 2, 3]
+打开 4 -> setup 4，缓存 [1, 2, 3, 4]
+打开 5 -> setup 5，缓存 [1, 2, 3, 4, 5]
+打开 6 -> 6 未命中缓存 -> teardown 最久未使用的 1（LRU）-> setup 6，缓存 [2, 3, 4, 5, 6]
+切回 2 -> 命中缓存，不重新 setup，仅更新 LRU 顺序，缓存 [3, 4, 5, 6, 2]
+```
+
+cache = 1 时与已实现的现状完全一致：新 App setup 完成后 teardown 旧 App（见 6.4 节淘汰时序）。
+
+### 4.3 配置关闭（eager）
 
 保持当前流程：
 
@@ -63,20 +148,13 @@ WindowManager.mount({
 attributes.apps
     -> 创建 AppProxy
     -> 创建 Box
-    -> app.setup()
+    -> app.setup()（真实 setup 进入串行队列）
     -> setup 完成后继续现有 focus / zIndex / 事件流程
 ```
 
-实现时必须让这个分支尽可能不经过新的 lazy 状态机。现有 `AppManager._attributesUpdateCallback()`、`AppProxy.baseInsertApp()` 和 `AppProxy.destroy()` 的默认行为不得因为新增配置而改变。
+实现上 eager 分支只新增两件事：真实 setup 进入串行队列、批量任务按聚焦优先排序。现有 `AppManager._attributesUpdateCallback()`、`AppProxy.baseInsertApp()` 和 `AppProxy.destroy()` 的默认行为不得因为新增配置而改变。
 
-### 3.2 配置开启
-
-```ts
-WindowManager.mount({
-    lazySetupInMaximizedMode: true,
-    forceMaximized: true,
-});
-```
+### 4.4 配置开启（lazy）
 
 初始化时执行以下步骤：
 
@@ -87,13 +165,11 @@ WindowManager.mount({
     -> lazy=true 仅在 forceMaximized=true 且 boxState 为 minimized/maximized 时生效，否则 warning 并降级 eager
     -> 如果当前状态为 minimized，保留 minimized
     -> 创建所有 App shell / View / Box
-    -> 选择最大化模式下的 top App
-    -> 只 setup top App
+    -> 选择最大化模式下的 top App（activeAppId 优先）
+    -> 只 setup top App（串行队列），其余 App 保持 shell；缓存按需填充
 ```
 
 `manager.boxState` 是只读 getter，不能直接赋值。由于 `minimized` 在状态组合中优先于 `maximized`，当房间恢复出的状态是 `minimized=true` 时，调用 `setMaximized(true)` 后当前状态仍然是 minimized；之后调用 `setMinimized(false)` 才会进入 maximized。这是允许的状态，而不是初始化错误。
-
-`setMaximized(true)` 仍然是原有的共享操作，会同步房间状态，但只有 `forceMaximized: true` 的可写初始化请求可以在本流程中触发它。`lazySetupInMaximizedMode` 本身不进入 attributes，也不会调用 `setMaximized(true)`；`forceMaximized` mount 参数只由可写房间入口用于建立共享的 `attributes.forceMaximized` 和最大化状态，不会同步当前实例是否 lazy setup。
 
 lazy 模式的状态约束为：
 
@@ -113,13 +189,11 @@ lazy 模式的状态约束为：
 
 当共享 `attributes.forceMaximized === true` 时，上述 normal 拦截对所有支持该字段的客户端生效，不区分客户端是否开启 lazy。任何客户端调用 `setMaximized(false)` 或 `setBoxState("normal")` 都必须 no-op 并 warning；清除该字段必须通过明确的房间级管理操作，不能由删除最后一个 App、普通状态操作或 mount 卸载隐式清除。
 
-`manager.setMinimized(true/false)` 保持可用。进入 minimized 时可以释放当前 App runtime；退出 minimized 时再按 top App 规则 setup。
-
-如果 lazy 客户端重新把共享状态写回 `maximized=true`，这代表该配置会影响房间中其他用户。使用方必须明确接受该房间级副作用。
+`manager.setMinimized(true/false)` 保持可用。进入 minimized 时串行 teardown 全部缓存 runtime；退出 minimized 时按 top App 规则重新 setup（见 6.5 节）。
 
 lazy 配置要求：完成可写 `forceMaximized=true` 初始化请求后，或房间原本已有该字段时，必须再次读取 `attributes.forceMaximized` 和当前 `boxState`；只有字段为 true 且状态为 minimized/maximized 才启用 lazy。仅带 lazy 参数的客户端不能代写字段；字段缺失、为 false 或当前为 normal 时必须 warning 并降级 eager。`forceMaximized: false` 不得清除房间已有的 true。
 
-### 3.3 错误配置和降级
+### 4.5 错误配置和降级
 
 lazy 模式只支持全局窗口状态管理，即等价于 `useBoxesStatus=false`。如果传入：
 
@@ -137,11 +211,9 @@ lazySetupInMaximizedMode = true
 effectiveUseBoxesStatus = false
 ```
 
-警告应使用 WindowManager 已有的 logger 入口，例如 `manager.Logger?.warn(...)`，不能因为配置错误直接抛错或阻止挂载。
+如果当前实例不能写房间状态（只读端、Player、回放或未连接状态），且房间没有 `attributes.forceMaximized=true`，或当前房间状态为 normal，则无法保证 lazy 模式的"不允许 normal"约束。此时 `mount()` 应 warning，并将当前实例降级为默认 eager setup；它不得尝试写入 forceMaximized 或自行调用 `setMaximized(true)`。降级原因也必须进入 logger，便于定位低端设备为何没有启用 lazy。
 
-如果当前实例不能写房间状态（只读端、Player、回放或未连接状态），且房间没有 `attributes.forceMaximized=true`，或当前房间状态为 normal，则无法保证 lazy 模式的“不允许 normal”约束。此时 `mount()` 应 warning，并将当前实例降级为默认 eager setup；它不得尝试写入 forceMaximized 或自行调用 `setMaximized(true)`。降级原因也必须进入 logger，便于定位低端设备为何没有启用 lazy。
-
-### 3.4 forceMaximized 生命周期
+### 4.6 forceMaximized 生命周期
 
 房间级管理 API 定义为：
 
@@ -149,36 +221,36 @@ effectiveUseBoxesStatus = false
 manager.setForceMaximized(force: boolean): void;
 ```
 
-- `setForceMaximized(true)` 仅允许可写房间入口调用（SDK 只校验 `canOperate`，角色/“房间入口”约束由业务层保证）；它写入 `attributes.forceMaximized=true`，并调用 `setMaximized(true)`；
+- `setForceMaximized(true)` 仅允许可写房间入口调用（SDK 只校验 `canOperate`，角色/"房间入口"约束由业务层保证）；它写入 `attributes.forceMaximized=true`，并调用 `setMaximized(true)`；
 - `setForceMaximized(false)` 仅允许可写房间入口调用；它只清除 `attributes.forceMaximized`，不隐式调用 `setMaximized(false)`。调用方必须先清 force，再显式恢复 normal；反过来调用会被 force 期间的 no-op 拦截且不会自动重试；
 - `setMaximized(false)` 在 `attributes.forceMaximized=true` 时始终 no-op + warning，即使调用者没有开启 lazy；
-- force 字段从 true 变为 false 后，lazy 实例必须退出 lazy 优化并降级为 eager，补齐尚未 setup 的 runtime；此过程不自动改变房间的 maximized/minimized 状态；
-- force 字段为 true 但房间状态已是 normal 时，lazy 实例不得只 setup top App，应 warning 并降级 eager；可写管理入口再次显式调用 `setForceMaximized(true)` 时才负责重新 `setMaximized(true)`。降级补齐 runtime 必须复用 `AppCreateQueue` 串行执行。
+- force 字段从 true 变为 false 后，lazy 实例必须退出 lazy 优化并降级为 eager，补齐尚未 setup 的 runtime；补齐任务进入串行队列并按聚焦优先排序；此过程不自动改变房间的 maximized/minimized 状态；
+- force 字段为 true 但房间状态已是 normal 时，lazy 实例不得只 setup top App，应 warning 并降级 eager；可写管理入口再次显式调用 `setForceMaximized(true)` 时才负责重新 `setMaximized(true)`。降级补齐 runtime 必须复用串行 setup 队列。
 
-## 4. 共享状态与本地状态边界
+## 5. 共享状态与本地状态边界
 
 ```text
 房间共享状态                         当前 WindowManager 实例状态
 ------------------                  ------------------------------
-attributes.apps                      shell / runtime maps
-attributes.focus                    settingUpApps
+attributes.apps                      shell / runtimeCache (LRU)
+attributes.focus                     settingUpApps
 attributes.apps[id].state.zIndex   activeAppId
 attributes.maximized               pendingFocusAppId
 attributes.minimized                lazySetupInMaximizedMode
-attributes.forceMaximized            effective lazy mode / force request
-attributes.boxStatus
+attributes.forceMaximized            maxCachedAppsInMaximizedMode（本地生效值）
+attributes.boxStatus                 setup generation/token
 ```
 
-### 4.1 必须同步的行为
+### 5.1 必须同步的行为
 
 `manager.setMaximized(true)` 保持现有调用路径和同步语义，因为产品要求进入该模式时房间中的其他客户端也最大化。
 
-### 4.2 不得同步的行为
+### 5.2 不得同步的行为
 
 以下内容只能是当前实例的本地状态：
 
 - 是否延迟 App `setup()`；
-- 哪些 runtime 已 setup；
+- runtime 缓存内容与 LRU 顺序；
 - 哪些 runtime 已 suspend/teardown；
 - `settingUpApps` 中的 Promise；
 - 当前实例的 setup generation/token。
@@ -187,30 +259,28 @@ attributes.boxStatus
 
 force 字段的设置/清除必须经过 `setForceMaximized()` 的权限校验；普通 eager 客户端不能通过 `setMaximized(false)` 绕过房间约束。
 
-## 5. App 生命周期模型
+## 6. App 生命周期模型
 
-### 5.1 三个 Map
+### 6.1 缓存与并发集合
 
-lazy 分支建议维护以下集合：
+lazy 分支维护以下集合：
 
 ```ts
-unsetupApps: Map<string, AppShell>;
-setupApps: Map<string, AppRuntime>;
-settingUpApps: Map<string, Promise<AppRuntime>>;
+// runtime 缓存：插入顺序无关，按 lastUsed 做 LRU
+runtimeCache: Map<string, {
+    lastUsed: number;
+    state: "setting-up" | "ready" | "tearing-down";
+}>;
+settingUpApps: Map<string, Promise<void>>;
 ```
 
-`AppShell` 至少包含：
+实现说明（1.0.23 已按此落地）：v1 草案中的 `unsetupApps` 集合不再单独维护——App shell 状态由 `AppProxy` 既有机制承接：`setupDescriptor`/`deferredSetup` 表示"已创建待 setup 的 shell"，`isSetup` 表示 runtime 是否就绪。避免两份 shell 状态漂移。
 
-- AppProxy 和 App id；
-- scene、View、attributes；
-- Box 和窗口几何信息；
-- setup 所需的 App kind/options。
+`AppShell` 的内容（AppProxy、scene、View、attributes、Box 几何、kind/options）全部保留在 AppProxy 上；`runtimeCache` 的一项表示一个已创建（或在创建中）的 App runtime；`state` 用于避免对同一 App 并发 setup/teardown。`settingUpApps` 保证同一 App 的重复 setup 请求复用同一个 Promise，不会重复执行 `app.setup()`。
 
-`AppRuntime` 表示 `app.setup()` 成功后产生的 Slide、DocsViewer、Presentation 或其他 App runtime。
+teardown 与 setup 的竞态由 AppProxy 的 setup 代次（`setupRunGeneration`）守卫：teardown/destroy 会递增代次，进行中的 setup 完成后发现代次变化即按"中止"处理——不标记 ready、不占缓存 slot，等待方（串行队列）收到失败并放行，后续 `ensureSetup()` 可从保留的 descriptor 干净重跑。
 
-`setupApps` 保持 Map 而不是单一变量，为后续“最大化模式下多个没有被遮挡的 App 可以同时 setup”等策略留出扩展空间。本次默认策略仍然只允许一个最大化 top App 进入 runtime。
-
-### 5.2 setup 与 teardown
+### 6.2 setup 与 teardown
 
 AppProxy 构造阶段允许提前完成：
 
@@ -219,49 +289,107 @@ AppProxy 构造阶段允许提前完成：
 - `AppPageStateImpl` 创建；
 - scene callback 和 attributes 绑定。
 
-这些步骤不等于 App runtime setup。
+这些步骤不等于 App runtime setup（已实现的 `deferredSetup` 机制即为此服务（`src/App/AppProxy.ts` setupApp 内））。
 
-lazy 分支需要将 runtime 释放与最终销毁区分开：
+runtime 释放与最终销毁继续区分：
 
 ```text
-teardownSetup()/disposeRuntime()
-    只释放 Slide / DocsViewer / Presentation runtime、监听器和 DOM
+teardown()
+    只释放 Slide / DocsViewer / Presentation / MediaPlayer runtime、监听器和 DOM
+    已实现：src/App/AppProxy.ts `teardown()`
 
 destroy()
     保持现有最终销毁语义：释放 AppProxy、分页状态、View、Box 等全部资源
 ```
 
-blur 或失去 top focus 时调用 runtime teardown，不调用当前完整的 `destroy()`，否则会把仍需保留的 scene、View 和 shell 一起销毁。
+缓存淘汰或 minimized 释放调用 runtime teardown，不调用当前完整的 `destroy()`，否则会把仍需保留的 scene、View 和 shell 一起销毁。
 
-### 5.3 setup 失败
+### 6.3 setup 失败
 
-- setup Promise 失败时，从 `settingUpApps` 移除任务；
+- setup Promise 失败时，从 `settingUpApps` 移除任务，且该 App 不占用 runtimeCache slot（不进入缓存，也不触发对其他缓存项的淘汰）；
 - 保留 shell，避免 attributes.apps 与本地 Box 集合不一致；
 - 不提交该 App 的 focus；
 - 根据现有错误事件和日志约定上报原始错误；
 - 如果仍有旧 active App，旧 App 保持 active，直到新 App 成功；
 - 如果没有 active App，TeleBox 不应 focus 一个尚未 setup 的 Box。
 
-## 6. top App 选择规则
+### 6.4 LRU 淘汰时序
 
-### 6.1 全局窗口状态模式
+需要淘汰时（缓存满且出现 cache miss）：
 
-当 `useBoxesStatus === false` 时，top App 使用以下优先级：
+1. 淘汰目标 = `runtimeCache` 中 `lastUsed` 最小、且**不是**当前 `activeAppId` / `pendingFocusAppId`、`state === "ready"` 的项；
+2. 若候选目标是当前可见 App（仅 cache=1 的切换场景会出现），则先 setup 新 App，新 App ready 并提交 focus 后再 teardown 旧 App（保持已实现的现状体验：旧画面保留到新画面就绪）；
+3. 其余情况（cache ≥ 2 溢出）先 teardown LRU 项，再进入串行 setup 队列，避免瞬时 runtime 数超过配置值；
+4. teardown 与 setup 不并发：两者都排入同一串行队列；
+5. teardown 失败只告警并照常移出缓存，不阻塞队列；
+6. `tearing-down` 状态的项不参与命中：对它的 focus 请求视为 cache miss，等待 teardown 完成后重新 setup。
 
-1. `maxForceTopBox` 对应的 App；
-2. `attributes.focus` 指向且存在的 App；
-3. 最大化窗口中 `zIndex` 最大的 App；
-4. 按现有恢复顺序选择可用 App。
+容量语义说明：cache=1 的交接期（新 App setup 完成 → 旧 App teardown 完成）允许瞬时存在 2 个 runtime。这是"切换时旧画面保留到新画面就绪"的现状体验语义，与第 3 条（cache ≥ 2 严格先淘汰后 setup）并存；两者不可同时成立，以体验优先。
 
-该顺序必须与 TeleBox 的 `maxForceTopBox || topBox` 语义一致，不能只按 attributes.focus 或 zIndex 选择一个 TeleBox 实际不会显示在最上层的 App。
+### 6.5 minimized 与缓存的交互
 
-### 6.2 `useBoxesStatus` 的限制
+- 进入 minimized：串行 teardown 全部缓存 runtime（释放最大内存）；shell 与 LRU 顺序保留，便于退出后按原优先级恢复；
+- 退出 minimized：按 top App 规则 setup（聚焦优先），其余缓存项按需重建，不做批量预热。
 
-lazy 模式下 `useBoxesStatus` 无效，始终使用全局窗口状态。传入 `useBoxesStatus=true` 时，初始化 warning 后强制按 `false` 创建 BoxManager、AppManager 和 TeleBoxManager。
+## 7. 严格串行的真实 setup 队列
 
-这样可以避免同一实例同时维护全局 `maximized/minimized` 与每个 Box 的 `boxStatus`，也避免 top App 选择规则与 MaxTitleBar 的独立状态发生冲突。
+### 7.1 队列定义
 
-## 7. 初始化时序
+WindowManager（AppManager）增加统一的真实 setup 队列：
+
+```ts
+private setupQueue: Promise<void> = Promise.resolve();
+
+private enqueueSetup(task: () => Promise<void>): Promise<void> {
+    const next = this.setupQueue.then(task, task);
+    this.setupQueue = next.catch(() => undefined);
+    return next;
+}
+```
+
+关键点是队列任务必须等待真实 setup 完成：
+
+```ts
+await appProxy.baseInsertApp(...);   // shell / Box 创建
+await appProxy.ensureSetup();        // 等待 app.setup() Promise 完成
+```
+
+而不是只等待 `baseInsertApp()`。`ensureSetup()` 最终会等待 `app.setup()` 的 Promise 完成（`src/App/AppProxy.ts` ensureSetup / runAppSetup）。
+
+eager 路径原先经 `setupApp()` 中 `setTimeout(..., SETUP_APP_DELAY)` 直接启动 `finishAppSetup()`，造成不受控并发；已改为：延迟启动语义保留（属性同步保护），但延迟后的执行交给 `manager.enqueueEagerSetup()` 进入串行队列。
+
+### 7.2 必须入队的路径
+
+以下路径全部复用同一队列，不允许绕过：
+
+- 初始 eager setup（`_attributesUpdateCallback` / `setupAllApps()`）；
+- lazy 模式的首次 top App setup；
+- cache miss 后的 setup（含 focus 切换）；
+- reconnect（`AppManager.onReconnected()`，已由 `Promise.all()` 改为逐 App 串行重建）；
+- Player seek rebuild（`onPlayerSeekDone()` 全量重建）；
+- `forceMaximized` 清除后的 eager 补齐；
+- `addAppAndWaitForSetup()`。
+
+`AppCreateQueue` 保持现有职责（AppProxy/Box 创建串行 + ready 事件），不再承担"setup 完成串行"的语义；两者可以并存。
+
+### 7.3 优先级排序：聚焦 App 优先渲染
+
+队列不能是固定 FIFO：批量入队（初始化、reconnect、seek、补齐）时，`activeAppId`（`attributes.focus` / top App）必须最先 setup，保证首屏是用户正在看的 App。
+
+- 队列实现为"每次取任务时按优先级挑选"的调度器，而不是固定 list shift；
+- 批量任务的排序键（从高到低）：
+  1. `maxForceTopBox` 对应 App（与 TeleBox top 语义一致）；
+  2. `attributes.focus` 指向且存在的 App；
+  3. 其余 App 按当前 `zIndex` 降序；
+  4. `attributes.apps` 插入顺序兜底；
+- 单个新增任务（focus 切换、`addAppAndWaitForSetup`）视为最高优先级插入队首；
+- 已开始执行的 task 不中断、不重排；过期结果由既有 generation 机制丢弃（见第 9 节）。
+
+### 7.4 与 lazy focus 队列的关系
+
+现有 `lazyFocusQueue`（`src/AppManager.ts` onFocusChange）改为使用统一 setup 队列的实现细节；focus 侧的 generation、pending 语义不变。
+
+## 8. 初始化时序（聚焦优先）
 
 ```text
 WindowManager.mount()
@@ -279,7 +407,7 @@ ensureAttributes()
 恢复房间中的 apps shell
     |
     +-- lazySetupInMaximizedMode = false
-    |       -> 进入现有 eager setup 流程
+    |       -> 进入现有 eager setup 流程（真实 setup 进入串行队列，聚焦 App 最先）
     |
     +-- lazySetupInMaximizedMode = true
             -> 校验 lazy 配置和可写能力
@@ -287,17 +415,19 @@ ensureAttributes()
             -> 读取 attributes.forceMaximized 和当前 boxState；字段缺失/为 false 或状态为 normal 时 warning 并降级 eager
             -> 保留 minimized 状态，不强制解除最小化
             -> 创建所有 App shell / View / Box
-            -> setup 当前可见 top App；minimized 时不 setup
-            -> setup 成功后提交 focus
+            -> setup 当前可见 top App（activeAppId 优先；minimized 时不 setup）
+            -> setup 成功后提交 focus；其余 App 保持 shell，缓存按需填充
 ```
+
+初始化只 setup 一个 App，与 `maxCachedAppsInMaximizedMode` 的数值无关（不预热，见 3.2 节）。
 
 lazy 配置校验应在 `mount()` 初始化阶段完成；状态归一化应放在 BoxManager 创建后、`internalEmitter.emit("onCreated")` 之前，使 `onCreated()` 注册的 autorun 看到一致的最大化状态。不要清理 minimized。归一化必须幂等，重复执行不能反复向房间写入相同状态。
 
 如果 mount 事务在共享 `maximized=true` 写入后失败，应使用 mount 前保存的状态尝试恢复原值，避免留下半初始化的房间状态。App setup 失败属于单 App 错误，不应回滚整个房间的最大化状态。
 
-## 8. Focus 切换时序
+## 9. Focus 切换时序（多缓存）
 
-lazy 分支中，`attributes.focus` 可以先发生变化，但它不能立即被当作“runtime 已可操作”的证明。
+lazy 分支中，`attributes.focus` 可以先发生变化，但它不能立即被当作"runtime 已可操作"的证明。
 
 ```text
 监听 attributes.focus
@@ -309,32 +439,35 @@ lazy 分支中，`attributes.focus` 可以先发生变化，但它不能立即�
 确保目标 App shell 存在
     |
     v
-setup 目标 App（复用 settingUpApps Promise）
+命中缓存？
+    +-- 是 -> 更新 lastUsed，直接提交 focus
     |
-    v
-目标 App ready
-    |
-    +-- generation 仍然有效？ -- 否 -> 丢弃过期结果
-    |
-    是
-    |
-    v
-向 TeleBox 提交 focus / zIndex
-    |
-    v
-teardown 原 active App runtime
-    |
-    v
-更新 activeAppId
+    +-- 否 -> 按需淘汰（6.4 节）-> 串行队列 setup（复用 settingUpApps Promise）
+                    |
+                    v
+              目标 App ready
+                    |
+                    +-- generation 仍然有效？ -- 否 -> 丢弃过期结果
+                    |
+                    是
+                    |
+                    v
+              向 TeleBox 提交 focus / zIndex
+                    |
+                    v
+              按需 teardown 被淘汰的缓存项
+                    |
+                    v
+              更新 activeAppId
 ```
 
 提交 focus 前，操作路由仍应使用 `activeAppId`，不能因为 `attributes.focus` 已变化就提前把分页、事件或 unified page control 路由到尚未 setup 的 App。
 
 setup 任务需要 generation/token，防止快速连续切换 A -> B -> C 时，B 的过期 Promise 在 C 之后完成并错误地重新激活 B。
 
-## 9. 最大化标题栏 close
+## 10. 最大化标题栏 close
 
-本次 lazy 场景重点是最大化标题栏的 close，不优先改造 Box 内容区域中的 close。
+lazy 场景重点是最大化标题栏的 close，不优先改造 Box 内容区域中的 close。
 
 lazy 模式下 TeleBox UI 不允许用户进入 normal：
 
@@ -343,7 +476,7 @@ lazy 模式下 TeleBox UI 不允许用户进入 normal：
 - Minimize 按钮继续保留，允许进入 minimized；
 - Close 按钮继续保留。
 
-现有 `forceNormal` 语义是“只保留 close 按钮”，不能直接复用来表达这个需求。TeleBox 应增加明确的 `disableNormalTransition` 或等价内部配置，并同时拦截按钮事件和双击事件。
+现有 `forceNormal` 语义是"只保留 close 按钮"，不能直接复用来表达这个需求。TeleBox 应增加明确的 `disableNormalTransition` 或等价内部配置，并同时拦截按钮事件和双击事件。
 
 当前 TeleBox 最大化标题栏 close 的行为近似为：
 
@@ -358,8 +491,8 @@ lazy 模式下必须改为：
 remove 当前 App / Box
     -> 找到下一个最大化 top Box
     -> 暂不立即 focus
-    -> WindowManager setup 下一个 App
-    -> setup 成功
+    -> WindowManager setup 下一个 App（命中缓存则直接提交）
+    -> 就绪
     -> TeleBox commitFocus(nextBox)
 ```
 
@@ -371,31 +504,31 @@ remove 当前 App / Box
 
 空 App 集合的内部清理仍遵循现有的 App 数量相关标题栏逻辑，但不能覆盖显式的全屏控制。`fullscreen` 状态和 `setFullscreen()` 的优先级高于 App 数量推导：当调用方显式设置全屏状态时，标题栏必须按该状态显示或隐藏；后续 Box 增删只允许更新非全屏场景下的默认可见性。这样既保持当前逻辑，也保证即使没有 App，`setFullscreen(true/false)` 仍能按原语义控制最大化标题栏。
 
-## 10. 页面恢复
+## 11. 页面恢复
 
 lazy setup 不能丢失 App 原本的页面位置。
 
 - `fullPath` 是恢复指定 scene/page 的首选权威值；
 - App View 在 setup 前可以先设置 `focusScenePath`；
 - AppProxy 必须在创建 `AppPageStateImpl` 前同步创建 View，避免分页状态持有未定义的 View；
-- runtime teardown 后再次 setup 前，必须重新挂载 `fullPath`/scenePath 属性监听，并立即按当前 `fullPath` 恢复 View；
+- runtime teardown 后再次 setup 前，必须重新挂载 `fullPath`/scenePath 属性监听，并立即按当前 `fullPath` 恢复 View（已实现的 `attachSetupScope()` 重挂即为此服务（`src/App/AppProxy.ts` ensureSetup））；
 - Presentation 已经可以从 View path 解析页面；
 - Dynamic DocsViewer 应优先使用 App View 的 path，而不是只读取全局 `displayer.state.sceneState.index`；
 - Slide 需要协调 `fullPath` 与 storage 中的 `state.currentSlideIndex`，避免 setup 后先跳到目标页又被旧 storage state 改回去。
 
 页面恢复应在目标 App 的 setup 流程内完成，不能在 focus 提交之后再异步修正页面，否则用户会先看到错误页面。
 
-## 11. TeleBox 与 WindowManager 的职责
+## 12. TeleBox 与 WindowManager 的职责
 
 ### WindowManager
 
-- 判断当前实例是否启用 lazy setup；
-- 创建和维护 shell/runtime Map；
+- 判断当前实例是否启用 lazy setup；维护 `maxCachedAppsInMaximizedMode` 生效值；
+- 创建和维护 shell / `runtimeCache`（LRU）；
 - 根据 focus 和 zIndex 选择 top App；lazy 模式下不读取 `boxStatus`；
-- 串行化 setup、generation 校验和 runtime teardown；
+- 维护严格串行 setup 队列（含聚焦优先排序）、generation 校验和 runtime teardown；
 - 在 setup ready 后提交 focus；
 - 拦截所有现有 focus/zIndex 提交点，避免 shell 创建完成就提前显示或 focus 未 setup App；
-- 维持默认 eager 分支不变。
+- 维持默认 eager 分支行为不变（仅 setup 串行化）。
 
 ### TeleBox
 
@@ -403,13 +536,11 @@ lazy setup 不能丢失 App 原本的页面位置。
 - 默认情况下保持同步 focus 行为；
 - 仅在 WindowManager 请求时延迟最大化标题栏 close 后的自动 focus；
 - 接收 WindowManager 的 `forceMaximized` 构造参数和运行时 setter；为 true 时屏蔽 normal/restore UI、双击和对应的同步事件，为 false 时恢复原有 UI；
-- 不负责调用 App 的 `setup()`，也不持有 WindowManager 的 runtime Map。
+- 不负责调用 App 的 `setup()`，也不持有 WindowManager 的 runtime 缓存。
 
-## 12. App runtime teardown 契约
+## 13. App runtime teardown 契约
 
-当前 `NetlessApp` 接口只有 `setup()`，现有 `destroy` 事件表示 AppProxy 的最终销毁。不能在每次失焦时复用最终 `destroy` 事件，否则会污染注册 hook、重复挂载监听器，并让同一个 AppContext 进入不可恢复状态。
-
-实现 lazy runtime 释放前，需要增加一个可选的 App 侧 teardown 契约，例如：
+`NetlessApp` 接口已扩展可选 teardown 契约（`src/typings.ts` NetlessApp、`src/App/AppProxy.ts` teardown/destroy）：
 
 ```ts
 interface NetlessApp {
@@ -423,68 +554,177 @@ interface NetlessApp {
 
 约束如下：
 
-- `teardown()` 只释放 Slide/DocsViewer/Presentation runtime、DOM、监听器和资源；
+- `teardown()` 只释放 Slide/DocsViewer/Presentation/MediaPlayer runtime、DOM、监听器和资源；
 - `destroy` 事件仍只用于 AppProxy 最终销毁；
 - teardown 后允许重新创建新的 AppContext 并再次执行 `setup()`；
 - 每次 `setup()` 必须拥有独立的 setup scope；teardown 必须清理本次 setup 在 `context.emitter`（该 emitter 由 AppProxy 复用）上注册的全部监听器和订阅，不能依赖创建新的 AppContext 自动获得新的事件总线；
 - WindowManager 在允许 re-setup 前应确认旧 setup scope 已释放，避免同一 App 多次切换后 destroy/事件监听器线性累积；
 - `teardown()` 必须幂等，重复调用不能抛错；
-- 没有实现 teardown 的第三方 App 不能被静默地当作可安全 suspend 的 App。
+- 没有实现 teardown 的第三方 App 不能被静默地当作可安全 suspend 的 App（现状：teardown 无实现分支 warning 并永久保留 runtime）。
 
-对未实现 teardown 的 App，建议首期采用以下策略之一并明确记录：
+v1 中"三个内置 App 需要同步实现 teardown"的结论已过时：`app-slide`、`app-docs-viewer`、`app-presentation`、`app-media-player` 四个 App 均已实现 `teardown`（见 2.3 节路径）。v2 剩余工作是各 App 的 setup ready 契约（第 14 节）与 presentation 失焦降级（第 15 节）。
 
-1. 该 App 保留 runtime，不获得完整的内存收益；或
-2. 当前实例对该 App 永久保留 runtime 并 warning；首期不做“对房间降级 eager”的模糊处理，避免把 per-App 保留 runtime 与 per-instance 降级混为一谈。
+## 14. 内置 App setup 串行化改造
 
-`app-slide`、`app-docs-viewer`、`app-presentation` 都需要逐一实现并验证该契约。不能仅在 WindowManager 内部调用现有 `destroy` 事件代替。
+WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一个课件的首屏资源就绪后才开始下一个课件"，四个内置 App 必须让 `setup()` 的返回 Promise 覆盖首屏关键资源，同时提供超时与失败路径，避免 setup 队列被单个 App 永久阻塞。
 
-## 13. 兼容性要求
+通用约束（四个 App 一致）：
 
-### 未开启配置
+- `setup()` 返回的 Promise 必须在"首屏可见资源 ready"后 resolve；
+- 必须有超时（默认 5s，可由 AppOptions `setupReadyTimeout` 覆盖）：超时后 setup 仍按成功 resolve（runtime 继续加载），但通过 logger warn 记录，避免阻塞队列或误判失败。注意串行队列会把单个 App 的超时放大为后续每个 App 的等待（N 个 App 最坏 N×超时），因此默认值不宜更长；v1 草案的 10s 已下调为 5s；
+- 首图/首帧**加载失败不使 setup 失败**，交由超时兜底：静态图片的瞬时网络错误不应放大为整个 App setup 失败（SDK 层通常自带重试）。唯一例外是 slide——它具备显式的 `onRenderError` 回调，ready 之前的渲染错误仍然映射为 setup 失败；
+- 超时/失败不 cancel 后台加载本身，只解除对队列的等待；
+- 注意区分两个超时：本节的"App setup ready 超时"（默认 5s，阻塞串行队列）与 WindowManager 侧的 setup watchdog（`APP_SETUP_WATCHDOG_TIMEOUT`，10s，仅输出 hydrate 超时日志、不阻塞不中止）是两个维度；
+- WindowManager 在串行队列中为每个 App 输出 `app setup start/done/duration` info 日志，作为"setup 时间区间不交叉"验收（§19 用例 13）的观测点。
 
-- `AppManager._attributesUpdateCallback()` 的创建顺序和 setup 行为不变；
-- `manager.focusApp()`、TeleBox 本地点击、远端 zIndex/focus 更新保持现有语义；
-- `destroy()` 继续执行完整 App 销毁；
-- 不引入新的异步 focus 等待。
-- 当 `attributes.forceMaximized=true` 时，`setMaximized(false)` / `setBoxState("normal")` 对所有客户端均为 no-op + warning；force=false 后才恢复原有 normal 转换语义。
+### 14.1 app-slide
 
-### `forceMaximized` 协议兼容
+- `SlideDocsViewer.mount()` 暴露 ready Promise；
+- ready = `SlideController.readyPromise`，至少等待首个 `renderEnd`；
+- `app-slide.setup()` 返回该 Promise；
+- 渲染失败（slide error）映射为 reject；`readyPromise` 挂起超过超时时间按 warn + resolve 处理。
 
-- `attributes.forceMaximized` 是房间级协议字段，不是仅供 lazy 客户端读取的本地标记；
-- 支持该字段的 WindowManager/TeleBox 版本必须在 API、远端 reaction、标题栏按钮、双击和删除空集合路径统一禁止 normal；
-- 未升级的旧客户端无法被该字段自动约束，接入方必须保证房间内使用兼容版本，或明确接受旧客户端仍可能写入 normal；
-- `MountParams.forceMaximized` 与 `lazySetupInMaximizedMode` 必须同步透传到 Whiteboard-bridge、iOS、Android、Harmony 的 mount 协议；
-- 清除 `forceMaximized` 必须由明确的房间级管理 API 完成，不能由普通客户端 mount/unmount 或关闭最后一个 App 隐式清除。
+### 14.2 app-docs-viewer
 
-### 开启配置
+- 静态 viewer：等待首个可见页面图片 `load`/`decode`；
+- Dynamic viewer：至少等待 DOM mount 与首个 View render tick；
+- 不等待所有页面图片，否则大 PDF 会长时间阻塞 setup 队列；
+- 保持 PageRenderer 现有的可见页懒加载不变。
 
-- 只改变当前实例的 App runtime 创建时机；
-- `attributes.apps`、focus、zIndex 和关闭同步协议不改变；
-- `manager.setMaximized(true)` 只由显式 `forceMaximized=true` 的可写初始化请求或房间管理 API 触发；lazy 客户端只读取策略字段；
-- 其他客户端不需要新增配置；
-- setup 失败不能破坏已有 shell 或房间 App 列表。
-- `appsChange` 仍表示 App shell 列表变化，不表示 App runtime 已 ready；`onAppSetup` 或 `addAppAndWaitForSetup()` 才表示 setup 完成。
-- Native/Bridge 不应把 `focusedChange` 直接当作 lazy runtime ready 信号；需要使用 setup 完成信号或 WindowManager 的本地 active focus 状态。
+### 14.3 app-presentation
 
-## 14. 重连、Focus 和新增 App 的补充设计
+- `Preload` 增加启动控制：setup 阶段聚焦当前页（`touch(pageIndex, true)`）；后续页面预加载**维持既有 Preload 链**——当前页 onload 后经 `requestIdleCallback`（100ms timeout 兜底）递进，`maxLinks=5` 限流，不与 setup 队列联动（v1 草案"延迟到队列空闲"不再要求）；
+- 不重排 `prepareScenes()` 与重 runtime 的创建顺序（该顺序重构侵入 setup 主体，收益有限）：以"创建后立即聚焦当前页 Preload + setup 等待当前页首图"达成同等内存目标；
+- setup 返回"当前页首个图片资源 ready"（轮询背景 `<img>` complete，5s 超时兜底），而不是只等待场景写入；
+- 该 App 同时落地第 15 节的失焦缩略图降级。
 
-### 14.1 重连
+### 14.4 app-media-player
 
-当前 `AppProxy.onReconnected()` 会销毁后通过 `baseInsertApp()` 重建，默认会让每个 App 重新 eager setup。lazy 模式必须分流：
+- 给 `MediaPlayer` 组件增加 ready callback/Promise；
+- setup 至少等待 video.js 实例创建完成；若产品要求首帧可见，则等待 `loadedmetadata`；
+- `initPlayer()` 增加取消 token：teardown 发生在初始化完成前时，取消后续 DOM 写入；
+- `componentWillUnmount()` 必须与未完成的 `initPlayer()` 协同，避免"已卸载 DOM"异步异常；
+- ready 等待超时可配置：per-app AppOptions `setupReadyTimeout` > 全局 `setOptions({ setupReadyTimeout })` > 默认 5s。
+
+### 14.5 验收标准
+
+- 串行队列观测点记录每个 App setup 的开始/结束时间，任意两个 App 的时间区间不得交叉；
+- App 内部资源加载（slide 首帧、docs 首图、presentation 首图、video.js 实例）完成时间不得晚于其 setup Promise resolve 时间。
+
+## 15. app-presentation 失焦缩略图降级（frozen/unfrozen 模式）
+
+### 15.1 参考模型：app-slide freezer
+
+`app-slide` 已有一套失焦降级机制（`slide-app/packages/app-slide/src/utils/freezer.ts`）：
+
+- `FreezableSlide { freeze; unfreeze }`，`useFreezer` 默认关，`FreezerLength = 2`；
+- 通过 `WindowManager.register({ kind, src, addHooks })` 的 kind 级 emitter 监听 `"focus"` 事件维护按 zIndex 排序的 LRU 焦点队列；队列超长时冻结 zIndex 最低者；
+- `freeze()` → `slide.frozen()`：截图缓存当前画面、销毁 player/WebGL，保留状态与 DOM；`unfreeze()` → `slide.release()`：重建 player、按 storage 恢复页码/动画；
+- frozen 与 teardown 的区别：frozen 保留 Slide 实例与 DOM、可快速恢复；teardown 彻底销毁 runtime，需要完整 setup 重建。
+
+`app-presentation` 需要一个类似定位更轻的机制：**不销毁播放器/渲染器，只在失焦且仍被缓存时，把页面大图 DOM 替换为低分辨率缩略图**，释放全量位图内存；重新聚焦时换回大图。
+
+### 15.2 white-sdk 背景渲染链路（为什么必须走 DOM，而不是 scene API）
+
+关键事实（white-web-sdk 源码）：
+
+- PPT 每页图片由 scene 的 `ppt`（`PptDescription { src, width, height, previewURL? }`）描述；`SceneNode` 构造时把它包装成第 0 号组件 `BackgroundImage`（`white-sdk/model/src/scene/SceneNode.ts:14-24`）。
+- 背景层的渲染是**真实 DOM `<img>`**：`BackgroundImageComponent` 对静态转换图直接渲染 `<img src={ppt.src} width height>`（`white-sdk/render/src/views/others/BackgroundImage.tsx:68-77`），挂在 orderIndex 0、className 为 `background` 的纯 HTML 引擎层（`white-sdk/render/src/views/RegisterImplement.ts:33-38`）；画笔在其上的 SVG/canvas 层。`app-presentation` 自身的主图 `<img>` 已被废弃（注释保留在 `netless-app-presentation/src/presentation.ts:93-95`、`updateImage()` 只剩 Preload 触发，`netless-app-presentation/src/app-presentation.ts:1238-1241`）。
+- `page.thumbnail` 正是 `ppt2page()` 从 `ppt.previewURL` 映射而来（`netless-app-presentation/src/app-presentation.ts:147-155`；`PresentationPage.thumbnail?: string`，`netless-app-presentation/src/presentation.ts:9-15`）。
+
+为什么不能用 scene API 重置背景：
+
+- 没有原地修改背景的 API，只能对同名场景重新 `putScenes`（`white-sdk/web-sdk/src/displayer/Room.ts:300`）；
+- `putScenes` 是整节点替换：旧 `SceneNode`（连同全部板书组件）被只含新背景的新节点顶掉，场景 id 变化（`white-sdk/model/src/scene/SceneManager.ts:120-143`）；
+- 它是 `stateTrigger.activeUpdate("sceneState", ...)` 的 akko mutation，会**同步广播给房间所有人并持久化**（`white-sdk/web-sdk/src/displayer/RoomImplement.ts:1061-1081`）；
+- 场景变化触发场景渲染整体重建（`white-sdk/render/src/render/WhiteboardRender.ts:131-154`），背景 `<img>` 重新挂载/重新拉流解码，房间内每个端都要做一遍；
+- 场景 id 变化使 `ViewFocusScene` 失效、`focusScenePath` 复位（`white-sdk/web-sdk/src/displayer/views/ViewFocusScene.ts:62-68`），undo 栈也要重绑。
+
+**结论：失焦降级是纯本地视觉优化，必须只做 DOM 层的 `img.src` 替换，禁止调用任何 scene API（`putScenes`/`removeScenes`/`cleanCurrentScene` 等）。**
+
+### 15.3 设计
+
+**焦点信号（window-manager 侧）**
+
+`focus: boolean` 事件（`src/typings.ts`，1.0.23 已实现发射）有三个来源，统一经 `AppProxy.emitAppFocusEvent()` 出口（带变更去重，setup 完成时的初次同步强制发射）：
+
+1. **attributes.focus autorun（权威来源）**：`AppManager.onFocusChange()` 在焦点变化时向旧 focused App 发 `false`、新 focused App 发 `true`。此来源覆盖程序化/远端 focus 变化，且在只读端、Player 上同样工作——v1 草案"由 AppProxy 监听 Box focus/blur"的单一来源在 eager 模式（`focusBox` 默认 skipUpdate 不触发 telebox Focused/Blurred）与只读端（BoxManager 有 `canOperate` 门禁）存在覆盖缺口，已废弃该依赖；
+2. **box focus/blur 事件**：本地点击等场景在 attributes 同步前提供早期信号；
+3. **setup 完成同步**：`finishAppSetup` 成功后按当前 `isFocused` 强制发射一次，保证 App 在 setup 期间订阅后能看到一致的初值。
+
+同时提供只读 getter `AppContext.isFocused(): boolean`。注意：事件只保证"最终一致"，可能重复（去重后跨来源仍可能连续发射同向值），App 侧必须幂等处理。
+
+**app-presentation 侧行为**
+
+前提：整套失焦降级是 lazy 模式专属的缓存优化——事件处理器触发时**动态**检查 `windowManager.lazySetupInMaximizedMode`（运行时可能变化，如 forceMaximized 被清除后实例降级 eager），非 lazy 模式直接忽略 focus 事件；eager 模式即使处于 maximized 状态也不降级。
+
+在 `setup()` 中订阅 `context.emitter.on("focus", isFocused)`（并注册进本次 setup scope，teardown 时清理）：
+
+```text
+focus=false（失焦）
+    条件：本 App 未被 teardown（仍在缓存中），且当前 boxState 为 maximized/minimized
+    动作：把当前页背景 <img> 的 src 替换为 page.thumbnail（即 ppt.previewURL）
+          - page.thumbnail 不存在 -> 跳过，保持原样
+          - 同时暂停 Preload（销毁 in-flight <link rel=preload>，停止后续调度）
+          - 纯 DOM 赋值，不调用任何 white-sdk scene API
+
+focus=true（重新聚焦）
+    动作：把背景 <img> 的 src 恢复为当前页完整大图 src（page.src）
+          - 恢复 Preload：preload.touch(pageIndex, true)
+          - 同样纯 DOM 赋值
+```
+
+条件说明：
+
+- "CachedApps 非 1"由"失焦且未被 teardown"自然覆盖：cache=1 的 lazy 模式下失焦会很快 teardown（DOM 随之移除），替换是无害的空操作；多缓存时失焦 App 长期驻留，替换才有意义；
+- 增加 `boxState ∈ {maximized, minimized}` 守卫，避免 eager normal 平铺窗口下可见 App 的画质回退（lazy 模式不可能出现 normal，该守卫只为 eager 复用同一逻辑时兜底）；
+- 只依据 `isFocused` 判断（辅以 lazy 与 boxState 守卫），不读 zIndex、不判断遮挡；
+- `app-slide` 的 blur freeze（`context.emitter.on("focus")` → `SlideController.freeze()/unfreeze()`）遵循完全相同的守卫链（lazy 前提 + maximized/minimized），实现位于 app-slide setup 的 focus 订阅。
+
+**背景 `<img>` 的定位方式**
+
+- 替换目标是 `context.getView()` 容器内 background 引擎层（className `background`，orderIndex 0）中的 `<img>`；通过 DOM 查询定位（可按 `alt="background"` 等稳定特征），**不经过 scene/model API**；
+- 需要记录原始 `src`（或直接从 `pageIndex$` 对应 `page.src` 取回），供恢复时使用。
+
+### 15.4 边界与风险
+
+- **React 重渲染覆盖（已实现缓解）**：背景 `<img>` 由 SDK 的 React 组件渲染，场景节点变化或 onError 重试可能触发重渲染、把 `src` 写回大图。实现方式：在 view 容器上注册**捕获阶段** `load` 监听（`load` 不冒泡但捕获可用），失焦 episode 期间任何背景图完成加载都立即重新应用缩略图 src——同时覆盖远端翻页、React 重渲染与 SDK onError 重试三条路径；URL 比较按解析后的绝对 href 进行，保证循环终止；
+- **远端翻页**：失焦期间远端翻页会生成新场景的新背景 `<img>`（大图），由上述 load 捕获监听自动重新降级；失焦 episode 内翻到无 `previewURL` 的页时跳过该页、后续有缩略图的页继续降级（episode 标志与"当前页已降级"分离为两个状态：`blurEpisode` / `reDegradeEnabled`）；
+- **缩略图自身加载失败（已实现缓解）**：捕获阶段 `error` 监听在背景图 error 且处于失焦 episode 时关闭 `reDegradeEnabled`，停止本 episode 的重降级，避免与 SDK 背景组件自身的 onError 重试（最多 3 次）来回拉锯；聚焦恢复时仍强制 `restore()` 全图，破损缩略图不会停留到聚焦态；
+- **恢复时机**：`focus=true` 的事件发射点应在 `focusBox`/`makeBoxTop` 之后、App 完全可见之前，恢复大图有网络/解码延迟时短暂显示缩略图属于可接受降级；
+- **浏览器内存**：`src` 替换后旧大图由 GC 释放；恢复时大图通常命中 HTTP 缓存，代价可控；
+- **与 teardown 的竞态**：失焦替换后立即 teardown 是合法序列：teardown 移除 DOM，替换逻辑必须幂等且不抛错；teardown 后收到的过期 focus 事件必须被 setup scope 清理机制忽略；
+- **thumbnail 缺失**：转换任务未生成 `previewURL` 时直接跳过，不做本地降采样兜底（保持行为可预期；后续如需兜底另立配置）；
+- **侵入 SDK 内部 DOM 的说明**：直接改 SDK 渲染的 `<img>` 属于受控的白盒优化。若未来 white-sdk 提供官方的背景降级 API（如 `view.setBackgroundSrc()`），应迁移过去并删除 DOM 查询逻辑。
+
+### 15.5 验收标准
+
+- cache ≥ 2 时，presentation 失焦后其背景 `<img>` src 等于 `page.thumbnail`（存在时），重新聚焦后恢复为 `page.src`；
+- `page.thumbnail` 缺失时不发生任何 src 变化；
+- 全程不触发 `putScenes`/`removeScenes`/`cleanCurrentScene`，房间 `sceneState` 无 diff、其他客户端无感知；
+- 失焦期间远端翻页后，新页背景同样被降级；
+- 失焦替换后立即 teardown 不抛错、无内存泄漏（监听器随 setup scope 清理）；
+- cache=1（失焦即 teardown）与 eager normal 模式下行为与现状完全一致。
+
+## 16. 重连、Focus 和新增 App 的补充设计
+
+### 16.1 重连
+
+基线状态：`AppProxy.onReconnected()` 销毁后经 `baseInsertApp()` 重建并重新 setup，`AppManager.onReconnected()` 原先使用 `Promise.all()` 并发。现已改造为分流并串行化：
 
 ```text
 重连
     -> 恢复所有 App shell / View / Box
     -> minimized：不 setup runtime
-    -> maximized：只 setup 当前 top App
+    -> maximized：按第 7.3 节优先级串行 setup（聚焦 App 最先；cache 模式下只保留允许数量的 runtime）
     -> setup ready 后再提交 focus
 ```
 
-重连路径必须复用同一个 `settingUpApps` 和 focus generation，不能通过旧的 eager `baseInsertApp()` 绕过 lazy 状态机。
+重连路径必须复用同一个 `settingUpApps`、setup 串行队列和 focus generation，不能通过旧的 eager `baseInsertApp()` 绕过 lazy 状态机。
 
-Player 的 `onPlayerSeekDone()` 触发全量 attributes 重建，必须按同一 lazy reconnect 流程处理：先恢复 shell，再按当前 minimized/maximized 状态只 setup 允许的 App，不能让全量 `_attributesUpdateCallback()` 把所有 App 重新 eager setup。
+Player 的 `onPlayerSeekDone()` 触发全量 attributes 重建，必须按同一流程处理：先恢复 shell，再按当前 minimized/maximized 状态串行 setup 允许的 App，不能让全量 `_attributesUpdateCallback()` 并发 setup 所有 App。
 
-### 14.2 Focus 拦截清单
+### 16.2 Focus 拦截清单
 
 需要统一经过 lazy focus coordinator 的入口包括：
 
@@ -503,109 +743,197 @@ eager 模式下 coordinator 必须同步放行这些请求；lazy 模式下未 s
 
 解除最小化统一执行：`setMinimized(false)` -> 重新计算 top App -> setup 成功 -> 提交 focus/zIndex。不能沿用 TeleBox `minimized` 事件中的同步 focus 快路径。
 
-### 14.3 新增 App
+### 16.3 新增 App
 
 - 远端新增 App：先创建 shell，只有它成为当前 top App 时才 setup；
 - 当前客户端 `addApp()`：沿用现有 focus 语义，若新 App 成为 top，则由 lazy coordinator setup 后提交 focus；
-- `addAppAndWaitForSetup()`：这是显式的 ready API，即使目标 App 不是当前 top，也必须 setup 完成后再 resolve；
+- `addAppAndWaitForSetup()`：这是显式的 ready API，即使目标 App 不是当前 top，也必须 setup 完成后再 resolve（进入串行队列，按最高优先级插入）；
 - `forceTop` App 的选择必须与 TeleBox 一致，初始化 top 使用 `maxForceTopBox`/`topBox`；标题栏 close 与 close 后的下一 top 必须复用同一个 focus coordinator 选择结果，不能一个按 forceTop、另一个按 focused/topBox；
-- 新增 App 不能直接调用旧 eager `baseInsertApp()` 绕过 Map 和 coordinator。
+- 新增 App 不能直接调用旧 eager `baseInsertApp()` 绕过缓存与 coordinator。
 
-lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除最小化；新 App 只创建 shell，直到调用方显式解除最小化，才按 top App coordinator setup。这样可以保持“最小化期间不创建重 runtime”的性能约束。
+lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除最小化；新 App 只创建 shell，直到调用方显式解除最小化，才按 top App coordinator setup。这样可以保持"最小化期间不创建重 runtime"的性能约束。
 
 本地点击未 setup App 时，WindowManager 会先暂时撤销 TeleBox 的本地视觉 focus，但不会把仍然有效的房间级 `attributes.focus` 写成 `undefined`；旧 focused App 会保持为共享 active，直到新 App setup 成功后再提交新的 focus。
 
-## 15. 审计问题与修复结论
+## 17. 兼容性要求
+
+### 未开启配置
+
+- `AppManager._attributesUpdateCallback()` 的创建顺序和 setup 行为不变（真实 setup 串行化对调用方不可见，只改变时序重叠）；
+- `manager.focusApp()`、TeleBox 本地点击、远端 zIndex/focus 更新保持现有语义；
+- `destroy()` 继续执行完整 App 销毁；
+- 不引入新的异步 focus 等待。
+- 当 `attributes.forceMaximized=true` 时，`setMaximized(false)` / `setBoxState("normal")` 对所有客户端均为 no-op + warning；force=false 后才恢复原有 normal 转换语义。
+
+### `forceMaximized` 协议兼容
+
+- `attributes.forceMaximized` 是房间级协议字段，不是仅供 lazy 客户端读取的本地标记；
+- 支持该字段的 WindowManager/TeleBox 版本必须在 API、远端 reaction、标题栏按钮、双击和删除空集合路径统一禁止 normal；
+- 未升级的旧客户端无法被该字段自动约束，接入方必须保证房间内使用兼容版本，或明确接受旧客户端仍可能写入 normal；
+- `MountParams.forceMaximized`、`lazySetupInMaximizedMode`、`maxCachedAppsInMaximizedMode` 必须同步透传到 Whiteboard-bridge、iOS、Android、Harmony 的 mount 协议；
+- 清除 `forceMaximized` 必须由明确的房间级管理 API 完成，不能由普通客户端 mount/unmount 或关闭最后一个 App 隐式清除。
+
+### 开启配置
+
+- 只改变当前实例的 App runtime 创建与缓存策略；
+- `attributes.apps`、focus、zIndex 和关闭同步协议不改变；
+- `manager.setMaximized(true)` 只由显式 `forceMaximized=true` 的可写初始化请求或房间管理 API 触发；lazy 客户端只读取策略字段；
+- 其他客户端不需要新增配置；
+- setup 失败不能破坏已有 shell 或房间 App 列表；
+- `appsChange` 仍表示 App shell 列表变化，不表示 App runtime 已 ready；`onAppSetup` 或 `addAppAndWaitForSetup()` 才表示 setup 完成；
+- Native/Bridge 不应把 `focusedChange` 直接当作 lazy runtime ready 信号；需要使用 setup 完成信号或 WindowManager 的本地 active focus 状态。
+
+## 18. 审计问题与修复结论
 
 | 审计项 | 设计修复 |
 | --- | --- |
-| R1 minimized 是共享状态 | 不再“本地清理 minimized”；允许 minimized。只有显式 `forceMaximized=true` 的可写入口负责调用 `setMaximized(true)`，lazy 客户端不自行写入。 |
+| R1 minimized 是共享状态 | 不再"本地清理 minimized"；允许 minimized。只有显式 `forceMaximized=true` 的可写入口负责调用 `setMaximized(true)`，lazy 客户端不自行写入。 |
 | R2 退出 maximized 后出现空 shell | 由共享 `attributes.forceMaximized=true` 统一禁止 normal；所有支持该字段的客户端从 API、远端 reaction、按钮、双击和删除空集合路径拦截。 |
-| R3 reconnect 绕过 lazy | 增加 lazy reconnect 分支，只恢复 shell，按 minimized/maximized 选择 setup 数量。 |
-| R4 没有 teardown 钩子 | 增加 App 侧可选 teardown 契约，禁止复用最终 destroy 事件；三个内置 App 需要同步改造。 |
-| R5 setup 前提交 focus | 增加 focus coordinator，盘点并改道所有现有 focus/zIndex 提交点；TeleBox 本地点击也需要同步 defer hook。 |
-| R6 只读端无法保证最大化 | lazy 客户端只读取 `attributes.forceMaximized`；字段不存在时 warning 并降级 eager，不尝试写入。由可写房间入口负责首次设置该字段。 |
+| R3 reconnect 绕过 lazy | 增加 lazy reconnect 分支，先恢复 shell，再按优先级串行 setup。 |
+| R4 没有 teardown 钩子 | App 侧可选 teardown 契约已落地（四个内置 App 均已实现）；禁止复用最终 destroy 事件。 |
+| R5 setup 前提交 focus | focus coordinator 盘点并改道所有现有 focus/zIndex 提交点；TeleBox 本地点击同步 defer。 |
+| R6 只读端无法保证最大化 | lazy 客户端只读取 `attributes.forceMaximized`；字段不存在时 warning 并降级 eager，不尝试写入。 |
 | R7 mount/onCreated 时序 | 配置校验在 mount，状态归一化在 BoxManager 创建后、onCreated 之前；mount 失败恢复共享状态。 |
-| R8 forceTop 选择不一致 | 初始化 top 选择遵循 `maxForceTopBox`/`topBox`；标题栏 close 与下一 top 使用同一个 focus coordinator 选择结果。 |
-| R9 Bridge 把 appsChange 当 ready | 明确 `appsChange` 只表示 shell，Bridge/native 使用 setup 完成信号。 |
-| R10 新增 App 绕过 lazy | 本地和远端新增 App 统一进入 lazy coordinator；`addAppAndWaitForSetup()` 保留显式 ready 语义。 |
+| R8 forceTop 选择不一致 | 初始化 top 选择遵循 `maxForceTopBox`/`topBox`；标题栏 close 与下一 top 使用同一个 coordinator 结果。 |
+| R9 Bridge 把 appsChange 当 ready | `appsChange` 只表示 shell，Bridge/native 使用 setup 完成信号。 |
+| R10 新增 App 绕过 lazy | 本地和远端新增 App 统一进入 coordinator；`addAppAndWaitForSetup()` 保留显式 ready 语义。 |
 | M1 解除 minimized 绕过 coordinator | `minimized=false` 事件和 `addApp()` 的自动解除最小化都先 setup top，再提交 focus/zIndex。 |
-| M2 close 目标与 forceTop 不一致 | 初始化 top、标题栏 close 目标和 close 后下一 top 统一由 coordinator 选择，避免删除未 setup 的错误 Box。 |
+| M2 close 目标与 forceTop 不一致 | 初始化 top、标题栏 close 目标和 close 后下一 top 统一由 coordinator 选择。 |
 | M3 teardown 监听器累积 | 每次 setup 建立独立 scope；teardown 必须清理复用 `context.emitter` 上的本次监听器后才能 re-setup。 |
 | M4 bind/rebuild 绕过 lazy | 每次 `bindContainer()`、reconnect 和 Player seek rebuild 都幂等重放 force 状态、shell 恢复和 top setup。 |
 | H2 forceMaximized 生命周期不完整 | 定义 `setForceMaximized(true/false)`、force 清除后的 lazy -> eager 行为，以及 force=true 但当前 normal 时的 warning/eager 降级。 |
 | M5 force 与 lazy 自举歧义 | `forceMaximized=true` 且可写时先写字段并 setMaximized(true)，再读取字段和 boxState；仅 lazy 参数要求读取已有 force 状态。 |
 | M6 eager normal API 未定义 | force=true 时 `setMaximized(false)` / `setBoxState("normal")` 统一 no-op + warning；force=false 后恢复原语义。 |
-| M7 TeleBox 动态策略缺口 | WindowManager 同时通过构造参数和运行时 setter向 TeleBox 传递 force 状态，确保按钮、双击和事件路径一致。 |
+| M7 TeleBox 动态策略缺口 | WindowManager 同时通过构造参数和运行时 setter 向 TeleBox 传递 force 状态，确保按钮、双击和事件路径一致。 |
+| R11 单 runtime 缓存（v1 结论过时） | 新增 `maxCachedAppsInMaximizedMode`，`runtimeCache` 改为 LRU 多缓存；默认 1 保持现状行为。 |
+| R12 队列只保证创建串行，setup 并发 | 新增统一真实 setup 串行队列，任务必须 `await ensureSetup()`；eager `setTimeout` 路径纳入队列。 |
+| R13 reconnect/seek `Promise.all` 并发重建 | reconnect、seek rebuild 改为串行队列 + 聚焦优先排序。 |
+| R14 各 App `setup()` 提前返回、资源尾部异步 | 四个内置 App 增加 setup ready 契约（首屏资源 + 超时 + 失败路径）。 |
+| R15 presentation 失焦后仍持有全量大图 | 失焦缩略图降级（第 15 节），纯 DOM 替换，禁用 scene API。 |
+| R16 `AppEmitterEvent.focus` 已声明未发射 | WindowManager 补齐 per-App `focus: boolean` 发射与 `AppContext.isFocused()`，作为 App 感知 isFocused 的唯一通道。 |
 
-## 16. 测试计划
+## 19. 测试计划
 
 实现前后至少覆盖以下场景：
 
-1. 默认配置恢复多个 App，所有 App 仍按原流程 setup。
+**基础与状态机**
+
+1. 默认配置恢复多个 App，所有 App 仍按原流程 setup，行为与时序对调用方无感知差异。
 2. lazy 配置恢复多个 App，仅 maximized top App setup，其余 App 只有 shell。
 3. 房间初始为 minimized，lazy mount 保留 minimized；解除 minimized 后进入 maximized 并 setup top App。
 4. lazy 配置下任何入口都不能进入 normal，且 TeleBox normal/restore 按钮和双击均无效。
 5. lazy + `useBoxesStatus=true` 只 warning，实际使用 `useBoxesStatus=false`。
 6. 只读端或 Player 在 force 字段缺失，或 force=true 但当前 normal 时 warning 并降级 eager。
-7. 可写房间入口使用 `forceMaximized=true` 同时写入房间字段并调用 `setMaximized(true)`；只读 lazy 客户端读取该字段后启用 lazy，不尝试写入或调用 `setMaximized(true)`。
+7. 可写房间入口使用 `forceMaximized=true` 同时写入房间字段并调用 `setMaximized(true)`；只读 lazy 客户端读取该字段后启用 lazy，不尝试写入。
 8. 房间没有 `forceMaximized=true` 时，lazy 客户端 warning 并 eager setup；未开启 lazy 的客户端仍遵守已存在的 forceMaximized。
 9. `manager.setMaximized(true)` 仍同步到房间，未开启 lazy 的另一客户端保持 eager setup。
-10. `setForceMaximized(false)` 只清除房间策略；force 清除后 eager 客户端恢复 normal 能力，lazy 实例转为 eager 并补齐 runtime。
+10. `setForceMaximized(false)` 只清除房间策略；force 清除后 eager 客户端恢复 normal 能力，lazy 实例转为 eager 并按串行队列补齐 runtime。
 11. force=true 时任何客户端调用 `setMaximized(false)` / `setBoxState("normal")` 都 no-op + warning。
 12. legacy 客户端写入 normal 后，支持 force 的新客户端在 normal 状态下不进入 lazy；可写管理入口重新 force 后恢复 maximized。
-13. focus A -> B 时，B setup 完成前 TeleBox 不提交 B focus，A runtime 不提前销毁。
-14. 快速 A -> B -> C 切换时，过期 B setup 完成后不会重新 focus B。
-15. 最大化标题栏关闭 A 后，B setup 完成再 focus B。
-16. 解除 minimized 时先 setup top，再提交 focus；`addApp()` 在 minimized 下也遵循该顺序。
-17. `addAppAndWaitForSetup()` 对非 top App 也真正完成 setup 后再 resolve。
-18. 关闭最后一个 App 时，不发生意外的 false -> true 状态抖动。
-19. 空 App 集合下保留现有 App 数量相关标题栏逻辑，但 `setFullscreen(true/false)` 优先级更高并能覆盖该默认推导。
-20. `forceTop` App 的 setup/focus 选择与 TeleBox top 语义一致。
-21. Slide、DocsViewer、Presentation setup 后恢复正确的 `fullPath` / page index。
-22. setup/teardown 失败时 shell 保留、focus 不提交、错误可观测。
-23. reconnect、Player seek rebuild、重复 `bindContainer()` 后不会重复 setup 或重复同步最大化状态。
-24. `appsChange`、`onAppSetup`、`addAppAndWaitForSetup()` 的 ready 语义分别正确。
 
-实现说明：lazy focus 等待 AppProxy 的创建窗口最多 2 秒；超时会通过 `room.logger.warn` 记录并放弃本次 focus 请求，后续 focus 请求仍可继续执行。force 清除、zIndex pending flush、teardown 幂等和监听器卫生属于集成回归测试重点，当前单元测试只锁定 setup 失败、descriptor 缺失和 setup 完成态等核心状态机行为。
+**串行 setup 与缓存**
 
-## 17. 实现检查清单
+13. 初始恢复多个 App（eager）时，前一个 App 的 `app.setup()` 完成后才开始下一个；setup 开始/结束时间区间不交叉（观测点：串行队列输出的 `app setup start/done/duration` info 日志）。
+14. cache=1 时与现状行为一致：新 App ready 后 teardown 旧 App。
+15. cache=5 时打开 1~5 均不 teardown；打开 6 时 LRU 项 1 被淘汰，缓存变为 [2,3,4,5,6]。
+16. 命中缓存的 App 切回时不重新 `setup()`，仅更新 LRU 顺序；同一 App 的并发 setup 请求复用同一 Promise。
+17. 快速切换 A -> B -> C 时，过期 B setup 完成后不会重新 focus B。
+18. teardown 与 setup 不并发；`tearing-down` 项不参与缓存命中。
+19. reconnect 与 Player seek rebuild 不使用 `Promise.all()` 并发 setup，全部走串行队列。
+20. setup 失败后 shell 保留、focus 不提交、不占用缓存 slot、不触发对其他缓存项的淘汰。
+21. `addAppAndWaitForSetup()` 对非 top App 也真正完成 setup 后再 resolve。
+22. media-player 在 setup 未完成时 teardown 不产生异步 DOM 异常（取消 token 生效）。
+23. 进入 minimized 串行释放全部缓存 runtime；退出 minimized 后聚焦 App 最先恢复。
+24. force 清除后的补齐按聚焦优先排序；重复 `bindContainer()` 不重复 setup 或重复同步最大化状态。
+25. 聚焦优先：批量 setup（初始化/reconnect/seek/补齐）中 `attributes.focus` App 的 setup 开始时间早于其余 App。
+26. `maxCachedAppsInMaximizedMode` 非法值（0、负数、小数、非数字）回退 1 并 warning。
 
-- [ ] 在 `MountParams` 增加 `lazySetupInMaximizedMode?: boolean`，默认行为为 `false`。
-- [ ] 在 `MountParams` 增加 `forceMaximized?: boolean`；仅可写房间入口用它同时写入 `attributes.forceMaximized=true` 并调用 `setMaximized(true)`。
-- [ ] lazy 模式仅在读取到 `attributes.forceMaximized=true` 时生效；字段缺失时 warning 并降级 eager。
-- [ ] `attributes.forceMaximized=true` 时所有支持该字段的客户端只允许 minimized/maximized，统一拦截 normal。
-- [ ] 定义并实现 `setForceMaximized(true/false)` 的写权限、属性更新和 force 清除后的 lazy -> eager 降级。
-- [ ] force=true 时 eager/lazy 客户端的 normal API 统一 no-op + warning；force=false 后恢复原有行为。
-- [ ] lazy + `useBoxesStatus=true` 在 mount warning，并按 false 创建。
-- [ ] lazy 客户端读取不到 `attributes.forceMaximized=true` 时 warning 并降级 eager，不尝试写入 forceMaximized。
-- [ ] 将 lazy setup 状态限制在当前 WindowManager 实例；仅同步房间级 `forceMaximized` 策略字段。
-- [ ] 在 BoxManager 创建后、onCreated 前执行最大化归一化，不自动解除 minimized。
-- [ ] 保留 scene/View shell 初始化，延迟 App runtime setup。
-- [ ] 增加 `unsetupApps`、`setupApps`、`settingUpApps` 和 active/pending focus 状态。
-- [ ] 增加明确的 App runtime teardown 契约，并同步改造三个内置 App。
-- [ ] 在 setup 完成后才提交 TeleBox focus。
-- [ ] 盘点并改道所有现有 focus/zIndex 提交点。
+**Focus / close / 页面 / 回调语义**
+
+27. focus A -> B 时，B setup 完成前 TeleBox 不提交 B focus，A runtime 不提前销毁（cache=1）；cache≥2 时 A 进入缓存不销毁。
+28. 最大化标题栏关闭 A 后，B 就绪再 focus B。
+29. 解除 minimized 时先 setup top，再提交 focus；`addApp()` 在 minimized 下也遵循该顺序。
+30. 关闭最后一个 App 时，不发生意外的 false -> true 状态抖动。
+31. 空 App 集合下保留现有标题栏逻辑，但 `setFullscreen(true/false)` 优先级更高。
+32. `forceTop` App 的 setup/focus 选择与 TeleBox top 语义一致。
+33. Slide、DocsViewer、Presentation setup 后恢复正确的 `fullPath` / page index。
+34. `appsChange`、`onAppSetup`、`addAppAndWaitForSetup()` 的 ready 语义分别正确。
+
+**presentation 失焦缩略图降级**
+
+35. cache ≥ 2 时 presentation 失焦后背景 `<img>` src 变为 `page.thumbnail`，重新聚焦后恢复 `page.src`；全程不调用 scene API、房间 sceneState 无 diff。
+36. `page.thumbnail` 缺失时失焦不改变任何 src。
+37. 失焦期间远端翻页，新页背景同样被降级；重新聚焦后当前页为大图。
+38. 失焦替换后立即 teardown 幂等不抛错；teardown 后过期 focus 事件被忽略。
+39. cache=1 与 eager normal 模式下降级逻辑不生效，行为与现状一致。
+40. 失焦后 Preload 暂停、聚焦后恢复当前页预加载。
+
+实现说明（已实现部分）：lazy focus 等待 AppProxy 的创建窗口最多 2 秒（`ensureLazyFocus` 轮询）；超时通过 logger warn 记录并放弃本次 focus 请求。当前单元测试已锁定 setup 失败、descriptor 缺失和 setup 完成态等核心状态机行为；force 清除、zIndex pending flush、teardown 幂和监听器卫生、串行队列与缓存淘汰属于集成回归测试重点。
+
+## 20. 实现检查清单
+
+**配置与状态**
+
+- [x] 在 `MountParams` 增加 `maxCachedAppsInMaximizedMode?: number`（默认 1，非法值回退 1 + warning，仅 lazy 生效）。
+- [x] 在 `MountParams` 增加 `lazySetupInMaximizedMode?: boolean`（默认 `false`）与 `forceMaximized?: boolean`；后者仅可写房间入口用于写入 `attributes.forceMaximized=true` 并调用 `setMaximized(true)`。
+- [x] lazy 模式仅在读取到 `attributes.forceMaximized=true` 时生效；字段缺失时 warning 并降级 eager。
+- [x] `attributes.forceMaximized=true` 时所有支持该字段的客户端只允许 minimized/maximized，统一拦截 normal。
+- [x] 定义并实现 `setForceMaximized(true/false)` 的写权限、属性更新和 force 清除后的 lazy -> eager 降级。
+- [x] lazy + `useBoxesStatus=true` 在 mount warning，并按 false 创建。
+- [x] 将 lazy setup 状态与 runtime 缓存限制在当前 WindowManager 实例；仅同步房间级 `forceMaximized` 策略字段。
+- [x] 在 BoxManager 创建后、onCreated 前执行最大化归一化，不自动解除 minimized。
+
+**串行 setup 队列与缓存**
+
+- [x] 实现 `runtimeCache`（LRU：lastUsed + setting-up/ready/tearing-down 状态）与 `settingUpApps` Promise 复用。
+- [x] 实现统一真实 setup 串行队列（任务必须 `await ensureSetup()`），并把 7.2 节全部路径接入。
+- [x] 移除 eager `setupApp()` 中 `setTimeout` 造成的 setup 并发（延迟启动保留、执行入队）。
+- [x] 队列调度器支持按优先级取任务（forceTop > focus > zIndex 降序 > 插入序），focus 变化可重排未开始任务。
+- [x] reconnect / Player seek rebuild 移除 `Promise.all()`，改走串行队列。
+- [x] 实现 6.4 节 LRU 淘汰时序（cache=1 保持"新 ready 后 teardown 旧"；cache≥2 溢出先淘汰后 setup）。
+- [x] 进入 minimized 串行释放全部缓存 runtime；退出 minimized 聚焦优先恢复。
+- [x] teardown-during-setup 竞态守卫：AppProxy setup 代次（`setupRunGeneration`），teardown/destroy 递增，进行中的 setup 完成后按中止处理（不标记 ready、不占缓存 slot）。
+
+**shell 与 App 契约**
+
+- [x] 保留 scene/View shell 初始化，延迟 App runtime setup。
+- [x] 补齐 `AppEmitterEvent.focus: boolean` 的发射点（attributes autorun 权威来源 + box 事件 + setup 同步，经 `emitAppFocusEvent` 去重）与 `AppContext.isFocused()` getter。
+- [x] app-slide：setup 返回首个 `renderEnd` ready Promise（含超时/失败路径）。
+- [x] app-docs-viewer：静态等待首张可见页图片 load/decode；dynamic 等待首个 render tick（含超时）。
+- [x] app-presentation：Preload 启动控制（setup 聚焦当前页）；setup 返回当前页首图 ready（5s 超时）；不重排创建顺序（见 14.3）。
+- [x] app-media-player：ready callback + video.js 实例就绪；`initPlayer()` 取消 token 与 `componentWillUnmount()` 协同。
+- [x] app-presentation：失焦缩略图降级（第 15 节，含 Preload 暂停/恢复、远端翻页重降级、teardown 竞态处理）。
+
+**Focus 与 TeleBox**
+
+- [x] 在 setup 完成后才提交 TeleBox focus。
+- [ ] 盘点并改道所有现有 focus/zIndex 提交点（16.2 节清单）。
 - [ ] 为最大化标题栏 close 增加延迟自动 focus 的最小 TeleBox 能力。
 - [ ] 在 TeleBox UI 中禁用 normal/restore 按钮和双击恢复。
-- [ ] 通过 TeleBox 构造参数和运行时 setter 同步 force 状态，确保 UI 与事件拦截一致。
-- [ ] 为 reconnect 和新增 App 增加 lazy 分支。
+- [x] 通过 TeleBox 构造参数和运行时 setter 同步 force 状态，确保 UI 与事件拦截一致。
+
+**跨端与回归**
+
+- [ ] 为 reconnect 和新增 App 增加 lazy 分支（reconnect 已串行化，新增 App 的 lazy coordinator 分支待做）。
 - [ ] 为 `minimized=false`、`addApp()` 自动解除最小化、Player seek rebuild 和重复 `bindContainer()` 增加 lazy coordinator 分支。
-- [ ] 为每次 setup 建立可清理的 setup scope，teardown 后确认 `context.emitter` 监听器无残留。
+- [x] 为每次 setup 建立可清理的 setup scope，teardown 后确认 `context.emitter` 监听器无残留。
 - [ ] 确定删除最后一个 App 后的无抖动最大化策略。
 - [ ] 排查 Bridge/native 对 appsChange、focusedChange、onAppSetup 的 ready 假设。
-- [ ] 同步 Bridge、iOS、Android、Harmony 的 `forceMaximized` / `lazySetupInMaximizedMode` mount 参数透传。
-- [ ] 为默认 eager 分支增加回归测试，确认行为无变化。
+- [ ] 同步 Bridge、iOS、Android、Harmony 的 `forceMaximized` / `lazySetupInMaximizedMode` / `maxCachedAppsInMaximizedMode` mount 参数透传。
+- [ ] 为默认 eager 分支增加回归测试，确认除 setup 串行化外行为无变化。
 
-## 18. 相关源码与文档
+## 21. 相关源码与文档
 
 - [`WindowManager.mount()`](../../src/index.ts)
 - [`AppManager` 生命周期](../../src/AppManager.ts)
 - [`AppProxy` 创建与销毁](../../src/App/AppProxy.ts)
+- [`AppCreateQueue`](../../src/Utils/AppCreateQueue.ts)
 - [`BoxManager` 状态桥接](../../src/BoxManager.ts)
 - [`TeleBoxManager` 最大化标题栏 close](../../../telebox-insider/src/TeleBoxManager/index.ts)
-- [`app-slide` runtime](../../../slide-app/packages/app-slide)
+- [`app-slide` runtime 与 freezer](../../../slide-app/packages/app-slide)（`src/utils/freezer.ts`、`src/SlideController/index.ts`）
 - [`app-docs-viewer` runtime](../../../slide-app/packages/app-docs-viewer)
-- [`app-presentation` runtime](../../../netless-app-presentation)
+- [`app-presentation` runtime](../../../netless-app-presentation)（`src/preload.ts`、`src/presentation.ts`）
+- [`app-media-player` runtime](../../../app-media-player/packages/app-media-player)
+- [white-sdk 背景渲染](../../../white-sdk)（`render/src/views/others/BackgroundImage.tsx`、`model/src/scene/SceneNode.ts`、`web-sdk/src/displayer/RoomImplement.ts`）
 - [WindowManager API](../api.md)
 - [WindowManager 概念](../concept.md)
