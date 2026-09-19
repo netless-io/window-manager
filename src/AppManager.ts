@@ -320,6 +320,11 @@ export class AppManager {
             `teardown:${appId}`,
             () => -1,
             async () => {
+                // Lazy mode may have been disabled while this task was
+                // queued (forceMaximized cleared): eager mode keeps runtimes
+                // alive, so drop only the bookkeeping - already cleared by
+                // the transition - and skip the teardown.
+                if (!this.lazySetupEnabled) return;
                 const appProxy = this.appProxies.get(appId);
                 try {
                     await appProxy?.teardown();
@@ -345,12 +350,16 @@ export class AppManager {
         );
     }
 
-    /** Drop all lazy cache bookkeeping (lazy -> eager transition). Eager
+    /** Drop lazy cache bookkeeping on the lazy -> eager transition. Eager
      * mode never consults the cache; if lazy is re-enabled, ready apps
-     * re-enter the cache via touchRuntime on their next focus. */
+     * re-enter the cache via touchRuntime on their next focus.
+     * `settingUpApps` is intentionally KEPT: in-flight or queued setups
+     * stay deduplicated, and after the transition they simply complete as
+     * eager setups. Queued lazy TEARDOWN tasks self-cancel at run time
+     * (they check lazySetupEnabled), so a pending eviction cannot tear
+     * down a runtime that eager mode now keeps alive. */
     public clearLazyBookkeeping(): void {
         this.runtimeCache.clear();
-        this.settingUpApps.clear();
         this.activeLazyAppId = undefined;
     }
 

@@ -321,7 +321,7 @@ destroy()
 2. 若候选目标是当前可见 App（仅 cache=1 的切换场景会出现），则先 setup 新 App，新 App ready 并提交 focus 后再 teardown 旧 App（保持已实现的现状体验：旧画面保留到新画面就绪）；
 3. 其余情况（cache ≥ 2 溢出）先 teardown LRU 项，再进入串行 setup 队列，避免瞬时 runtime 数超过配置值；
 4. teardown 与 setup 不并发：两者都排入同一串行队列；
-5. teardown 失败只告警并照常移出缓存，不阻塞队列；
+5. teardown **抛错**时缓存条目置为 `pinned`（保留记账、按容量计数、排除后续淘汰、error 日志），不阻塞队列；无 teardown 实现的条目同样保留记账并跳过淘汰（见 §13 与本节软超限语义）；
 6. `tearing-down` 状态的项不参与命中：对它的 focus 请求视为 cache miss，等待 teardown 完成后重新 setup。
 
 容量语义说明：cache=1 的交接期（新 App setup 完成 → 旧 App teardown 完成）允许瞬时存在 2 个 runtime。这是"切换时旧画面保留到新画面就绪"的现状体验语义，与第 3 条（cache ≥ 2 严格先淘汰后 setup）并存；两者不可同时成立，以体验优先。

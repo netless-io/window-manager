@@ -210,6 +210,37 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.runtimeCache.get("a")?.state).toBe("ready");
     });
 
+    it("cancels queued lazy teardowns on lazy->eager transition and keeps in-flight dedupe", async () => {
+        const manager = createLazyManager(2);
+        const a = createProxy({ isSetup: true });
+        manager.appProxies = new Map([["a", a]]);
+        manager.runtimeCache.set("a", { lastUsed: 1, state: "ready" });
+        manager.settingUpApps.set("in-flight", Promise.resolve());
+
+        // occupy the serial queue, queue a lazy teardown behind it
+        const release: Array<() => void> = [];
+        const blocker = manager.setupTaskQueue.push(
+            "blocker",
+            () => -1,
+            () => new Promise<void>((r) => release.push(r)),
+        );
+        const teardownPromise = AppManager.prototype.teardownRuntime.call(manager, "a");
+
+        // transition lazy -> eager while the teardown is still queued
+        manager.windowManger.lazySetupInMaximizedMode = false;
+        manager.clearLazyBookkeeping();
+
+        release[0]();
+        await blocker;
+        await teardownPromise;
+
+        // queued teardown became a no-op (runtime kept alive, no teardown)
+        expect(a.teardown).not.toHaveBeenCalled();
+        // in-flight/queued setup dedupe is preserved across the transition
+        expect(manager.settingUpApps.has("in-flight")).toBe(true);
+        expect(manager.runtimeCache.size).toBe(0);
+    });
+
     it("ranks forceTop above the focused app in setup priority", () => {
         const manager = createLazyManager(1);
         manager.windowManger.attributes = {
