@@ -48,10 +48,10 @@
     overflow: hidden;
 }
 
-.netless-window-manager-wrapper:not(.netless-window-manager-use-boxes-status)
+/* .netless-window-manager-wrapper:not(.netless-window-manager-use-boxes-status)
     > .telebox-box.telebox-maximized.telebox-blur {
     display: none;
-}
+} */
 
 .netless-window-manager-main-view {
     width: 100%;

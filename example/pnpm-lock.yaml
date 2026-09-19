@@ -18,14 +18,14 @@ importers:
         specifier: 0.2.6-beta.3
         version: 0.2.6-beta.3
       '@netless/app-presentation':
-        specifier: file:../../netless-app-presentation
-        version: file:../../netless-app-presentation(jspdf@2.5.2)
+        specifier: 0.1.12
+        version: 0.1.12(jspdf@2.5.2)
       '@netless/app-slide':
-        specifier: 0.2.105-beta.0
-        version: 0.2.105-beta.0(jspdf@2.5.2)
+        specifier: 0.2.104
+        version: 0.2.104(jspdf@2.5.2)
       '@netless/appliance-plugin':
-        specifier: 1.1.44-beta.0
-        version: 1.1.44-beta.0(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
+        specifier: 1.1.43
+        version: 1.1.43(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       '@netless/telebox-insider':
         specifier: 0.3.0
         version: 0.3.0
@@ -621,24 +621,24 @@ packages:
   '@netless/app-plyr@0.2.6-beta.3':
     resolution: {integrity: sha512-0H8BII9f0VeefBOWI4Q5MiZnZguHrQ4IWJQSAwO9fCF2LYMQNZbtqBQrWNrz+QlHyPS1s/AYD/BxRZSLFqGZ9w==}
 
-  '@netless/app-presentation@file:../../netless-app-presentation':
-    resolution: {directory: ../../netless-app-presentation, type: directory}
+  '@netless/app-presentation@0.1.12':
+    resolution: {integrity: sha512-VXzUSuucpuUOgrg5MPvi6l7leqFUx9Zbn/g667h6iprOkgYMrXxuh4WO+3Uu8MyAYS+e56K+B3yRsQXAlyeS6A==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-slide@0.2.105-beta.0':
-    resolution: {integrity: sha512-ZtwOUWKMzAPmrt+Gf6NParAtiKEy5xgQCcwqLgTv5VkADxtUNCJsoYBM/JJabFvgYoa5qjfAhRTBxqM3QfQ5cw==}
+  '@netless/app-slide@0.2.104':
+    resolution: {integrity: sha512-hf+13ZYw4BEq/MExLJHshm+YTJ4xvr/USxnmj1iXSbHoF90cU5AOIhEkK0G2R2yNfaUWEpoINVpJ4RMZSpOqHg==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/appliance-plugin@1.1.44-beta.0':
-    resolution: {integrity: sha512-GvZbYGfdOmoL8pAqq4fhq/zqvtNKvKNHuXqjQ5Pm0sv2JSv7ADC+6VlzlLJO6WQgtzCqP3jqKVfwgarTaNfqXA==}
+  '@netless/appliance-plugin@1.1.43':
+    resolution: {integrity: sha512-8Fmk09Uo0M/vkliyow15KDTGwjFdOEmjyCBAlGTu12qPfM4bS3XtxZ4dOQ210eCU/gAlpQTvaF7iI6fhgxbOug==}
     peerDependencies:
       '@netless/window-manager': '>=1.0'
       markmap-lib: ^0.18.12
@@ -2219,15 +2219,15 @@ snapshots:
 
   '@netless/app-plyr@0.2.6-beta.3': {}
 
-  '@netless/app-presentation@file:../../netless-app-presentation(jspdf@2.5.2)':
+  '@netless/app-presentation@0.1.12(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-slide@0.2.105-beta.0(jspdf@2.5.2)':
+  '@netless/app-slide@0.2.104(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/appliance-plugin@1.1.44-beta.0(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
+  '@netless/appliance-plugin@1.1.43(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
     dependencies:
       '@netless/window-manager': 1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       clipper-lib: 6.4.2

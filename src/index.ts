@@ -149,6 +149,30 @@ const SlideAppKind = "Slide" as const;
 const PresentationAppKind = BuiltinApps.Presentation as "Presentation";
 const DocsViewerAppKind = BuiltinApps.DocsViewer as "DocsViewer";
 
+const MAX_CACHED_APPS_SANE_LIMIT = 10;
+
+export function normalizeMaxCachedAppsInMaximizedMode(
+    value: number | undefined,
+    lazyRequested: boolean,
+    warn: (message: string) => void
+): number {
+    if (!lazyRequested || value === undefined) {
+        return 1;
+    }
+    if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
+        warn(
+            `[WindowManager] invalid maxCachedAppsInMaximizedMode ${value}; falling back to 1`
+        );
+        return 1;
+    }
+    if (value > MAX_CACHED_APPS_SANE_LIMIT) {
+        warn(
+            `[WindowManager] maxCachedAppsInMaximizedMode=${value} keeps many app runtimes alive and may cause memory pressure on low-end devices`
+        );
+    }
+    return value;
+}
+
 export type AddAppParams<TAttributes = any> = {
     kind: string;
     // app 地址(本地 app 不需要传)
@@ -262,6 +286,13 @@ export type MountParams = {
     useBoxesStatus?: boolean;
     /** Only setup the focused app while the room is force-maximized. Local only. */
     lazySetupInMaximizedMode?: boolean;
+    /**
+     * Max number of set-up app runtimes kept alive in lazy mode. `1` (default)
+     * keeps only the focused runtime; on cache miss the least recently used
+     * runtime is torn down. This is a cache capacity, not a setup concurrency.
+     * Local only; only effective while `lazySetupInMaximizedMode` is enabled.
+     */
+    maxCachedAppsInMaximizedMode?: number;
     /** Establish the room-wide force-maximized policy when writable. */
     forceMaximized?: boolean;
     /** Local Presentation options applied before restoring apps. Not synchronized. */
@@ -317,6 +348,7 @@ export class WindowManager
     private _fullscreen?: boolean;
     private _lazySetupInMaximizedMode = false;
     private _forceMaximized = false;
+    private _maxCachedAppsInMaximizedMode = 1;
     private _pageScaleRange?: Readonly<PageScaleRange>;
     private _destroyed = false;
     private _cursorUIDs: string[] = [];
@@ -347,6 +379,10 @@ export class WindowManager
 
     public get lazySetupInMaximizedMode(): boolean {
         return this._lazySetupInMaximizedMode;
+    }
+
+    public get maxCachedAppsInMaximizedMode(): number {
+        return this._maxCachedAppsInMaximizedMode;
     }
 
     public get forceMaximized(): boolean {
@@ -454,6 +490,11 @@ export class WindowManager
                 params.lazySetupInMaximizedMode &&
                     manager._forceMaximized &&
                     currentBoxState !== "normal"
+            );
+            manager._maxCachedAppsInMaximizedMode = normalizeMaxCachedAppsInMaximizedMode(
+                params.maxCachedAppsInMaximizedMode,
+                Boolean(params.lazySetupInMaximizedMode),
+                message => manager?._roomLogger?.warn(message)
             );
             // The mount value is only an initialization candidate. Runtime state is
             // always re-read from attributes after the initialization decision.
@@ -688,6 +729,7 @@ export class WindowManager
         manager._fullscreen = undefined;
         manager._lazySetupInMaximizedMode = false;
         manager._forceMaximized = false;
+        manager._maxCachedAppsInMaximizedMode = 1;
         manager.builtinAppOptions = undefined;
         manager.containerSizeRatio = previousStaticState.containerSizeRatio;
         manager._unifiedPageControl = new UnifiedPageControlTracker();
@@ -920,7 +962,13 @@ export class WindowManager
         }
         try {
             if (typeof (app as any).ensureSetup === "function") {
-                await (app as any).ensureSetup();
+                // Route through the serial setup queue so an explicit wait
+                // never runs `setup()` concurrently with other apps.
+                const appManager = this.appManager;
+                if (!appManager) {
+                    throw new Error("[WindowManager]: AppManager is not initialized");
+                }
+                await appManager.enqueueAppSetup(appId);
             } else {
                 await app.waitForSetup();
             }

@@ -163,6 +163,14 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
         }
     };
 
+    /**
+     * Whether this app currently owns the room-level focus. Apps can also
+     * observe focus transitions via `emitter.on("focus", isFocused => ...)` .
+     */
+    public isFocused = (): boolean => {
+        return this.appProxy.isFocused;
+    };
+
     public getRoom = (): Room | undefined => {
         return this.manager.room;
     };

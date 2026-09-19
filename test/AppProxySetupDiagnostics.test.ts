@@ -98,6 +98,65 @@ describe("AppProxy setup diagnostics", () => {
         await expect(proxy.ensureSetup()).rejects.toBe(error);
     });
 
+    it("does not mark the app as set up when teardown runs during setup", async () => {
+        vi.useFakeTimers();
+        const { proxy, logger } = createProxy();
+        let resolveSetup!: (result: unknown) => void;
+        const app = {
+            setup: vi.fn().mockImplementation(
+                () => new Promise<void>(resolve => (resolveSetup = resolve))
+            ),
+            teardown: vi.fn().mockResolvedValue(undefined),
+        };
+        proxy.appDefinition = app;
+        proxy.appContext = {};
+        proxy.setupStarted = true;
+        proxy.setupSucceeded = false;
+        proxy.setupCompletionSettled = false;
+        proxy.setupCompletionPromise = new Promise(
+            resolve => (proxy.resolveSetupCompletion = resolve)
+        );
+
+        const finishing = proxy.finishAppSetup("app-1", app, {}, undefined, undefined);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        // Teardown while the setup promise is still in flight.
+        await proxy.teardown();
+        expect(app.teardown).toHaveBeenCalledOnce();
+
+        resolveSetup({});
+        await finishing;
+
+        // The released runtime must not be marked ready, and waiters
+        // (the serial setup queue) must observe the abort.
+        expect(proxy.setupSucceeded).toBe(false);
+        expect(proxy.setupStarted).toBe(false);
+        await expect(proxy.waitForSetup()).rejects.toThrow("aborted by teardown");
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining("aborted by teardown/destroy")
+        );
+    });
+
+    it("marks setup success normally when no teardown interferes", async () => {
+        vi.useFakeTimers();
+        const { proxy } = createProxy();
+        const result = { ok: true };
+        const app = { setup: vi.fn().mockResolvedValue(result) };
+        proxy.appDefinition = app;
+        proxy.appContext = {};
+        proxy.setupStarted = true;
+        proxy.scheduleBoxSizeSync = vi.fn();
+        proxy.afterSetupApp = vi.fn();
+        proxy.flushPendingZIndex = vi.fn();
+        proxy.fixMobileSize = vi.fn();
+
+        await proxy.finishAppSetup("app-1", app, {}, undefined, undefined);
+        vi.advanceTimersByTime(10_000);
+
+        expect(proxy.setupSucceeded).toBe(true);
+    });
+
     it("ensureSetup rejects when app setup never produced a descriptor", async () => {
         const { proxy } = createProxy();
 

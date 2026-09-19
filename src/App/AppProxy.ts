@@ -90,6 +90,13 @@ export class AppProxy implements PageRemoveService {
     };
     private setupResult: any;
     private appDefinition?: NetlessApp;
+    private boxFocusOffHandlers: Array<() => void> = [];
+    // Bumped on teardown/destroy. An in-flight setup compares its captured
+    // generation afterwards and aborts instead of marking a released runtime
+    // as ready (teardown-during-setup race).
+    private setupRunGeneration = 0;
+    // Last value emitted on the `focus` event, for change-detection dedupe.
+    private lastEmittedFocus?: boolean;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -124,6 +131,18 @@ export class AppProxy implements PageRemoveService {
         );
         this.appListener = this.makeAppEventListener(this.id);
         this.isAddApp = isAddApp;
+        this.boxFocusOffHandlers = [
+            boxEmitter.on("focus", ({ appId }) => {
+                if (appId === this.id && this.status !== "destroyed") {
+                    this.emitAppFocusEvent(true);
+                }
+            }),
+            boxEmitter.on("blurred", ({ appId }) => {
+                if (appId === this.id && this.status !== "destroyed") {
+                    this.emitAppFocusEvent(false);
+                }
+            }),
+        ];
 
         // The proxy is inserted before the async App factory and WindowCreated
         // notification complete. Lazy focus must wait for that lifecycle boundary.
@@ -175,6 +194,31 @@ export class AppProxy implements PageRemoveService {
 
     public get isSetup(): boolean {
         return this.setupSucceeded;
+    }
+
+    public get isDestroyed(): boolean {
+        return this.status === "destroyed";
+    }
+
+    /** Whether the room-level focus currently points to this app. */
+    public get isFocused(): boolean {
+        return this.store.focus === this.id;
+    }
+
+    /**
+     * Emit the per-app `focus` boolean event. Sources: the attributes.focus
+     * autorun (authoritative, works on readonly/Player clients too), box
+     * focus/blur events (early local signal) and the setup-complete sync.
+     * Change-duplicated emissions are deduped here; apps must still treat
+     * the event as potentially repeated and handle it idempotently.
+     */
+    public emitAppFocusEvent(isFocused: boolean, force = false): void {
+        if (this.status === "destroyed") return;
+        if (!force && this.lastEmittedFocus === isFocused) return;
+        this.lastEmittedFocus = isFocused;
+        void this.appEmitter
+            .emit("focus", isFocused)
+            .catch(error => this.logPostSetupNotificationError("focus event", error));
     }
 
     public get attributes() {
@@ -322,15 +366,13 @@ export class AppProxy implements PageRemoveService {
                     if (lazySetup) {
                         this.deferredSetup = this.setupDescriptor;
                     } else {
-                        this.setupStarted = true;
+                        // Keep the original setup hand-off delay (attribute
+                        // propagation safety), but hand execution to the
+                        // manager's serial setup queue: focused app first and
+                        // one setup finished before the next one starts.
+                        this.deferredSetup = this.setupDescriptor;
                         setTimeout(() => {
-                            void this.finishAppSetup(
-                                appId,
-                                app,
-                                context,
-                                boxInitState,
-                                currentMainViewScenePath
-                            );
+                            this.manager.enqueueEagerSetup(this.id);
                         }, SETUP_APP_DELAY);
                     }
                 })
@@ -406,6 +448,7 @@ export class AppProxy implements PageRemoveService {
             const error = new Error(
                 `[WindowManager]: app setup descriptor is unavailable, appId: ${this.id}`
             );
+            this.Logger?.warn(`[WindowManager]: ${error.message}`);
             this.settleSetup({ succeeded: false, error });
             throw error;
         }
@@ -451,10 +494,30 @@ export class AppProxy implements PageRemoveService {
         boxInitState?: AppInitState,
         currentMainViewScenePath?: string
     ): Promise<void> {
+        const setupGeneration = this.setupRunGeneration;
         try {
             // 延迟执行 setup, 防止初始化的属性没有更新成功
             this.Logger?.info(`[WindowManager]: setup app ${this.kind}, appId: ${appId}`);
             const setupResult = await this.runAppSetup(appId, app, context);
+            if (setupGeneration !== this.setupRunGeneration || this.status === "destroyed") {
+                // Teardown/destroy ran while setup was in flight: the runtime
+                // this setup produced is already released. Never mark it as
+                // set up; settle as aborted so waiters (the serial setup
+                // queue) move on and a later ensureSetup() can re-run cleanly
+                // from the retained descriptor.
+                this.Logger?.warn(
+                    `[WindowManager]: app setup aborted by teardown/destroy, kind: ${
+                        this.kind
+                    }, appId: ${appId}`
+                );
+                this.settleSetup({
+                    succeeded: false,
+                    error: new Error(
+                        `[WindowManager]: app setup aborted by teardown/destroy, appId: ${appId}`
+                    ),
+                });
+                return;
+            }
             if (!setupResult.succeeded) {
                 this.settleSetup(setupResult);
                 return;
@@ -463,6 +526,9 @@ export class AppProxy implements PageRemoveService {
             this.appResult = result;
             this.setupResult = result;
             this.setupSucceeded = true;
+            // Focus events may have fired before setup ran; sync the current
+            // focus state so apps observe a consistent initial value.
+            this.emitAppFocusEvent(this.isFocused, true);
             this.scheduleBoxSizeSync();
             this.afterSetupApp(boxInitState);
             this.flushPendingZIndex();
@@ -700,6 +766,14 @@ export class AppProxy implements PageRemoveService {
                     break;
                 }
                 case "focus": {
+                    // Two semantics share this event name: the legacy
+                    // app → WM focus REQUEST (emitted with no payload) and
+                    // the v2 WM → app boolean focus broadcast. A boolean
+                    // payload is a broadcast echo: focusing the app here
+                    // would blur the other cached apps, whose blur
+                    // broadcasts would focus them back — an infinite
+                    // focus-fight loop.
+                    if (typeof data === "boolean") break;
                     this.boxManager?.focusBox({ appId: this.id });
                     boxEmitter.emit("focus", { appId: this.id });
                     break;
@@ -829,6 +903,9 @@ export class AppProxy implements PageRemoveService {
         if (!this.setupStarted || !this.appContext) return;
         const app = this.appDefinition;
         if (app?.teardown) {
+            // Abort any in-flight setup: the runtime it is producing is about
+            // to be released, so it must not be marked ready afterwards.
+            this.setupRunGeneration += 1;
             await app.teardown(this.appContext, this.setupResult);
             this.appResult = undefined;
             this.setupResult = undefined;
@@ -851,6 +928,9 @@ export class AppProxy implements PageRemoveService {
     ) {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
+        this.setupRunGeneration += 1;
+        this.boxFocusOffHandlers?.forEach(off => off());
+        this.boxFocusOffHandlers = [];
         const setupError =
             error || new Error(`[WindowManager]: app destroyed before setup, appId: ${this.id}`);
         this.setupInitializationError = setupError;

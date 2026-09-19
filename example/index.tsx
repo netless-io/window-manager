@@ -149,12 +149,13 @@ const mountManager = async (room, root) => {
             builtinAppOptions: {
                 Presentation: {
                     goToPageByClick: true,
-                    disableDeviceCameraTransform: true,
+                    // disableDeviceCameraTransform: true,
                 },
             },
             // cursorOptions: { style: "custom" },
             // overwriteStyles: ".netless-window-manager-chess-sizer:before, .netless-window-manager-chess-sizer:after { background-image: none }",
-            overwriteStyles: ".cursor-box .cursor-name { display: none !important; }",
+            // overwriteStyles: ".cursor-box .cursor-name { display: none !important; }",
+            overwriteStyles:".telebox-collector{display:none !important;}.vjs-p .player-controller{display:none !important;}.netless-app-slide-wb-view {clip-path: none !important;}",
         },
         {
             AppContext: customAppContext,

@@ -1,5 +1,6 @@
 import { AppAttributes, AppStatus, Events, INIT_DIR, MagixEventName, ROOT_DIR } from "./constants";
 import { AppCreateQueue } from "./Utils/AppCreateQueue";
+import { SetupQueue } from "./Utils/SetupQueue";
 import { AppListeners } from "./AppListener";
 import { AppProxy } from "./App";
 import type { AppBoxSizeSyncOptions } from "./App/AppBoxSizeSynchronizer";
@@ -79,6 +80,18 @@ export class AppManager {
     private lazyFocusGeneration = 0;
     private activeLazyAppId?: string;
     private lazyFocusQueue: Promise<void> = Promise.resolve();
+    // Serial queue for real app.setup() execution. AppCreateQueue only serializes
+    // AppProxy/Box creation; this queue waits until each setup actually finishes.
+    private setupTaskQueue = new SetupQueue();
+    // LRU cache of set-up app runtimes (lazy mode only). Insertion order is
+    // irrelevant; `lastUsed` drives eviction.
+    private runtimeCache = new Map<
+        string,
+        { lastUsed: number; state: "setting-up" | "ready" | "tearing-down" }
+    >();
+    // In-flight (or queued) setup tasks per app. Duplicate requests reuse the
+    // same Promise so an app is never set up twice concurrently.
+    private settingUpApps = new Map<string, Promise<void>>();
     // Mark apps as soon as their creation task is queued. appStatus is set only
     // when the queue starts a task, which is too late to prevent duplicate tasks
     // during slow module loading.
@@ -94,6 +107,215 @@ export class AppManager {
 
     private get lazySetupEnabled(): boolean {
         return Boolean(this.windowManger?.lazySetupInMaximizedMode);
+    }
+
+    private get maxCachedApps(): number {
+        return this.windowManger?.maxCachedAppsInMaximizedMode ?? 1;
+    }
+
+    /**
+     * Enqueue a real app setup into the serial setup queue. The queued task
+     * waits until `app.setup()` finishes before the next task starts.
+     * Duplicate requests for the same app reuse the same Promise.
+     */
+    public enqueueAppSetup(appId: string, priority?: () => number): Promise<void> {
+        const existing = this.settingUpApps.get(appId);
+        if (existing) {
+            return existing;
+        }
+        const promise = this.setupTaskQueue.push(
+            `setup:${appId}`,
+            priority ?? (() => this.computeSetupPriority(appId)),
+            async () => {
+                const appProxy = this.appProxies.get(appId);
+                if (!appProxy || appProxy.isDestroyed) {
+                    return;
+                }
+                if (appProxy.isSetup) {
+                    this.touchRuntime(appId);
+                    return;
+                }
+                if (this.lazySetupEnabled) {
+                    const entry = this.runtimeCache.get(appId);
+                    if (entry && entry.state !== "tearing-down") {
+                        entry.state = "setting-up";
+                    } else {
+                        this.runtimeCache.set(appId, {
+                            lastUsed: Date.now(),
+                            state: "setting-up",
+                        });
+                    }
+                }
+                // Observability for the serial-setup contract (design §19
+                // case 13): started tasks never overlap, and the log makes
+                // each app's setup window explicit.
+                const startedAt = Date.now();
+                this.Logger?.info(`[WindowManager] app setup start, appId: ${appId}`);
+                try {
+                    await appProxy.ensureSetup();
+                    this.Logger?.info(
+                        `[WindowManager] app setup done, appId: ${appId}, duration: ${
+                            Date.now() - startedAt
+                        }ms`
+                    );
+                    if (this.lazySetupEnabled) {
+                        const entry = this.runtimeCache.get(appId);
+                        if (entry && entry.state !== "tearing-down") {
+                            entry.state = "ready";
+                            entry.lastUsed = Date.now();
+                        }
+                        if (this.attributes.minimized) {
+                            // A setup started before minimize may finish afterwards;
+                            // release it to keep minimized free of runtimes.
+                            // Fire-and-forget: queue rejection (destroy clear)
+                            // must not become an unhandled rejection.
+                            this.teardownRuntime(appId).catch(() => undefined);
+                        }
+                    }
+                } catch (error) {
+                    if (this.lazySetupEnabled) {
+                        // A failed setup does not occupy a cache slot.
+                        this.runtimeCache.delete(appId);
+                    }
+                    throw error;
+                } finally {
+                    this.settingUpApps.delete(appId);
+                }
+            }
+        );
+        this.settingUpApps.set(appId, promise);
+        promise.catch(() => undefined);
+        return promise;
+    }
+
+    /**
+     * Schedule the eager setup of a freshly created AppProxy. Replaces the
+     * unmanaged `setTimeout` hand-off so initial setups are serialized and
+     * ordered focused-app-first. Failures are already logged inside AppProxy
+     * (setup/abort/descriptor paths); the catch here only keeps the queue
+     * hand-off from rejecting into the void.
+     */
+    public enqueueEagerSetup(appId: string): void {
+        this.enqueueAppSetup(appId).catch(() => undefined);
+    }
+
+    /**
+     * Batch ordering key for pending setup tasks: the focused app first, then
+     * forceTop apps, then by zIndex descending, then creation order.
+     */
+    private computeSetupPriority(appId: string): number {
+        if (this.store.focus === appId) {
+            return 0;
+        }
+        const appAttrs = this.attributes.apps?.[appId];
+        if (appAttrs?.forceTop) {
+            return 1;
+        }
+        const zIndex = appAttrs?.state?.zIndex ?? 0;
+        return 100 - Math.min(zIndex, 99);
+    }
+
+    private touchRuntime(appId: string): void {
+        if (!this.lazySetupEnabled) return;
+        const entry = this.runtimeCache.get(appId);
+        if (entry) {
+            entry.lastUsed = Date.now();
+        } else if (this.appProxies.get(appId)?.isSetup) {
+            this.runtimeCache.set(appId, { lastUsed: Date.now(), state: "ready" });
+        }
+    }
+
+    private runtimeCacheSize(): number {
+        let size = 0;
+        this.runtimeCache.forEach(entry => {
+            if (entry.state !== "tearing-down") size += 1;
+        });
+        return size;
+    }
+
+    private pickRuntimeEvictionCandidate(exclude: Set<string>): string | undefined {
+        let candidate: string | undefined;
+        let oldest = Infinity;
+        this.runtimeCache.forEach((entry, id) => {
+            if (entry.state !== "ready" || exclude.has(id)) return;
+            if (entry.lastUsed < oldest) {
+                oldest = entry.lastUsed;
+                candidate = id;
+            }
+        });
+        return candidate;
+    }
+
+    /**
+     * Tear down LRU cached runtimes until there is room for `appId`.
+     * The currently visible app is never evicted here; the cache=1 hand-off
+     * tears it down after the new app is ready (see `evictAfterFocusCommit`).
+     */
+    private async evictBeforeSetup(appId: string): Promise<void> {
+        if (!this.lazySetupEnabled) return;
+        const exclude = new Set<string>(
+            [appId, this.store.focus].filter((id): id is string => Boolean(id))
+        );
+        while (this.runtimeCacheSize() >= this.maxCachedApps) {
+            const candidate = this.pickRuntimeEvictionCandidate(exclude);
+            if (!candidate) break;
+            if (candidate === this.activeLazyAppId) break;
+            await this.teardownRuntime(candidate);
+        }
+    }
+
+    /** Evict LRU runtimes overflowing the cache once a new app became active. */
+    private async evictAfterFocusCommit(appId: string): Promise<void> {
+        if (!this.lazySetupEnabled) return;
+        const exclude = new Set<string>(
+            [appId, this.store.focus].filter((id): id is string => Boolean(id))
+        );
+        while (this.runtimeCacheSize() > this.maxCachedApps) {
+            const candidate = this.pickRuntimeEvictionCandidate(exclude);
+            if (!candidate) break;
+            if (candidate === this.activeLazyAppId) break;
+            await this.teardownRuntime(candidate);
+        }
+    }
+
+    /** Tear down one cached runtime through the serial queue. */
+    private async teardownRuntime(appId: string): Promise<void> {
+        const entry = this.runtimeCache.get(appId);
+        if (!entry || entry.state !== "ready") return;
+        entry.state = "tearing-down";
+        await this.setupTaskQueue.push(`teardown:${appId}`, () => -1, async () => {
+            const appProxy = this.appProxies.get(appId);
+            try {
+                await appProxy?.teardown();
+            } catch (error) {
+                this.Logger?.warn(`[WindowManager] runtime teardown failed for ${appId}: ${error}`);
+            }
+            this.runtimeCache.delete(appId);
+            this.settingUpApps.delete(appId);
+        });
+    }
+
+    /** Tear down every cached runtime (entering minimized). */
+    private teardownAllRuntimeCaches(): Promise<void> {
+        const ids = Array.from(this.runtimeCache.keys()).filter(id => {
+            return this.runtimeCache.get(id)?.state === "ready";
+        });
+        return this.setupTaskQueue.push(`teardown-all:${ids.length}`, () => -1, async () => {
+            for (const id of ids) {
+                const entry = this.runtimeCache.get(id);
+                if (!entry || entry.state !== "ready") continue;
+                entry.state = "tearing-down";
+                const appProxy = this.appProxies.get(id);
+                try {
+                    await appProxy?.teardown();
+                } catch (error) {
+                    this.Logger?.warn(`[WindowManager] runtime teardown failed for ${id}: ${error}`);
+                }
+                this.runtimeCache.delete(id);
+                this.settingUpApps.delete(id);
+            }
+            this.activeLazyAppId = undefined;
+        });
     }
 
     private _useBoxesStatus = false;
@@ -485,7 +707,6 @@ export class AppManager {
         if (this.lazySetupEnabled && !this.appProxies.get(payload.appId)?.isSetup) {
             this.pendingLazyBlurredAppId = this.attributes.focus;
             this.boxManager?.blurAllBox();
-            const previous = this.activeLazyAppId;
             const generation = ++this.lazyFocusGeneration;
             this.lazyFocusQueue = this.lazyFocusQueue
                 .catch(() => undefined)
@@ -494,7 +715,7 @@ export class AppManager {
                         const appProxy = this.appProxies.get(payload.appId);
                         if (!appProxy) return;
                         try {
-                            await appProxy.ensureSetup();
+                            await this.enqueueAppSetup(payload.appId, () => -1);
                         } catch (error) {
                             this.Logger?.warn(
                                 `[WindowManager] lazy setup failed for ${payload.appId}: ${error}`
@@ -504,9 +725,9 @@ export class AppManager {
                         if (generation !== this.lazyFocusGeneration) return;
                         this.windowManger.safeSetAttributes({ focus: payload.appId });
                         callbacks.emit("onBoxFocus", payload);
-                        if (previous && previous !== payload.appId) {
-                            await this.appProxies.get(previous)?.teardown();
-                        }
+                        // The focused attributes autorun re-enters
+                        // `ensureLazyFocus`, which touches the runtime cache and
+                        // evicts LRU runtimes beyond the configured capacity.
                     } finally {
                         if (generation === this.lazyFocusGeneration) {
                             this.pendingLazyBlurredAppId = undefined;
@@ -622,13 +843,13 @@ export class AppManager {
             this.pendingLazyBlurredAppId = undefined;
             callbacks.emit("focusedChange", focused);
             internalEmitter.emit("focusedChange", { focused, prev: this._prevFocused });
+            this.emitFocusedAppEvent(this._prevFocused, focused);
             this._prevFocused = focused;
             if (focused !== undefined && this.lazySetupEnabled && !this.attributes.minimized) {
-                const previous = this.activeLazyAppId;
                 const generation = ++this.lazyFocusGeneration;
                 this.lazyFocusQueue = this.lazyFocusQueue
                     .catch(() => undefined)
-                    .then(() => this.ensureLazyFocus(focused, previous, generation));
+                    .then(() => this.ensureLazyFocus(focused, generation));
             } else if (focused !== undefined) {
                 this.boxManager?.focusBox({ appId: focused });
                 // 确保 focus 修改的时候, appProxy 已经创建
@@ -642,11 +863,22 @@ export class AppManager {
         }
     };
 
-    private async ensureLazyFocus(
-        focused: string,
-        previous: string | undefined,
-        generation: number
-    ): Promise<void> {
+    /**
+     * Authoritative per-app `focus` boolean, driven by the attributes.focus
+     * autorun. Unlike the telebox Focused/Blurred chain this works for
+     * programmatic/remote focus changes and on readonly clients and Players.
+     */
+    private emitFocusedAppEvent(prev: string | undefined, next: string | undefined): void {
+        if (prev === next) return;
+        if (prev) {
+            this.appProxies.get(prev)?.emitAppFocusEvent(false);
+        }
+        if (next) {
+            this.appProxies.get(next)?.emitAppFocusEvent(true);
+        }
+    }
+
+    private async ensureLazyFocus(focused: string, generation: number): Promise<void> {
         if (this.attributes.minimized) return;
         let appProxy = this.appProxies.get(focused);
         for (let i = 0; !appProxy && i < 100; i += 1) {
@@ -659,14 +891,36 @@ export class AppManager {
             );
             return;
         }
-        try {
-            await appProxy.ensureSetup();
-        } catch (error) {
+        // Cache hit = the focused app has a READY runtime in the LRU cache
+        // (not "it was the previously active app": with cacheMax > 1 any
+        // cached app must re-focus without re-setup).
+        const cachedEntry = this.runtimeCache.get(focused);
+        const isCacheHit =
+          !!cachedEntry &&
+          cachedEntry.state === "ready" &&
+          this.appProxies.get(focused)?.isSetup;
+        if (!isCacheHit) {
+          // Cache miss: make room first (the visible app is never evicted
+          // here; cache=1 defers its teardown until after focus commit),
+          // then run the real setup inside the serial setup queue.
+          try {
+            await this.evictBeforeSetup(focused);
+            await this.enqueueAppSetup(focused, () => -1);
+          } catch (error) {
             this.Logger?.warn(`[WindowManager] lazy setup failed for ${focused}: ${error}`);
             return;
+          }
+        } else {
+          this.touchRuntime(focused);
         }
-        if (generation !== this.lazyFocusGeneration || this.store.focus !== focused) {
-            await appProxy.teardown();
+        if (
+            this.attributes.minimized ||
+            generation !== this.lazyFocusGeneration ||
+            this.store.focus !== focused
+        ) {
+            // Stale focus result, or the room entered minimized while the
+            // setup was queued (teardown-all owns the runtimes then): keep
+            // any valid runtime cached and skip the focus commit.
             return;
         }
         const box = this.boxManager?.getBox(focused);
@@ -675,33 +929,27 @@ export class AppManager {
         }
         this.boxManager?.focusBox({ appId: focused }, false);
         this.activeLazyAppId = focused;
+        this.touchRuntime(focused);
         await appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
-        if (previous && previous !== focused) {
-            const previousProxy = this.appProxies.get(previous);
-            if (previousProxy) await previousProxy.teardown();
-        }
+        await this.evictAfterFocusCommit(focused);
     }
 
     public async setupAllApps(): Promise<void> {
-        for (const appProxy of this.appProxies.values()) {
-            try {
-                await appProxy.ensureSetup();
-            } catch (error) {
-                this.Logger?.warn(
-                    `[WindowManager] eager setup failed for ${appProxy.id}: ${error}`
-                );
-            }
-        }
+        const appIds = Array.from(this.appProxies.keys());
+        // Setup failures are already logged inside AppProxy; the per-app
+        // catch only keeps one failed app from failing the batch wait.
+        await Promise.all(
+            appIds.map(appId => this.enqueueAppSetup(appId).catch(() => undefined))
+        );
     }
 
     public requestFocus(appId: string): void {
         this.store.setAppFocus(appId, true);
         if (this.lazySetupEnabled && this._prevFocused === appId) {
-            const previous = this.activeLazyAppId;
             const generation = ++this.lazyFocusGeneration;
             this.lazyFocusQueue = this.lazyFocusQueue
                 .catch(() => undefined)
-                .then(() => this.ensureLazyFocus(appId, previous, generation));
+                .then(() => this.ensureLazyFocus(appId, generation));
         }
     }
 
@@ -833,6 +1081,13 @@ export class AppManager {
                 "[WindowManager] ignored remote unminimize to normal while forceMaximized is enabled"
             );
             return;
+        }
+        if (minimized === true && this.lazySetupEnabled) {
+            // Minimized keeps no heavy runtimes: release the whole cache
+            // through the serial queue. Shells and LRU order are preserved.
+            // Fire-and-forget: queue rejection (destroy clear) must not
+            // become an unhandled rejection.
+            this.teardownAllRuntimeCaches().catch(() => undefined);
         }
         if (this.boxManager?.minimized !== minimized) {
             if (minimized === true) {
@@ -1151,11 +1406,10 @@ export class AppManager {
             const focusAppId = this.store.focus;
             if (focusAppId) {
                 if (this.lazySetupEnabled && !this.attributes.minimized) {
-                    const previous = this.activeLazyAppId;
                     const generation = ++this.lazyFocusGeneration;
                     this.lazyFocusQueue = this.lazyFocusQueue
                         .catch(() => undefined)
-                        .then(() => this.ensureLazyFocus(focusAppId, previous, generation));
+                        .then(() => this.ensureLazyFocus(focusAppId, generation));
                 } else {
                     this.boxManager.focusBox({ appId: focusAppId });
                 }
@@ -1166,13 +1420,31 @@ export class AppManager {
     public async onReconnected() {
         await this._attributesUpdateCallback(this.attributes.apps);
         const appProxies = Array.from(this.appProxies.values());
-        const reconnected = appProxies.map(appProxy => {
-            return appProxy.onReconnected();
-        });
         this.mainViewProxy.onReconnect();
-        await Promise.all(reconnected);
+        // Rebuild (and, in eager mode, re-setup) apps strictly one by one.
+        // The setup part is additionally serialized by the setup queue.
+        for (const appProxy of appProxies) {
+            try {
+                await this.setupTaskQueue.push(
+                    `reconnect:${appProxy.id}`,
+                    () => this.computeSetupPriority(appProxy.id),
+                    () => appProxy.onReconnected()
+                );
+            } catch (error) {
+                this.Logger?.warn(
+                    `[WindowManager] reconnect failed for ${appProxy.id}: ${error}`
+                );
+            }
+        }
         if (this.callbacksNode) {
             this.onSceneChange(this.callbacksNode);
+        }
+        if (this.lazySetupEnabled) {
+            const focused = this.store.focus;
+            if (focused && this.appProxies.has(focused) && !this.attributes.minimized) {
+                const generation = ++this.lazyFocusGeneration;
+                await this.ensureLazyFocus(focused, generation);
+            }
         }
     }
 
@@ -1199,6 +1471,13 @@ export class AppManager {
         this.appListeners.removeListeners();
         boxEmitter.clearListeners();
         internalEmitter.clearListeners();
+        this.settingUpApps.clear();
+        this.runtimeCache.clear();
+        this.activeLazyAppId = undefined;
+        // Drop pending setup/teardown tasks; a running task finishes on its
+        // own and its per-proxy guards (isDestroyed/aborted generation) keep
+        // it from touching destroyed proxies.
+        this.setupTaskQueue.clear();
         if (this.appProxies.size) {
             this.appProxies.forEach(appProxy => {
                 appProxy.destroy(true, false, true);

@@ -34,14 +34,14 @@ importers:
         specifier: ^0.2.2
         version: 0.2.11
       '@netless/app-docs-viewer':
-        specifier: 0.2.21-beta.0
-        version: 0.2.21-beta.0(jspdf@2.5.2)
+        specifier: 0.2.21-beta.1
+        version: 0.2.21-beta.1(jspdf@2.5.2)
       '@netless/app-media-player':
-        specifier: 0.1.5-beta.0
-        version: 0.1.5-beta.0
+        specifier: 0.1.5-beta.1
+        version: 0.1.5-beta.1
       '@netless/app-presentation':
-        specifier: ^0.1.13-beta.0
-        version: 0.1.13-beta.0(jspdf@2.5.2)
+        specifier: 0.1.13-beta.1
+        version: 0.1.13-beta.1(jspdf@2.5.2)
       '@rollup/plugin-commonjs':
         specifier: ^20.0.0
         version: 20.0.0(rollup@4.60.1)
@@ -363,19 +363,19 @@ packages:
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
-  '@netless/app-docs-viewer@0.2.21-beta.0':
-    resolution: {integrity: sha512-NCQTrV0XPw+MhywLprMoTM4BVZ2tMb7Q9I8yvDEnGADHZSJD9/eVgJGrfvatJ6ClWZsOMjNQieD+RpRUDcjYwQ==}
+  '@netless/app-docs-viewer@0.2.21-beta.1':
+    resolution: {integrity: sha512-sj1lsNbvkxtp2lV6+0LiN8X46mionT+xn7NDEha+HolJwrWGhKBOaxX2oTijOC834wZz+W/SN2sAqd5JCEDpwQ==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-media-player@0.1.5-beta.0':
-    resolution: {integrity: sha512-MohsTT/AqNRO6QGZeAWDz6JEtNyKFUk+0JhQtGU8fYOz5foQ+LNwgCn1hReQ+P8OsIVPj9Z0edWtjj1BsMJDNg==}
+  '@netless/app-media-player@0.1.5-beta.1':
+    resolution: {integrity: sha512-nCYklKlWt8V9giYe3LHx02Sm47kGA2mrePplBdDj3JEaufsiLqwLM/gHdrw/W1fLMtZBN5EwfAKEcmQUckuZrQ==}
 
-  '@netless/app-presentation@0.1.13-beta.0':
-    resolution: {integrity: sha512-AY+pm0ycHC1Jvo2osdv7q5de23VLPRY80aoOs2au11dxMa/hLQUnWI61KhJmFF0SZt1/7aGnPW057yJJQfKyHQ==}
+  '@netless/app-presentation@0.1.13-beta.1':
+    resolution: {integrity: sha512-HUzKNfQN2yJop6CODiQmbBgxq82JZ9hXxkYxUg8EwXsHzTHbcOECpG91wGuowxe5jSs0PAWtVsZ8gFa+G3nTiA==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
@@ -3612,7 +3612,7 @@ snapshots:
 
   '@juggle/resize-observer@3.4.0': {}
 
-  '@netless/app-docs-viewer@0.2.21-beta.0(jspdf@2.5.2)':
+  '@netless/app-docs-viewer@0.2.21-beta.1(jspdf@2.5.2)':
     dependencies:
       '@juggle/resize-observer': 3.4.0
       debounce-fn: 5.1.2
@@ -3620,9 +3620,9 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-media-player@0.1.5-beta.0': {}
+  '@netless/app-media-player@0.1.5-beta.1': {}
 
-  '@netless/app-presentation@0.1.13-beta.0(jspdf@2.5.2)':
+  '@netless/app-presentation@0.1.13-beta.1(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
