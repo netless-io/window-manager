@@ -192,6 +192,24 @@ describe("AppManager lazy runtime cache", () => {
         expect(lb).toBeGreaterThan(la);
     });
 
+    it("keeps exactly one LRU entry per app across evict/re-setup cycles", async () => {
+        const manager = createLazyManager(1);
+        const a = createProxy();
+        manager.appProxies = new Map([["a", a]]);
+        manager.runtimeCache.set("a", { lastUsed: 0, state: "ready" });
+
+        // setup completes (ready) -> evicted (slot dropped) -> re-setup
+        await AppManager.prototype.enqueueAppSetup.call(manager, "a");
+        expect(manager.runtimeCache.get("a")?.state).toBe("ready");
+        expect(manager.runtimeCache.size).toBe(1);
+
+        manager.runtimeCache.delete("a"); // eviction drop
+        await AppManager.prototype.enqueueAppSetup.call(manager, "a");
+        const entries = Array.from(manager.runtimeCache.keys()).filter((k) => k === "a");
+        expect(entries).toHaveLength(1);
+        expect(manager.runtimeCache.get("a")?.state).toBe("ready");
+    });
+
     it("ranks forceTop above the focused app in setup priority", () => {
         const manager = createLazyManager(1);
         manager.windowManger.attributes = {

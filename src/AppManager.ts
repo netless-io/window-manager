@@ -1265,6 +1265,11 @@ export class AppManager {
             true,
             needFocus
         );
+        if (!appProxy) {
+            this.windowManger.Logger?.warn(
+                `[WindowManager]: addApp returned no app for ${params.kind}, appId: ${appId}`
+            );
+        }
         this.afterAddApp(appProxy);
         return appProxy?.id;
     }

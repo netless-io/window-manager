@@ -948,6 +948,11 @@ export class WindowManager
      *
      * Unlike `addApp()`, setup failures reject this Promise and the partially
      * initialized local App is removed. Existing `addApp()` timing is unchanged.
+     *
+     * Under a **minimized** workspace with lazy setup enabled, no runtime is
+     * created (minimized workspaces keep no runtimes): the Promise resolves
+     * with the appId right after the shell is created, and the App sets up
+     * when it gains focus after unminimizing.
      */
     public async addAppAndWaitForSetup<T = any>(params: AddAppParams<T>): Promise<string> {
         const appId = await this.addApp(params);
@@ -959,6 +964,11 @@ export class WindowManager
             throw new Error(`[WindowManager]: app not found after creation, appId: ${appId}`);
         }
         try {
+            if (this.lazySetupInMaximizedMode && this.boxManager?.minimized) {
+                // Minimized workspaces keep no runtimes (design §6.5): resolve
+                // after shell creation; setup runs on focus after unminimize.
+                return appId;
+            }
             if (typeof (app as any).ensureSetup === "function") {
                 // Route through the serial setup queue so an explicit wait
                 // never runs `setup()` concurrently with other apps.
@@ -2586,6 +2596,10 @@ export class WindowManager
      */
     public focusApp(appId: string) {
         const box = this.boxManager?.getBox(appId);
+        if (!box) {
+            this.Logger?.warn(`[WindowManager]: focusApp ignored, no box for appId: ${appId}`);
+            return;
+        }
         if (box) {
             if (this.lazySetupInMaximizedMode) {
                 this.appManager?.requestFocus(appId);
