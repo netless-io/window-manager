@@ -31,6 +31,7 @@ const createProxy = () => {
         status: "normal",
         manager: {
             windowManger: { Logger: logger },
+            notifyAppDestroyed: vi.fn(),
             appProxies,
             viewManager,
             appStatus: new Map(),

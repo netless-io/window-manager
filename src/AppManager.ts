@@ -84,11 +84,17 @@ export class AppManager {
     // AppProxy/Box creation; this queue waits until each setup actually finishes.
     private setupTaskQueue = new SetupQueue();
     // LRU cache of set-up app runtimes (lazy mode only). Insertion order is
-    // irrelevant; `lastUsed` drives eviction.
+    // irrelevant; `lastUsed` drives eviction. It is a monotonic access
+    // counter (not wall-clock): two touches within the same millisecond
+    // would otherwise tie and degrade eviction to Map insertion order.
     private runtimeCache = new Map<
         string,
         { lastUsed: number; state: "setting-up" | "ready" | "tearing-down" }
     >();
+    private lruClock = 0;
+    private nextLru(): number {
+        return ++this.lruClock;
+    }
     // In-flight (or queued) setup tasks per app. Duplicate requests reuse the
     // same Promise so an app is never set up twice concurrently.
     private settingUpApps = new Map<string, Promise<void>>();
@@ -162,7 +168,7 @@ export class AppManager {
                         const entry = this.runtimeCache.get(appId);
                         if (entry && entry.state !== "tearing-down") {
                             entry.state = "ready";
-                            entry.lastUsed = Date.now();
+                            entry.lastUsed = this.nextLru();
                         }
                         if (this.attributes.minimized) {
                             // A setup started before minimize may finish afterwards;
@@ -200,15 +206,17 @@ export class AppManager {
     }
 
     /**
-     * Batch ordering key for pending setup tasks: the focused app first, then
-     * forceTop apps, then by zIndex descending, then creation order.
+     * Batch ordering key for pending setup tasks: forceTop apps first
+     * (they are the visible top in a maximized workspace, design §7.3 /
+     * test §19.32), then the focused app, then by zIndex descending, then
+     * creation order.
      */
     private computeSetupPriority(appId: string): number {
-        if (this.store.focus === appId) {
-            return 0;
-        }
         const appAttrs = this.attributes.apps?.[appId];
         if (appAttrs?.forceTop) {
+            return 0;
+        }
+        if (this.store.focus === appId) {
             return 1;
         }
         const zIndex = appAttrs?.state?.zIndex ?? 0;
@@ -219,9 +227,9 @@ export class AppManager {
         if (!this.lazySetupEnabled) return;
         const entry = this.runtimeCache.get(appId);
         if (entry) {
-            entry.lastUsed = Date.now();
+            entry.lastUsed = this.nextLru();
         } else if (this.appProxies.get(appId)?.isSetup) {
-            this.runtimeCache.set(appId, { lastUsed: Date.now(), state: "ready" });
+            this.runtimeCache.set(appId, { lastUsed: this.nextLru(), state: "ready" });
         }
     }
 
@@ -237,7 +245,11 @@ export class AppManager {
         let candidate: string | undefined;
         let oldest = Infinity;
         this.runtimeCache.forEach((entry, id) => {
+            // Apps without a teardown implementation keep their runtime alive
+            // even when "evicted" (design §13): excluding them here prevents
+            // zombie runtimes from accumulating beyond the cache capacity.
             if (entry.state !== "ready" || exclude.has(id)) return;
+            if (!this.appProxies.get(id)?.canTeardown) return;
             if (entry.lastUsed < oldest) {
                 oldest = entry.lastUsed;
                 candidate = id;
@@ -282,17 +294,42 @@ export class AppManager {
     private async teardownRuntime(appId: string): Promise<void> {
         const entry = this.runtimeCache.get(appId);
         if (!entry || entry.state !== "ready") return;
+        const proxy = this.appProxies.get(appId);
+        if (proxy && !proxy.canTeardown) {
+            // No teardown implementation: the runtime would stay alive while
+            // the cache bookkeeping forgets it. Keep the entry so capacity
+            // accounting stays truthful (design §13).
+            this.Logger?.warn(
+                `[WindowManager] app ${appId} has no teardown; keeping runtime and cache slot`
+            );
+            return;
+        }
         entry.state = "tearing-down";
-        await this.setupTaskQueue.push(`teardown:${appId}`, () => -1, async () => {
-            const appProxy = this.appProxies.get(appId);
-            try {
-                await appProxy?.teardown();
-            } catch (error) {
-                this.Logger?.warn(`[WindowManager] runtime teardown failed for ${appId}: ${error}`);
+        await this.setupTaskQueue.push(
+            `teardown:${appId}`,
+            () => -1,
+            async () => {
+                const appProxy = this.appProxies.get(appId);
+                try {
+                    await appProxy?.teardown();
+                } catch (error) {
+                    this.Logger?.warn(
+                        `[WindowManager] runtime teardown failed for ${appId}: ${error}`
+                    );
+                }
+                this.runtimeCache.delete(appId);
+                this.settingUpApps.delete(appId);
             }
-            this.runtimeCache.delete(appId);
-            this.settingUpApps.delete(appId);
-        });
+        );
+    }
+
+    /** Drop cache bookkeeping for an app whose proxy was destroyed. */
+    public notifyAppDestroyed(appId: string): void {
+        this.runtimeCache.delete(appId);
+        this.settingUpApps.delete(appId);
+        if (this.activeLazyAppId === appId) {
+            this.activeLazyAppId = undefined;
+        }
     }
 
     /** Tear down every cached runtime (entering minimized). */
@@ -300,22 +337,29 @@ export class AppManager {
         const ids = Array.from(this.runtimeCache.keys()).filter(id => {
             return this.runtimeCache.get(id)?.state === "ready";
         });
-        return this.setupTaskQueue.push(`teardown-all:${ids.length}`, () => -1, async () => {
-            for (const id of ids) {
-                const entry = this.runtimeCache.get(id);
-                if (!entry || entry.state !== "ready") continue;
-                entry.state = "tearing-down";
-                const appProxy = this.appProxies.get(id);
-                try {
-                    await appProxy?.teardown();
-                } catch (error) {
-                    this.Logger?.warn(`[WindowManager] runtime teardown failed for ${id}: ${error}`);
+        return this.setupTaskQueue.push(
+            `teardown-all:${ids.length}`,
+            () => -1,
+            async () => {
+                for (const id of ids) {
+                    const entry = this.runtimeCache.get(id);
+                    if (!entry || entry.state !== "ready") continue;
+                    if (!this.appProxies.get(id)?.canTeardown) continue;
+                    entry.state = "tearing-down";
+                    const appProxy = this.appProxies.get(id);
+                    try {
+                        await appProxy?.teardown();
+                    } catch (error) {
+                        this.Logger?.warn(
+                            `[WindowManager] runtime teardown failed for ${id}: ${error}`
+                        );
+                    }
+                    this.runtimeCache.delete(id);
+                    this.settingUpApps.delete(id);
                 }
-                this.runtimeCache.delete(id);
-                this.settingUpApps.delete(id);
+                this.activeLazyAppId = undefined;
             }
-            this.activeLazyAppId = undefined;
-        });
+        );
     }
 
     private _useBoxesStatus = false;
@@ -896,22 +940,20 @@ export class AppManager {
         // cached app must re-focus without re-setup).
         const cachedEntry = this.runtimeCache.get(focused);
         const isCacheHit =
-          !!cachedEntry &&
-          cachedEntry.state === "ready" &&
-          this.appProxies.get(focused)?.isSetup;
+            !!cachedEntry && cachedEntry.state === "ready" && this.appProxies.get(focused)?.isSetup;
         if (!isCacheHit) {
-          // Cache miss: make room first (the visible app is never evicted
-          // here; cache=1 defers its teardown until after focus commit),
-          // then run the real setup inside the serial setup queue.
-          try {
-            await this.evictBeforeSetup(focused);
-            await this.enqueueAppSetup(focused, () => -1);
-          } catch (error) {
-            this.Logger?.warn(`[WindowManager] lazy setup failed for ${focused}: ${error}`);
-            return;
-          }
+            // Cache miss: make room first (the visible app is never evicted
+            // here; cache=1 defers its teardown until after focus commit),
+            // then run the real setup inside the serial setup queue.
+            try {
+                await this.evictBeforeSetup(focused);
+                await this.enqueueAppSetup(focused, () => -1);
+            } catch (error) {
+                this.Logger?.warn(`[WindowManager] lazy setup failed for ${focused}: ${error}`);
+                return;
+            }
         } else {
-          this.touchRuntime(focused);
+            this.touchRuntime(focused);
         }
         if (
             this.attributes.minimized ||
@@ -938,9 +980,7 @@ export class AppManager {
         const appIds = Array.from(this.appProxies.keys());
         // Setup failures are already logged inside AppProxy; the per-app
         // catch only keeps one failed app from failing the batch wait.
-        await Promise.all(
-            appIds.map(appId => this.enqueueAppSetup(appId).catch(() => undefined))
-        );
+        await Promise.all(appIds.map(appId => this.enqueueAppSetup(appId).catch(() => undefined)));
     }
 
     public requestFocus(appId: string): void {
@@ -1004,11 +1044,7 @@ export class AppManager {
             this.notifyAppsChange(orderedAppIds);
             const pendingAppIds = this.pendingAppIds || new Set<string>();
             for (const id of creationOrder) {
-                if (
-                    !this.appProxies.has(id) &&
-                    !this.appStatus.has(id) &&
-                    !pendingAppIds.has(id)
-                ) {
+                if (!this.appProxies.has(id) && !this.appStatus.has(id) && !pendingAppIds.has(id)) {
                     const app = apps[id];
                     try {
                         pendingAppIds.add(id);
@@ -1431,9 +1467,7 @@ export class AppManager {
                     () => appProxy.onReconnected()
                 );
             } catch (error) {
-                this.Logger?.warn(
-                    `[WindowManager] reconnect failed for ${appProxy.id}: ${error}`
-                );
+                this.Logger?.warn(`[WindowManager] reconnect failed for ${appProxy.id}: ${error}`);
             }
         }
         if (this.callbacksNode) {

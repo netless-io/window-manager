@@ -160,9 +160,7 @@ export function normalizeMaxCachedAppsInMaximizedMode(
         return 1;
     }
     if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
-        warn(
-            `[WindowManager] invalid maxCachedAppsInMaximizedMode ${value}; falling back to 1`
-        );
+        warn(`[WindowManager] invalid maxCachedAppsInMaximizedMode ${value}; falling back to 1`);
         return 1;
     }
     if (value > MAX_CACHED_APPS_SANE_LIMIT) {

@@ -200,6 +200,13 @@ export class AppProxy implements PageRemoveService {
         return this.status === "destroyed";
     }
 
+    /** Whether this app implements the runtime teardown contract. Apps
+     * without it can never be suspended (design §13): the manager keeps
+     * their runtime (and cache slot) alive instead of evicting them. */
+    public get canTeardown(): boolean {
+        return !!(this.appDefinition && (this.appDefinition as NetlessApp).teardown);
+    }
+
     /** Whether the room-level focus currently points to this app. */
     public get isFocused(): boolean {
         return this.store.focus === this.id;
@@ -294,7 +301,9 @@ export class AppProxy implements PageRemoveService {
                 await setupPromise;
             } else {
                 this.Logger &&
-                    this.Logger.error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
+                    this.Logger.error(
+                        `[WindowManager]: app load failed ${params.kind} ${params.src}`
+                    );
                 throw new Error(`[WindowManager]: app load failed ${params.kind} ${params.src}`);
             }
             internalEmitter.emit("updateManagerRect");
@@ -303,7 +312,8 @@ export class AppProxy implements PageRemoveService {
                 app: appImpl,
             };
         } catch (error) {
-            this.setupInitializationError = error instanceof Error ? error : new Error(String(error));
+            this.setupInitializationError =
+                error instanceof Error ? error : new Error(String(error));
             this.resolveSetupInitialization?.();
             this.resolveSetupInitialization = undefined;
             throw error;
@@ -506,9 +516,7 @@ export class AppProxy implements PageRemoveService {
                 // queue) move on and a later ensureSetup() can re-run cleanly
                 // from the retained descriptor.
                 this.Logger?.warn(
-                    `[WindowManager]: app setup aborted by teardown/destroy, kind: ${
-                        this.kind
-                    }, appId: ${appId}`
+                    `[WindowManager]: app setup aborted by teardown/destroy, kind: ${this.kind}, appId: ${appId}`
                 );
                 this.settleSetup({
                     succeeded: false,
@@ -606,6 +614,9 @@ export class AppProxy implements PageRemoveService {
         this.pendingZIndex = undefined;
         if (zIndex != null && zIndex > 0 && zIndex !== this.box?.zIndex) {
             this.boxManager?.setZIndex(this.id, zIndex);
+            // Deliberate direct focus: this runs only after this app's own
+            // setup completed (design §16.2 leaves post-setup zIndex commits
+            // outside the coordinator; the app is ready by definition).
             this.boxManager?.focusBox({ appId: this.id });
         }
     }
@@ -774,6 +785,9 @@ export class AppProxy implements PageRemoveService {
                     // broadcasts would focus them back — an infinite
                     // focus-fight loop.
                     if (typeof data === "boolean") break;
+                    // Legacy request path: routed through onBoxFocus, which
+                    // defers to the lazy coordinator for unsetup apps
+                    // (design §16.2).
                     this.boxManager?.focusBox({ appId: this.id });
                     boxEmitter.emit("focus", { appId: this.id });
                     break;
@@ -929,6 +943,7 @@ export class AppProxy implements PageRemoveService {
         if (this.status === "destroyed") return;
         this.status = "destroyed";
         this.setupRunGeneration += 1;
+        this.manager.notifyAppDestroyed(this.id);
         this.boxFocusOffHandlers?.forEach(off => off());
         this.boxFocusOffHandlers = [];
         const setupError =

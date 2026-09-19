@@ -19,6 +19,7 @@ const createLazyManager = (maxCachedApps = 1) => {
         attributes: { apps: {}, minimized: false },
     };
     manager.store = { focus: undefined };
+    manager.lruClock = 0;
     manager.setupTaskQueue = new SetupQueue();
     manager.runtimeCache = new Map();
     manager.settingUpApps = new Map();
@@ -27,9 +28,12 @@ const createLazyManager = (maxCachedApps = 1) => {
     return manager;
 };
 
-const createProxy = (overrides: Partial<{ isSetup: boolean }> = {}) => ({
+const createProxy = (
+    overrides: Partial<{ isSetup: boolean; canTeardown: boolean }> = {},
+) => ({
     isDestroyed: false,
     isSetup: overrides.isSetup ?? false,
+    canTeardown: overrides.canTeardown ?? true,
     ensureSetup: vi.fn().mockResolvedValue(undefined),
     teardown: vi.fn().mockResolvedValue(undefined),
 });
@@ -100,12 +104,12 @@ describe("AppManager lazy runtime cache", () => {
         const manager = createLazyManager(5);
         const proxy = createProxy({ isSetup: true });
         manager.appProxies = new Map([["app-1", proxy]]);
-        manager.runtimeCache.set("app-1", { lastUsed: 1, state: "ready" });
+        manager.runtimeCache.set("app-1", { lastUsed: 0, state: "ready" });
 
         await AppManager.prototype.enqueueAppSetup.call(manager, "app-1");
 
         expect(proxy.ensureSetup).not.toHaveBeenCalled();
-        expect(manager.runtimeCache.get("app-1")?.lastUsed).toBeGreaterThan(1);
+        expect(manager.runtimeCache.get("app-1")?.lastUsed).toBeGreaterThan(0);
     });
 
     it("drops the cache slot when setup fails", async () => {
@@ -151,6 +155,57 @@ describe("AppManager lazy runtime cache", () => {
 
         expect(active.teardown).not.toHaveBeenCalled();
         expect(manager.runtimeCache.has("active")).toBe(true);
+    });
+
+    it("keeps the cache slot of apps without a teardown implementation", async () => {
+        const manager = createLazyManager(2);
+        const zombie = createProxy({ isSetup: true });
+        zombie.canTeardown = false;
+        manager.appProxies = new Map([["zombie", zombie]]);
+        manager.runtimeCache.set("zombie", { lastUsed: 1, state: "ready" });
+
+        // eviction targets the zombie (oldest) but must skip and keep it
+        await AppManager.prototype.evictBeforeSetup.call(manager, "incoming");
+
+        expect(zombie.teardown).not.toHaveBeenCalled();
+        expect(manager.runtimeCache.get("zombie")?.state).toBe("ready");
+    });
+
+    it("orders LRU by a monotonic access counter, immune to same-ms touches", async () => {
+        const manager = createLazyManager(3);
+        const a = createProxy({ isSetup: true });
+        const b = createProxy({ isSetup: true });
+        manager.appProxies = new Map([
+            ["a", a],
+            ["b", b],
+        ]);
+        manager.runtimeCache.set("a", { lastUsed: 0, state: "ready" });
+        manager.runtimeCache.set("b", { lastUsed: 0, state: "ready" });
+
+        // two touches in the same millisecond - wall clock would tie here
+        AppManager.prototype.touchRuntime.call(manager, "a");
+        AppManager.prototype.touchRuntime.call(manager, "b");
+
+        const la = manager.runtimeCache.get("a").lastUsed;
+        const lb = manager.runtimeCache.get("b").lastUsed;
+        expect(lb).toBeGreaterThan(la);
+    });
+
+    it("ranks forceTop above the focused app in setup priority", () => {
+        const manager = createLazyManager(1);
+        manager.windowManger.attributes = {
+            apps: {
+                top: { forceTop: true },
+                focused: {},
+                plain: {},
+            },
+            minimized: false,
+        };
+        manager.store = { focus: "focused" };
+        const priorityOf = (id: string) =>
+            (AppManager.prototype as any).computeSetupPriority.call(manager, id);
+        expect(priorityOf("top")).toBeLessThan(priorityOf("focused"));
+        expect(priorityOf("focused")).toBeLessThan(priorityOf("plain"));
     });
 
     it("trims the cache after focus commit and releases the old runtime last", async () => {
