@@ -144,6 +144,7 @@ const mountManager = async (room, root) => {
             useBoxesStatus: false,
             forceMaximized: true,
             lazySetupInMaximizedMode: true,
+            maxCachedAppsInMaximizedMode: 3,
             supportAppliancePlugin: true,
             disableCameraTransform: true,
             builtinAppOptions: {
@@ -387,6 +388,7 @@ const destroy = () => {
 };
 
 anyWindow.mountManager = mountManager;
+anyWindow.getManager = () => manager;
 anyWindow.destroy = destroy;
 anyWindow.dispatchDocsEvent = (event: DocsEvent, options = {}) =>
     manager.dispatchDocsEvent(event, options);

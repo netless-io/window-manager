@@ -9,20 +9,20 @@ importers:
   .:
     dependencies:
       '@netless/app-docs-viewer':
-        specifier: file:../../slide-app/packages/app-docs-viewer
-        version: file:../../slide-app/packages/app-docs-viewer(jspdf@2.5.2)
+        specifier: 0.2.21-beta.1
+        version: 0.2.21-beta.1(jspdf@2.5.2)
       '@netless/app-media-player':
-        specifier: file:../../app-media-player/packages/app-media-player
-        version: file:../../app-media-player/packages/app-media-player
+        specifier: 0.1.5-beta.1
+        version: 0.1.5-beta.1
       '@netless/app-plyr':
         specifier: 0.2.6-beta.3
         version: 0.2.6-beta.3
       '@netless/app-presentation':
-        specifier: 0.1.12
-        version: 0.1.12(jspdf@2.5.2)
+        specifier: file:../../netless-app-presentation
+        version: file:../../netless-app-presentation(jspdf@2.5.2)
       '@netless/app-slide':
-        specifier: 0.2.104
-        version: 0.2.104(jspdf@2.5.2)
+        specifier: file:../../slide-app/packages/app-slide
+        version: file:../../slide-app/packages/app-slide(jspdf@2.5.2)
       '@netless/appliance-plugin':
         specifier: 1.1.43
         version: 1.1.43(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
@@ -607,30 +607,30 @@ packages:
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
-  '@netless/app-docs-viewer@file:../../slide-app/packages/app-docs-viewer':
-    resolution: {directory: ../../slide-app/packages/app-docs-viewer, type: directory}
+  '@netless/app-docs-viewer@0.2.21-beta.1':
+    resolution: {integrity: sha512-sj1lsNbvkxtp2lV6+0LiN8X46mionT+xn7NDEha+HolJwrWGhKBOaxX2oTijOC834wZz+W/SN2sAqd5JCEDpwQ==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-media-player@file:../../app-media-player/packages/app-media-player':
-    resolution: {directory: ../../app-media-player/packages/app-media-player, type: directory}
+  '@netless/app-media-player@0.1.5-beta.1':
+    resolution: {integrity: sha512-nCYklKlWt8V9giYe3LHx02Sm47kGA2mrePplBdDj3JEaufsiLqwLM/gHdrw/W1fLMtZBN5EwfAKEcmQUckuZrQ==}
 
   '@netless/app-plyr@0.2.6-beta.3':
     resolution: {integrity: sha512-0H8BII9f0VeefBOWI4Q5MiZnZguHrQ4IWJQSAwO9fCF2LYMQNZbtqBQrWNrz+QlHyPS1s/AYD/BxRZSLFqGZ9w==}
 
-  '@netless/app-presentation@0.1.12':
-    resolution: {integrity: sha512-VXzUSuucpuUOgrg5MPvi6l7leqFUx9Zbn/g667h6iprOkgYMrXxuh4WO+3Uu8MyAYS+e56K+B3yRsQXAlyeS6A==}
+  '@netless/app-presentation@file:../../netless-app-presentation':
+    resolution: {directory: ../../netless-app-presentation, type: directory}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-slide@0.2.104':
-    resolution: {integrity: sha512-hf+13ZYw4BEq/MExLJHshm+YTJ4xvr/USxnmj1iXSbHoF90cU5AOIhEkK0G2R2yNfaUWEpoINVpJ4RMZSpOqHg==}
+  '@netless/app-slide@file:../../slide-app/packages/app-slide':
+    resolution: {directory: ../../slide-app/packages/app-slide, type: directory}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
@@ -2207,7 +2207,7 @@ snapshots:
 
   '@juggle/resize-observer@3.4.0': {}
 
-  '@netless/app-docs-viewer@file:../../slide-app/packages/app-docs-viewer(jspdf@2.5.2)':
+  '@netless/app-docs-viewer@0.2.21-beta.1(jspdf@2.5.2)':
     dependencies:
       '@juggle/resize-observer': 3.4.0
       debounce-fn: 5.1.2
@@ -2215,15 +2215,15 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-media-player@file:../../app-media-player/packages/app-media-player': {}
+  '@netless/app-media-player@0.1.5-beta.1': {}
 
   '@netless/app-plyr@0.2.6-beta.3': {}
 
-  '@netless/app-presentation@0.1.12(jspdf@2.5.2)':
+  '@netless/app-presentation@file:../../netless-app-presentation(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-slide@0.2.104(jspdf@2.5.2)':
+  '@netless/app-slide@file:../../slide-app/packages/app-slide(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
