@@ -1,0 +1,100 @@
+# WindowManager forceMaximized + lazy/cache 与 eager fallback 测试脑图
+
+- WindowManager forceMaximized + lazy/cache 与 eager fallback
+  - 功能测试
+    - force 策略与模式回退
+      - 生效条件
+        - SC-01 可写端开启 force 后 lazy 客户端初始化
+          - 预期：房间 `attributes.forceMaximized=true` 且 boxState 为 maximized/minimized
+          - 预期：lazy 客户端仅 setup top/focused App，其余为 shell
+        - SC-03 lazy 前置条件不满足时 eager fallback
+          - 预期：出现明确 warning，所有 App 进入 setup 队列
+          - 预期：不因 lazy 参数自行写入 force 或改变房间状态
+      - 状态转换
+        - SC-04 显式清除 force 后 lazy 回退 eager
+          - 预期：lazy bookkeeping 清理，尚未 setup 的 App 按优先级串行补齐
+          - 预期：房间 boxState 不被隐式改成 normal
+      - normal 拦截
+        - SC-02 force 期间调用 normal/maximized API
+          - 预期：`setMaximized(false)` / `setBoxState("normal")` 返回原声明类型且 no-op
+          - 预期：room logger 出现 warning，attributes/TeleBox 保持 maximized 或 minimized
+    - runtime cache 状态机
+      - 容量与命中
+        - SC-05 cache=1/3/5 的命中与容量
+          - 预期：ready/tearing-down/pinned 按状态计数规则记录
+          - 预期：ready cache hit 不重新 setup，仅刷新单调 LRU 序号
+      - 淘汰与恢复
+        - SC-05 cache 满后 cache miss LRU 淘汰
+          - 预期：实际淘汰项等于 setup 前 lastUsed 最小且非 active/pending 项
+          - 预期：setup 与 teardown 区间不交叉，重聚焦淘汰项后重新 ready
+      - pinned 与软超限
+        - SC-06 teardown 抛错进入 pinned
+          - 预期：缓存条目保留、按容量计数、error 日志出现、后续淘汰不重复调用 teardown
+        - SC-07 无 teardown App 占满容量
+          - 预期：runtime/cache 记账保留，出现软超限 warning，新 App 仍可 setup
+      - minimized
+        - SC-08 minimized 释放 runtime 后解除最小化
+          - 预期：健康 runtime 串行 teardown，shell 仍可 query
+          - 预期：解除 minimized 后 top/focused App 先 setup，再提交 focus
+    - setup/focus 串行协同
+      - 优先级
+        - SC-09 初始恢复/补齐/reconnect 批量 setup
+          - 预期：forceTop > focus > zIndex > 插入序，setup 时间区间两两不交叉
+      - 重入与过期请求
+        - SC-10 cache hit 和快速 A→B→C focus
+          - 预期：命中不重 setup，过期 focus 不提交，不出现旧 App 抢焦
+      - 信号一致性
+        - SC-11 focus 布尔广播与旧请求语义混用
+          - 预期：App 收到 `focus: boolean` 后不把布尔广播再次当作 focus 请求
+          - 预期：无用户操作时 focus 事件计数稳定，无循环、pageerror 或 CPU runaway
+    - 公共 API 与 App 生命周期
+      - 参数/返回值契约
+        - SC-12 addApp/focusApp/closeApp/setMinimized/setBoxState
+          - 预期：返回类型不改变；不存在的 app focus 为 warning + no-op
+          - 预期：close 后 attributes、proxy、cache、setup bookkeeping 同步清理
+      - minimized API
+        - SC-13 minimized 下 addApp 与 addAppAndWaitForSetup
+          - 预期：lazy minimized addApp 只创建 shell，不触发 runtime setup
+          - 预期：addAppAndWaitForSetup 按约定返回 appId，解除 minimized 后才 setup
+      - setup/destroy
+        - SC-12 setup 失败、teardown-during-setup、destroy
+          - 预期：shell 不污染房间 apps，Promise 失败有日志，无 stale proxy/cache/queue
+    - 房间协同与恢复
+      - 多客户端
+        - SC-14 lazy、force+eager、只读端同房间
+          - 预期：force 字段和 boxState 一致；lazy/cache 仅本地生效
+          - 预期：eager 端 setup 全部 App，lazy 端只 setup 需要的 App
+      - reconnect
+        - SC-15 maximized/minimized reconnect
+          - 预期：lazy 端 focused/top runtime 恢复并提交 focus，eager `onReconnected()` 等待全部真实 setup
+          - 预期：setup 不并发，cache 无重复 entry
+      - seek 与 bindContainer
+        - SC-16 Player seek rebuild
+          - 预期：shell 重建后按当前模式恢复，setup 不并发、不重复
+        - SC-17 重复 bindContainer
+          - 预期：不重复 setup、focus、force 同步或 listener
+    - 性能与稳定性
+      - CPU/ready 对比
+        - SC-18 lazy/cache 与 force+eager 的 1x/6x/20x 对照
+          - 预期：两种模式均无 page crash/pageerror/TIMEOUT_LOW/SETUP_FAILED
+          - 预期：记录 first-focus-ready、all-apps-ready、realReady P50/P95/P99 和主线程 CPU
+      - 长稳态
+        - SC-19 30 分钟切换、minimized、reconnect soak
+          - 预期：queue、listener、appProxy、runtimeCache、settingUpApps 无持续增长
+          - 预期：无 focus loop、无未处理 rejection、清房后 bookkeeping 全空
+  - 性能测试
+    - 固定同一机器、Chromium、资源、房间和操作序列，分别执行 lazy cache=1/3/5、force+eager、lazy fallback eager
+    - 记录 CDP `Performance.getMetrics`、OS browser CPU、JS heap、ready 时间、超时分类、page crash 和 focus 事件计数
+    - 以同一模式 1x 为基线，6x/20x 各 5 次；比较 P50/P95/P99 和失败率，不用平均值掩盖长尾
+  - 兼容性测试
+    - 可写管理端、只读 lazy 端、force+eager 端、Player 分别验证 force 约束和本地 lazy/cache 隔离
+    - Presentation、Slide、MediaPlayer、DocsViewer 各至少一条 setup/teardown/re-setup 路径
+    - 旧版客户端单独标记为协议风险，不与支持 force 的客户端 PASS 合并
+  - 压测
+    - 6x/20x 各 5 次独立清房，覆盖初始化、cache hit、LRU miss、minimized、reconnect、force 清除
+    - 任意 TIMEOUT_LOW、SETUP_FAILED、pageerror、page crash、focus loop、queue 卡死均 FAIL
+    - 20x 单次超过 15 分钟 ABORT，保留 trace、console、dumpState 和 CPU 采样
+  - 云测
+    - 研发未单独列为测试项，不进行测试
+  - 回归测试
+    - 每次改动执行 WindowManager 单测、四 App build/test、F1-F7、lazy/eager smoke、双客户端 E2E 和 6x/20x 压测
