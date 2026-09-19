@@ -266,10 +266,13 @@ force 字段的设置/清除必须经过 `setForceMaximized()` 的权限校验�
 lazy 分支维护以下集合：
 
 ```ts
-// runtime 缓存：插入顺序无关，按 lastUsed 做 LRU
+// runtime 缓存：插入顺序无关，按 lastUsed 做 LRU（单调访问序号）
+// 状态机：setting-up → ready → tearing-down（淘汰/最小化释放）
+//   pinned：teardown 抛错后的钉住态（记账保留、按容量计数、排除淘汰，
+//   聚焦时按"runtime 存活"处理，不重新 setup）
 runtimeCache: Map<string, {
     lastUsed: number;
-    state: "setting-up" | "ready" | "tearing-down";
+    state: "setting-up" | "ready" | "tearing-down" | "pinned";
 }>;
 settingUpApps: Map<string, Promise<void>>;
 ```
@@ -885,7 +888,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 
 **串行 setup 队列与缓存**
 
-- [x] 实现 `runtimeCache`（LRU：lastUsed + setting-up/ready/tearing-down 状态）与 `settingUpApps` Promise 复用。
+- [x] 实现 `runtimeCache`（LRU：单调访问序号 + setting-up/ready/tearing-down/pinned 状态）与 `settingUpApps` Promise 复用。
 - [x] 实现统一真实 setup 串行队列（任务必须 `await ensureSetup()`），并把 7.2 节全部路径接入。
 - [x] 移除 eager `setupApp()` 中 `setTimeout` 造成的 setup 并发（延迟启动保留、执行入队）。
 - [x] 队列调度器支持按优先级取任务（forceTop > focus > zIndex 降序 > 插入序），focus 变化可重排未开始任务。

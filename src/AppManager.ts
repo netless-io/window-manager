@@ -381,6 +381,11 @@ export class AppManager {
             `teardown-all:${ids.length}`,
             () => -1,
             async () => {
+                // Lazy mode may have been disabled while this batch was
+                // queued (forceMaximized cleared): eager keeps runtimes
+                // alive, so the whole batch becomes a no-op (bookkeeping
+                // was already dropped by the transition).
+                if (!this.lazySetupEnabled) return;
                 for (const id of ids) {
                     const entry = this.runtimeCache.get(id);
                     if (!entry || entry.state !== "ready") continue;

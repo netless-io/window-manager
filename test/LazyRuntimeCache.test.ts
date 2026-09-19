@@ -241,6 +241,60 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.runtimeCache.size).toBe(0);
     });
 
+    it("enqueueAppSetup returns the same Promise and sets up once (real dedupe)", async () => {
+        const manager = createLazyManager(3);
+        const a = createProxy();
+        manager.appProxies = new Map([["a", a]]);
+
+        // block the serial queue so both calls are pending before running
+        const release: Array<() => void> = [];
+        const blocker = manager.setupTaskQueue.push(
+            "blocker",
+            () => -1,
+            () => new Promise<void>((r) => release.push(r)),
+        );
+
+        const p1 = AppManager.prototype.enqueueAppSetup.call(manager, "a");
+        const p2 = AppManager.prototype.enqueueAppSetup.call(manager, "a");
+
+        expect(p1).toBe(p2); // identical Promise object, not just equal
+        expect(manager.settingUpApps.get("a")).toBe(p1);
+
+        release[0]();
+        await blocker;
+        await Promise.all([p1, p2]);
+
+        expect(a.ensureSetup).toHaveBeenCalledTimes(1);
+        expect(manager.settingUpApps.size).toBe(0);
+    });
+
+    it("queued minimized batch teardown becomes a no-op after lazy->eager transition", async () => {
+        const manager = createLazyManager(2);
+        const ok = createProxy({ isSetup: true });
+        manager.appProxies = new Map([["ok", ok]]);
+        manager.runtimeCache.set("ok", { lastUsed: 1, state: "ready" });
+
+        // queue the batch teardown behind a blocker
+        const release: Array<() => void> = [];
+        const blocker = manager.setupTaskQueue.push(
+            "blocker",
+            () => -1,
+            () => new Promise<void>((r) => release.push(r)),
+        );
+        const batchPromise = AppManager.prototype.teardownAllRuntimeCaches.call(manager);
+
+        // transition lazy -> eager while queued (real flow: guard + clear)
+        manager.windowManger.lazySetupInMaximizedMode = false;
+        manager.clearLazyBookkeeping();
+
+        release[0]();
+        await blocker;
+        await batchPromise;
+
+        // batch became a no-op: runtime kept alive, no teardown call
+        expect(ok.teardown).not.toHaveBeenCalled();
+    });
+
     it("ranks forceTop above the focused app in setup priority", () => {
         const manager = createLazyManager(1);
         manager.windowManger.attributes = {
