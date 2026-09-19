@@ -1288,6 +1288,11 @@ export class WindowManager
         this.boxManager?.setForceMaximized(force);
         if (!force && this._lazySetupInMaximizedMode) {
             this._lazySetupInMaximizedMode = false;
+            // Eager mode does not consult the cache; drop the lazy
+            // bookkeeping so no stale entries survive the transition. If
+            // lazy is ever re-enabled, ready apps re-enter the cache via
+            // touchRuntime on their next focus.
+            this.appManager?.clearLazyBookkeeping();
             void this.appManager?.setupAllApps();
         }
         if (

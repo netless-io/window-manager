@@ -247,6 +247,36 @@ describe("AppManager lazy runtime cache", () => {
         expect(flaky.teardown).toHaveBeenCalledTimes(1);
     });
 
+    it("pins slots on minimized batch teardown when teardown rejects", async () => {
+        const manager = createLazyManager(2);
+        const ok = createProxy({ isSetup: true });
+        const flaky = createProxy({ isSetup: true });
+        flaky.teardown = vi.fn().mockRejectedValue(new Error("half torn down"));
+        const another = createProxy({ isSetup: true });
+        manager.appProxies = new Map([
+            ["ok", ok],
+            ["flaky", flaky],
+            ["another", another],
+        ]);
+        manager.runtimeCache.set("ok", { lastUsed: 1, state: "ready" });
+        manager.runtimeCache.set("flaky", { lastUsed: 2, state: "ready" });
+
+        await AppManager.prototype.teardownAllRuntimeCaches.call(manager);
+
+        // healthy slot removed; failed slot pinned and still counted
+        expect(manager.runtimeCache.has("ok")).toBe(false);
+        expect(manager.runtimeCache.get("flaky")?.state).toBe("pinned");
+        expect(flaky.teardown).toHaveBeenCalledTimes(1);
+
+        // a later eviction round must not touch the pinned slot again
+        manager.runtimeCache.set("another", { lastUsed: 3, state: "ready" });
+        await AppManager.prototype.evictBeforeSetup.call(manager, "incoming");
+        expect(another.teardown).toHaveBeenCalledTimes(1);
+        expect(flaky.teardown).toHaveBeenCalledTimes(1);
+        expect(manager.runtimeCache.has("another")).toBe(false);
+        expect(manager.runtimeCache.get("flaky")?.state).toBe("pinned");
+    });
+
     it("soft-overflows when only no-teardown runtimes occupy a full cache", async () => {
         const manager = createLazyManager(1);
         const zombie = createProxy({ isSetup: true });

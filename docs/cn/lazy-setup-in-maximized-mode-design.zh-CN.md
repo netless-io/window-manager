@@ -560,7 +560,7 @@ interface NetlessApp {
 - 每次 `setup()` 必须拥有独立的 setup scope；teardown 必须清理本次 setup 在 `context.emitter`（该 emitter 由 AppProxy 复用）上注册的全部监听器和订阅，不能依赖创建新的 AppContext 自动获得新的事件总线；
 - WindowManager 在允许 re-setup 前应确认旧 setup scope 已释放，避免同一 App 多次切换后 destroy/事件监听器线性累积；
 - `teardown()` 必须幂等，重复调用不能抛错；
-- 没有实现 teardown 的第三方 App 不能被静默地当作可安全 suspend 的 App（现状：teardown 无实现分支 warning 并永久保留 runtime）。
+- 没有实现 teardown 的第三方 App 不能被静默地当作可安全 suspend 的 App（现状：teardown 无实现分支 warning 并永久保留 runtime）。**已实现策略**：`canTeardown=false` 的条目保留 runtime 与缓存记账、不参与淘汰、minimized 批量释放时跳过——缓存按其数量软超限（见 §6.4）；已实现 teardown 但**执行中抛错**的 App，其缓存条目置为 `pinned`（保留记账、排除淘汰、error 日志），直到 runtime 被证明可再次安全释放。
 
 v1 中"三个内置 App 需要同步实现 teardown"的结论已过时：`app-slide`、`app-docs-viewer`、`app-presentation`、`app-media-player` 四个 App 均已实现 `teardown`（见 2.3 节路径）。v2 剩余工作是各 App 的 setup ready 契约（第 14 节）与 presentation 失焦降级（第 15 节）。
 

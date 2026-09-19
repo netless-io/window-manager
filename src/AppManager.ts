@@ -345,6 +345,15 @@ export class AppManager {
         );
     }
 
+    /** Drop all lazy cache bookkeeping (lazy -> eager transition). Eager
+     * mode never consults the cache; if lazy is re-enabled, ready apps
+     * re-enter the cache via touchRuntime on their next focus. */
+    public clearLazyBookkeeping(): void {
+        this.runtimeCache.clear();
+        this.settingUpApps.clear();
+        this.activeLazyAppId = undefined;
+    }
+
     /** Drop cache bookkeeping for an app whose proxy was destroyed. */
     public notifyAppDestroyed(appId: string): void {
         this.runtimeCache.delete(appId);
@@ -372,9 +381,19 @@ export class AppManager {
                     try {
                         await appProxy?.teardown();
                     } catch (error) {
-                        this.Logger?.warn(
-                            `[WindowManager] runtime teardown failed for ${id}: ${error}`
+                        // Same contract as the single teardown: a failing
+                        // teardown pins the slot instead of forgetting a
+                        // possibly-alive runtime.
+                        this.Logger?.error(
+                            `[WindowManager] runtime teardown failed for ${id}, pinning cache slot: ${error}`
                         );
+                        const failed = this.runtimeCache.get(id);
+                        if (failed) {
+                            failed.state = "pinned";
+                            failed.lastUsed = this.nextLru();
+                        }
+                        this.settingUpApps.delete(id);
+                        continue;
                     }
                     this.runtimeCache.delete(id);
                     this.settingUpApps.delete(id);
