@@ -295,6 +295,48 @@ describe("AppManager lazy runtime cache", () => {
         expect(ok.teardown).not.toHaveBeenCalled();
     });
 
+    it("applyForceMaximized clears lazy bookkeeping on both fallback branches", async () => {
+        const { WindowManager } = await import("../src");
+        const wm = Object.create(WindowManager.prototype) as any;
+        const cleared: Array<Map<any, any> | undefined> = [];
+        let setups = 0;
+        wm._forceMaximized = true;
+        wm._lazySetupInMaximizedMode = true;
+        wm.boxManager = { setForceMaximized: vi.fn() };
+        wm._roomLogger = { warn: vi.fn() };
+        wm.appManager = {
+            runtimeCache: new Map([["stale", { lastUsed: 1, state: "ready" }]]),
+            settingUpApps: new Map(),
+            clearLazyBookkeeping() {
+                cleared.push(this.runtimeCache);
+                this.runtimeCache.clear();
+                this.settingUpApps.clear();
+                this.activeLazyAppId = undefined;
+            },
+            setupAllApps: vi.fn(async () => {
+                setups += 1;
+            }),
+        };
+        // branch 1: force cleared
+        wm._forceMaximized = false;
+        WindowManager.prototype.applyForceMaximized.call(wm, false);
+        expect(wm._lazySetupInMaximizedMode).toBe(false);
+        expect(cleared.length).toBe(1);
+        expect(wm.appManager.runtimeCache.size).toBe(0);
+        expect(setups).toBe(1);
+
+        // reset and branch 2: force=true while the room is normal
+        wm._forceMaximized = true;
+        wm._lazySetupInMaximizedMode = true;
+        wm.appManager.runtimeCache.set("stale", { lastUsed: 2, state: "ready" });
+        wm.attributes = { minimized: false, maximized: false };
+        WindowManager.prototype.applyForceMaximized.call(wm, true);
+        expect(wm._lazySetupInMaximizedMode).toBe(false);
+        expect(cleared.length).toBe(2);
+        expect(wm.appManager.runtimeCache.size).toBe(0);
+        expect(setups).toBe(2);
+    });
+
     it("ranks forceTop above the focused app in setup priority", () => {
         const manager = createLazyManager(1);
         manager.windowManger.attributes = {

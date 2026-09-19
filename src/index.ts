@@ -1305,6 +1305,7 @@ export class WindowManager
                 "[WindowManager] forceMaximized is enabled but the room is normal; falling back to eager setup"
             );
             this._lazySetupInMaximizedMode = false;
+            this.appManager?.clearLazyBookkeeping();
             void this.appManager?.setupAllApps();
         }
     }

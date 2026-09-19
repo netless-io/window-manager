@@ -331,8 +331,8 @@ destroy()
 
 ### 6.5 minimized 与缓存的交互
 
-- 进入 minimized：串行 teardown 全部缓存 runtime（释放最大内存）；shell 与 LRU 顺序保留，便于退出后按原优先级恢复；
-- 退出 minimized：按 top App 规则 setup（聚焦优先），其余缓存项按需重建，不做批量预热。
+- 进入 minimized：串行 teardown 全部**可挂起**（ready 且可 teardown）的缓存 runtime，并**移除其缓存条目**——LRU 顺序随之清空，退出后按需重新填充，不做批量预热。`pinned` 与未实现 teardown 的条目无法释放，保留记账并按容量计数（见 §6.4/§13）；
+- 退出 minimized：按 top App 规则 setup（聚焦优先，串行队列），其余 App 按需重新填充缓存。
 
 ## 7. 严格串行的真实 setup 队列
 
