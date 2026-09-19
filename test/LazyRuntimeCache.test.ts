@@ -15,6 +15,7 @@ const createLazyManager = (maxCachedApps = 1) => {
         Logger: {
             info: (message: string) => warnings.push(`[info] ${message}`),
             warn: (message: string) => warnings.push(message),
+            error: (message: string) => warnings.push(`[error] ${message}`),
         },
         attributes: { apps: {}, minimized: false },
     };
@@ -206,6 +207,48 @@ describe("AppManager lazy runtime cache", () => {
             (AppManager.prototype as any).computeSetupPriority.call(manager, id);
         expect(priorityOf("top")).toBeLessThan(priorityOf("focused"));
         expect(priorityOf("focused")).toBeLessThan(priorityOf("plain"));
+    });
+
+    it("pins the cache slot when teardown throws instead of forgetting the runtime", async () => {
+        const manager = createLazyManager(2);
+        const flaky = createProxy({ isSetup: true });
+        flaky.teardown = vi.fn().mockRejectedValue(new Error("half torn down"));
+        manager.appProxies = new Map([["flaky", flaky]]);
+        manager.runtimeCache.set("flaky", { lastUsed: 1, state: "ready" });
+
+        await AppManager.prototype.teardownRuntime.call(manager, "flaky");
+
+        // runtime may still be alive: keep the bookkeeping, exclude from eviction
+        const entry = manager.runtimeCache.get("flaky");
+        expect(entry?.state).toBe("pinned");
+        expect(flaky.teardown).toHaveBeenCalledTimes(1);
+        const st = { cache: Array.from(manager.runtimeCache.values()) };
+        expect(st.cache.filter((c) => c.state === "ready")).toHaveLength(0);
+        // a later eviction round must not target the pinned slot
+        await AppManager.prototype.evictBeforeSetup.call(manager, "incoming");
+        expect(flaky.teardown).toHaveBeenCalledTimes(1);
+    });
+
+    it("soft-overflows when only no-teardown runtimes occupy a full cache", async () => {
+        const manager = createLazyManager(1);
+        const zombie = createProxy({ isSetup: true });
+        zombie.canTeardown = false;
+        const fresh = createProxy();
+        manager.appProxies = new Map([
+            ["zombie", zombie],
+            ["fresh", fresh],
+        ]);
+        manager.runtimeCache.set("zombie", { lastUsed: 1, state: "ready" });
+
+        // cache is full (1) with an unsuspendable runtime: evicting is
+        // impossible, the new app is still set up (soft overflow, counted)
+        await AppManager.prototype.evictBeforeSetup.call(manager, "fresh");
+
+        await AppManager.prototype.enqueueAppSetup.call(manager, "fresh");
+
+        expect(fresh.ensureSetup).toHaveBeenCalledTimes(1);
+        expect(zombie.teardown).not.toHaveBeenCalled();
+        expect(manager.runtimeCache.size).toBe(2); // soft overflow, counted
     });
 
     it("trims the cache after focus commit and releases the old runtime last", async () => {

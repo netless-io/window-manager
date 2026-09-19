@@ -89,7 +89,10 @@ export class AppManager {
     // would otherwise tie and degrade eviction to Map insertion order.
     private runtimeCache = new Map<
         string,
-        { lastUsed: number; state: "setting-up" | "ready" | "tearing-down" }
+        {
+            lastUsed: number;
+            state: "setting-up" | "ready" | "tearing-down" | "pinned";
+        }
     >();
     private lruClock = 0;
     private nextLru(): number {
@@ -147,7 +150,7 @@ export class AppManager {
                         entry.state = "setting-up";
                     } else {
                         this.runtimeCache.set(appId, {
-                            lastUsed: Date.now(),
+                            lastUsed: this.nextLru(),
                             state: "setting-up",
                         });
                     }
@@ -270,7 +273,15 @@ export class AppManager {
         );
         while (this.runtimeCacheSize() >= this.maxCachedApps) {
             const candidate = this.pickRuntimeEvictionCandidate(exclude);
-            if (!candidate) break;
+            if (!candidate) {
+                // Only no-teardown/pinned runtimes remain: they cannot be
+                // suspended (design §13), so the cache softly overflows by
+                // their count. The overflow is intentional and counted.
+                this.Logger?.warn(
+                    `[WindowManager] no evictable runtime available; cache exceeds maxCachedAppsInMaximizedMode (${this.maxCachedApps})`
+                );
+                break;
+            }
             if (candidate === this.activeLazyAppId) break;
             await this.teardownRuntime(candidate);
         }
@@ -313,9 +324,20 @@ export class AppManager {
                 try {
                     await appProxy?.teardown();
                 } catch (error) {
-                    this.Logger?.warn(
-                        `[WindowManager] runtime teardown failed for ${appId}: ${error}`
+                    // Partial teardown: the runtime may still be alive. Keep
+                    // the bookkeeping under a pinned state - the app stays
+                    // counted against capacity and is excluded from further
+                    // eviction until proven disposable again.
+                    this.Logger?.error(
+                        `[WindowManager] runtime teardown failed for ${appId}, pinning cache slot: ${error}`
                     );
+                    const failed = this.runtimeCache.get(appId);
+                    if (failed) {
+                        failed.state = "pinned";
+                        failed.lastUsed = this.nextLru();
+                    }
+                    this.settingUpApps.delete(appId);
+                    return;
                 }
                 this.runtimeCache.delete(appId);
                 this.settingUpApps.delete(appId);
@@ -1479,6 +1501,11 @@ export class AppManager {
                 const generation = ++this.lazyFocusGeneration;
                 await this.ensureLazyFocus(focused, generation);
             }
+        } else {
+            // Eager reconnect: onReconnected() hands real setups off through
+            // a delayed enqueue; await the queue so this Promise resolves
+            // only when every app actually finished app.setup().
+            await this.setupAllApps();
         }
     }
 
