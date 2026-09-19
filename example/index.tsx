@@ -100,6 +100,38 @@ const url = new URLSearchParams(search);
 const isWritable = url.get("isWritable");
 const isReplay = url.get("isReplay");
 const cursor = url.get("cursor") === "false" ? false : true;
+const parseBooleanParam = (name: string, defaultValue: boolean): boolean => {
+    const value = url.get(name);
+    if (value === null) {
+        return defaultValue;
+    }
+    if (value === "1" || value === "true") {
+        return true;
+    }
+    if (value === "0" || value === "false") {
+        return false;
+    }
+    console.warn(`[window-manager] invalid ${name}=${value}; using ${defaultValue}`);
+    return defaultValue;
+};
+const parseCacheSizeParam = (name: string, defaultValue: number): number => {
+    const value = url.get(name);
+    if (value === null) {
+        return defaultValue;
+    }
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+        return parsed;
+    }
+    console.warn(`[window-manager] invalid ${name}=${value}; using ${defaultValue}`);
+    return defaultValue;
+};
+const windowManagerTestConfig = {
+    forceMaximized: parseBooleanParam("force", true),
+    lazySetupInMaximizedMode: parseBooleanParam("lazy", true),
+    maxCachedAppsInMaximizedMode: parseCacheSizeParam("cache", 3),
+};
+anyWindow.windowManagerTestConfig = windowManagerTestConfig;
 const originSizeParam = url.get("originSize");
 const originSizeMatch = originSizeParam?.match(/^(\d+)x(\d+)$/);
 const customOriginSize = originSizeMatch
@@ -142,9 +174,9 @@ const mountManager = async (room, root) => {
             // debug: true,
             cursor,
             useBoxesStatus: false,
-            forceMaximized: true,
-            lazySetupInMaximizedMode: true,
-            maxCachedAppsInMaximizedMode: 3,
+            forceMaximized: windowManagerTestConfig.forceMaximized,
+            lazySetupInMaximizedMode: windowManagerTestConfig.lazySetupInMaximizedMode,
+            maxCachedAppsInMaximizedMode: windowManagerTestConfig.maxCachedAppsInMaximizedMode,
             supportAppliancePlugin: true,
             disableCameraTransform: true,
             builtinAppOptions: {
