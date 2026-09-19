@@ -168,10 +168,22 @@ export class AppManager {
                         }ms`
                     );
                     if (this.lazySetupEnabled) {
-                        const entry = this.runtimeCache.get(appId);
-                        if (entry && entry.state !== "tearing-down") {
-                            entry.state = "ready";
-                            entry.lastUsed = this.nextLru();
+                        // A re-setup after eviction/teardown has no cache
+                        // entry yet: recreate it, otherwise the app would
+                        // only re-enter the cache on a SECOND focus.
+                        if (!this.runtimeCache.has(appId)) {
+                            if (appProxy.isSetup && !appProxy.isDestroyed) {
+                                this.runtimeCache.set(appId, {
+                                    lastUsed: this.nextLru(),
+                                    state: "ready",
+                                });
+                            }
+                        } else {
+                            const entry = this.runtimeCache.get(appId);
+                            if (entry && entry.state !== "tearing-down") {
+                                entry.state = "ready";
+                                entry.lastUsed = this.nextLru();
+                            }
                         }
                         if (this.attributes.minimized) {
                             // A setup started before minimize may finish afterwards;

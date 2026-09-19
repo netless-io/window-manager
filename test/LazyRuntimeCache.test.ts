@@ -337,6 +337,20 @@ describe("AppManager lazy runtime cache", () => {
         expect(setups).toBe(2);
     });
 
+    it("re-creates the cache entry when a torn-down app is re-set up", async () => {
+        const manager = createLazyManager(2);
+        const a = createProxy();
+        manager.appProxies = new Map([["a", a]]);
+        // simulate post-teardown state: no cache entry, app not yet setup
+        manager.runtimeCache.clear();
+
+        await AppManager.prototype.enqueueAppSetup.call(manager, "a");
+
+        const entry = manager.runtimeCache.get("a");
+        expect(entry?.state).toBe("ready");
+        expect(manager.runtimeCache.size).toBe(1);
+    });
+
     it("ranks forceTop above the focused app in setup priority", () => {
         const manager = createLazyManager(1);
         manager.windowManger.attributes = {

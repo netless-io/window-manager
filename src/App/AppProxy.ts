@@ -563,6 +563,10 @@ export class AppProxy implements PageRemoveService {
                 this.id
             }, status: ${this.status}, error: ${cause.message}, stack: ${cause.stack || ""}`
         );
+        // Keep the descriptor and allow a later ensureSetup() to retry from
+        // scratch (design TC-016 step 3: recovery after a failed setup).
+        this.setupStarted = false;
+        this.deferredSetup = this.setupDescriptor;
         this.settleSetup({ succeeded: false, error: cause });
     }
 
