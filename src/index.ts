@@ -1301,6 +1301,10 @@ export class WindowManager
             !this.attributes?.minimized &&
             !this.attributes?.maximized
         ) {
+            // Defensive fallback: with forceMaximized enabled the state
+            // machine blocks normal for every client honoring the field, so
+            // this branch is unreachable in practice (only an un-upgraded
+            // legacy client could theoretically write normal).
             this._roomLogger?.warn(
                 "[WindowManager] forceMaximized is enabled but the room is normal; falling back to eager setup"
             );

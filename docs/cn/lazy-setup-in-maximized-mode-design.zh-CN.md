@@ -226,6 +226,7 @@ manager.setForceMaximized(force: boolean): void;
 - `setMaximized(false)` 在 `attributes.forceMaximized=true` 时始终 no-op + warning，即使调用者没有开启 lazy；
 - force 字段从 true 变为 false 后，lazy 实例必须退出 lazy 优化并降级为 eager，补齐尚未 setup 的 runtime；补齐任务进入串行队列并按聚焦优先排序；此过程不自动改变房间的 maximized/minimized 状态；
 - force 字段为 true 但房间状态已是 normal 时，lazy 实例不得只 setup top App，应 warning 并降级 eager；可写管理入口再次显式调用 `setForceMaximized(true)` 时才负责重新 `setMaximized(true)`。降级补齐 runtime 必须复用串行 setup 队列。
+  **可达性说明（2026-09-19）**：该分支为**防御性兜底**——`forceMaximized=true` 的状态机已在 API、远端 reaction、标题栏与删除路径阻止 normal，正常业务下不可达（仅未升级的 legacy 客户端理论性写入时触发）。业务侧保证客户端版本兼容时，可视作不可达说明保留。
 
 ## 5. 共享状态与本地状态边界
 
