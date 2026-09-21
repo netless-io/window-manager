@@ -1,3 +1,10 @@
+## 1.0.23-beta.1 (2026-09-21)
+- 新增 `forceMaximized`、`lazySetupInMaximizedMode` 与 `maxCachedAppsInMaximizedMode`，支持强制最大化模式下按焦点延迟初始化 App runtime，并按 LRU 保留有限缓存。
+- App setup/teardown 统一通过串行队列执行，补齐缓存命中、淘汰、失败重试、pinned runtime、重连与 lazy/eager 切换时序。
+- `useBoxesStatus=true` 时忽略 `forceMaximized`；`useBoxesStatus=false` 时忽略 App 的 `forceTop`/`forceNormal`，避免两套窗口状态语义冲突。
+- 升级 `@netless/telebox-insider` 到 `0.3.1-beta.0`，修复强制最大化下禁用按钮的光标反馈。
+- 升级内置 `@netless/app-presentation` 到 `0.1.13-beta.2`，完善 teardown 清理与失焦资源降级。
+
 ## 1.0.22 (2026-09-13)
 - 仅以房间 attributes 是否存在 `originSize` 判定 MainView 坐标模式，移除 `_mainViewCameraCoordinateVersion` 及旧迁移状态。
 - `mount({ originSize })` 仅作为可写端初始化或覆盖房间配置的候选值；挂载完成后统一以房间 attributes 为运行时基准。
