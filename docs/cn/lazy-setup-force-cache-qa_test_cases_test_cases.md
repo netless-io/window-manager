@@ -162,14 +162,14 @@
 - **优先级**：P0
 - **前置依赖**：TC-FUNC-008
 
-###### TC-FUNC-012 [策略点][setup 优先级] forceTop/focus/zIndex 排序与严格串行
+###### TC-FUNC-012 [策略点][setup 优先级] 模式化 focus/forceTop/zIndex 排序与严格串行
 
 - **目标**：确认批量 setup 优先级和真实 setup 区间不交叉。
 - **来源场景**：SC-09
-- **前置**：4 个未 setup App，分别设置 forceTop、当前 focus、不同 zIndex；阻塞资源加载以放大时序。
+- **前置**：4 个未 setup App，分别设置 forceTop、当前 focus、不同 zIndex；分别使用 `useBoxesStatus=false/true`，阻塞资源加载以放大时序。
 - **步骤**：
   1. 同步 add/恢复 4 个 App，记录所有 setup start/done 时间和队列 id。
-  2. 确认 start 顺序为 forceTop > focus > zIndex 降序 > 插入序；任意两个 App 的 `[start,done]` 区间不重叠。
+  2. `useBoxesStatus=false` 确认 start 顺序为 focus > zIndex 降序 > 插入序，forceTop 不生效；`useBoxesStatus=true` 确认为 forceTop > focus > zIndex 降序 > 插入序；任意两个 App 的 `[start,done]` 区间不重叠。
   3. setup 尚未开始时改变 attributes.focus，确认未开始任务按新优先级重排，已开始任务不中断。
 - **优先级**：P0
 - **前置依赖**：TC-FUNC-001

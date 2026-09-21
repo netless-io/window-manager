@@ -179,9 +179,9 @@ export type AddAppParams<TAttributes = any> = {
     options?: AddAppOptions;
     // 初始化 attributes
     attributes?: TAttributes;
-    // 强制置顶
+    // 强制置顶，仅在 useBoxesStatus=true 时生效
     forceTop?: boolean;
-    // 强制正常窗口
+    // 强制正常窗口，仅在 useBoxesStatus=true 时生效
     forceNormal?: boolean;
     // 是否可以在内容区域拖动
     isDragContent?: boolean;
@@ -291,7 +291,7 @@ export type MountParams = {
      * Local only; only effective while `lazySetupInMaximizedMode` is enabled.
      */
     maxCachedAppsInMaximizedMode?: number;
-    /** Establish the room-wide force-maximized policy when writable. */
+    /** Establish the room-wide force-maximized policy when writable. Ignored with useBoxesStatus. */
     forceMaximized?: boolean;
     /** Local Presentation options applied before restoring apps. Not synchronized. */
     builtinAppOptions?: BuiltinAppOptions;
@@ -310,6 +310,13 @@ type MountStaticState = {
     supportAppliancePlugin: boolean | undefined;
     params: MountParams | undefined;
     extendClass: ExtendClass | undefined;
+};
+
+type EffectiveWindowMode = {
+    useBoxesStatus: boolean;
+    requestedForceMaximized: boolean;
+    forceMaximized: boolean;
+    lazySetupInMaximizedMode: boolean;
 };
 
 export const reconnectRefresher = new ReconnectRefresher({ emitter: internalEmitter });
@@ -346,6 +353,7 @@ export class WindowManager
     private _fullscreen?: boolean;
     private _lazySetupInMaximizedMode = false;
     private _forceMaximized = false;
+    private _useBoxesStatus = false;
     private _maxCachedAppsInMaximizedMode = 1;
     private _pageScaleRange?: Readonly<PageScaleRange>;
     private _destroyed = false;
@@ -387,6 +395,10 @@ export class WindowManager
         return this._forceMaximized;
     }
 
+    public get useBoxesStatus(): boolean {
+        return this._useBoxesStatus;
+    }
+
     public get originSize(): Readonly<Size> | undefined {
         return this._originSize;
     }
@@ -400,6 +412,39 @@ export class WindowManager
 
     public static onCreate(manager: WindowManager) {
         WindowManager._resolve(manager);
+    }
+
+    private static resolveEffectiveWindowMode(
+        params: MountParams,
+        attributes: Pick<WindowMangerAttributes, "forceMaximized" | "minimized" | "maximized">,
+        canOperate: boolean
+    ): EffectiveWindowMode {
+        const canRequestForceMaximized = Boolean(params.forceMaximized && canOperate);
+        const availableForceMaximized =
+            canRequestForceMaximized || attributes.forceMaximized === true;
+        const currentBoxState = canRequestForceMaximized
+            ? "maximized"
+            : attributes.minimized
+            ? "minimized"
+            : attributes.maximized
+            ? "maximized"
+            : "normal";
+        const lazySetupInMaximizedMode = Boolean(
+            params.lazySetupInMaximizedMode &&
+                availableForceMaximized &&
+                currentBoxState !== "normal"
+        );
+        const useBoxesStatus = Boolean(params.useBoxesStatus && !lazySetupInMaximizedMode);
+        const requestedForceMaximized = Boolean(canRequestForceMaximized && !useBoxesStatus);
+
+        return {
+            useBoxesStatus,
+            requestedForceMaximized,
+            forceMaximized: Boolean(
+                !useBoxesStatus && (requestedForceMaximized || attributes.forceMaximized === true)
+            ),
+            lazySetupInMaximizedMode,
+        };
     }
 
     public static async mount(
@@ -465,7 +510,15 @@ export class WindowManager
             await manager.ensureAttributes();
             previousForceMaximized = manager.attributes?.forceMaximized;
             previousMaximized = manager.attributes?.maximized;
-            const requestedForceMaximized = Boolean(params.forceMaximized && manager.canOperate);
+            const effectiveWindowMode = this.resolveEffectiveWindowMode(
+                params,
+                manager.attributes,
+                manager.canOperate
+            );
+            manager._useBoxesStatus = effectiveWindowMode.useBoxesStatus;
+            manager._forceMaximized = effectiveWindowMode.forceMaximized;
+            manager._lazySetupInMaximizedMode = effectiveWindowMode.lazySetupInMaximizedMode;
+            const requestedForceMaximized = effectiveWindowMode.requestedForceMaximized;
             if (requestedForceMaximized) {
                 if (previousForceMaximized !== true) {
                     manager.safeSetAttributes({ forceMaximized: true });
@@ -475,20 +528,6 @@ export class WindowManager
                 // consistent with the room-level request until the observable catches up.
                 manager.setMaximized(true);
             }
-            manager._forceMaximized =
-                requestedForceMaximized || manager.attributes?.forceMaximized === true;
-            const currentBoxState = requestedForceMaximized
-                ? "maximized"
-                : manager.attributes?.minimized
-                ? "minimized"
-                : manager.attributes?.maximized
-                ? "maximized"
-                : "normal";
-            manager._lazySetupInMaximizedMode = Boolean(
-                params.lazySetupInMaximizedMode &&
-                    manager._forceMaximized &&
-                    currentBoxState !== "normal"
-            );
             manager._maxCachedAppsInMaximizedMode = normalizeMaxCachedAppsInMaximizedMode(
                 params.maxCachedAppsInMaximizedMode,
                 Boolean(params.lazySetupInMaximizedMode),
@@ -540,7 +579,11 @@ export class WindowManager
                     );
                 }
             }
-            if (params.forceMaximized && !manager.canOperate) {
+            if (params.forceMaximized && manager._useBoxesStatus) {
+                manager._roomLogger?.warn(
+                    "[WindowManager] forceMaximized is ignored while useBoxesStatus is enabled"
+                );
+            } else if (params.forceMaximized && !manager.canOperate) {
                 manager._roomLogger?.warn(
                     "[WindowManager] forceMaximized requires writable room access; request ignored"
                 );
@@ -550,7 +593,11 @@ export class WindowManager
                     "[WindowManager] lazySetupInMaximizedMode requires attributes.forceMaximized=true and a minimized or maximized room; falling back to eager setup"
                 );
             }
-            if (params.lazySetupInMaximizedMode && params.useBoxesStatus) {
+            if (
+                params.lazySetupInMaximizedMode &&
+                params.useBoxesStatus &&
+                !manager._useBoxesStatus
+            ) {
                 manager._roomLogger?.warn(
                     "[WindowManager] useBoxesStatus is ignored while lazySetupInMaximizedMode is enabled"
                 );
@@ -727,6 +774,7 @@ export class WindowManager
         manager._fullscreen = undefined;
         manager._lazySetupInMaximizedMode = false;
         manager._forceMaximized = false;
+        manager._useBoxesStatus = false;
         manager._maxCachedAppsInMaximizedMode = 1;
         manager.builtinAppOptions = undefined;
         manager.containerSizeRatio = previousStaticState.containerSizeRatio;
@@ -848,7 +896,10 @@ export class WindowManager
         } else {
             if (WindowManager.params) {
                 const params = WindowManager.params;
-                const mainViewElement = WindowManager.initContainer(this, container, params);
+                const mainViewElement = WindowManager.initContainer(this, container, {
+                    ...params,
+                    useBoxesStatus: this.useBoxesStatus,
+                });
                 if (this.boxManager) {
                     this.boxManager.destroy();
                 }
@@ -856,14 +907,12 @@ export class WindowManager
                     collectorContainer: params.collectorContainer,
                     collectorStyles: params.collectorStyles,
                     prefersColorScheme: params.prefersColorScheme,
-                    useBoxesStatus: this.lazySetupInMaximizedMode ? false : params.useBoxesStatus,
+                    useBoxesStatus: this.useBoxesStatus,
                     forceMaximized: this.forceMaximized,
                 });
                 this.boxManager = boxManager;
                 if (this.appManager) {
-                    this.appManager.useBoxesStatus = this.lazySetupInMaximizedMode
-                        ? false
-                        : params.useBoxesStatus || false;
+                    this.appManager.useBoxesStatus = this.useBoxesStatus;
                     this.appManager.setBoxManager(boxManager);
                 }
                 this.bindMainView(mainViewElement, params.disableCameraTransform);
@@ -1229,7 +1278,7 @@ export class WindowManager
 
     public setBoxState(boxState: TeleBoxState): void {
         if (!this.canOperate) return;
-        if (boxState === "normal" && this.attributes?.forceMaximized === true) {
+        if (boxState === "normal" && this.forceMaximized) {
             this._roomLogger?.warn(
                 "[WindowManager] setBoxState(normal) ignored while forceMaximized is enabled"
             );
@@ -1254,7 +1303,7 @@ export class WindowManager
 
     public setMaximized(maximized: boolean): void {
         if (!this.canOperate) return;
-        if (!maximized && this.attributes?.forceMaximized === true) {
+        if (!maximized && this.forceMaximized) {
             this._roomLogger?.warn(
                 "[WindowManager] setMaximized(false) ignored while forceMaximized is enabled"
             );
@@ -1265,6 +1314,12 @@ export class WindowManager
 
     /** Set or clear the room-wide force-maximized policy. */
     public setForceMaximized(force: boolean): void {
+        if (this.useBoxesStatus) {
+            this._roomLogger?.warn(
+                "[WindowManager] setForceMaximized ignored while useBoxesStatus is enabled"
+            );
+            return;
+        }
         if (!this.canOperate) {
             this._roomLogger?.warn(
                 "[WindowManager] setForceMaximized requires writable room access"
@@ -1284,9 +1339,10 @@ export class WindowManager
 
     /** Apply a room-level force policy observed from attributes. */
     public applyForceMaximized(force: boolean): void {
-        this._forceMaximized = force;
-        this.boxManager?.setForceMaximized(force);
-        if (!force && this._lazySetupInMaximizedMode) {
+        const effectiveForce = this.useBoxesStatus ? false : force;
+        this._forceMaximized = effectiveForce;
+        this.boxManager?.setForceMaximized(effectiveForce);
+        if (!effectiveForce && this._lazySetupInMaximizedMode) {
             this._lazySetupInMaximizedMode = false;
             // Eager mode does not consult the cache; drop the lazy
             // bookkeeping so no stale entries survive the transition. If
@@ -1296,7 +1352,7 @@ export class WindowManager
             void this.appManager?.setupAllApps();
         }
         if (
-            force &&
+            effectiveForce &&
             this._lazySetupInMaximizedMode &&
             !this.attributes?.minimized &&
             !this.attributes?.maximized
@@ -1316,7 +1372,7 @@ export class WindowManager
 
     public setMinimized(minimized: boolean): void {
         if (!this.canOperate) return;
-        if (!minimized && this.attributes?.forceMaximized === true && !this.attributes?.maximized) {
+        if (!minimized && this.forceMaximized && !this.attributes?.maximized) {
             this._roomLogger?.warn(
                 "[WindowManager] setMinimized(false) ignored while forceMaximized room is normal"
             );
@@ -2718,6 +2774,9 @@ export class WindowManager
         }
         WindowManager.params = undefined;
         this._pageScaleRange = undefined;
+        this._lazySetupInMaximizedMode = false;
+        this._forceMaximized = false;
+        this._useBoxesStatus = false;
         this.emitter.off("mainViewScenePathChange", this.onMainViewScenePathChangeHandler);
         this._iframeBridge?.destroy();
         this._iframeBridge = undefined;

@@ -695,6 +695,15 @@ export class AppProxy implements PageRemoveService {
         }
     }
 
+    private getEffectiveAppWindowFlags(id: string) {
+        const { forceTop, forceNormal, isDragContent } = this.store.getAppAttributes(id);
+        return {
+            forceTop: this.manager.useBoxesStatus ? forceTop : undefined,
+            forceNormal: this.manager.useBoxesStatus ? forceNormal : undefined,
+            isDragContent,
+        };
+    }
+
     public getAppInitState = (id: string) => {
         const attrs = this.store.getAppState(id);
         if (!attrs) return;
@@ -706,7 +715,7 @@ export class AppProxy implements PageRemoveService {
         const minimized = this.attributes?.["minimized"];
         const boxStatus = this.store.getBoxStatus(id) ?? undefined;
         const lastNotMinimizedBoxStatus = this.store.getLastNotMinimizedBoxStatus(id) ?? undefined;
-        const { forceTop, forceNormal, isDragContent } = this.store.getAppAttributes(id);
+        const { forceTop, forceNormal, isDragContent } = this.getEffectiveAppWindowFlags(id);
         const zIndex = attrs?.zIndex;
         let payload = { maximized, minimized, zIndex } as AppInitState;
         if (position) {

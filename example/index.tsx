@@ -131,6 +131,7 @@ const windowManagerTestConfig = {
     lazySetupInMaximizedMode: parseBooleanParam("lazy", true),
     maxCachedAppsInMaximizedMode: parseCacheSizeParam("cache", 3),
 };
+document.title = `Document lazy=${windowManagerTestConfig.lazySetupInMaximizedMode ? 1 : 0}`;
 anyWindow.windowManagerTestConfig = windowManagerTestConfig;
 const originSizeParam = url.get("originSize");
 const originSizeMatch = originSizeParam?.match(/^(\d+)x(\d+)$/);
@@ -188,7 +189,7 @@ const mountManager = async (room, root) => {
             // cursorOptions: { style: "custom" },
             // overwriteStyles: ".netless-window-manager-chess-sizer:before, .netless-window-manager-chess-sizer:after { background-image: none }",
             // overwriteStyles: ".cursor-box .cursor-name { display: none !important; }",
-            overwriteStyles:".telebox-collector{display:none !important;}.vjs-p .player-controller{display:none !important;}.netless-app-slide-wb-view {clip-path: none !important;}",
+            overwriteStyles:".telebox-collector{display:none !important;}.netless-app-slide-wb-view {clip-path: none !important;}",
         },
         {
             AppContext: customAppContext,

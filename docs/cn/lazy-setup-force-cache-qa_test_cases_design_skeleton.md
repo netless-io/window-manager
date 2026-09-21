@@ -57,7 +57,7 @@
 | SC-06 | runtime cache 状态机 | 公共 API 与 App 生命周期 | P1 | teardown 失败进入 pinned，后续淘汰不重复调用 | pinned | TC-FUNC-009 |
 | SC-07 | runtime cache 状态机 | 公共 API 与 App 生命周期 | P1 | 无 teardown App 保留 runtime，允许软超限并有 warning | 软超限 | TC-FUNC-010 |
 | SC-08 | runtime cache 状态机 | 房间协同与恢复 | P0 | minimized 释放可释放 runtime，shell 保留，解除后 top 优先恢复 | minimized | TC-FUNC-011 |
-| SC-09 | setup/focus 串行协同 | runtime cache 状态机 | P0 | 多 App setup 串行且 focus/forceTop 优先级稳定 | setup 排序 | TC-FUNC-012 |
+| SC-09 | setup/focus 串行协同 | runtime cache 状态机 | P0 | 多 App setup 串行，global/lazy 忽略 forceTop，独立窗口模式保留 forceTop 优先级 | setup 排序 | TC-FUNC-012 |
 | SC-10 | setup/focus 串行协同 | 公共 API 与 App 生命周期 | P0 | cache hit 不重新 setup，过期 focus 不提交 | focus 重入 | TC-FUNC-013, TC-FUNC-017 |
 | SC-11 | setup/focus 串行协同 | 性能与稳定性 | P0 | focus 布尔广播与旧请求语义不形成循环 | focus 事件 | TC-FUNC-014 |
 | SC-12 | 公共 API 与 App 生命周期 | runtime cache 状态机 | P1 | add/focus/close/wait API 的返回值和 shell/runtime 生命周期正确 | API 契约 | TC-FUNC-006, TC-FUNC-016, TC-FUNC-017 |

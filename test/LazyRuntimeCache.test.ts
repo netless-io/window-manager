@@ -351,7 +351,7 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.runtimeCache.size).toBe(1);
     });
 
-    it("ranks forceTop above the focused app in setup priority", () => {
+    it("ignores forceTop setup priority when boxesStatus is disabled", () => {
         const manager = createLazyManager(1);
         manager.windowManger.attributes = {
             apps: {
@@ -362,6 +362,25 @@ describe("AppManager lazy runtime cache", () => {
             minimized: false,
         };
         manager.store = { focus: "focused" };
+        manager.useBoxesStatus = false;
+        const priorityOf = (id: string) =>
+            (AppManager.prototype as any).computeSetupPriority.call(manager, id);
+        expect(priorityOf("focused")).toBeLessThan(priorityOf("top"));
+        expect(priorityOf("top")).toBe(priorityOf("plain"));
+    });
+
+    it("ranks forceTop above the focused app when boxesStatus is enabled", () => {
+        const manager = createLazyManager(1);
+        manager.windowManger.attributes = {
+            apps: {
+                top: { forceTop: true },
+                focused: {},
+                plain: {},
+            },
+            minimized: false,
+        };
+        manager.store = { focus: "focused" };
+        manager.useBoxesStatus = true;
         const priorityOf = (id: string) =>
             (AppManager.prototype as any).computeSetupPriority.call(manager, id);
         expect(priorityOf("top")).toBeLessThan(priorityOf("focused"));

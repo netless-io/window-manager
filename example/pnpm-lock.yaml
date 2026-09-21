@@ -18,17 +18,17 @@ importers:
         specifier: 0.2.6-beta.3
         version: 0.2.6-beta.3
       '@netless/app-presentation':
-        specifier: file:../../netless-app-presentation
-        version: file:../../netless-app-presentation(jspdf@2.5.2)
+        specifier: 0.1.13-beta.2
+        version: 0.1.13-beta.2(jspdf@2.5.2)
       '@netless/app-slide':
-        specifier: file:../../slide-app/packages/app-slide
-        version: file:../../slide-app/packages/app-slide(jspdf@2.5.2)
+        specifier: 0.2.105-beta.2
+        version: 0.2.105-beta.2(jspdf@2.5.2)
       '@netless/appliance-plugin':
         specifier: 1.1.43
         version: 1.1.43(@netless/window-manager@1.0.20(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       '@netless/telebox-insider':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: 0.3.1-beta.0
+        version: 0.3.1-beta.0
       '@netless/video-js-plugin':
         specifier: ^0.3.7
         version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
@@ -621,16 +621,16 @@ packages:
   '@netless/app-plyr@0.2.6-beta.3':
     resolution: {integrity: sha512-0H8BII9f0VeefBOWI4Q5MiZnZguHrQ4IWJQSAwO9fCF2LYMQNZbtqBQrWNrz+QlHyPS1s/AYD/BxRZSLFqGZ9w==}
 
-  '@netless/app-presentation@file:../../netless-app-presentation':
-    resolution: {directory: ../../netless-app-presentation, type: directory}
+  '@netless/app-presentation@0.1.13-beta.2':
+    resolution: {integrity: sha512-ihF8LPJxd5K16vPHK/hLo/7Opz+epVXEIsGgCXSibDhtu+RrhWEmcC1Wic/vYogaBQERyVvzCciqicFi27uoFQ==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-slide@file:../../slide-app/packages/app-slide':
-    resolution: {directory: ../../slide-app/packages/app-slide, type: directory}
+  '@netless/app-slide@0.2.105-beta.2':
+    resolution: {integrity: sha512-hreagefxTWfk2n7luLBEaQhgoQCo5GE+5CwhbxhlP83xaD63RBTTInK8qqMqm6FiMapjDOoTcyuo0ObaIrLbYA==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
@@ -658,6 +658,9 @@ packages:
 
   '@netless/telebox-insider@0.3.0':
     resolution: {integrity: sha512-KoQg5SmUdIA/XV520jVR9pKZlf5GbTwVUbkmTfOIrXBingwYBQIbX/W4ISPWpCO98De5YXgciidbDh3vx9Ppnw==}
+
+  '@netless/telebox-insider@0.3.1-beta.0':
+    resolution: {integrity: sha512-DTe++IC8CB2Urgpph6tfwI9A/iIPTQk16rl+JVKcKxpdcepwa5qIYXEMdo5l0i0T53qgYulGtcr2F6UWNhWTQQ==}
 
   '@netless/video-js-plugin@0.3.8':
     resolution: {integrity: sha512-xCLfL8ISjPD5XQbeGWT/pwKdWXqYXmaEXiP4jcX8oaR83+vJo463znIg2JW8EXHkTq7KRrYnZqqlQdI6It4L+A==}
@@ -2219,11 +2222,11 @@ snapshots:
 
   '@netless/app-plyr@0.2.6-beta.3': {}
 
-  '@netless/app-presentation@file:../../netless-app-presentation(jspdf@2.5.2)':
+  '@netless/app-presentation@0.1.13-beta.2(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-slide@file:../../slide-app/packages/app-slide(jspdf@2.5.2)':
+  '@netless/app-slide@0.2.105-beta.2(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
@@ -2248,6 +2251,8 @@ snapshots:
   '@netless/canvas-polyfill@0.0.4': {}
 
   '@netless/telebox-insider@0.3.0': {}
+
+  '@netless/telebox-insider@0.3.1-beta.0': {}
 
   '@netless/video-js-plugin@0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
     dependencies:

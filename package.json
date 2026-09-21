@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@juggle/resize-observer": "^3.3.1",
-    "@netless/telebox-insider": "file:../telebox-insider",
+    "@netless/telebox-insider": "0.3.1-beta.0",
     "emittery": "^0.9.2",
     "lodash": "^4.17.21",
     "p-retry": "^4.6.1",
@@ -43,7 +43,7 @@
     "@hyrious/dts": "^0.2.2",
     "@netless/app-docs-viewer": "0.2.21-beta.1",
     "@netless/app-media-player": "0.1.5-beta.1",
-    "@netless/app-presentation": "0.1.13-beta.1",
+    "@netless/app-presentation": "0.1.13-beta.2",
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
     "@rollup/plugin-url": "^6.1.0",

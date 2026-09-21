@@ -221,14 +221,14 @@ export class AppManager {
     }
 
     /**
-     * Batch ordering key for pending setup tasks: forceTop apps first
-     * (they are the visible top in a maximized workspace, design §7.3 /
-     * test §19.32), then the focused app, then by zIndex descending, then
-     * creation order.
+     * Batch ordering key for pending setup tasks: in independent-box mode,
+     * forceTop apps come first; global/lazy mode ignores forceTop. The
+     * remaining order is focused app, zIndex descending, then creation order
+     * (design §7.3 / test §19.34).
      */
     private computeSetupPriority(appId: string): number {
         const appAttrs = this.attributes.apps?.[appId];
-        if (appAttrs?.forceTop) {
+        if (this.useBoxesStatus && appAttrs?.forceTop) {
             return 0;
         }
         if (this.store.focus === appId) {
@@ -721,7 +721,7 @@ export class AppManager {
         this.refresher.add("maximized", () => {
             return autorun(() => {
                 const maximized = this.attributes.maximized;
-                if (!maximized && this.attributes.forceMaximized === true) {
+                if (!maximized && this.windowManger.forceMaximized) {
                     this.Logger?.warn(
                         "[WindowManager] ignored remote normal state while forceMaximized is enabled"
                     );
@@ -1179,7 +1179,7 @@ export class AppManager {
     };
 
     private onMinimized = (minimized: boolean | undefined) => {
-        if (!minimized && this.attributes.forceMaximized === true && !this.attributes.maximized) {
+        if (!minimized && this.windowManger.forceMaximized && !this.attributes.maximized) {
             this.Logger?.warn(
                 "[WindowManager] ignored remote unminimize to normal while forceMaximized is enabled"
             );
@@ -1319,6 +1319,12 @@ export class AppManager {
         return appProxy?.id;
     }
 
+    private resolveEffectiveAppWindowFlags<T extends BaseInsertParams>(params: T): T {
+        return this.useBoxesStatus
+            ? params
+            : ({ ...params, forceTop: undefined, forceNormal: undefined } as T);
+    }
+
     private async beforeAddApp(params: AddAppParams, isDynamicPPT: boolean) {
         const appId = await genAppId(params.kind);
         this.appStatus.set(appId, AppStatus.StartCreate);
@@ -1360,6 +1366,7 @@ export class AppManager {
         isAddApp: boolean,
         focus?: boolean
     ) {
+        const effectiveParams = this.resolveEffectiveAppWindowFlags(params);
         if (this.appProxies.has(appId)) {
             this.windowManger.Logger?.warn(
                 `[WindowManager]: app duplicate exists and cannot be created again, appId: ${appId}`
@@ -1367,7 +1374,7 @@ export class AppManager {
             return;
         }
         const AppProxyClass = getExtendClass(AppProxy, WindowManager.extendClass);
-        const appProxy = new AppProxyClass(params, this, appId, isAddApp);
+        const appProxy = new AppProxyClass(effectiveParams, this, appId, isAddApp);
         if (appProxy) {
             try {
                 await appProxy.baseInsertApp(focus);

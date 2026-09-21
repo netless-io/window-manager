@@ -72,7 +72,10 @@ const manager = await WindowManager.mount(
 | prefersColorScheme     | [optional] string                       | light   | auto, light, dark            |
 | debug                  | [optional] boolean                      | false   | 打印日志信息   
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | 配置光标使用的教具图片           ｜
-| useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 状态管理窗口；开启后可以单独管理每个窗口的状态，并在 `.netless-window-manager-wrapper` 上添加 `.netless-window-manager-use-boxes-status` class |
+| useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 独立管理每个窗口；开启后 `forceMaximized` 无效，且只有此时 App 的 `forceTop`/`forceNormal` 生效 |
+| lazySetupInMaximizedMode | [optional] boolean                    | false   | 强制最大化房间中仅按需 setup App；生效时 `useBoxesStatus` 按 false 处理 |
+| maxCachedAppsInMaximizedMode | [optional] number                  | 1       | lazy 模式下保留的 runtime 缓存数量 |
+| forceMaximized         | [optional] boolean                      | false   | 可写端建立房间级强制最大化策略；`useBoxesStatus=true` 时忽略且不写入房间 |
 
 > 旧房间只有完整 `mainViewSize/mainViewCamera` 时，首次通过可写端配置 `originSize`，WindowManager
 > 会在创建 MainView 前原子初始化 origin pair、active pair 和坐标版本，并将
@@ -153,6 +156,8 @@ const appId = await manager.addApp({
 })
 ```
 具体参数请参考 `APP` 本身的要求
+
+`forceTop` 和 `forceNormal` 仅在当前 WindowManager 使用 `useBoxesStatus=true` 时生效；全局窗口状态和 lazy 模式会保留同步字段，但不将其应用到本地窗口。
 
 `addApp()` 在窗口创建后即可返回，不等待 App 的 `setup()` 完成。需要捕获 `setup()`
 异常时使用 `addAppAndWaitForSetup()`。

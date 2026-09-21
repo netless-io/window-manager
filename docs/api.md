@@ -80,7 +80,10 @@ parameter
 > existing version 2 contract keeps its current active pair; a different writable `originSize`
 > resets both pairs. Slide and Presentation continue to use their independent addApp attributes.
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           |
-| useBoxesStatus         | [optional] boolean                      | false   | Whether to manage each window state independently; when enabled, `.netless-window-manager-use-boxes-status` is added to `.netless-window-manager-wrapper` |
+| useBoxesStatus         | [optional] boolean                      | false   | Manage each window independently; while enabled, `forceMaximized` is ignored and App `forceTop`/`forceNormal` flags are effective |
+| lazySetupInMaximizedMode | [optional] boolean                    | false   | Set up Apps on demand in a force-maximized room; effective lazy mode treats `useBoxesStatus` as false |
+| maxCachedAppsInMaximizedMode | [optional] number                  | 1       | Number of App runtimes retained by the lazy-mode cache |
+| forceMaximized         | [optional] boolean                      | false   | Establish the room-wide force-maximized policy when writable; ignored and not written with `useBoxesStatus=true` |
 
 
 <h3 id="register">WindowManager. register</h3>
@@ -151,6 +154,8 @@ const appId = await manager.addApp({
 })
 ```
 For specific parameters, please refer to the requirements of `APP` itself
+
+`forceTop` and `forceNormal` are effective only when this WindowManager uses `useBoxesStatus=true`. Global-window and lazy modes preserve synchronized fields but do not apply them locally.
 
 `addApp()` returns after the window is created and does not wait for App `setup()`.
 Use `addAppAndWaitForSetup()` when setup errors must be caught by the caller.

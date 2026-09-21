@@ -39,7 +39,7 @@
     - setup/focus 串行协同
       - 优先级
         - SC-09 初始恢复/补齐/reconnect 批量 setup
-          - 预期：forceTop > focus > zIndex > 插入序，setup 时间区间两两不交叉
+          - 预期：global/lazy 为 focus > zIndex > 插入序；独立窗口为 forceTop > focus > zIndex > 插入序；setup 区间两两不交叉
       - 重入与过期请求
         - SC-10 cache hit 和快速 A→B→C focus
           - 预期：命中不重 setup，过期 focus 不提交，不出现旧 App 抢焦

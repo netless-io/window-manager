@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("white-web-sdk");
 
 import { AppManager } from "../src/AppManager";
+import { AppProxy } from "../src/App/AppProxy";
 import { WindowManager } from "../src";
 
 const apps = {
@@ -28,6 +29,42 @@ describe("AppManager app creation order", () => {
     afterEach(() => {
         WindowManager.container = previousContainer;
         vi.restoreAllMocks();
+    });
+
+    it("keeps synchronized flags but disables their effective box config without boxesStatus", () => {
+        const params = { kind: "HelloWorld", forceTop: true, forceNormal: true };
+        const resolve = (AppManager.prototype as any).resolveEffectiveAppWindowFlags;
+
+        const globalMode = resolve.call({ useBoxesStatus: false }, params);
+        const independentMode = resolve.call({ useBoxesStatus: true }, params);
+
+        expect(globalMode).toEqual({
+            kind: "HelloWorld",
+            forceTop: undefined,
+            forceNormal: undefined,
+        });
+        expect(independentMode).toBe(params);
+        expect(params).toEqual({ kind: "HelloWorld", forceTop: true, forceNormal: true });
+    });
+
+    it("does not restore synchronized forceTop/forceNormal into global box mode", () => {
+        const proxy = Object.create(AppProxy.prototype) as any;
+        proxy.manager = {
+            useBoxesStatus: false,
+        };
+        proxy.store = {
+            getAppAttributes: () => ({
+                forceTop: true,
+                forceNormal: true,
+                isDragContent: true,
+            }),
+        };
+
+        expect((AppProxy.prototype as any).getEffectiveAppWindowFlags.call(proxy, "legacy")).toEqual({
+            forceTop: undefined,
+            forceNormal: undefined,
+            isDragContent: true,
+        });
     });
 
     const restoreApps = async ({

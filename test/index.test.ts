@@ -19,6 +19,83 @@ describe("WindowManager", () => {
         expect(wm.setAttributes).toBeDefined();
     });
 
+    it("resolves forceMaximized and independent box states as mutually exclusive", () => {
+        const resolve = (WindowManager as any).resolveEffectiveWindowMode;
+        const room = {} as any;
+
+        expect(
+            resolve(
+                { room, useBoxesStatus: true, forceMaximized: true },
+                { forceMaximized: false, minimized: false, maximized: false },
+                true
+            )
+        ).toEqual({
+            useBoxesStatus: true,
+            requestedForceMaximized: false,
+            forceMaximized: false,
+            lazySetupInMaximizedMode: false,
+        });
+        expect(
+            resolve(
+                { room, useBoxesStatus: true },
+                { forceMaximized: true, minimized: false, maximized: true },
+                true
+            )
+        ).toEqual({
+            useBoxesStatus: true,
+            requestedForceMaximized: false,
+            forceMaximized: false,
+            lazySetupInMaximizedMode: false,
+        });
+    });
+
+    it("keeps lazy force-maximized mode ahead of a conflicting useBoxesStatus request", () => {
+        const resolve = (WindowManager as any).resolveEffectiveWindowMode;
+
+        expect(
+            resolve(
+                {
+                    room: {} as any,
+                    useBoxesStatus: true,
+                    forceMaximized: true,
+                    lazySetupInMaximizedMode: true,
+                },
+                { forceMaximized: false, minimized: false, maximized: false },
+                true
+            )
+        ).toEqual({
+            useBoxesStatus: false,
+            requestedForceMaximized: true,
+            forceMaximized: true,
+            lazySetupInMaximizedMode: true,
+        });
+    });
+
+    it("ignores room forceMaximized behavior while independent box states are enabled", () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const setForceMaximized = vi.fn();
+        const setMaximized = vi.fn();
+        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes");
+        (wm as any)._useBoxesStatus = true;
+        (wm as any)._forceMaximized = false;
+        (wm as any).boxManager = { setForceMaximized, setMaximized };
+        (wm as any)._roomLogger = { warn: vi.fn() };
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: { forceMaximized: true, maximized: true },
+        });
+        Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
+
+        wm.applyForceMaximized(true);
+        wm.setMaximized(false);
+        wm.setForceMaximized(true);
+
+        expect(wm.forceMaximized).toBe(false);
+        expect(setForceMaximized).toHaveBeenCalledWith(false);
+        expect(setMaximized).toHaveBeenCalledWith(false, false);
+        expect(safeSetAttributes).not.toHaveBeenCalled();
+    });
+
     it("waits for App setup and returns the created appId", async () => {
         const wm = new WindowManager({ kind: "WindowManager", displayer });
         const waitForSetup = vi.fn().mockResolvedValue({});

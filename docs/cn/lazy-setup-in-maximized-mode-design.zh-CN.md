@@ -28,7 +28,7 @@ maxCachedAppsInMaximizedMode?: number;
 
 `manager.setMaximized(true)` 仍然使用现有 WindowManager/TeleBox 同步逻辑，因此它会继续影响房间中的其他客户端。这个共享状态变化是显式的产品行为，与本地 lazy setup 策略分开处理。
 
-`forceMaximized` 是有写权限的房间入口用于声明房间级策略的 mount 请求；当它为 `true` 且当前实例可写时，WindowManager 在初始化阶段同时把房间级 `attributes.forceMaximized` 设置为 `true`，并调用现有 `setMaximized(true)` 把最大化状态同步到 `attributes`。该字段是共享策略，不是当前实例的本地配置：所有支持该字段的 WindowManager/TeleBox 客户端都必须禁止进入 normal，直到房间级策略被显式解除。开启 lazy 的客户端不要求也不依赖该参数写入字段，只读取房间已有值，也不能因为 lazy 配置自行调用 `setMaximized(true)`。
+`forceMaximized` 是有写权限的房间入口用于声明房间级策略的 mount 请求；当它为 `true`、当前实例可写且有效 `useBoxesStatus=false` 时，WindowManager 在初始化阶段同时把房间级 `attributes.forceMaximized` 设置为 `true`，并调用现有 `setMaximized(true)` 把最大化状态同步到 `attributes`。该字段是共享策略，但有效 `useBoxesStatus=true` 的客户端本地忽略；其余支持该字段的 WindowManager/TeleBox 客户端必须禁止进入 normal，直到房间级策略被显式解除。开启 lazy 的客户端不要求也不依赖该参数写入字段，只读取房间已有值，也不能因为 lazy 配置自行调用 `setMaximized(true)`。
 
 ## 2. 现状与差距（代码事实）
 
@@ -116,8 +116,12 @@ WindowManager.mount({
     forceMaximized: false,
     // 默认 1：仅 lazySetupInMaximizedMode=true 时生效
     maxCachedAppsInMaximizedMode: 1,
+    // 独立窗口状态；生效时忽略 forceMaximized，且 App 的 forceTop/forceNormal 才有效
+    useBoxesStatus: false,
 });
 ```
+
+窗口策略互斥：有效的 `useBoxesStatus=true` 表示每个窗口独立管理状态，此时本地忽略 mount/API/房间 attributes 中的 `forceMaximized`；`useBoxesStatus=false` 时，App 配置中的 `forceTop`、`forceNormal` 只保留同步字段，不参与本地 Box、top 选择或 setup 优先级。有效 lazy 模式仍按既有规则优先降级为 `useBoxesStatus=false`，再启用 `forceMaximized`。
 
 ### 4.2 `maxCachedAppsInMaximizedMode` 语义
 
@@ -187,7 +191,7 @@ lazy 模式的状态约束为：
 - 远端 attributes 写入 `maximized=false` 后的本地 reaction；
 - 删除最后一个 Box 时 TeleBox 的自动 `setMaximized(false)`。
 
-当共享 `attributes.forceMaximized === true` 时，上述 normal 拦截对所有支持该字段的客户端生效，不区分客户端是否开启 lazy。任何客户端调用 `setMaximized(false)` 或 `setBoxState("normal")` 都必须 no-op 并 warning；清除该字段必须通过明确的房间级管理操作，不能由删除最后一个 App、普通状态操作或 mount 卸载隐式清除。
+当共享 `attributes.forceMaximized === true` 时，上述 normal 拦截对所有使用全局窗口状态（有效 `useBoxesStatus=false`）且支持该字段的客户端生效，不区分客户端是否开启 lazy。有效 `useBoxesStatus=true` 的客户端忽略该房间策略。其余客户端调用 `setMaximized(false)` 或 `setBoxState("normal")` 都必须 no-op 并 warning；清除该字段必须通过明确的房间级管理操作，不能由删除最后一个 App、普通状态操作或 mount 卸载隐式清除。
 
 `manager.setMinimized(true/false)` 保持可用。进入 minimized 时串行 teardown 全部缓存 runtime；退出 minimized 时按 top App 规则重新 setup（见 6.5 节）。
 
@@ -210,6 +214,8 @@ lazy 模式只支持全局窗口状态管理，即等价于 `useBoxesStatus=fals
 lazySetupInMaximizedMode = true
 effectiveUseBoxesStatus = false
 ```
+
+非 lazy 场景传入 `useBoxesStatus=true` 与 `forceMaximized=true` 时，`useBoxesStatus` 生效，`forceMaximized` warning 后忽略且不得写入房间；房间已经存在 `attributes.forceMaximized=true` 时也只做本地忽略，不清除共享字段。此模式下只有 `forceTop` / `forceNormal` 有效。反之，有效 `useBoxesStatus=false` 时忽略每个 App 的 `forceTop` / `forceNormal`。
 
 如果当前实例不能写房间状态（只读端、Player、回放或未连接状态），且房间没有 `attributes.forceMaximized=true`，或当前房间状态为 normal，则无法保证 lazy 模式的"不允许 normal"约束。此时 `mount()` 应 warning，并将当前实例降级为默认 eager setup；它不得尝试写入 forceMaximized 或自行调用 `setMaximized(true)`。降级原因也必须进入 logger，便于定位低端设备为何没有启用 lazy。
 
@@ -256,7 +262,7 @@ attributes.boxStatus                 setup generation/token
 - `settingUpApps` 中的 Promise；
 - 当前实例的 setup generation/token。
 
-`attributes.forceMaximized` 是本设计唯一新增的房间级策略字段；它只约束 maximized/normal 状态，不要求未开启 lazy 的客户端延迟 App setup。未开启 lazy 的客户端仍然 eager setup，但必须遵守 `forceMaximized=true` 的 normal 禁止规则。
+`attributes.forceMaximized` 是本设计唯一新增的房间级策略字段；它只约束有效 `useBoxesStatus=false` 客户端的 maximized/normal 状态，不要求未开启 lazy 的客户端延迟 App setup。未开启 lazy 且使用全局窗口状态的客户端仍然 eager setup，但必须遵守 `forceMaximized=true` 的 normal 禁止规则；独立窗口状态客户端本地忽略。
 
 force 字段的设置/清除必须经过 `setForceMaximized()` 的权限校验；普通 eager 客户端不能通过 `setMaximized(false)` 绕过房间约束。
 
@@ -382,10 +388,11 @@ eager 路径原先经 `setupApp()` 中 `setTimeout(..., SETUP_APP_DELAY)` 直接
 
 - 队列实现为"每次取任务时按优先级挑选"的调度器，而不是固定 list shift；
 - 批量任务的排序键（从高到低）：
-  1. `maxForceTopBox` 对应 App（与 TeleBox top 语义一致）；
+  1. 有效 `useBoxesStatus=true` 时，`maxForceTopBox` 对应 App（与 TeleBox top 语义一致）；
   2. `attributes.focus` 指向且存在的 App；
   3. 其余 App 按当前 `zIndex` 降序；
   4. `attributes.apps` 插入顺序兜底；
+- 有效 `useBoxesStatus=false`（包括 lazy）时 `forceTop` 无效，因此排序直接从 focus 开始；
 - 单个新增任务（focus 切换、`addAppAndWaitForSetup`）视为最高优先级插入队首；
 - 已开始执行的 task 不中断、不重排；过期结果由既有 generation 机制丢弃（见第 9 节）。
 
@@ -752,7 +759,7 @@ eager 模式下 coordinator 必须同步放行这些请求；lazy 模式下未 s
 - 远端新增 App：先创建 shell，只有它成为当前 top App 时才 setup；
 - 当前客户端 `addApp()`：沿用现有 focus 语义，若新 App 成为 top，则由 lazy coordinator setup 后提交 focus；
 - `addAppAndWaitForSetup()`：这是显式的 ready API，即使目标 App 不是当前 top，也必须 setup 完成后再 resolve（进入串行队列，按最高优先级插入）；
-- `forceTop` App 的选择必须与 TeleBox 一致，初始化 top 使用 `maxForceTopBox`/`topBox`；标题栏 close 与 close 后的下一 top 必须复用同一个 focus coordinator 选择结果，不能一个按 forceTop、另一个按 focused/topBox；
+- 仅有效 `useBoxesStatus=true` 时，`forceTop` App 的选择与 TeleBox 一致；lazy 使用全局窗口状态，忽略 `forceTop`，初始化、标题栏 close 与下一 top 均由 focus/zIndex coordinator 选择；
 - 新增 App 不能直接调用旧 eager `baseInsertApp()` 绕过缓存与 coordinator。
 
 lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除最小化；新 App 只创建 shell，直到调用方显式解除最小化，才按 top App coordinator setup。这样可以保持"最小化期间不创建重 runtime"的性能约束。
@@ -767,12 +774,12 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 - `manager.focusApp()`、TeleBox 本地点击、远端 zIndex/focus 更新保持现有语义；
 - `destroy()` 继续执行完整 App 销毁；
 - 不引入新的异步 focus 等待。
-- 当 `attributes.forceMaximized=true` 时，`setMaximized(false)` / `setBoxState("normal")` 对所有客户端均为 no-op + warning；force=false 后才恢复原有 normal 转换语义。
+- 当 `attributes.forceMaximized=true` 且当前客户端有效 `useBoxesStatus=false` 时，`setMaximized(false)` / `setBoxState("normal")` 为 no-op + warning；有效 `useBoxesStatus=true` 的客户端本地忽略该字段并保留独立窗口语义。
 
 ### `forceMaximized` 协议兼容
 
 - `attributes.forceMaximized` 是房间级协议字段，不是仅供 lazy 客户端读取的本地标记；
-- 支持该字段的 WindowManager/TeleBox 版本必须在 API、远端 reaction、标题栏按钮、双击和删除空集合路径统一禁止 normal；
+- 支持该字段的 WindowManager/TeleBox 版本必须在有效 `useBoxesStatus=false` 时，从 API、远端 reaction、标题栏按钮、双击和删除空集合路径统一禁止 normal；有效 `useBoxesStatus=true` 时不得消费该字段；
 - 未升级的旧客户端无法被该字段自动约束，接入方必须保证房间内使用兼容版本，或明确接受旧客户端仍可能写入 normal；
 - `MountParams.forceMaximized`、`lazySetupInMaximizedMode`、`maxCachedAppsInMaximizedMode` 必须同步透传到 Whiteboard-bridge、iOS、Android、Harmony 的 mount 协议；
 - 清除 `forceMaximized` 必须由明确的房间级管理 API 完成，不能由普通客户端 mount/unmount 或关闭最后一个 App 隐式清除。
@@ -792,17 +799,17 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 | 审计项 | 设计修复 |
 | --- | --- |
 | R1 minimized 是共享状态 | 不再"本地清理 minimized"；允许 minimized。只有显式 `forceMaximized=true` 的可写入口负责调用 `setMaximized(true)`，lazy 客户端不自行写入。 |
-| R2 退出 maximized 后出现空 shell | 由共享 `attributes.forceMaximized=true` 统一禁止 normal；所有支持该字段的客户端从 API、远端 reaction、按钮、双击和删除空集合路径拦截。 |
+| R2 退出 maximized 后出现空 shell | 由共享 `attributes.forceMaximized=true` 禁止全局窗口模式进入 normal；有效 `useBoxesStatus=true` 的客户端本地忽略，其他客户端从 API、远端 reaction、按钮、双击和删除空集合路径拦截。 |
 | R3 reconnect 绕过 lazy | 增加 lazy reconnect 分支，先恢复 shell，再按优先级串行 setup。 |
 | R4 没有 teardown 钩子 | App 侧可选 teardown 契约已落地（四个内置 App 均已实现）；禁止复用最终 destroy 事件。 |
 | R5 setup 前提交 focus | focus coordinator 盘点并改道所有现有 focus/zIndex 提交点；TeleBox 本地点击同步 defer。 |
 | R6 只读端无法保证最大化 | lazy 客户端只读取 `attributes.forceMaximized`；字段不存在时 warning 并降级 eager，不尝试写入。 |
 | R7 mount/onCreated 时序 | 配置校验在 mount，状态归一化在 BoxManager 创建后、onCreated 之前；mount 失败恢复共享状态。 |
-| R8 forceTop 选择不一致 | 初始化 top 选择遵循 `maxForceTopBox`/`topBox`；标题栏 close 与下一 top 使用同一个 coordinator 结果。 |
+| R8 forceTop 模式泄漏 | `forceTop`/`forceNormal` 仅在有效 `useBoxesStatus=true` 时消费；全局窗口状态保留同步字段但不影响 Box、top 或 setup 优先级。 |
 | R9 Bridge 把 appsChange 当 ready | `appsChange` 只表示 shell，Bridge/native 使用 setup 完成信号。 |
 | R10 新增 App 绕过 lazy | 本地和远端新增 App 统一进入 coordinator；`addAppAndWaitForSetup()` 保留显式 ready 语义。 |
 | M1 解除 minimized 绕过 coordinator | `minimized=false` 事件和 `addApp()` 的自动解除最小化都先 setup top，再提交 focus/zIndex。 |
-| M2 close 目标与 forceTop 不一致 | 初始化 top、标题栏 close 目标和 close 后下一 top 统一由 coordinator 选择。 |
+| M2 close 目标与窗口模式不一致 | 独立窗口模式按 forceTop，其他模式按 focus/zIndex；初始化、标题栏 close 和 close 后下一 top 统一由 coordinator 选择。 |
 | M3 teardown 监听器累积 | 每次 setup 建立独立 scope；teardown 必须清理复用 `context.emitter` 上的本次监听器后才能 re-setup。 |
 | M4 bind/rebuild 绕过 lazy | 每次 `bindContainer()`、reconnect 和 Player seek rebuild 都幂等重放 force 状态、shell 恢复和 top setup。 |
 | H2 forceMaximized 生命周期不完整 | 定义 `setForceMaximized(true/false)`、force 清除后的 lazy -> eager 行为，以及 force=true 但当前 normal 时的 warning/eager 降级。 |
@@ -829,48 +836,50 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 5. lazy + `useBoxesStatus=true` 只 warning，实际使用 `useBoxesStatus=false`。
 6. 只读端或 Player 在 force 字段缺失，或 force=true 但当前 normal 时 warning 并降级 eager。
 7. 可写房间入口使用 `forceMaximized=true` 同时写入房间字段并调用 `setMaximized(true)`；只读 lazy 客户端读取该字段后启用 lazy，不尝试写入。
-8. 房间没有 `forceMaximized=true` 时，lazy 客户端 warning 并 eager setup；未开启 lazy 的客户端仍遵守已存在的 forceMaximized。
+8. 房间没有 `forceMaximized=true` 时，lazy 客户端 warning 并 eager setup；未开启 lazy 且使用全局窗口状态的客户端仍遵守已存在的 forceMaximized。
 9. `manager.setMaximized(true)` 仍同步到房间，未开启 lazy 的另一客户端保持 eager setup。
 10. `setForceMaximized(false)` 只清除房间策略；force 清除后 eager 客户端恢复 normal 能力，lazy 实例转为 eager 并按串行队列补齐 runtime。
-11. force=true 时任何客户端调用 `setMaximized(false)` / `setBoxState("normal")` 都 no-op + warning。
+11. force=true 时有效 `useBoxesStatus=false` 的客户端调用 `setMaximized(false)` / `setBoxState("normal")` 都 no-op + warning。
 12. legacy 客户端写入 normal 后，支持 force 的新客户端在 normal 状态下不进入 lazy；可写管理入口重新 force 后恢复 maximized。
+13. 非 lazy 的 `useBoxesStatus=true + forceMaximized=true` 只启用独立窗口状态，不写 force 字段；已有房间 force 字段也不拦截该客户端进入 normal。
+14. `useBoxesStatus=false` 时，本地新增和远端恢复 App 的 `forceTop`/`forceNormal` 均不影响 Box、top 或 setup 排序；切回 true 后原有同步字段仍可生效。
 
 **串行 setup 与缓存**
 
-13. 初始恢复多个 App（eager）时，前一个 App 的 `app.setup()` 完成后才开始下一个；setup 开始/结束时间区间不交叉（观测点：串行队列输出的 `app setup start/done/duration` info 日志）。
-14. cache=1 时与现状行为一致：新 App ready 后 teardown 旧 App。
-15. cache=5 时打开 1~5 均不 teardown；打开 6 时 LRU 项 1 被淘汰，缓存变为 [2,3,4,5,6]。
-16. 命中缓存的 App 切回时不重新 `setup()`，仅更新 LRU 顺序；同一 App 的并发 setup 请求复用同一 Promise。
-17. 快速切换 A -> B -> C 时，过期 B setup 完成后不会重新 focus B。
-18. teardown 与 setup 不并发；`tearing-down` 项不参与缓存命中。
-19. reconnect 与 Player seek rebuild 不使用 `Promise.all()` 并发 setup，全部走串行队列。
-20. setup 失败后 shell 保留、focus 不提交、不占用缓存 slot、不触发对其他缓存项的淘汰。
-21. `addAppAndWaitForSetup()` 对非 top App 也真正完成 setup 后再 resolve。
-22. media-player 在 setup 未完成时 teardown 不产生异步 DOM 异常（取消 token 生效）。
-23. 进入 minimized 串行释放全部缓存 runtime；退出 minimized 后聚焦 App 最先恢复。
-24. force 清除后的补齐按聚焦优先排序；重复 `bindContainer()` 不重复 setup 或重复同步最大化状态。
-25. 聚焦优先：批量 setup（初始化/reconnect/seek/补齐）中 `attributes.focus` App 的 setup 开始时间早于其余 App。
-26. `maxCachedAppsInMaximizedMode` 非法值（0、负数、小数、非数字）回退 1 并 warning。
+15. 初始恢复多个 App（eager）时，前一个 App 的 `app.setup()` 完成后才开始下一个；setup 开始/结束时间区间不交叉（观测点：串行队列输出的 `app setup start/done/duration` info 日志）。
+16. cache=1 时与现状行为一致：新 App ready 后 teardown 旧 App。
+17. cache=5 时打开 1~5 均不 teardown；打开 6 时 LRU 项 1 被淘汰，缓存变为 [2,3,4,5,6]。
+18. 命中缓存的 App 切回时不重新 `setup()`，仅更新 LRU 顺序；同一 App 的并发 setup 请求复用同一 Promise。
+19. 快速切换 A -> B -> C 时，过期 B setup 完成后不会重新 focus B。
+20. teardown 与 setup 不并发；`tearing-down` 项不参与缓存命中。
+21. reconnect 与 Player seek rebuild 不使用 `Promise.all()` 并发 setup，全部走串行队列。
+22. setup 失败后 shell 保留、focus 不提交、不占用缓存 slot、不触发对其他缓存项的淘汰。
+23. `addAppAndWaitForSetup()` 对非 top App 也真正完成 setup 后再 resolve。
+24. media-player 在 setup 未完成时 teardown 不产生异步 DOM 异常（取消 token 生效）。
+25. 进入 minimized 串行释放全部缓存 runtime；退出 minimized 后聚焦 App 最先恢复。
+26. force 清除后的补齐按聚焦优先排序；重复 `bindContainer()` 不重复 setup 或重复同步最大化状态。
+27. 聚焦优先：批量 setup（初始化/reconnect/seek/补齐）中 `attributes.focus` App 的 setup 开始时间早于其余 App。
+28. `maxCachedAppsInMaximizedMode` 非法值（0、负数、小数、非数字）回退 1 并 warning。
 
 **Focus / close / 页面 / 回调语义**
 
-27. focus A -> B 时，B setup 完成前 TeleBox 不提交 B focus，A runtime 不提前销毁（cache=1）；cache≥2 时 A 进入缓存不销毁。
-28. 最大化标题栏关闭 A 后，B 就绪再 focus B。
-29. 解除 minimized 时先 setup top，再提交 focus；`addApp()` 在 minimized 下也遵循该顺序。
-30. 关闭最后一个 App 时，不发生意外的 false -> true 状态抖动。
-31. 空 App 集合下保留现有标题栏逻辑，但 `setFullscreen(true/false)` 优先级更高。
-32. `forceTop` App 的 setup/focus 选择与 TeleBox top 语义一致。
-33. Slide、DocsViewer、Presentation setup 后恢复正确的 `fullPath` / page index。
-34. `appsChange`、`onAppSetup`、`addAppAndWaitForSetup()` 的 ready 语义分别正确。
+29. focus A -> B 时，B setup 完成前 TeleBox 不提交 B focus，A runtime 不提前销毁（cache=1）；cache≥2 时 A 进入缓存不销毁。
+30. 最大化标题栏关闭 A 后，B 就绪再 focus B。
+31. 解除 minimized 时先 setup top，再提交 focus；`addApp()` 在 minimized 下也遵循该顺序。
+32. 关闭最后一个 App 时，不发生意外的 false -> true 状态抖动。
+33. 空 App 集合下保留现有标题栏逻辑，但 `setFullscreen(true/false)` 优先级更高。
+34. `forceTop` App 仅在 `useBoxesStatus=true` 时参与 setup/focus 选择；lazy/global 模式忽略。
+35. Slide、DocsViewer、Presentation setup 后恢复正确的 `fullPath` / page index。
+36. `appsChange`、`onAppSetup`、`addAppAndWaitForSetup()` 的 ready 语义分别正确。
 
 **presentation 失焦缩略图降级**
 
-35. cache ≥ 2 时 presentation 失焦后背景 `<img>` src 变为 `page.thumbnail`，重新聚焦后恢复 `page.src`；全程不调用 scene API、房间 sceneState 无 diff。
-36. `page.thumbnail` 缺失时失焦不改变任何 src。
-37. 失焦期间远端翻页，新页背景同样被降级；重新聚焦后当前页为大图。
-38. 失焦替换后立即 teardown 幂等不抛错；teardown 后过期 focus 事件被忽略。
-39. cache=1 与 eager normal 模式下降级逻辑不生效，行为与现状一致。
-40. 失焦后 Preload 暂停、聚焦后恢复当前页预加载。
+37. cache ≥ 2 时 presentation 失焦后背景 `<img>` src 变为 `page.thumbnail`，重新聚焦后恢复 `page.src`；全程不调用 scene API、房间 sceneState 无 diff。
+38. `page.thumbnail` 缺失时失焦不改变任何 src。
+39. 失焦期间远端翻页，新页背景同样被降级；重新聚焦后当前页为大图。
+40. 失焦替换后立即 teardown 幂等不抛错；teardown 后过期 focus 事件被忽略。
+41. cache=1 与 eager normal 模式下降级逻辑不生效，行为与现状一致。
+42. 失焦后 Preload 暂停、聚焦后恢复当前页预加载。
 
 实现说明（已实现部分）：lazy focus 等待 AppProxy 的创建窗口最多 2 秒（`ensureLazyFocus` 轮询）；超时通过 logger warn 记录并放弃本次 focus 请求。当前单元测试已锁定 setup 失败、descriptor 缺失和 setup 完成态等核心状态机行为；force 清除、zIndex pending flush、teardown 幂和监听器卫生、串行队列与缓存淘汰属于集成回归测试重点。
 
@@ -881,9 +890,10 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 - [x] 在 `MountParams` 增加 `maxCachedAppsInMaximizedMode?: number`（默认 1，非法值回退 1 + warning，仅 lazy 生效）。
 - [x] 在 `MountParams` 增加 `lazySetupInMaximizedMode?: boolean`（默认 `false`）与 `forceMaximized?: boolean`；后者仅可写房间入口用于写入 `attributes.forceMaximized=true` 并调用 `setMaximized(true)`。
 - [x] lazy 模式仅在读取到 `attributes.forceMaximized=true` 时生效；字段缺失时 warning 并降级 eager。
-- [x] `attributes.forceMaximized=true` 时所有支持该字段的客户端只允许 minimized/maximized，统一拦截 normal。
+- [x] `attributes.forceMaximized=true` 时，有效 `useBoxesStatus=false` 的客户端只允许 minimized/maximized；独立窗口状态客户端本地忽略。
 - [x] 定义并实现 `setForceMaximized(true/false)` 的写权限、属性更新和 force 清除后的 lazy -> eager 降级。
 - [x] lazy + `useBoxesStatus=true` 在 mount warning，并按 false 创建。
+- [x] 窗口策略互斥：`useBoxesStatus=true` 忽略 `forceMaximized`；false 时忽略 App 的 `forceTop`/`forceNormal`，同步字段与公开类型保持兼容。
 - [x] 将 lazy setup 状态与 runtime 缓存限制在当前 WindowManager 实例；仅同步房间级 `forceMaximized` 策略字段。
 - [x] 在 BoxManager 创建后、onCreated 前执行最大化归一化，不自动解除 minimized。
 
@@ -892,7 +902,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 - [x] 实现 `runtimeCache`（LRU：单调访问序号 + setting-up/ready/tearing-down/pinned 状态）与 `settingUpApps` Promise 复用。
 - [x] 实现统一真实 setup 串行队列（任务必须 `await ensureSetup()`），并把 7.2 节全部路径接入。
 - [x] 移除 eager `setupApp()` 中 `setTimeout` 造成的 setup 并发（延迟启动保留、执行入队）。
-- [x] 队列调度器支持按优先级取任务（forceTop > focus > zIndex 降序 > 插入序），focus 变化可重排未开始任务。
+- [x] 队列调度器支持按有效模式取任务（独立窗口：forceTop > focus > zIndex；全局/lazy：focus > zIndex），focus 变化可重排未开始任务。
 - [x] reconnect / Player seek rebuild 移除 `Promise.all()`，改走串行队列。
 - [x] 实现 6.4 节 LRU 淘汰时序（cache=1 保持"新 ready 后 teardown 旧"；cache≥2 溢出先淘汰后 setup）。
 - [x] 进入 minimized 串行释放全部缓存 runtime；退出 minimized 聚焦优先恢复。
