@@ -41,4 +41,21 @@ describe("AppCreateQueue", () => {
         await wait(50);
         expect(fn2).not.toBeCalled();
     });
+
+    it("resolves its local idle signal for every queue cycle", async () => {
+        const queue = new AppCreateQueue();
+        let release!: () => void;
+        queue.push(() => new Promise(resolve => (release = resolve)));
+
+        const firstIdle = queue.whenIdle();
+        release();
+        await firstIdle;
+
+        let secondRelease!: () => void;
+        queue.push(() => new Promise(resolve => (secondRelease = resolve)));
+        const secondIdle = queue.whenIdle();
+        secondRelease();
+        await secondIdle;
+
+    });
 });

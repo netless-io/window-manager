@@ -80,6 +80,7 @@ export class AppManager {
     private lazyFocusGeneration = 0;
     private activeLazyAppId?: string;
     private lazyFocusQueue: Promise<void> = Promise.resolve();
+    private destroyed = false;
     // Serial queue for real app.setup() execution. AppCreateQueue only serializes
     // AppProxy/Box creation; this queue waits until each setup actually finishes.
     private setupTaskQueue = new SetupQueue();
@@ -107,6 +108,10 @@ export class AppManager {
     private pendingAppIds = new Set<string>();
     // Keep the shared focus on the previous ready App while a local lazy focus is preparing.
     private pendingLazyBlurredAppId?: string;
+    // The App whose TeleBox focus is currently being committed. Delayed blur
+    // events from the previous App must not clear the shared focus while this
+    // target is still in flight.
+    private pendingLazyFocusAppId?: string;
 
     private sideEffectManager = new SideEffectManager();
 
@@ -114,7 +119,7 @@ export class AppManager {
 
     public rootDirRemoving = false;
 
-    private get lazySetupEnabled(): boolean {
+    public get lazySetupEnabled(): boolean {
         return Boolean(this.windowManger?.lazySetupInMaximizedMode);
     }
 
@@ -373,6 +378,12 @@ export class AppManager {
     public clearLazyBookkeeping(): void {
         this.runtimeCache.clear();
         this.activeLazyAppId = undefined;
+        this.pendingLazyFocusAppId = undefined;
+        this.pendingLazyBlurredAppId = undefined;
+        // Invalidate every lazy transition that has not reached its commit
+        // point. The promise chain itself is intentionally left intact so a
+        // running task can settle, but its continuation must become a no-op.
+        this.lazyFocusGeneration += 1;
     }
 
     /** Drop cache bookkeeping for an app whose proxy was destroyed. */
@@ -815,32 +826,84 @@ export class AppManager {
     };
 
     private onBoxFocus = (payload: BoxFocusPayload) => {
+        this.handleBoxFocus(payload);
+    };
+
+    private handleBoxFocus(payload: BoxFocusPayload): void {
+        if (this.lazySetupEnabled) {
+            this.pendingLazyFocusAppId = payload.appId;
+        }
         if (this.lazySetupEnabled && !this.appProxies.get(payload.appId)?.isSetup) {
-            this.pendingLazyBlurredAppId = this.attributes.focus;
+            // focusBox() emits the old box blur before this callback, then
+            // lazy setup deliberately blurs all boxes to keep the target
+            // hidden until its runtime is ready. Remember the actual box
+            // that blurAllBox() is about to emit, even if attributes.focus
+            // has already moved to the new target.
+            const focusWasAlreadySet = this.store.focus === payload.appId;
+            const pendingBlurredAppId = this.boxManager?.getFocusBox()?.id || this.attributes.focus;
+            this.pendingLazyBlurredAppId = pendingBlurredAppId;
             this.boxManager?.blurAllBox();
             const generation = ++this.lazyFocusGeneration;
             this.lazyFocusQueue = this.lazyFocusQueue
                 .catch(() => undefined)
                 .then(async () => {
                     try {
+                        // A newer focus request or a lazy -> eager transition
+                        // invalidates this not-yet-started setup handoff.
+                        if (
+                            this.destroyed ||
+                            !this.lazySetupEnabled ||
+                            generation !== this.lazyFocusGeneration ||
+                            this.pendingLazyFocusAppId !== payload.appId
+                        ) {
+                            return;
+                        }
                         const appProxy = this.appProxies.get(payload.appId);
                         if (!appProxy) return;
                         try {
+                            await this.evictBeforeSetup(payload.appId);
+                            if (
+                                this.destroyed ||
+                                !this.lazySetupEnabled ||
+                                generation !== this.lazyFocusGeneration ||
+                                this.pendingLazyFocusAppId !== payload.appId
+                            ) {
+                                return;
+                            }
                             await this.enqueueAppSetup(payload.appId, () => -1);
                         } catch (error) {
                             this.Logger?.warn(
                                 `[WindowManager] lazy setup failed for ${payload.appId}: ${error}`
                             );
+                            this.restoreFocusAfterLazySetupFailure(
+                                payload.appId,
+                                pendingBlurredAppId,
+                                generation
+                            );
                             return;
                         }
                         if (generation !== this.lazyFocusGeneration) return;
+                        if (focusWasAlreadySet && this.store.focus === payload.appId) {
+                            const succeeded = await this.ensureLazyFocus(payload.appId, generation);
+                            if (succeeded === false) {
+                                this.restoreFocusAfterLazySetupFailure(
+                                    payload.appId,
+                                    pendingBlurredAppId,
+                                    generation
+                                );
+                            }
+                            return;
+                        }
                         this.windowManger.safeSetAttributes({ focus: payload.appId });
                         callbacks.emit("onBoxFocus", payload);
                         // The focused attributes autorun re-enters
                         // `ensureLazyFocus`, which touches the runtime cache and
                         // evicts LRU runtimes beyond the configured capacity.
                     } finally {
-                        if (generation === this.lazyFocusGeneration) {
+                        if (this.pendingLazyFocusAppId === payload.appId) {
+                            this.pendingLazyFocusAppId = undefined;
+                        }
+                        if (this.pendingLazyBlurredAppId === pendingBlurredAppId) {
                             this.pendingLazyBlurredAppId = undefined;
                         }
                     }
@@ -849,9 +912,20 @@ export class AppManager {
         }
         this.windowManger.safeSetAttributes({ focus: payload.appId });
         callbacks.emit("onBoxFocus", payload);
-    };
+        if (this.pendingLazyFocusAppId === payload.appId) {
+            this.pendingLazyFocusAppId = undefined;
+        }
+    }
 
     private onBoxBlurred = (payload: BoxBlurredPayload) => {
+        this.handleBoxBlurred(payload);
+    };
+
+    private handleBoxBlurred(payload: BoxBlurredPayload): void {
+        if (this.lazySetupEnabled) {
+            this.queueLazyBoxBlurred(payload);
+            return;
+        }
         const focus = this.attributes.focus;
         if (focus === payload.appId) {
             if (this.pendingLazyBlurredAppId === payload.appId) {
@@ -861,7 +935,40 @@ export class AppManager {
             this.windowManger.safeSetAttributes({ focus: undefined });
             callbacks.emit("onBoxBlurred", payload);
         }
-    };
+    }
+
+    private queueLazyBoxBlurred(payload: BoxBlurredPayload): void {
+        this.lazyFocusQueue = this.lazyFocusQueue
+            .catch(() => undefined)
+            .then(() => {
+                // If the mode changed while this blur was queued, apply the
+                // eager semantics to the real event instead of retaining a
+                // lazy marker that no longer has an owner.
+                if (!this.lazySetupEnabled) {
+                    if (this.attributes.focus === payload.appId) {
+                        this.windowManger.safeSetAttributes({ focus: undefined });
+                        callbacks.emit("onBoxBlurred", payload);
+                    }
+                    return;
+                }
+                // A stale blur from the previous box must not win over the
+                // newer target that is still being setup/focused.
+                if (this.pendingLazyBlurredAppId === payload.appId) {
+                    this.pendingLazyBlurredAppId = undefined;
+                    return;
+                }
+                if (this.pendingLazyFocusAppId) {
+                    return;
+                }
+                const focus = this.attributes.focus;
+                if (focus !== payload.appId) return;
+                this.windowManger.safeSetAttributes({ focus: undefined });
+                callbacks.emit("onBoxBlurred", payload);
+            })
+            .catch(error => {
+                this.Logger?.warn(`[WindowManager] lazy blur queue failed: ${error}`);
+            });
+    }
 
     private onBoxClose = (payload: BoxClosePayload) => {
         const appProxy = this.appProxies.get(payload.appId);
@@ -950,18 +1057,27 @@ export class AppManager {
     };
 
     private onFocusChange = (focused: string | undefined) => {
+        if (this.destroyed) return;
         if (this._prevFocused !== focused) {
-            this.pendingLazyBlurredAppId = undefined;
+            const previous = this._prevFocused;
+            if (this.lazySetupEnabled) {
+                // Attributes changes are also a focus request source
+                // (manager.focusApp(), remote sync, reconnect). Record the
+                // desired target before any queued blur can run, regardless
+                // of whether TeleBox emits blur before or after focus.
+                this.pendingLazyFocusAppId = focused;
+            }
             callbacks.emit("focusedChange", focused);
-            internalEmitter.emit("focusedChange", { focused, prev: this._prevFocused });
-            this.emitFocusedAppEvent(this._prevFocused, focused);
+            internalEmitter.emit("focusedChange", { focused, prev: previous });
             this._prevFocused = focused;
             if (focused !== undefined && this.lazySetupEnabled && !this.attributes.minimized) {
                 const generation = ++this.lazyFocusGeneration;
-                this.lazyFocusQueue = this.lazyFocusQueue
-                    .catch(() => undefined)
-                    .then(() => this.ensureLazyFocus(focused, generation));
+                this.queueLazyFocusTransition(previous, focused, generation);
+            } else if (this.lazySetupEnabled) {
+                const generation = ++this.lazyFocusGeneration;
+                this.queueLazyFocusTransition(previous, undefined, generation);
             } else if (focused !== undefined) {
+                void this.emitFocusedAppEvent(previous, focused);
                 this.boxManager?.focusBox({ appId: focused });
                 // 确保 focus 修改的时候, appProxy 已经创建
                 setTimeout(() => {
@@ -970,27 +1086,115 @@ export class AppManager {
                         appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
                     }
                 }, 0);
+            } else {
+                void this.emitFocusedAppEvent(previous, focused);
+                this.restoreFocusToTopBoxIfNeeded();
             }
         }
     };
+
+    /**
+     * A late TeleBox blur can clear the shared focus while a maximized lazy
+     * transition is still settling. In that mode the main view is covered by
+     * the maximized app layer, so leaving focus empty produces an all-blurred
+     * blank workspace. Recover to the box with the highest z-index. Normal,
+     * minimized, and useBoxesStatus modes retain their existing semantics.
+     */
+    private restoreFocusToTopBoxIfNeeded(): void {
+        if (
+            this.useBoxesStatus ||
+            this.attributes.minimized ||
+            this.boxManager?.maximized !== true
+        ) {
+            return;
+        }
+        const topBox = this.boxManager.getTopBox();
+        if (!topBox || this.store.focus === topBox.id) return;
+        this.Logger?.warn(
+            `[WindowManager] focus became undefined in maximized mode; restoring top app ${topBox.id}`
+        );
+        this.requestFocus(topBox.id);
+        // Read-only clients cannot persist focus attributes. Keep their local
+        // TeleBox focus aligned with the fallback as well; writable clients
+        // will receive the normal attributes-driven focus transition.
+        if (!this.windowManger.canOperate) {
+            this.boxManager.focusBox({ appId: topBox.id }, false);
+        }
+    }
+
+    private queueLazyFocusTransition(
+        previous: string | undefined,
+        focused: string | undefined,
+        generation: number
+    ): void {
+        this.lazyFocusQueue = this.lazyFocusQueue
+            .catch(() => undefined)
+            .then(async () => {
+                try {
+                    if (this.destroyed || !this.lazySetupEnabled) return;
+                    if (
+                        generation !== this.lazyFocusGeneration ||
+                        (focused !== undefined && this.store.focus !== focused)
+                    ) {
+                        return;
+                    }
+                    if (previous) {
+                        await this.appProxies.get(previous)?.emitAppFocusEvent(false);
+                    }
+                    if (
+                        focused === undefined ||
+                        generation !== this.lazyFocusGeneration ||
+                        this.store.focus !== focused
+                    ) {
+                        if (
+                            focused === undefined &&
+                            generation === this.lazyFocusGeneration &&
+                            this.store.focus === undefined &&
+                            !this.pendingLazyFocusAppId
+                        ) {
+                            this.restoreFocusToTopBoxIfNeeded();
+                        }
+                        return;
+                    }
+                    const succeeded = await this.ensureLazyFocus(focused, generation);
+                    if (succeeded === false) {
+                        this.restoreFocusAfterLazySetupFailure(focused, previous, generation);
+                    }
+                } finally {
+                    if (
+                        generation === this.lazyFocusGeneration &&
+                        this.pendingLazyFocusAppId === focused
+                    ) {
+                        this.pendingLazyFocusAppId = undefined;
+                    }
+                }
+            })
+            .catch(error => {
+                this.Logger?.warn(`[WindowManager] lazy focus queue failed: ${error}`);
+            });
+    }
 
     /**
      * Authoritative per-app `focus` boolean, driven by the attributes.focus
      * autorun. Unlike the telebox Focused/Blurred chain this works for
      * programmatic/remote focus changes and on readonly clients and Players.
      */
-    private emitFocusedAppEvent(prev: string | undefined, next: string | undefined): void {
+    private async emitFocusedAppEvent(
+        prev: string | undefined,
+        next: string | undefined
+    ): Promise<void> {
         if (prev === next) return;
         if (prev) {
-            this.appProxies.get(prev)?.emitAppFocusEvent(false);
+            await this.appProxies.get(prev)?.emitAppFocusEvent(false);
         }
         if (next) {
-            this.appProxies.get(next)?.emitAppFocusEvent(true);
+            await this.appProxies.get(next)?.emitAppFocusEvent(true);
         }
     }
 
-    private async ensureLazyFocus(focused: string, generation: number): Promise<void> {
-        if (this.attributes.minimized) return;
+    private async ensureLazyFocus(focused: string, generation: number): Promise<boolean> {
+        if (this.destroyed || !this.lazySetupEnabled || this.attributes.minimized) return false;
+        if (generation !== this.lazyFocusGeneration || this.store.focus !== focused) return false;
         let appProxy = this.appProxies.get(focused);
         for (let i = 0; !appProxy && i < 100; i += 1) {
             await new Promise(resolve => setTimeout(resolve, 20));
@@ -1000,7 +1204,7 @@ export class AppManager {
             this.Logger?.warn(
                 `[WindowManager] lazy focus app proxy unavailable after 2000ms, appId: ${focused}`
             );
-            return;
+            return false;
         }
         // Cache hit = the focused app has a READY runtime in the LRU cache
         // (not "it was the previously active app": with cacheMax > 1 any
@@ -1017,7 +1221,7 @@ export class AppManager {
                 await this.enqueueAppSetup(focused, () => -1);
             } catch (error) {
                 this.Logger?.warn(`[WindowManager] lazy setup failed for ${focused}: ${error}`);
-                return;
+                return false;
             }
         } else {
             this.touchRuntime(focused);
@@ -1030,7 +1234,7 @@ export class AppManager {
             // Stale focus result, or the room entered minimized while the
             // setup was queued (teardown-all owns the runtimes then): keep
             // any valid runtime cached and skip the focus commit.
-            return;
+            return false;
         }
         const box = this.boxManager?.getBox(focused);
         if (box) {
@@ -1039,8 +1243,53 @@ export class AppManager {
         this.boxManager?.focusBox({ appId: focused }, false);
         this.activeLazyAppId = focused;
         this.touchRuntime(focused);
+        await appProxy.emitAppFocusEvent(true);
         await appRegister.notifyApp(appProxy.kind, "focus", { appId: focused });
         await this.evictAfterFocusCommit(focused);
+        return true;
+    }
+
+    private restoreFocusAfterLazySetupFailure(
+        failedAppId: string,
+        previous: string | undefined,
+        generation: number
+    ): void {
+        const currentFocus = this.store.focus;
+        if (
+            this.destroyed ||
+            !this.lazySetupEnabled ||
+            this.attributes.minimized ||
+            generation !== this.lazyFocusGeneration ||
+            (currentFocus !== failedAppId && currentFocus !== previous)
+        ) {
+            return;
+        }
+        if (this.pendingLazyFocusAppId === failedAppId) {
+            this.pendingLazyFocusAppId = undefined;
+        }
+        const previousProxy = previous ? this.appProxies.get(previous) : undefined;
+        if (previous && previousProxy && !previousProxy.isDestroyed) {
+            this.Logger?.warn(
+                `[WindowManager] restoring previous focus after lazy setup failure, appId: ${previous}`
+            );
+            if (currentFocus === failedAppId) {
+                this.windowManger.safeSetAttributes({ focus: previous });
+            }
+            this.boxManager?.focusBox({ appId: previous }, false);
+            return;
+        }
+        this.Logger?.warn(
+            `[WindowManager] restoring top app after lazy setup failure, appId: ${failedAppId}`
+        );
+        if (currentFocus === failedAppId) {
+            this.windowManger.safeSetAttributes({ focus: undefined });
+            if (this.windowManger.canOperate) {
+                this.restoreFocusToTopBoxIfNeeded();
+            } else {
+                const topBox = this.boxManager?.getTopBox();
+                if (topBox) this.boxManager?.focusBox({ appId: topBox.id }, false);
+            }
+        }
     }
 
     public async setupAllApps(): Promise<void> {
@@ -1051,12 +1300,13 @@ export class AppManager {
     }
 
     public requestFocus(appId: string): void {
+        if (this.lazySetupEnabled) {
+            this.pendingLazyFocusAppId = appId;
+        }
         this.store.setAppFocus(appId, true);
         if (this.lazySetupEnabled && this._prevFocused === appId) {
             const generation = ++this.lazyFocusGeneration;
-            this.lazyFocusQueue = this.lazyFocusQueue
-                .catch(() => undefined)
-                .then(() => this.ensureLazyFocus(appId, generation));
+            this.queueLazyFocusTransition(undefined, appId, generation);
         }
     }
 
@@ -1162,6 +1412,38 @@ export class AppManager {
             if (this.lazySetupEnabled) {
                 setTimeout(() => this.focusByAttributes(this.attributes.apps), 100);
             }
+            this.recoverInitialFocusIfNeeded?.(apps);
+        }
+    }
+
+    private recoverInitialFocusIfNeeded(apps: any): void {
+        if (
+            this.destroyed ||
+            this.store.focus !== undefined ||
+            !apps ||
+            Object.keys(apps).length === 0 ||
+            this.attributes.minimized
+        ) {
+            return;
+        }
+        const recover = () => {
+            if (!this.destroyed && this.store.focus === undefined) {
+                this.restoreFocusToTopBoxIfNeeded();
+            }
+        };
+        if (this.boxManager?.boxSize === Object.keys(apps).length) {
+            recover();
+        } else {
+            // Initial App creation is serialized by this manager's own
+            // AppCreateQueue. Do not use the global callbacks.ready event:
+            // another WindowManager instance could emit it, and the public
+            // ready event is intentionally one-shot per queue.
+            void this.appCreateQueue
+                .whenIdle()
+                .then(recover)
+                .catch(error => {
+                    this.Logger?.warn(`[WindowManager] initial focus recovery failed: ${error}`);
+                });
         }
     }
 
@@ -1522,9 +1804,9 @@ export class AppManager {
             if (focusAppId) {
                 if (this.lazySetupEnabled && !this.attributes.minimized) {
                     const generation = ++this.lazyFocusGeneration;
-                    this.lazyFocusQueue = this.lazyFocusQueue
-                        .catch(() => undefined)
-                        .then(() => this.ensureLazyFocus(focusAppId, generation));
+                    const previous =
+                        this._prevFocused === focusAppId ? undefined : this._prevFocused;
+                    this.queueLazyFocusTransition(previous, focusAppId, generation);
                 } else {
                     this.boxManager.focusBox({ appId: focusAppId });
                 }
@@ -1556,7 +1838,9 @@ export class AppManager {
             const focused = this.store.focus;
             if (focused && this.appProxies.has(focused) && !this.attributes.minimized) {
                 const generation = ++this.lazyFocusGeneration;
-                await this.ensureLazyFocus(focused, generation);
+                const previous = this._prevFocused === focused ? undefined : this._prevFocused;
+                this.queueLazyFocusTransition(previous, focused, generation);
+                await this.lazyFocusQueue;
             }
         } else {
             // Eager reconnect: onReconnected() hands real setups off through
@@ -1584,6 +1868,10 @@ export class AppManager {
     }
 
     public destroy() {
+        this.destroyed = true;
+        this.lazyFocusGeneration += 1;
+        this.pendingLazyFocusAppId = undefined;
+        this.pendingLazyBlurredAppId = undefined;
         this.displayer.callbacks.off(this.eventName, this.displayerStateListener);
         this.displayer.callbacks.off("onEnableWriteNowChanged", this.displayerWritableListener);
         this.appListeners.removeListeners();

@@ -79,6 +79,20 @@ describe("AppProxy setup diagnostics", () => {
         expect(logger.error).not.toHaveBeenCalled();
     });
 
+    it("unblocks a focus transition when an app focus listener never settles", async () => {
+        vi.useFakeTimers();
+        const { proxy, logger } = createProxy();
+        proxy.appEmitter.emit = vi.fn(() => new Promise(() => undefined));
+
+        const notification = proxy.emitAppFocusEvent(true);
+        vi.advanceTimersByTime(10_000);
+        await notification;
+
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining("focus event timeout")
+        );
+    });
+
     it("waitForSetup returns the result and rethrows the original setup error", async () => {
         const { proxy } = createProxy();
         const result = { controller: true };

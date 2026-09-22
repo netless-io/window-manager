@@ -38,6 +38,7 @@ import { AppBoxSizeSynchronizer } from "./AppBoxSizeSynchronizer";
 import type { AppBoxSizeSyncOptions } from "./AppBoxSizeSynchronizer";
 
 const APP_SETUP_WATCHDOG_TIMEOUT = 10_000;
+const APP_FOCUS_EVENT_WATCHDOG_TIMEOUT = 10_000;
 
 type AppSetupCompletion = { succeeded: true; result: any } | { succeeded: false; error: unknown };
 
@@ -133,13 +134,21 @@ export class AppProxy implements PageRemoveService {
         this.isAddApp = isAddApp;
         this.boxFocusOffHandlers = [
             boxEmitter.on("focus", ({ appId }) => {
-                if (appId === this.id && this.status !== "destroyed") {
-                    this.emitAppFocusEvent(true);
+                if (
+                    appId === this.id &&
+                    this.status !== "destroyed" &&
+                    !this.manager.lazySetupEnabled
+                ) {
+                    void this.emitAppFocusEvent(true);
                 }
             }),
             boxEmitter.on("blurred", ({ appId }) => {
-                if (appId === this.id && this.status !== "destroyed") {
-                    this.emitAppFocusEvent(false);
+                if (
+                    appId === this.id &&
+                    this.status !== "destroyed" &&
+                    !this.manager.lazySetupEnabled
+                ) {
+                    void this.emitAppFocusEvent(false);
                 }
             }),
         ];
@@ -219,13 +228,25 @@ export class AppProxy implements PageRemoveService {
      * Change-duplicated emissions are deduped here; apps must still treat
      * the event as potentially repeated and handle it idempotently.
      */
-    public emitAppFocusEvent(isFocused: boolean, force = false): void {
-        if (this.status === "destroyed") return;
-        if (!force && this.lastEmittedFocus === isFocused) return;
+    public emitAppFocusEvent(isFocused: boolean, force = false): Promise<void> {
+        if (this.status === "destroyed") return Promise.resolve();
+        if (!force && this.lastEmittedFocus === isFocused) return Promise.resolve();
         this.lastEmittedFocus = isFocused;
-        void this.appEmitter
+        const notification = this.appEmitter
             .emit("focus", isFocused)
             .catch(error => this.logPostSetupNotificationError("focus event", error));
+        return new Promise(resolve => {
+            const timeout = setTimeout(() => {
+                this.Logger?.warn(
+                    `[WindowManager]: focus event timeout, kind: ${this.kind}, appId: ${this.id}, timeout: ${APP_FOCUS_EVENT_WATCHDOG_TIMEOUT}ms`
+                );
+                resolve();
+            }, APP_FOCUS_EVENT_WATCHDOG_TIMEOUT);
+            notification.then(() => {
+                clearTimeout(timeout);
+                resolve();
+            });
+        });
     }
 
     public get attributes() {
@@ -536,7 +557,7 @@ export class AppProxy implements PageRemoveService {
             this.setupSucceeded = true;
             // Focus events may have fired before setup ran; sync the current
             // focus state so apps observe a consistent initial value.
-            this.emitAppFocusEvent(this.isFocused, true);
+            await this.emitAppFocusEvent(this.isFocused, true);
             this.scheduleBoxSizeSync();
             this.afterSetupApp(boxInitState);
             this.flushPendingZIndex();

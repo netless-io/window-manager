@@ -7,6 +7,8 @@ export class AppCreateQueue {
     private list: Invoker[] = [];
     private currentInvoker: Invoker | undefined;
     private timer: number | undefined;
+    private idlePromise?: Promise<void>;
+    private resolveIdle?: () => void;
     public isEmit = false;
 
     private initInterval() {
@@ -49,9 +51,25 @@ export class AppCreateQueue {
         this.currentInvoker = undefined;
         if (this.list.length === 0) {
             this.clear();
+            this.resolveIdle?.();
+            this.resolveIdle = undefined;
+            this.idlePromise = undefined;
             this.emitReady();
         }
     };
+
+    /** Resolve when all AppProxy/TeleBox creation tasks queued so far finish. */
+    public whenIdle(): Promise<void> {
+        if (this.currentInvoker === undefined && this.list.length === 0) {
+            return Promise.resolve();
+        }
+        if (!this.idlePromise) {
+            this.idlePromise = new Promise(resolve => {
+                this.resolveIdle = resolve;
+            });
+        }
+        return this.idlePromise;
+    }
 
     private clear = () => {
         clearInterval(this.timer);
@@ -70,11 +88,19 @@ export class AppCreateQueue {
     public empty() {
         this.list = [];
         this.clear();
+        if (this.currentInvoker === undefined) {
+            this.resolveIdle?.();
+            this.resolveIdle = undefined;
+            this.idlePromise = undefined;
+        }
     }
 
     public destroy() {
         if (this.timer) {
             this.clear();
         }
+        this.resolveIdle?.();
+        this.resolveIdle = undefined;
+        this.idlePromise = undefined;
     }
 }

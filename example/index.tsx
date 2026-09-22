@@ -97,7 +97,6 @@ let firstPlay = false;
 
 const search = window.location.search;
 const url = new URLSearchParams(search);
-const isWritable = url.get("isWritable");
 const isReplay = url.get("isReplay");
 const cursor = url.get("cursor") === "false" ? false : true;
 const parseBooleanParam = (name: string, defaultValue: boolean): boolean => {
@@ -127,11 +126,16 @@ const parseCacheSizeParam = (name: string, defaultValue: number): number => {
     return defaultValue;
 };
 const windowManagerTestConfig = {
+    isWritable: url.has("writable")
+        ? parseBooleanParam("writable", true)
+        : url.get("isWritable") !== "false",
     forceMaximized: parseBooleanParam("force", true),
     lazySetupInMaximizedMode: parseBooleanParam("lazy", true),
     maxCachedAppsInMaximizedMode: parseCacheSizeParam("cache", 3),
 };
-document.title = `Document lazy=${windowManagerTestConfig.lazySetupInMaximizedMode ? 1 : 0}`;
+document.title = `Document writable=${windowManagerTestConfig.isWritable ? 1 : 0} lazy=${
+    windowManagerTestConfig.lazySetupInMaximizedMode ? 1 : 0
+}`;
 anyWindow.windowManagerTestConfig = windowManagerTestConfig;
 const originSizeParam = url.get("originSize");
 const originSizeMatch = originSizeParam?.match(/^(\d+)x(\d+)$/);
@@ -391,7 +395,7 @@ const joinRoom = ref => {
                     cursorName: uid,
                     avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
                 },
-                isWritable: !(isWritable === "false"),
+                isWritable: windowManagerTestConfig.isWritable,
                 // cursorAdapter: undefined,
                 uid: uid,
                 disableMagixEventDispatchLimit: true,
