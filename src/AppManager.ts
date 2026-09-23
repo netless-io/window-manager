@@ -1375,7 +1375,15 @@ export class AppManager {
                         }
 
                         this.appCreateQueue.push<AppProxy>(async () => {
-                            pendingAppIds.delete(id);
+                            // closeApp can cancel a descriptor before its Proxy exists.
+                            // Remote deletion also invalidates queued creation.
+                            if (
+                                !pendingAppIds.delete(id) ||
+                                this.destroyed ||
+                                !this.attributes.apps?.[id]
+                            ) {
+                                return;
+                            }
                             this.appStatus.set(id, AppStatus.StartCreate);
                             const appProxy = await this.baseInsertApp(
                                 {
@@ -1586,6 +1594,11 @@ export class AppManager {
             `[WindowManager]: addApp ${params.kind}, isDynamicPPT: ${isDynamicPPT}`
         );
         const { appId, needFocus } = await this.beforeAddApp(params, isDynamicPPT);
+        // Attribute/focus observers can close the app before its Proxy exists.
+        if (this.destroyed || !this.attributes.apps?.[appId]) {
+            this.appStatus.delete(appId);
+            return;
+        }
         const appProxy = await this.baseInsertApp(
             { ...params, lazySetup: this.lazySetupEnabled },
             appId,
@@ -1636,9 +1649,21 @@ export class AppManager {
     }
 
     public async closeApp(appId: string, needClose = true) {
+        this.pendingAppIds.delete(appId);
         const appProxy = this.appProxies.get(appId);
         if (appProxy) {
             await appProxy.destroy(true, needClose, false);
+        } else {
+            // Lazy descriptors already exist in room attributes even if their
+            // creation task has not run. Closing them must still synchronize.
+            const app = this.attributes.apps?.[appId];
+            if (needClose && app) {
+                this.store.cleanAppAttributes(appId);
+                if (app.options?.scenePath) {
+                    removeScenes(this.room, app.options.scenePath);
+                }
+            }
+            this.appStatus.delete(appId);
         }
     }
 

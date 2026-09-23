@@ -96,6 +96,7 @@ export class AppProxy implements PageRemoveService {
     // generation afterwards and aborts instead of marking a released runtime
     // as ready (teardown-during-setup race).
     private setupRunGeneration = 0;
+    private destroyPromise?: Promise<void>;
     // Last value emitted on the `focus` event, for change-detection dedupe.
     private lastEmittedFocus?: boolean;
 
@@ -297,6 +298,7 @@ export class AppProxy implements PageRemoveService {
         }
         try {
             const appImpl = await appRegister.appClasses.get(params.kind)?.();
+            this.throwIfDestroyed();
             const appParams = appRegister.registered.get(params.kind);
             const appOptions = this.manager.windowManger.resolveAppOptions(
                 params.kind,
@@ -320,6 +322,7 @@ export class AppProxy implements PageRemoveService {
                 this.resolveSetupInitialization?.();
                 this.resolveSetupInitialization = undefined;
                 await setupPromise;
+                this.throwIfDestroyed();
             } else {
                 this.Logger &&
                     this.Logger.error(
@@ -343,6 +346,15 @@ export class AppProxy implements PageRemoveService {
 
     public get box(): ReadonlyTeleBox | undefined {
         return this.boxManager?.getBox(this.id);
+    }
+
+    private throwIfDestroyed(): void {
+        if (this.isDestroyed) {
+            throw (
+                this.setupInitializationError ||
+                new Error(`[WindowManager]: app destroyed before setup, appId: ${this.id}`)
+            );
+        }
     }
 
     private async setupApp(
@@ -373,6 +385,7 @@ export class AppProxy implements PageRemoveService {
             internalEmitter
                 .once(`${appId}${Events.WindowCreated}` as any)
                 .then(() => {
+                    if (this.isDestroyed) return;
                     let boxInitState: AppInitState | undefined;
                     if (!skipUpdate) {
                         boxInitState = this.getAppInitState(appId);
@@ -403,7 +416,7 @@ export class AppProxy implements PageRemoveService {
                         // one setup finished before the next one starts.
                         this.deferredSetup = this.setupDescriptor;
                         setTimeout(() => {
-                            this.manager.enqueueEagerSetup(this.id);
+                            if (!this.isDestroyed) this.manager.enqueueEagerSetup(this.id);
                         }, SETUP_APP_DELAY);
                     }
                 })
@@ -968,13 +981,34 @@ export class AppProxy implements PageRemoveService {
         }
     }
 
-    public async destroy(
+    public destroy(
         needCloseBox: boolean,
         cleanAttrs: boolean,
         skipUpdate: boolean,
         error?: Error
-    ) {
-        if (this.status === "destroyed") return;
+    ): Promise<void> {
+        if (this.destroyPromise) return this.destroyPromise;
+        if (this.isDestroyed) return Promise.resolve();
+        let resolveDestroy!: () => void;
+        let rejectDestroy!: (error: unknown) => void;
+        // Publish completion before any cleanup can synchronously re-enter destroy.
+        this.destroyPromise = new Promise<void>((resolve, reject) => {
+            resolveDestroy = resolve;
+            rejectDestroy = reject;
+        });
+        this.finishDestroy(needCloseBox, cleanAttrs, skipUpdate, error).then(
+            resolveDestroy,
+            rejectDestroy
+        );
+        return this.destroyPromise;
+    }
+
+    private async finishDestroy(
+        needCloseBox: boolean,
+        cleanAttrs: boolean,
+        skipUpdate: boolean,
+        error?: Error
+    ): Promise<void> {
         this.status = "destroyed";
         this.setupRunGeneration += 1;
         this.manager.notifyAppDestroyed(this.id);
@@ -995,10 +1029,13 @@ export class AppProxy implements PageRemoveService {
         this.boxSizeSynchronizer.destroy();
         try {
             await appRegister.notifyApp(this.kind, "destroy", { appId: this.id });
+        } catch (hookError) {
+            this.Logger?.error(`[WindowManager]: registered destroy hook failed: ${hookError}`);
+        }
+        try {
             await this.appEmitter.emit("destroy", { error });
-        } catch (error) {
-            this.Logger && this.Logger.error(`[WindowManager]: notifyApp error: ${error.message}`);
-            console.error("[WindowManager]: notifyApp error", error.message, error.stack);
+        } catch (appError) {
+            this.Logger?.error(`[WindowManager]: app destroy listener failed: ${appError}`);
         }
         this.appEmitter.clearListeners();
         internalEmitter.emit(`destroy-${this.id}` as any, { error });
