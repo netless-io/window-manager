@@ -317,6 +317,35 @@ const mountManager = async (room, root) => {
     manager.emitter.on("focusedChange", focus => {
         console.log("focusedChange", focus);
     });
+    const tracedAppViews = new WeakSet<object>();
+    manager.emitter.on("onAppViewMounted", ({ appId, view }) => {
+        if (tracedAppViews.has(view)) return;
+        tracedAppViews.add(view);
+        view.callbacks.on("onScenePathUpdated", scenePath => {
+            try {
+                console.log("[scene-trace] SDK onScenePathUpdated", {
+                    appId,
+                    scenePath,
+                    focusScenePath: view.focusScenePath,
+                    fullPath: manager.queryOne(appId)?.getFullScenePath(),
+                });
+            } catch {
+                // Diagnostics must not affect SDK callbacks.
+            }
+        });
+    });
+    manager.emitter.on("onAppScenePathChange", ({ appId, view }) => {
+        try {
+            console.log("[scene-trace] onAppScenePathChange", {
+                appId,
+                scenePath: view.scenePath,
+                focusScenePath: view.focusScenePath,
+                fullPath: manager.queryOne(appId)?.getFullScenePath(),
+            });
+        } catch {
+            // Diagnostics must not affect the plugin's listener.
+        }
+    });
     manager.emitter.on("mainViewScenesLengthChange", length => {
         console.log("mainViewScenesLengthChange", length);
     });
