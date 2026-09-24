@@ -21,7 +21,7 @@
     "@netless/appliance-plugin": "1.1.43",
     "@netless/telebox-insider": "0.3.1-beta.0",
     "@netless/video-js-plugin": "^0.3.7",
-    "@netless/window-manager": "1.0.23-beta.3",
+    "@netless/window-manager": "1.0.23-beta.4",
     "agora-foundation": "3.11.1-rc.1",
     "core-js": "^3.45.1",
     "normalize.css": "^8.0.1",
