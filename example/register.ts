@@ -1,4 +1,4 @@
-import { WindowManager } from "../dist";
+import { WindowManager } from "@netless/window-manager";
 import "./app/helloworld-app";
 import "./app/counter";
 import { Board } from "./app/board";

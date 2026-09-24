@@ -1,5 +1,7 @@
 # 最大化模式 Lazy Setup 与多 App Runtime 缓存设计
 
+> 2026-09-24 修订：以下 v2 历史目标中，“真实 setup 永不重叠”已改为正常串行、超过 10 秒且有不同 pending 时让出调度占用；Slide runtime 保留，资源活动条件为 focus + 前台 + 非最小化。lazy 新增 App 与同步/API/TeleBox focus 共用一个最新 pending，不再为新增 App 保留独立 setup 排队项。以 §7.3–7.4、§9.1、§14、§16.3 的更新为准，不将逻辑让出声称为物理取消。
+
 > 状态：v2 设计。v1 的"单 runtime 缓存 lazy setup"已随 `b182b15`、`ba2750a` 部分实现（当前 `window-manager@1.0.23-beta.0`）；本文档在 v1 基础上增补四项设计并移除已过时的结论：
 >
 > 1. `maxCachedAppsInMaximizedMode` 多 App runtime LRU 缓存（v1 只保留一个 top App runtime 的结论作废）；
@@ -24,7 +26,7 @@ forceMaximized?: boolean;
 maxCachedAppsInMaximizedMode?: number;
 ```
 
-`lazySetupInMaximizedMode` 只改变当前 `WindowManager` 实例如何初始化与缓存 App runtime，不写入房间 attributes，也不要求房间中的其他客户端启用同一配置；`forceMaximized` 是独立的房间级策略请求；`maxCachedAppsInMaximizedMode` 是 lazy 模式下的 runtime 缓存上限。
+`lazySetupInMaximizedMode` 只改变当前 `WindowManager` 实例如何初始化与缓存 App runtime，不写入房间 attributes，也不要求房间中的其他客户端启用同一配置；`forceMaximized` 是独立的房间级策略请求；`maxCachedAppsInMaximizedMode` 是 lazy 模式下的 runtime 缓存目标容量。对没有 `teardown()`、无法安全淘汰的 App，它是软上限。
 
 `manager.setMaximized(true)` 仍然使用现有 WindowManager/TeleBox 同步逻辑，因此它会继续影响房间中的其他客户端。这个共享状态变化是显式的产品行为，与本地 lazy setup 策略分开处理。
 
@@ -101,7 +103,7 @@ maxCachedAppsInMaximizedMode?: number;
 - 不在本次设计中重新设计普通窗口、最小化窗口或内容区域 close 按钮的交互。
 - 不要求其他客户端也延迟 `setup()`。其他客户端根据自己的 mount 参数独立决定 eager 或 lazy。
 - 不在 lazy 模式下支持 `useBoxesStatus=true`；该组合配置会告警并按 `useBoxesStatus=false` 运行。
-- `maxCachedAppsInMaximizedMode` 是缓存上限，不是 setup 并发数；setup 并发数恒为 1。
+- `maxCachedAppsInMaximizedMode` 是可安全淘汰 runtime 的缓存目标容量，不是 setup 并发数；没有 `teardown()` 的 App 可使其软超限，setup 并发数恒为 1。
 - 初始化阶段不因缓存配置为 N 而预热 N 个 runtime：初始化仍然只 setup 当前 top App，缓存按需填充。若未来需要预热，应另设 `initialWarmupCount` 并复用同一串行队列，本文不展开。
 
 ## 4. 配置语义
@@ -288,7 +290,9 @@ settingUpApps: Map<string, Promise<void>>;
 
 `AppShell` 的内容（AppProxy、scene、View、attributes、Box 几何、kind/options）全部保留在 AppProxy 上；`runtimeCache` 的一项表示一个已创建（或在创建中）的 App runtime；`state` 用于避免对同一 App 并发 setup/teardown。`settingUpApps` 保证同一 App 的重复 setup 请求复用同一个 Promise，不会重复执行 `app.setup()`。
 
-teardown 与 setup 的竞态由 AppProxy 的 setup 代次（`setupRunGeneration`）守卫：teardown/destroy 会递增代次，进行中的 setup 完成后发现代次变化即按"中止"处理——不标记 ready、不占缓存 slot，等待方（串行队列）收到失败并放行，后续 `ensureSetup()` 可从保留的 descriptor 干净重跑。
+对于未实现可选 `teardown()` 的第三方 App，`maxCachedAppsInMaximizedMode` 是软上限：WindowManager 不具备安全释放其 runtime 的契约，因此淘汰和 minimized 批量释放都必须跳过该 App，并保留 `runtimeCache` 记账。它可以使实际缓存数量超过配置值，但不会形成“runtime 仍活着、缓存却忘记它”的隐形资源。之后重新 focused 时，该条目直接 cache hit，不再次执行 `setup()`。即使 lazy -> eager -> lazy 等模式切换曾清除缓存记账，只要 `AppProxy.isSetup=true`，setup 调度器也只重新登记缓存条目，不会重复调用 App `setup()`。
+
+teardown 与 setup 的竞态由 AppProxy 的 setup 代次（`setupRunGeneration`）守卫：teardown/destroy 会递增代次。若 setup 尚未完成，不向 App 的 `teardown(context, setupResult)` 传入不存在的结果；旧 setup 返回后才用实际结果执行物理 teardown，随后将旧 attempt 按"中止"结算，不标记 ready。晚到的旧 attempt 不能结算新 attempt。若 App 已被 destroy，仍对晚到且成功创建的 runtime 尝试清理；物理 teardown 失败写 error，不能当作清理成功。
 
 ### 6.2 setup 与 teardown
 
@@ -321,7 +325,13 @@ destroy()
 - 不提交该 App 的 focus；
 - 根据现有错误事件和日志约定上报原始错误；
 - 如果仍有旧 active App，旧 App 保持 active，直到新 App 成功；
-- 如果没有 active App，TeleBox 不应 focus 一个尚未 setup 的 Box。
+- 只有“用户在本端 TeleBox 切换课件且当前可写”触发的冷 setup 才有权执行 fallback，而且恢复动作只能在该 handoff 的串行任务 `finally` 阶段执行：共享 focus 仍指向有效旧 App 时只把本地 TeleBox 对齐回该 App，不写共享状态；共享 focus 为空或仍指向 setup 失败目标时，从现有 TeleBox 中排除失败目标，选择 `zIndex` 最大的 App，并同步房间 focus 与本地 TeleBox；不得先写入 `focus: undefined` 中间态，也不得再次选择失败目标形成重试循环；
+- `focusApp(appId)` 是程序化定向请求，不具备 fallback 权限；目标 setup 失败时返回 `false`，不得恢复 previous、选择最高 `zIndex` 或改写为 `focus: undefined`；
+- 由 `attributes.focus` 同步触发的被动 setup 不得执行 fallback，即使当前客户端可写也不能反向覆盖同步来的权威焦点；它只能保持本地 TeleBox 与当前 Attribute 一致，等待焦点来源端处理；
+- 只读端在任何 setup 来源下都不得选择 previous 或最高 `zIndex` App，也不得只修改本地 TeleBox 形成分叉；即使 Attribute 指向的目标在本机 setup 失败，也只聚焦该 Box 并等待共享 focus 更新；
+- 如果排除失败目标后没有其他 App，保留当前共享 focus 并上报失败，不得 focus 一个尚未 setup 的 Box。
+
+TeleBox 切换出现短暂 `focus: undefined` 的根因是事件顺序：聚焦新 Box 时，TeleBox 会同步遍历 boxes；当旧 Box 排在目标 Box 前面时，会先发旧 Box 的 `blurred`，再发新 Box 的 `focused`。旧实现会在 `blurred` 回调中立即清空共享 focus。lazy 模式必须先用 `pendingLazyFocusAppId/pendingLazyBlurredAppId` 吸收该瞬态，fallback 只能作为这一次 TeleBox handoff 串行任务结束后的最后检查：generation 仍有效、没有更新的 pending 目标，且共享 focus 为空或仍指向 setup 失败目标时，才排除失败目标并选择最高 `zIndex`。普通 `attributes.focus=undefined`、初始化、重连、`focusApp(appId)` 和内部程序化 focus 均不得调用该 fallback。
 
 ### 6.4 LRU 淘汰时序
 
@@ -330,9 +340,13 @@ destroy()
 1. 淘汰目标 = `runtimeCache` 中 `lastUsed` 最小、且**不是**当前 `activeAppId` / `pendingFocusAppId`、`state === "ready"` 的项；
 2. 若候选目标是当前可见 App（仅 cache=1 的切换场景会出现），则先 setup 新 App，新 App ready 并提交 focus 后再 teardown 旧 App（保持已实现的现状体验：旧画面保留到新画面就绪）；
 3. 其余情况（cache ≥ 2 溢出）先 teardown LRU 项，再进入串行 setup 队列，避免瞬时 runtime 数超过配置值；
-4. teardown 与 setup 不并发：两者都排入同一串行队列；
+4. 正常路径下 teardown 与 setup 通过同一串行队列协调；超过 10 秒且存在不同最新目标时，旧 setup 仅让出调度租约，实际异步工作仍可能重叠；
 5. teardown **抛错**时缓存条目置为 `pinned`（保留记账、按容量计数、排除后续淘汰、error 日志），不阻塞队列；无 teardown 实现的条目同样保留记账并跳过淘汰（见 §13 与本节软超限语义）；
 6. `tearing-down` 状态的项不参与命中：对它的 focus 请求视为 cache miss，等待 teardown 完成后重新 setup。
+
+App 被关闭/删除时，仅撤销与该 appId 匹配、尚未启动的最新 pending，并使它的活动 attempt 失效；不得清除后来到达的其他目标。最小化和切后台不是 App 删除，仍接收并保留最新 pending。进行中的 setup 收到 teardown 请求时先失效旧 attempt，待旧 setup 返回后清理，再重新仲裁最新 pending。teardown 请求从发起起运行满 10 秒，经 Room logger.error 上报一次；报警不强制中断第三方 JS，也不将必需清理标记为完成。若 teardown 永不返回，后续 setup 仍可能受阻，需据日志定位异常 App。
+
+这里的“软超限”不是把无 teardown App 移出 `runtimeCache`：它仍作为 `ready` 条目参与记账和 focus 命中，只是不再是可淘汰候选。只有 App 最终 destroy 时才删除该条目。
 
 容量语义说明：cache=1 的交接期（新 App setup 完成 → 旧 App teardown 完成）允许瞬时存在 2 个 runtime。这是"切换时旧画面保留到新画面就绪"的现状体验语义，与第 3 条（cache ≥ 2 严格先淘汰后 setup）并存；两者不可同时成立，以体验优先。
 
@@ -378,7 +392,7 @@ eager 路径原先经 `setupApp()` 中 `setTimeout(..., SETUP_APP_DELAY)` 直接
 - reconnect（`AppManager.onReconnected()`，已由 `Promise.all()` 改为逐 App 串行重建）；
 - Player seek rebuild（`onPlayerSeekDone()` 全量重建）；
 - `forceMaximized` 清除后的 eager 补齐；
-- `addAppAndWaitForSetup()`。
+- `addAppAndWaitForSetup()`：eager 沿用串行 setup 队列；lazy 只等待最新 focus pending 驱动的 setup，不直接插入第二条 setup 队列。
 
 `AppCreateQueue` 保持现有职责（AppProxy/Box 创建串行 + ready 事件），不再承担"setup 完成串行"的语义；两者可以并存。
 
@@ -393,12 +407,14 @@ eager 路径原先经 `setupApp()` 中 `setTimeout(..., SETUP_APP_DELAY)` 直接
   3. 其余 App 按当前 `zIndex` 降序；
   4. `attributes.apps` 插入顺序兜底；
 - 有效 `useBoxesStatus=false`（包括 lazy）时 `forceTop` 无效，因此排序直接从 focus 开始；
-- 单个新增任务（focus 切换、`addAppAndWaitForSetup`）视为最高优先级插入队首；
-- 已开始执行的 task 不中断、不重排；过期结果由既有 generation 机制丢弃（见第 9 节）。
+- eager 单个新增任务按优先级插入；lazy 新增 App 仅通过统一 focus pending 触发 setup，尚未开始的中间目标被最新目标覆盖；
+- 已开始的真实 setup 不重排；lazy 下存在不同 pending 且运行满 10 秒时可让出调度占用，真实 Promise 保留。旧任务晚完成不能释放新任务的占用或提交旧焦点；没有 pending 则继续等待。teardown 等必做清理不按此规则让出。
 
 ### 7.4 与 lazy focus 队列的关系
 
-现有 `lazyFocusQueue`（`src/AppManager.ts` onFocusChange）改为使用统一 setup 队列的实现细节；focus 侧的 generation、pending 语义不变。
+同步 focus、`focusApp(appId)`、TeleBox 和本地新增 App 共用 `LatestTaskQueue` 的一个 pending 槽，再通过 `SetupQueue` 执行当前目标的真实 setup；`SetupQueue` 不积压 lazy 新增 App 的独立等待任务。最小化/后台只关闭消费门禁，不停止写 pending；恢复时用原 setup 起始时间重新判断完成或 10 秒让出。真实 setup 与调度占用分开，A→E→A 复用原 A Promise。真实 setup 运行满 10 秒时经 Room logger.error 记录一次；这不代表第三方 setup 已被物理中断。
+
+最新目标写入 pending 时，撤销 `SetupQueue` 中尚未启动、目标不同的旧 setup；已启动的 setup 仍按完成或 10 秒让出规则处理，因此 A 正在执行、B 已排队、E 成为最新目标时，不再先执行 B。TeleBox 目标在异步缓存清理后、setup 后及写入共享 focus 前，均须确认 AppProxy 仍是当前实例、未销毁且 App 仍在房间 attributes 中；关闭期间失效的目标不能重新提交。点击主画布即使共享 focus 已是 `undefined`，也要写入最新的 mainView pending，以撤销尚未提交的 TeleBox 切换。
 
 ## 8. 初始化时序（聚焦优先）
 
@@ -475,6 +491,48 @@ lazy 分支中，`attributes.focus` 可以先发生变化，但它不能立即�
 提交 focus 前，操作路由仍应使用 `activeAppId`，不能因为 `attributes.focus` 已变化就提前把分页、事件或 unified page control 路由到尚未 setup 的 App。
 
 setup 任务需要 generation/token，防止快速连续切换 A -> B -> C 时，B 的过期 Promise 在 C 之后完成并错误地重新激活 B。
+
+### 9.1 接入方调用注意事项：focus 后立即翻页
+
+`focusApp()` 在 lazy 模式下是异步提交：`attributes.focus` 可以已经指向目标 App，但目标 runtime 仍可能处于 pending 或 setup 中。与此同时，`dispatchDocsEvent()` 未显式传入目标时，会在调用瞬间使用当前已聚焦 App 解析目标。因此，接入方不得用 fire-and-forget 的 `focusApp()` 紧接分页命令：
+
+```ts
+// 错误：没有等待 C 完成 setup 和 focus 提交。
+void manager.focusApp(cAppId);
+void manager.dispatchDocsEvent("nextPage");
+```
+
+Native 对外分页 API 不要求也不应为了规避该竞态而暴露 `appId`。标准调用顺序是先等待目标 App 完成 setup 和 focus 提交，再对“当前已提交焦点”执行分页：
+
+```ts
+const committed = await manager.focusApp(cAppId);
+if (committed) {
+    await manager.dispatchDocsEvent("nextPage");
+}
+```
+
+如果 Native 层把未提交映射为异常，也可以提供以下等价的 await 形式；第二行只允许在第一行成功完成后执行：
+
+```csharp
+await manager.FocusApp(cId);
+await manager.DispatchDocsEvent("nextPage");
+```
+
+`focusApp()` 的异步结果必须贯穿 WindowManager、Whiteboard-bridge 和 Native SDK：成功只表示目标 runtime 已 setup、Box focus 已提交且 App focus 事件已完成；请求被更新请求取代、超时或 setup 失败必须返回失败或 reject。调用方收到失败后不得继续发送依赖该 focus 的分页命令。现有同步/void 重载可以为兼容保留，但不得用于上述有顺序依赖的调用。
+
+App focus 事件本身也是 completion barrier：App 的 `context.emitter.on("focus")` listener 必须返回本次异步资源切换的 Promise，不能用 `void` 丢弃；WindowManager 通过 `Emittery.emit()` 等待该 Promise。以 Slide 为例，`focus(true)` 只有在 `release()`、player 重建及 `setSlideState()` 完成后才成功；重复的同状态 focus 必须复用正在执行的 Promise。listener reject 或 focus-event watchdog 超时时，本次 lazy `focusApp()` 返回 `false`，不得先提交成功。App 内部可以串行 freeze/unfreeze，但只有把同一 Promise 逐层返回到 WindowManager，串行才同时构成对调用方有效的完成屏障。
+
+这里的 pending 需要区分两层：三种来源均先进入同一最新 pending；旧 setup 完成，或运行已满 10 秒且有不同目标时，才在前台且非最小化条件下处理新目标。让出不强制中断真实 JS 工作。被取代的 `focusApp(C)` waiter 则立即返回 `false`，不取消 C setup、不移除 E pending，也不能在 E 完成后返回 C 成功。API 的独立 10 秒期限从调用开始计时，因此可以先返回 false、目标之后才显示。
+
+focus 通知失败/超时后，去重记录整体置为 unknown，不回滚旧布尔值；同状态和反向状态都能重试，旧通知不能覆盖新记录。通知以 runtime epoch 和 activity revision 隔离。Slide 的 focus、visibility、minimized 使用同一资源串行链；`runtimeActivity` 事件通知包含 cache 外仍存活的实例，恢复不依赖新 focus 事件。
+
+`focusApp` 的 `appId: string` 是必填参数，不提供无参数清焦点语义。其 pending、被取代或 setup 失败路径不得用 `focus: undefined` 作为中间回退；`focus: undefined` 只由既有的主动 blur、最小化、关闭 focused App 等业务流程产生。
+
+各端映射如下：Android 保留 `focusApp(String)`，新增 `focusApp(String, Promise<Boolean>)`；iOS 保留 `focusApp:`，新增 `focusApp:completionHandler:`；Harmony 的 `focusApp(appId)` 返回 `Promise<boolean>`。非 lazy 模式不能因为新增 await 契约而改变原时序：WindowManager 仍在 `focusApp()` 调用栈内同步执行原有 `focusBox/makeBoxTop`，随后返回立即 resolve 的 `true`；只有 lazy 模式等待 setup 与 focus commit。
+
+Web 的 `target` / `appId` 仍可作为高级定向能力保留，但不是 Android 等 Native SDK 的标准公开用法；Native 的 `dispatchDocsEvent` 默认操作当前已提交的聚焦课件。若业务允许其他调用方在两次 await 之间再次切换焦点，则需要在更高层串行化“focus + command”，不能依靠 fire-and-forget 调用维持目标稳定。
+
+Slide 的 Magix 同步事件使用 `${appId}:${event}` 命名空间隔离。C、D 的 `nextPage` / `nextStep` 事件只能进入 C、D 各自的 Slide 实例和状态；未 setup 的只读端没有相应监听器，后续 setup 时从该 App 的 storage 状态恢复。这些事件不会进入 E 的 Slide 队列。若观察到 E 被翻页，应首先检查调用方是否省略了 `target`，导致命令在调用时直接解析为 E，而不是把它判断为 C、D 事件跨 App 泄漏。
 
 ## 10. 最大化标题栏 close
 
@@ -579,21 +637,21 @@ v1 中"三个内置 App 需要同步实现 teardown"的结论已过时：`app-sl
 
 WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一个课件的首屏资源就绪后才开始下一个课件"，四个内置 App 必须让 `setup()` 的返回 Promise 覆盖首屏关键资源，同时提供超时与失败路径，避免 setup 队列被单个 App 永久阻塞。
 
-通用约束（四个 App 一致）：
+契约更新（2026-09-24）：以下严格 ready 能力已接入 Slide/Presentation；docs-viewer/media-player 仍沿用其原有 ready 超时策略，本次未扩大改造范围。
 
 - `setup()` 返回的 Promise 必须在"首屏可见资源 ready"后 resolve；
-- 必须有超时（默认 5s，可由 AppOptions `setupReadyTimeout` 覆盖）：超时后 setup 仍按成功 resolve（runtime 继续加载），但通过 logger warn 记录，避免阻塞队列或误判失败。注意串行队列会把单个 App 的超时放大为后续每个 App 的等待（N 个 App 最坏 N×超时），因此默认值不宜更长；v1 草案的 10s 已下调为 5s；
-- 首图/首帧**加载失败不使 setup 失败**，交由超时兜底：静态图片的瞬时网络错误不应放大为整个 App setup 失败（SDK 层通常自带重试）。唯一例外是 slide——它具备显式的 `onRenderError` 回调，ready 之前的渲染错误仍然映射为 setup 失败；
-- 超时/失败不 cancel 后台加载本身，只解除对队列的等待；
-- 注意区分两个超时：本节的"App setup ready 超时"（默认 5s，阻塞串行队列）与 WindowManager 侧的 setup watchdog（`APP_SETUP_WATCHDOG_TIMEOUT`，10s，仅输出 hydrate 超时日志、不阻塞不中止）是两个维度；
-- WindowManager 在串行队列中为每个 App 输出 `app setup start/done/duration` info 日志，作为"setup 时间区间不交叉"验收（§19 用例 13）的观测点。
+- 默认 5s（可由 AppOptions `setupReadyTimeout` 覆盖）是首屏警告阈值；新宿主 `context.waitForActualSetupReady=true` 时继续等真实 ready，旧宿主/eager 保留超时 resolve 的兼容行为。
+- 新 lazy 契约下，Slide 首帧错误、Presentation 已发起请求的首图失败和 ready 前 disposal 均终止 setup；不能把失败当成 ready。
+- 超时让出不 cancel 后台加载本身，也不伪造 setup 成功。
+- 区分首屏警告（默认 5s）、宿主当前工作让出阈值（10s）、focus listener 超时和 API 调用期限。后两者失败不取消 pending。
+- `app setup start/done/duration` 记录真实工作；正常路径串行，10s 异常让出后可能重叠，并输出 warn。该机制不能中断同步阻塞主线程的 JS。
 
 ### 14.1 app-slide
 
 - `SlideDocsViewer.mount()` 暴露 ready Promise；
 - ready = `SlideController.readyPromise`，至少等待首个 `renderEnd`；
 - `app-slide.setup()` 返回该 Promise；
-- 渲染失败（slide error）映射为 reject；`readyPromise` 挂起超过超时时间按 warn + resolve 处理。
+- 渲染失败（slide error）映射为 reject；新 lazy 宿主上超时仅 warn、继续等待，旧宿主/eager 保留 warn + resolve。
 
 ### 14.2 app-docs-viewer
 
@@ -606,7 +664,7 @@ WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一
 
 - `Preload` 增加启动控制：setup 阶段聚焦当前页（`touch(pageIndex, true)`）；后续页面预加载**维持既有 Preload 链**——当前页 onload 后经 `requestIdleCallback`（100ms timeout 兜底）递进，`maxLinks=5` 限流，不与 setup 队列联动（v1 草案"延迟到队列空闲"不再要求）；
 - 不重排 `prepareScenes()` 与重 runtime 的创建顺序（该顺序重构侵入 setup 主体，收益有限）：以"创建后立即聚焦当前页 Preload + setup 等待当前页首图"达成同等内存目标；
-- setup 返回"当前页首个图片资源 ready"（轮询背景 `<img>` complete，5s 超时兜底），而不是只等待场景写入；
+- setup 返回当前页首图 ready（背景 `<img>` complete 且 naturalWidth > 0）；新 lazy 宿主上 5s 仅 warn，首图 error 则失败；旧宿主/eager 保留有界等待；
 - 该 App 同时落地第 15 节的失焦缩略图降级。
 
 ### 14.4 app-media-player
@@ -619,8 +677,8 @@ WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一
 
 ### 14.5 验收标准
 
-- 串行队列观测点记录每个 App setup 的开始/结束时间，任意两个 App 的时间区间不得交叉；
-- App 内部资源加载（slide 首帧、docs 首图、presentation 首图、video.js 实例）完成时间不得晚于其 setup Promise resolve 时间。
+- 记录每个 App setup 开始/结束时间；正常串行，超过 10s 且有不同 pending 的逻辑让出必须有 warn，不把异常重叠计为真实取消。
+- 新 lazy 宿主的 Slide 首帧、Presentation 首图不得晚于 setup 成功；旧宿主/eager 及本次未改造 App 的超时兼容路径单独记录。
 
 ## 15. app-presentation 失焦缩略图降级（frozen/unfrozen 模式）
 
@@ -665,6 +723,20 @@ WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一
 
 同时提供只读 getter `AppContext.isFocused(): boolean`。注意：事件只保证"最终一致"，可能重复（去重后跨来源仍可能连续发射同向值），App 侧必须幂等处理。
 
+订阅 `focus:boolean` 并执行资源副作用的内置 App，其资源焦点状态遵循以下约束：
+
+- 每次 runtime setup 完成时，资源状态从 `focused=true` 开始，而不是用当时的 `box.focus` 初始化。这样 setup 期间已经被 pending focus 替换的旧目标，仍会接受并执行 setup 后补发的首个 `focus(false)`；
+- App 同步记录最后一个已接受的焦点状态；与该状态相同的重复事件直接忽略，避免重复 freeze/unfreeze、Preload pause/resume 或 DOM 资源降级；
+- `app-slide` 的 freeze/unfreeze 可能异步完成，相反状态必须按收到顺序串行执行。例如 `false -> true -> false` 必须完整保序，不能 latest-wins 合并；否则正在完成的 freeze 可能覆盖后续 unfreeze；
+- `app-presentation` 当前降级/恢复操作为同步流程，可在整段 handler 入口按已应用状态去重，无需异步队列；
+- lazy 已关闭、controller 尚未创建，或 `focus(false)` 不满足 maximized/minimized 降级条件时，不推进 App 的已接受状态。后续条件成立后的同值事件仍需有机会执行。
+
+`app-docs-viewer` 与 `app-media-player` 当前均不订阅 App `focus:boolean`，因此重复或重叠 focus 事件在这两个 App 内没有执行路径，不需要维护无副作用的焦点状态：
+
+- DocsViewer 没有 freeze/unfreeze 或失焦资源降级契约。为 focus 事件新增空状态变量不能减少任何开销；把失焦映射为销毁图片/View 会改变缓存命中的恢复成本，需要单独设计；
+- MediaPlayer 在 App 失焦后仍按共享 attributes 继续同步播放，这是当前产品语义。现有 `visibilitychange` 仅用于带 `__pcmProxy` 的浏览器标签页隐藏/显示处理，不是 App focus 事件，也不能用 App focus guard 合并；
+- 如果后续为两者增加本地 suspend/resume，必须在增加副作用的同一变更中加入状态去重；只要操作含异步过程，就必须像 app-slide 一样保序并覆盖失败重试。
+
 **app-presentation 侧行为**
 
 前提：整套失焦降级是 lazy 模式专属的缓存优化——事件处理器触发时**动态**检查 `windowManager.lazySetupInMaximizedMode`（运行时可能变化，如 forceMaximized 被清除后实例降级 eager），非 lazy 模式直接忽略 focus 事件；eager 模式即使处于 maximized 状态也不降级。
@@ -691,6 +763,7 @@ focus=true（重新聚焦）
 - 增加 `boxState ∈ {maximized, minimized}` 守卫，避免 eager normal 平铺窗口下可见 App 的画质回退（lazy 模式不可能出现 normal，该守卫只为 eager 复用同一逻辑时兜底）；
 - 只依据 `isFocused` 判断（辅以 lazy 与 boxState 守卫），不读 zIndex、不判断遮挡；
 - `app-slide` 的 blur freeze（`context.emitter.on("focus")` → `SlideController.freeze()/unfreeze()`）遵循完全相同的守卫链（lazy 前提 + maximized/minimized），实现位于 app-slide setup 的 focus 订阅。
+- `app-slide` 同时跟踪权威 focus 与 `document.visibilityState`：仅 `focused && visible && !minimized` 时允许 `unfreeze()`；失焦、浏览器进入后台或 minimized 任一条件成立时保持/进入 `freeze()`。后台收到 `focus=true` 只记录目标状态，回到前台后再解冻。
 
 **背景 `<img>` 的定位方式**
 
@@ -758,11 +831,11 @@ eager 模式下 coordinator 必须同步放行这些请求；lazy 模式下未 s
 
 - 远端新增 App：先创建 shell，只有它成为当前 top App 时才 setup；
 - 当前客户端 `addApp()`：沿用现有 focus 语义，若新 App 成为 top，则由 lazy coordinator setup 后提交 focus；
-- `addAppAndWaitForSetup()`：这是显式的 ready API，即使目标 App 不是当前 top，也必须 setup 完成后再 resolve（进入串行队列，按最高优先级插入）；
+- `addAppAndWaitForSetup()`：这是显式的 ready API。lazy 下新增 App 沿用 `addApp()` 的焦点语义，只有它仍是最新目标时才由统一 pending setup；setup 成功才 resolve。若被新目标覆盖、创建或等待超时，则 reject，但不销毁已创建的 App shell；真实 setup 失败才沿用失败清理。API 从调用起最多等待 20 秒，其中旧 setup 的让出阈值为其开始后的 10 秒，新目标开始 setup 后至多使用剩余期限；创建阶段也占用这 20 秒预算；
 - 仅有效 `useBoxesStatus=true` 时，`forceTop` App 的选择与 TeleBox 一致；lazy 使用全局窗口状态，忽略 `forceTop`，初始化、标题栏 close 与下一 top 均由 focus/zIndex coordinator 选择；
 - 新增 App 不能直接调用旧 eager `baseInsertApp()` 绕过缓存与 coordinator。
 
-lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除最小化；新 App 只创建 shell，直到调用方显式解除最小化，才按 top App coordinator setup。这样可以保持"最小化期间不创建重 runtime"的性能约束。
+lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除最小化；新 App 只创建 shell，直到调用方显式解除最小化，才按 top App coordinator setup。`addAppAndWaitForSetup()` 不再把 shell 创建误报为 ready；20 秒内未能 setup 则拒绝等待，但保留 shell。这样可以保持"最小化期间不创建重 runtime"的性能约束。
 
 本地点击未 setup App 时，WindowManager 会先暂时撤销 TeleBox 的本地视觉 focus，但不会把仍然有效的房间级 `attributes.focus` 写成 `undefined`；旧 focused App 会保持为共享 active，直到新 App setup 成功后再提交新的 focus。
 
@@ -801,7 +874,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 | R1 minimized 是共享状态 | 不再"本地清理 minimized"；允许 minimized。只有显式 `forceMaximized=true` 的可写入口负责调用 `setMaximized(true)`，lazy 客户端不自行写入。 |
 | R2 退出 maximized 后出现空 shell | 由共享 `attributes.forceMaximized=true` 禁止全局窗口模式进入 normal；有效 `useBoxesStatus=true` 的客户端本地忽略，其他客户端从 API、远端 reaction、按钮、双击和删除空集合路径拦截。 |
 | R3 reconnect 绕过 lazy | 增加 lazy reconnect 分支，先恢复 shell，再按优先级串行 setup。 |
-| R4 没有 teardown 钩子 | App 侧可选 teardown 契约已落地（四个内置 App 均已实现）；禁止复用最终 destroy 事件。 |
+| R4 没有 teardown 钩子 | 不调用最终 destroy 事件代替 teardown；保留 runtime 与 cache 记账并允许软超限，再次 focused 直接复用且不重复 setup。代价是该 runtime 只能在 App 最终 destroy 时释放，第三方 App 数量过多会增加内存压力。 |
 | R5 setup 前提交 focus | focus coordinator 盘点并改道所有现有 focus/zIndex 提交点；TeleBox 本地点击同步 defer。 |
 | R6 只读端无法保证最大化 | lazy 客户端只读取 `attributes.forceMaximized`；字段不存在时 warning 并降级 eager，不尝试写入。 |
 | R7 mount/onCreated 时序 | 配置校验在 mount，状态归一化在 BoxManager 创建后、onCreated 之前；mount 失败恢复共享状态。 |
@@ -853,7 +926,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 19. 快速切换 A -> B -> C 时，过期 B setup 完成后不会重新 focus B。
 20. teardown 与 setup 不并发；`tearing-down` 项不参与缓存命中。
 21. reconnect 与 Player seek rebuild 不使用 `Promise.all()` 并发 setup，全部走串行队列。
-22. setup 失败后 shell 保留、focus 不提交、不占用缓存 slot、不触发对其他缓存项的淘汰。
+22. TeleBox 用户切换触发的 setup 失败后 shell 保留、失败目标 focus 不提交、不占用缓存 slot、不触发对其他缓存项的淘汰；只在 handoff 最后的 `finally` 阶段恢复：Attribute 仍是有效 previous 时仅做本地对齐，否则排除失败目标并 focus 最高 zIndex App，全程不写 `focus: undefined`。相同失败若来自 `focusApp(appId)`、Attribute 同步、初始化、重连或内部程序化 focus，则不得 fallback。
 23. `addAppAndWaitForSetup()` 对非 top App 也真正完成 setup 后再 resolve。
 24. media-player 在 setup 未完成时 teardown 不产生异步 DOM 异常（取消 token 生效）。
 25. 进入 minimized 串行释放全部缓存 runtime；退出 minimized 后聚焦 App 最先恢复。
@@ -871,6 +944,9 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 34. `forceTop` App 仅在 `useBoxesStatus=true` 时参与 setup/focus 选择；lazy/global 模式忽略。
 35. Slide、DocsViewer、Presentation setup 后恢复正确的 `fullPath` / page index。
 36. `appsChange`、`onAppSetup`、`addAppAndWaitForSetup()` 的 ready 语义分别正确。
+36a. 快速执行 `focusApp(C) -> focusApp(D) -> focusApp(E)` 并穿插分页命令：只有 `await focusApp(appId)` 成功提交后，后续无 appId 的 `dispatchDocsEvent` 才能操作该当前焦点；返回失败时不得继续。Bridge/Native 必须真实等待 Web Promise 并传回成功、被取代、超时和 setup 失败结果，不能用 void/fire-and-forget 冒充完成。
+36b. 第三方 App 未实现 `teardown()` 时，超过 cache 配置、进入 minimized 和再次 focused 均不调用 teardown；runtimeCache 允许软超限并保留该 App 的 ready 记账，再次 focused 不重复调用 setup。缓存记账因模式切换缺失时，已 setup runtime 只重新登记、不重复 setup。
+36c. Slide 已失焦冻结后进入后台，后台期间收到 `focus=true` 不立即解冻；回到前台时仅当前 focused Slide 解冻，未 focused 或 minimized Slide 保持冻结。
 
 **presentation 失焦缩略图降级**
 

@@ -1,5 +1,6 @@
 import pRetry from "p-retry";
-import { AppManager } from "./AppManager";
+import { AppManager, LazySetupWaitError } from "./AppManager";
+import { DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE } from "./AppManager";
 import { appRegister } from "./Register";
 import { callbacks } from "./callback";
 import { checkVersion, createInvisiblePlugin, setupWrapper } from "./Helper";
@@ -157,11 +158,13 @@ export function normalizeMaxCachedAppsInMaximizedMode(
     warn: (message: string) => void
 ): number {
     if (!lazyRequested || value === undefined) {
-        return 1;
+        return DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE;
     }
     if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
-        warn(`[WindowManager] invalid maxCachedAppsInMaximizedMode ${value}; falling back to 1`);
-        return 1;
+        warn(
+            `[WindowManager] invalid maxCachedAppsInMaximizedMode ${value}; falling back to ${DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE}`
+        );
+        return DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE;
     }
     if (value > MAX_CACHED_APPS_SANE_LIMIT) {
         warn(
@@ -285,9 +288,11 @@ export type MountParams = {
     /** Only setup the focused app while the room is force-maximized. Local only. */
     lazySetupInMaximizedMode?: boolean;
     /**
-     * Max number of set-up app runtimes kept alive in lazy mode. `1` (default)
-     * keeps only the focused runtime; on cache miss the least recently used
-     * runtime is torn down. This is a cache capacity, not a setup concurrency.
+     * Target number of LRU entries in lazy mode, including the focused app.
+     * Defaults to `4`. This is a soft limit: apps without `teardown()` remain
+     * tracked and alive, and can push the cache beyond this value. Evicted
+     * Slide runtimes also stay initialized and own freeze/release through focus.
+     * This does not limit total live runtimes or setup concurrency.
      * Local only; only effective while `lazySetupInMaximizedMode` is enabled.
      */
     maxCachedAppsInMaximizedMode?: number;
@@ -354,7 +359,7 @@ export class WindowManager
     private _lazySetupInMaximizedMode = false;
     private _forceMaximized = false;
     private _useBoxesStatus = false;
-    private _maxCachedAppsInMaximizedMode = 1;
+    private _maxCachedAppsInMaximizedMode = DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE;
     private _pageScaleRange?: Readonly<PageScaleRange>;
     private _destroyed = false;
     private _cursorUIDs: string[] = [];
@@ -775,7 +780,7 @@ export class WindowManager
         manager._lazySetupInMaximizedMode = false;
         manager._forceMaximized = false;
         manager._useBoxesStatus = false;
-        manager._maxCachedAppsInMaximizedMode = 1;
+        manager._maxCachedAppsInMaximizedMode = DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE;
         manager.builtinAppOptions = undefined;
         manager.containerSizeRatio = previousStaticState.containerSizeRatio;
         manager._unifiedPageControl = new UnifiedPageControlTracker();
@@ -998,13 +1003,35 @@ export class WindowManager
      * Unlike `addApp()`, setup failures reject this Promise and the partially
      * initialized local App is removed. Existing `addApp()` timing is unchanged.
      *
-     * Under a **minimized** workspace with lazy setup enabled, no runtime is
-     * created (minimized workspaces keep no runtimes): the Promise resolves
-     * with the appId right after the shell is created, and the App sets up
-     * when it gains focus after unminimizing.
+     * In lazy mode, the latest focus intent owns setup. A superseded or timed
+     * out wait rejects without destroying the App shell; a later focus may
+     * still set it up. A minimized workspace does not start setup.
      */
     public async addAppAndWaitForSetup<T = any>(params: AddAppParams<T>): Promise<string> {
-        const appId = await this.addApp(params);
+        const lazy = this.lazySetupInMaximizedMode;
+        const startedAt = Date.now();
+        let creationTimer: ReturnType<typeof setTimeout> | undefined;
+        let appId: string | undefined;
+        try {
+            const creation = this.addApp(params);
+            appId = lazy
+                ? await Promise.race([
+                      creation,
+                      new Promise<never>((_, reject) => {
+                          creationTimer = setTimeout(() => {
+                              this.Logger?.error(
+                                  `[WindowManager] lazy add creation timeout, kind: ${
+                                      params.kind
+                                  }, elapsedMs: ${Date.now() - startedAt}`
+                              );
+                              reject(new LazySetupWaitError("timeout", "pending creation"));
+                          }, 20_000);
+                      }),
+                  ])
+                : await creation;
+        } finally {
+            if (creationTimer) clearTimeout(creationTimer);
+        }
         if (!appId) {
             throw new Error("[WindowManager]: app was not created");
         }
@@ -1013,9 +1040,16 @@ export class WindowManager
             throw new Error(`[WindowManager]: app not found after creation, appId: ${appId}`);
         }
         try {
-            if (this.lazySetupInMaximizedMode && this.boxManager?.minimized) {
-                // Minimized workspaces keep no runtimes (design §6.5): resolve
-                // after shell creation; setup runs on focus after unminimize.
+            if (lazy) {
+                const appManager = this.appManager;
+                if (!appManager) {
+                    throw new Error("[WindowManager]: AppManager is not initialized");
+                }
+                await appManager.waitForLazyAddedAppSetup(
+                    appId,
+                    app,
+                    Math.max(0, 20_000 - (Date.now() - startedAt))
+                );
                 return appId;
             }
             if (typeof (app as any).ensureSetup === "function") {
@@ -1031,6 +1065,7 @@ export class WindowManager
             }
             return appId;
         } catch (error) {
+            if (error instanceof LazySetupWaitError) throw error;
             const cause = error instanceof Error ? error : new Error(String(error));
             try {
                 await app.destroy(true, true, false, cause);
@@ -1589,16 +1624,16 @@ export class WindowManager
     ): boolean {
         const dom = app.box?.$footer;
         if (!dom || event === "scalePage") return false;
-        const click = (element: Element | null): void => {
-            element?.dispatchEvent(new MouseEvent("click"));
+        const click = (element: Element | null): boolean => {
+            if (!element) return false;
+            element.dispatchEvent(new MouseEvent("click"));
+            return true;
         };
         if (event === "prevPage" || event === "prevStep") {
-            click(dom.querySelector('button[class$="btn-page-back"]'));
-            return true;
+            return click(dom.querySelector('button[class$="btn-page-back"]'));
         }
         if (event === "nextPage" || event === "nextStep") {
-            click(dom.querySelector('button[class$="btn-page-next"]'));
-            return true;
+            return click(dom.querySelector('button[class$="btn-page-next"]'));
         }
         if (event === "jumpToPage") {
             const input = dom.querySelector<HTMLInputElement>('input[class$="page-number-input"]');
@@ -1851,8 +1886,11 @@ export class WindowManager
             }
         }
         let expectedPage = state.page;
-        if (event === "prevPage") expectedPage -= 1;
-        if (event === "nextPage") expectedPage += 1;
+        const docsViewerStepEvent = appKind === DocsViewerAppKind && isStepEvent;
+        if (event === "prevPage" || (docsViewerStepEvent && event === "prevStep"))
+            expectedPage -= 1;
+        if (event === "nextPage" || (docsViewerStepEvent && event === "nextStep"))
+            expectedPage += 1;
         if (event === "jumpToPage") {
             if (!this.isUnifiedPage(options.page, state.pageCount))
                 return this.rejectDocsEvent(
@@ -1861,7 +1899,12 @@ export class WindowManager
                 );
             expectedPage = options.page;
         }
-        if (event === "prevPage" || event === "nextPage" || event === "jumpToPage") {
+        if (
+            event === "prevPage" ||
+            event === "nextPage" ||
+            event === "jumpToPage" ||
+            docsViewerStepEvent
+        ) {
             if (expectedPage < 1 || expectedPage > state.pageCount)
                 return this.rejectDocsEvent(
                     "outOfRange",
@@ -2141,8 +2184,9 @@ export class WindowManager
         try {
             const app = this.queryOne(appId);
             if (!app) return undefined;
+            if (app.isDestroyed || app.isSetup === false) return undefined;
             if (kind === DocsViewerAppKind) {
-                const state = app.pageState;
+                const state = app.getContentPageState?.() ?? app.pageState;
                 if (
                     !Number.isInteger(state.index) ||
                     !Number.isInteger(state.length) ||
@@ -2414,12 +2458,20 @@ export class WindowManager
             })
         );
         this._unifiedPageControl.addListenerDisposer(
+            this.onAppEvent(DocsViewerAppKind, event => {
+                if (event.type === "pageStateChange") {
+                    this.tryEmitUnifiedAppState(event.appId, DocsViewerAppKind);
+                }
+            })
+        );
+        this._unifiedPageControl.addListenerDisposer(
             this.emitter.on("onAppSetup", appId => {
                 const app = this.queryOne(appId);
                 const kind = app && this.getUnifiedAppKind(app.kind);
                 if (kind) {
                     this._unifiedPageControl.clearAppObserverDisposers(appId);
                     this.ensureUnifiedAppObserver(appId, kind);
+                    this.tryEmitUnifiedAppState(appId, kind);
                 }
             })
         );
@@ -2626,8 +2678,13 @@ export class WindowManager
     private isUnifiedAppSceneConfirmed(appId: string, page: number): boolean {
         try {
             const app = this.queryOne(appId);
+            if (!app) return false;
+            const kind = this.getUnifiedAppKind(app.kind);
+            if (kind === DocsViewerAppKind) {
+                return this.readUnifiedAppPageState(appId, DocsViewerAppKind)?.page === page;
+            }
             const view = app?.view;
-            if (!app || !view) return false;
+            if (!view) return false;
             const expectedPath = app.getFullScenePath();
             if (
                 typeof expectedPath !== "string" ||
@@ -2635,7 +2692,7 @@ export class WindowManager
                 expectedPath !== view.focusScenePath
             )
                 return false;
-            if (this.getUnifiedAppKind(app.kind) === PresentationAppKind) {
+            if (kind === PresentationAppKind) {
                 return this.readUnifiedAppPageState(appId, PresentationAppKind)?.page === page;
             }
             return view.focusSceneIndex !== undefined && view.focusSceneIndex + 1 === page;
@@ -2659,22 +2716,28 @@ export class WindowManager
 
     /**
      * 切换 focus 到指定的 app, 并且把这个 app 放到最前面
+     *
+     * 返回 Promise：`true` 表示焦点已真正提交（setup 完成、box 已聚焦、
+     * focus 事件已发出）；`false` 表示请求被更新的切换取代或超时未提交。
+     * 快速连续调用时内部只保留最新请求，旧的未处理请求立即以 `false` 结束。
+     * 非 lazy 模式保持原有同步 focus 行为，返回值会立即 resolve 为 `true`。
      */
-    public focusApp(appId: string) {
+    public focusApp(appId: string): Promise<boolean> {
         const box = this.boxManager?.getBox(appId);
         if (!box) {
             this.Logger?.warn(`[WindowManager]: focusApp ignored, no box for appId: ${appId}`);
-            return;
+            return Promise.resolve(false);
         }
-        if (box) {
-            if (this.lazySetupInMaximizedMode) {
-                this.appManager?.requestFocus(appId);
-                return;
-            }
-            this.boxManager?.focusBox({ appId }, false);
-            // 1.0 版本这里会有正式的 api
-            (this.boxManager?.teleBoxManager as any).makeBoxTop(box, false);
+        if (this.lazySetupInMaximizedMode) {
+            return (
+                this.appManager?.requestFocusAndWait(appId) ??
+                Promise.resolve(false)
+            );
         }
+        this.boxManager?.focusBox({ appId }, false);
+        // 1.0 版本这里会有正式的 api
+        (this.boxManager?.teleBoxManager as any).makeBoxTop(box, false);
+        return Promise.resolve(true);
     }
 
     public moveCamera(

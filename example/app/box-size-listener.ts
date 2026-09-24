@@ -1,5 +1,5 @@
-import type { NetlessApp } from "../../dist";
-import { WindowManager } from "../../dist";
+import type { NetlessApp } from "@netless/window-manager";
+import { WindowManager } from "@netless/window-manager";
 
 type BoxSize = { width: number; height: number };
 

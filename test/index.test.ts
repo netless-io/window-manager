@@ -1,4 +1,5 @@
 import { Displayer, WindowManager } from "../src";
+import { LazySetupWaitError } from "../src/AppManager";
 import { describe, it, vi, expect } from "vitest";
 
 vi.mock("white-web-sdk");
@@ -17,6 +18,27 @@ describe("WindowManager", () => {
         expect(wm).toBeDefined();
         expect(wm.attributes).toBeDefined();
         expect(wm.setAttributes).toBeDefined();
+    });
+
+    it("keeps eager focus synchronous while returning an immediately resolved result", async () => {
+        const wm = Object.create(WindowManager.prototype) as any;
+        const box = {};
+        const calls: string[] = [];
+        wm._lazySetupInMaximizedMode = false;
+        wm.boxManager = {
+            getBox: vi.fn(() => box),
+            focusBox: vi.fn(() => calls.push("focusBox")),
+            teleBoxManager: {
+                makeBoxTop: vi.fn(() => calls.push("makeBoxTop")),
+            },
+        };
+
+        const result = WindowManager.prototype.focusApp.call(wm, "app-1");
+
+        expect(calls).toEqual(["focusBox", "makeBoxTop"]);
+        await expect(result).resolves.toBe(true);
+        expect(wm.boxManager.focusBox).toHaveBeenCalledWith({ appId: "app-1" }, false);
+        expect(wm.boxManager.teleBoxManager.makeBoxTop).toHaveBeenCalledWith(box, false);
     });
 
     it("resolves forceMaximized and independent box states as mutually exclusive", () => {
@@ -117,6 +139,60 @@ describe("WindowManager", () => {
 
         await expect(wm.addAppAndWaitForSetup({ kind: "Presentation" })).rejects.toBe(error);
         expect(destroy).toHaveBeenCalledWith(true, true, false, error);
+    });
+
+    it("uses the lazy pending wait without adding a direct setup task", async () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const app = { waitForSetup: vi.fn(), destroy: vi.fn() };
+        const waitForLazyAddedAppSetup = vi.fn().mockResolvedValue(undefined);
+        wm.appManager = {
+            appProxies: new Map([["app-1", app]]),
+            waitForLazyAddedAppSetup,
+            enqueueAppSetup: vi.fn(),
+        } as any;
+        (wm as any)._lazySetupInMaximizedMode = true;
+        vi.spyOn(wm, "addApp").mockResolvedValue("app-1");
+
+        await expect(wm.addAppAndWaitForSetup({ kind: "Slide" })).resolves.toBe("app-1");
+        expect(waitForLazyAddedAppSetup).toHaveBeenCalledWith("app-1", app, expect.any(Number));
+        expect((wm.appManager as any).enqueueAppSetup).not.toHaveBeenCalled();
+        expect(app.waitForSetup).not.toHaveBeenCalled();
+    });
+
+    it("keeps an added App shell when its lazy setup wait is superseded", async () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const destroy = vi.fn();
+        const app = { destroy };
+        const error = new LazySetupWaitError("superseded", "app-1");
+        wm.appManager = {
+            appProxies: new Map([["app-1", app]]),
+            waitForLazyAddedAppSetup: vi.fn().mockRejectedValue(error),
+        } as any;
+        (wm as any)._lazySetupInMaximizedMode = true;
+        vi.spyOn(wm, "addApp").mockResolvedValue("app-1");
+
+        await expect(wm.addAppAndWaitForSetup({ kind: "Slide" })).rejects.toBe(error);
+        expect(destroy).not.toHaveBeenCalled();
+    });
+
+    it("bounds lazy add creation before setup waiting begins", async () => {
+        vi.useFakeTimers();
+        try {
+            const wm = new WindowManager({ kind: "WindowManager", displayer });
+            const logger = { error: vi.fn() };
+            (wm as any)._roomLogger = logger;
+            (wm as any)._lazySetupInMaximizedMode = true;
+            vi.spyOn(wm, "addApp").mockReturnValue(new Promise(() => undefined));
+
+            const outcome = wm.addAppAndWaitForSetup({ kind: "Slide" }).catch(error => error);
+            vi.advanceTimersByTime(20_000);
+            await expect(outcome).resolves.toMatchObject({ reason: "timeout" });
+            expect(logger.error).toHaveBeenCalledWith(
+                expect.stringContaining("lazy add creation timeout")
+            );
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("routes setCameraBound through the main-view camera coordinator", () => {

@@ -1,6 +1,6 @@
 import { RoomState } from "white-web-sdk";
-import type { AppContext } from "../../dist";
-import { WindowManager } from "../../dist";
+import type { AppContext } from "@netless/window-manager";
+import { WindowManager } from "@netless/window-manager";
 
 interface HelloWorldAttributes {
     a?: number;

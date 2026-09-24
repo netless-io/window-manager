@@ -1,3 +1,22 @@
+## Unreleased
+
+## 1.0.23-beta.4 (2026-09-24)
+- `maxCachedAppsInMaximizedMode` 默认值由 `1` 调整为 `4`（lazy 模式下未显式配置时生效），选项文档与无效值回退提示同步更新。
+- 修复 `requestFocus` 自竞态：焦点切换时旧 app 的失焦通知（`focus(false)`）不再被影子转换吞掉；被更新焦点请求取代的 lazy 转换仍会补发上一 app 的 blur（带回跳守卫，重复投递由 app 侧幂等处理）。
+- 将本地主动与远端同步的焦点目标统一纳入最新 pending 调度；10 秒未完成时上报错误并让出调度，旧 setup 的迟到结果不得覆盖新焦点。
+- 按完整的运行活动状态协调最小化、浏览器后台、恢复与 Slide/Presentation 资源转换，等待焦点资源转换完成后再确认提交。
+- 补齐 setup、teardown、关闭 App 与主画布聚焦交错时的回归测试。
+
+## 1.0.23-beta.3 (2026-09-23)
+- lazy 模式下已初始化的 Slide 移出 LRU 或最小化时保留 runtime，由 app-slide 的 focus/blur 生命周期管理 freeze/unfreeze；再次聚焦时重新计入缓存，不重复 setup。
+- Slide 首次初始化和失败重试、实际关闭与销毁保持原有生命周期，其他 App 保持 LRU teardown 策略。
+- 补充 Slide 缓存外复用、最小化、关闭销毁及其他 App 淘汰的回归测试，并明确缓存容量不等于保留的 Slide runtime 数量。
+
+## 1.0.23-beta.2 (2026-09-23)
+- 串行协调 lazy 模式下的失焦、初始化与聚焦，避免旧窗口延迟失焦清空新焦点，并跳过已失效的待初始化任务。
+- 在 maximized、非 minimized 且 useBoxesStatus=false 时恢复缺失焦点；可写端同步恢复结果，覆盖初始化、重连和 setup 失败恢复场景。
+- 补充 App focus 回调等待上限、App 创建队列完成通知及 lazy focus 回归测试。
+
 ## 1.0.23-beta.1 (2026-09-21)
 - 新增 `forceMaximized`、`lazySetupInMaximizedMode` 与 `maxCachedAppsInMaximizedMode`，支持强制最大化模式下按焦点延迟初始化 App runtime，并按 LRU 保留有限缓存。
 - App setup/teardown 统一通过串行队列执行，补齐缓存命中、淘汰、失败重试、pinned runtime、重连与 lazy/eager 切换时序。

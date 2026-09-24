@@ -1,5 +1,5 @@
-import type { NetlessApp } from "../../dist";
-import { WindowManager } from "../../dist";
+import type { NetlessApp } from "@netless/window-manager";
+import { WindowManager } from "@netless/window-manager";
 
 export const Counter: NetlessApp<{ count: number }> = {
     kind: "Counter",

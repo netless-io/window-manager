@@ -1,5 +1,5 @@
-import type { WindowManager } from "../dist";
-import { BuiltinApps } from "../dist";
+import type { WindowManager } from "@netless/window-manager";
+import { BuiltinApps } from "@netless/window-manager";
 import { EXAMPLE_ORIGIN_SIZE } from "./config";
 import * as docs from "./docs.json";
 

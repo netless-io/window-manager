@@ -215,7 +215,6 @@ it.each(["close", "remote-delete", "manager-destroy"])(
         manager.appCreateQueue = { push: (task: () => Promise<unknown>) => tasks.push(task) };
         manager.notifyAppsChange = vi.fn();
         manager.focusByAttributes = vi.fn();
-        manager.recoverInitialFocusIfNeeded = vi.fn();
         manager.baseInsertApp = vi.fn().mockResolvedValue(undefined);
         await manager._attributesUpdateCallback(manager.attributes.apps);
         expect(tasks).toHaveLength(2);

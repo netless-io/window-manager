@@ -74,7 +74,7 @@ const manager = await WindowManager.mount(
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | 配置光标使用的教具图片           ｜
 | useBoxesStatus         | [optional] boolean                      | false   | 是否使用 boxesStatus 独立管理每个窗口；开启后 `forceMaximized` 无效，且只有此时 App 的 `forceTop`/`forceNormal` 生效 |
 | lazySetupInMaximizedMode | [optional] boolean                    | false   | 强制最大化房间中仅按需 setup App；生效时 `useBoxesStatus` 按 false 处理 |
-| maxCachedAppsInMaximizedMode | [optional] number                  | 1       | lazy 模式下保留的 runtime 缓存数量 |
+| maxCachedAppsInMaximizedMode | [optional] number                  | 4       | lazy LRU 的目标容量，不是全部 runtime/内存上限。已 setup 的 Slide 淘汰后保留并冻结/解冻；无 `teardown()` 的 App 保留 runtime 与记账，可使缓存软超限。进行中或已让出的 setup 不属于 ready 缓存。 |
 | forceMaximized         | [optional] boolean                      | false   | 可写端建立房间级强制最大化策略；`useBoxesStatus=true` 时忽略且不写入房间 |
 
 > 旧房间只有完整 `mainViewSize/mainViewCamera` 时，首次通过可写端配置 `originSize`，WindowManager
@@ -166,6 +166,8 @@ const appId = await manager.addApp({
 
 > 添加 App 并等待它的 `setup()` 完成。setup 失败时 Promise reject，并清理本地半初始化 App。
 
+lazy 模式下，新 App 按既有语义成为焦点时，与同步 focus、`focusApp()`、TeleBox 共用一个最新 pending；此 API 不另外排队 setup。只有 setup 成功才返回 appId。新目标覆盖当前请求时会 reject，已创建的 App shell 保留；从调用开始满 20 秒仍未 ready 时也会 reject，并通过 Room logger.error 记录超时，shell 和有效 pending 不会仅因等待超时而被销毁。当前 setup 运行满 10 秒会单独记录一次 error；若有不同的新目标，调度器可让出旧等待，但不能物理中断第三方 setup。最小化时新增 App 只创建 shell、不请求焦点；最小化或后台期间不启动新 setup，20 秒期限仍继续计算。非 lazy 行为不变。
+
 ```typescript
 try {
     const appId = await manager.addAppAndWaitForSetup({
@@ -219,8 +221,15 @@ manager.closeApp(appId)
 > 切换当前 `focus` 的 `app`, 并把此 `app` 置为最前
 
 ```typescript
-manager.focusApp(appId)
+const committed = await manager.focusApp(appId); // appId 必填 string；返回 Promise<boolean>
+if (committed) await manager.dispatchDocsEvent("nextPage");
 ```
+
+lazy 下只有 setup、焦点资源切换完成，且前台可见、非最小化时才返回 `true`。请求被取代、setup/通知失败、激活被挂起或 API 调用超过 10 秒返回 `false`，此时不能继续依赖它的分页。API 超时从调用开始计时，不取消 pending；目标之后仍可能显示。非 lazy 保持原有同步聚焦行为，已有 App 的调用立即 resolve `true`。
+
+同步 focus、API、TeleBox 共用一个最新 pending。后台/最小化期间仍接收目标，两个条件恢复后重新处理；旧 setup 未完成且不足 10 秒继续等待，完成或已满 10 秒且有不同目标才推进。让出等待不等于强制停止第三方 JS 工作。仅符合条件的用户主动 TeleBox 切换允许兜底，API/同步焦点不自选替代课件。
+
+Native completion/async 封装必须传递 `false` 为失败或异常，分页无需暴露 appId。两次 await 不构成事务，其他调用仍可能在两者之间切换焦点。
 
 <h3 id="setMainViewSceneIndex">setMainViewSceneIndex</h3>
 

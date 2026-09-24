@@ -42,14 +42,16 @@ const createProxy = (
 });
 
 describe("normalizeMaxCachedAppsInMaximizedMode", () => {
+    const invalidValues = [0, -3, 2.5, Number.NaN, Infinity];
     it.each([
-        [undefined, 1],
-        [0, 1],
-        [-3, 1],
-        [2.5, 1],
-        [Number.NaN, 1],
-        [Infinity, 1],
+        [undefined, 4],
+        [0, 4],
+        [-3, 4],
+        [2.5, 4],
+        [Number.NaN, 4],
+        [Infinity, 4],
         [1, 1],
+        [4, 4],
         [5, 5],
     ])("normalizes %s to %s", (value, expected) => {
         const warnings: string[] = [];
@@ -59,8 +61,11 @@ describe("normalizeMaxCachedAppsInMaximizedMode", () => {
             message => warnings.push(message)
         );
         expect(result).toBe(expected);
-        if (expected === 1 && value !== undefined && value !== 1) {
-            expect(warnings).toHaveLength(1);
+        expect(warnings).toHaveLength(
+            invalidValues.includes(value as number) ? 1 : 0
+        );
+        if (invalidValues.includes(value as number)) {
+            expect(warnings[0]).toContain("falling back to 4");
         }
     });
 
@@ -82,28 +87,12 @@ describe("normalizeMaxCachedAppsInMaximizedMode", () => {
             false,
             message => warnings.push(message)
         );
-        expect(result).toBe(1);
+        expect(result).toBe(4);
         expect(warnings).toHaveLength(0);
     });
 });
 
 describe("AppManager lazy runtime cache", () => {
-    it("restores the highest-z app when maximized focus is cleared", () => {
-        const manager = createLazyManager(3) as any;
-        manager.windowManger.lazySetupInMaximizedMode = false;
-        manager.attributes.maximized = true;
-        manager.windowManger.canOperate = true;
-        manager.store.setAppFocus = vi.fn();
-        manager.boxManager = {
-            maximized: true,
-            getTopBox: vi.fn(() => ({ id: "top-app", zIndex: 12 })),
-        };
-
-        AppManager.prototype.restoreFocusToTopBoxIfNeeded.call(manager);
-
-        expect(manager.store.setAppFocus).toHaveBeenCalledWith("top-app", true);
-    });
-
     it("serializes lazy blur and ignores a stale blur from the previous app", async () => {
         const manager = createLazyManager(3) as any;
         manager.lazyFocusQueue = Promise.resolve();
@@ -181,6 +170,241 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.store.setAppFocus).toHaveBeenCalledWith("next-app", true);
     });
 
+    it("does not authorize fallback for a steady-state focusApp request", () => {
+        const manager = createLazyManager(3) as any;
+        manager.windowManger.canOperate = true;
+        manager._prevFocused = "app-a";
+        manager.store = { focus: "app-a", setAppFocus: vi.fn() };
+        manager.queueLazyFocusTransition = vi.fn();
+
+        AppManager.prototype.requestFocus.call(manager, "app-a");
+
+        expect(manager.queueLazyFocusTransition).toHaveBeenCalledWith(
+            undefined,
+            "app-a",
+            1
+        );
+    });
+
+    it("requestFocusAndWait resolves true when the focus commits", async () => {
+        const manager = createLazyManager(3) as any;
+        manager._prevFocused = "previous";
+        manager.store = {
+            focus: "previous",
+            setAppFocus: vi.fn(),
+        };
+        manager.appProxies = new Map();
+        manager.lazyFocusQueue = Promise.resolve();
+        manager.lazyFocusGeneration = 0;
+        manager.focusCommitWatchdogTimeout = 200;
+
+        const wait = AppManager.prototype.requestFocusAndWait.call(
+            manager,
+            "next"
+        );
+        // 模拟 ensureLazyFocus 提交完成
+        AppManager.prototype.settlePendingFocusCommit.call(manager, "next", true);
+        expect(await wait).toBe(true);
+        expect(manager.pendingFocusCommit).toBeUndefined();
+    });
+
+    it("a newer focus request replaces the pending one: old resolves false", async () => {
+        const manager = createLazyManager(3) as any;
+        manager._prevFocused = undefined;
+        manager.store = { focus: undefined, setAppFocus: vi.fn() };
+        manager.appProxies = new Map();
+        manager.lazyFocusQueue = Promise.resolve();
+        manager.lazyFocusGeneration = 0;
+        manager.focusCommitWatchdogTimeout = 5_000;
+
+        const first = AppManager.prototype.requestFocusAndWait.call(manager, "app-a");
+        const second = AppManager.prototype.requestFocusAndWait.call(manager, "app-b");
+
+        expect(await first).toBe(false, "superseded request resolves false");
+        AppManager.prototype.settlePendingFocusCommit.call(manager, "app-b", true);
+        expect(await second).toBe(true);
+        expect(manager.pendingFocusCommit).toBeUndefined();
+    });
+
+    it("remote authoritative focus immediately supersedes a pending focusApp request", () => {
+        const manager = createLazyManager(3) as any;
+        const resolve = vi.fn();
+        manager._prevFocused = "remote-app";
+        manager.pendingFocusCommit = {
+            appId: "local-app",
+            resolve,
+            timer: setTimeout(() => undefined, 10_000),
+        };
+
+        AppManager.prototype.handleFocusChange.call(manager, "remote-app");
+
+        expect(resolve).toHaveBeenCalledWith(false);
+        expect(manager.pendingFocusCommit).toBeUndefined();
+    });
+
+    it("focus commit watchdog resolves false without dangling promises", async () => {
+        const manager = createLazyManager(3) as any;
+        manager._prevFocused = undefined;
+        manager.store = { focus: undefined, setAppFocus: vi.fn() };
+        manager.appProxies = new Map();
+        manager.lazyFocusQueue = Promise.resolve();
+        manager.lazyFocusGeneration = 0;
+        manager.focusCommitWatchdogTimeout = 50;
+
+        const start = Date.now();
+        const result = await AppManager.prototype.requestFocusAndWait.call(
+            manager,
+            "next"
+        );
+        expect(result).toBe(false);
+        expect(Date.now() - start).toBeLessThan(3_000);
+        expect(manager.pendingFocusCommit).toBeUndefined();
+    });
+
+    it("drops the superseded target's queued setup when a newer focus wins", async () => {
+        const manager = createLazyManager(3) as any;
+        const canceled: string[] = [];
+        manager.setupTaskQueue = {
+            cancel: (id: string) => {
+                canceled.push(id);
+                return true;
+            },
+        };
+        manager._prevFocused = "newer";
+        manager.store.focus = "newer";
+        manager.appProxies = new Map();
+        manager.lazyFocusQueue = Promise.resolve();
+        manager.lazyFocusGeneration = 7;
+        manager.ensureLazyFocus = vi.fn();
+        const previous = createProxy({ isSetup: true });
+        previous.emitAppFocusEvent = vi.fn().mockResolvedValue(undefined);
+        manager.appProxies.set("stale-target", previous);
+
+        AppManager.prototype.queueLazyFocusTransition.call(
+            manager,
+            "stale-target",
+            "stale-app",
+            6
+        );
+        await manager.lazyFocusQueue;
+
+        // Fix B：prev 的 blur 仍补发；被取代目标的排队 setup 被取消
+        expect(previous.emitAppFocusEvent).toHaveBeenCalledWith(false);
+        expect(canceled).toContain("setup:stale-app");
+        expect(manager.ensureLazyFocus).not.toHaveBeenCalled();
+    });
+
+    it("cleans settingUpApps when canceling a queued setup", () => {
+        const manager = createLazyManager(3) as any;
+        manager.setupTaskQueue = { cancel: () => true };
+        manager.settingUpApps = new Map([
+            ["app-1", Promise.resolve()],
+        ]);
+
+        AppManager.prototype.cancelQueuedSetup.call(manager, "app-1");
+
+        expect(manager.settingUpApps.has("app-1")).toBe(false);
+    });
+
+    it("keeps bookkeeping when the setup task already started", () => {
+        const manager = createLazyManager(3) as any;
+        manager.setupTaskQueue = { cancel: () => false };
+        manager.settingUpApps = new Map([
+            ["app-1", Promise.resolve()],
+        ]);
+
+        AppManager.prototype.cancelQueuedSetup.call(manager, "app-1");
+
+        expect(manager.settingUpApps.has("app-1")).toBe(true);
+    });
+
+    it("delivers the previous app's blur when the focus autorun runs synchronously inside requestFocus", async () => {
+        // Regression: the attributes autorun fires synchronously during
+        // setAppFocus, flipping _prevFocused to the new app before
+        // requestFocus's own _prevFocused === appId check. That check then
+        // misfired and enqueued a prev=undefined transition whose newer
+        // generation superseded the autorun's transition, so the previous
+        // app never received focus(false).
+        const manager = createLazyManager(3) as any;
+        const previous = createProxy({ isSetup: true });
+        previous.emitAppFocusEvent = vi.fn().mockResolvedValue(undefined);
+        manager._prevFocused = "previous";
+        manager.store = {
+            focus: "previous",
+            setAppFocus: vi.fn(() => {
+                manager.store.focus = "next-app";
+                // Simulate the synchronous attributes autorun (onFocusChange
+                // is an instance arrow property, unavailable on the stub):
+                // it re-reads _prevFocused, flips it to the new app, and
+                // queues the transition that owns the previous app's blur.
+                const previous = manager._prevFocused;
+                manager._prevFocused = "next-app";
+                const generation = ++manager.lazyFocusGeneration;
+                manager.queueLazyFocusTransition(previous, "next-app", generation);
+            }),
+        };
+        manager.appProxies = new Map([["previous", previous]]);
+        manager.ensureLazyFocus = vi.fn().mockResolvedValue(undefined);
+        manager.lazyFocusQueue = Promise.resolve();
+        manager.lazyFocusGeneration = 0;
+
+        AppManager.prototype.requestFocus.call(manager, "next-app");
+        await manager.lazyFocusQueue;
+
+        expect(previous.emitAppFocusEvent).toHaveBeenCalledWith(false);
+        expect(manager.ensureLazyFocus).toHaveBeenCalledWith("next-app", 1);
+        expect(manager.lazyFocusGeneration).toBe(1);
+    });
+
+    it("still blurs the previous app when a newer focus request supersedes the transition", async () => {
+        const manager = createLazyManager(3) as any;
+        const previous = createProxy({ isSetup: true });
+        previous.emitAppFocusEvent = vi.fn().mockResolvedValue(undefined);
+        manager._prevFocused = "newer-app";
+        manager.store.focus = "newer-app";
+        manager.appProxies = new Map([
+            ["previous", previous],
+            ["newer-app", createProxy({ isSetup: true })],
+        ]);
+        manager.ensureLazyFocus = vi.fn().mockResolvedValue(undefined);
+        manager.lazyFocusQueue = Promise.resolve();
+        manager.lazyFocusGeneration = 5;
+
+        AppManager.prototype.queueLazyFocusTransition.call(
+            manager,
+            "previous",
+            "stale-app",
+            4
+        );
+        await manager.lazyFocusQueue;
+
+        expect(previous.emitAppFocusEvent).toHaveBeenCalledWith(false);
+        expect(manager.ensureLazyFocus).not.toHaveBeenCalled();
+    });
+
+    it("skips the blur when focus bounced back to the previous app", async () => {
+        const manager = createLazyManager(3) as any;
+        const previous = createProxy({ isSetup: true });
+        previous.emitAppFocusEvent = vi.fn().mockResolvedValue(undefined);
+        manager._prevFocused = "previous";
+        manager.store.focus = "previous";
+        manager.appProxies = new Map([["previous", previous]]);
+        manager.ensureLazyFocus = vi.fn().mockResolvedValue(undefined);
+        manager.lazyFocusQueue = Promise.resolve();
+        manager.lazyFocusGeneration = 5;
+
+        AppManager.prototype.queueLazyFocusTransition.call(
+            manager,
+            "previous",
+            "stale-app",
+            4
+        );
+        await manager.lazyFocusQueue;
+
+        expect(previous.emitAppFocusEvent).not.toHaveBeenCalled();
+        expect(manager.ensureLazyFocus).not.toHaveBeenCalled();
+    });
+
     it("clears the pending target after re-focusing the current lazy app", async () => {
         const manager = createLazyManager(3) as any;
         manager._prevFocused = "app-1";
@@ -197,9 +421,65 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.pendingLazyFocusAppId).toBeUndefined();
     });
 
+    it("commits lazy focus only after the app focus emitter completes", async () => {
+        const manager = createLazyManager(3) as any;
+        let finishFocus!: (succeeded: boolean) => void;
+        const focusNotification = new Promise<boolean>(resolve => {
+            finishFocus = resolve;
+        });
+        const target = {
+            ...createProxy({ isSetup: true }),
+            kind: "Slide",
+            emitAppFocusEvent: vi.fn(() => focusNotification),
+        };
+        manager.store.focus = "target";
+        manager.appProxies = new Map([["target", target]]);
+        manager.runtimeCache.set("target", { state: "ready", lastUsed: 1 });
+        manager.boxManager = {
+            getBox: vi.fn(() => ({ id: "target" })),
+            focusBox: vi.fn(),
+            teleBoxManager: { makeBoxTop: vi.fn() },
+        };
+        manager.settlePendingFocusCommit = vi.fn();
+        manager.evictAfterFocusCommit = vi.fn().mockResolvedValue(undefined);
+
+        const commit = AppManager.prototype.ensureLazyFocus.call(manager, "target", 0);
+        await Promise.resolve();
+
+        expect(manager.settlePendingFocusCommit).not.toHaveBeenCalled();
+        finishFocus(true);
+        await expect(commit).resolves.toBe(true);
+        expect(manager.settlePendingFocusCommit).toHaveBeenCalledWith("target", true, 0);
+    });
+
+    it("does not commit lazy focus when the app focus emitter fails", async () => {
+        const manager = createLazyManager(3) as any;
+        const target = {
+            ...createProxy({ isSetup: true }),
+            kind: "Slide",
+            emitAppFocusEvent: vi.fn().mockResolvedValue(false),
+        };
+        manager.store.focus = "target";
+        manager.appProxies = new Map([["target", target]]);
+        manager.runtimeCache.set("target", { state: "ready", lastUsed: 1 });
+        manager.boxManager = {
+            getBox: vi.fn(() => ({ id: "target" })),
+            focusBox: vi.fn(),
+            teleBoxManager: { makeBoxTop: vi.fn() },
+        };
+        manager.settlePendingFocusCommit = vi.fn();
+
+        await expect(
+            AppManager.prototype.ensureLazyFocus.call(manager, "target", 0)
+        ).resolves.toBe(false);
+        expect(manager.activeLazyAppId).toBeUndefined();
+        expect(manager.settlePendingFocusCommit).not.toHaveBeenCalled();
+    });
+
     it("runs the full lazy commit when the box focus already matches room focus", async () => {
         const manager = createLazyManager(1) as any;
         const target = createProxy();
+        manager.attributes.apps.target = {};
         manager.store.focus = "target";
         manager.attributes.focus = "target";
         manager.appProxies = new Map([["target", target]]);
@@ -212,11 +492,117 @@ describe("AppManager lazy runtime cache", () => {
         manager.ensureLazyFocus = vi.fn().mockResolvedValue(undefined);
         manager.lazyFocusQueue = Promise.resolve();
 
-        AppManager.prototype.handleBoxFocus.call(manager, { appId: "target" });
+        AppManager.prototype.handleBoxFocus.call(manager, {
+            appId: "target",
+            source: "telebox",
+        });
         await manager.lazyFocusQueue;
 
         expect(manager.evictBeforeSetup).toHaveBeenCalledWith("target");
         expect(manager.ensureLazyFocus).toHaveBeenCalledWith("target", 1);
+    });
+
+    it("absorbs TeleBox's old blurred -> new focused handoff without writing undefined", async () => {
+        const manager = createLazyManager(1) as any;
+        const target = createProxy();
+        manager.attributes.apps.target = {};
+        manager.windowManger.canOperate = true;
+        manager.store.focus = "previous";
+        manager.attributes.focus = "previous";
+        manager.appProxies = new Map([["target", target]]);
+        manager.windowManger.safeSetAttributes = vi.fn(({ focus }) => {
+            manager.store.focus = focus;
+            manager.attributes.focus = focus;
+        });
+        manager.boxManager = {
+            maximized: true,
+            getFocusBox: vi.fn(() => ({ id: "target" })),
+            blurAllBox: vi.fn(() => {
+                AppManager.prototype.handleBoxBlurred.call(manager, { appId: "target" });
+            }),
+            getTopBox: vi.fn(() => ({ id: "previous", zIndex: 9 })),
+        };
+        manager.evictBeforeSetup = vi.fn().mockResolvedValue(undefined);
+        manager.enqueueAppSetup = vi.fn().mockResolvedValue(undefined);
+        manager.requestFocus = vi.fn();
+        manager.lazyFocusQueue = Promise.resolve();
+
+        // This is TeleBox's observable order when the old box precedes the
+        // target in its boxes array.
+        AppManager.prototype.handleBoxBlurred.call(manager, { appId: "previous" });
+        AppManager.prototype.handleBoxFocus.call(manager, {
+            appId: "target",
+            source: "telebox",
+        });
+        await manager.lazyFocusQueue;
+
+        expect(manager.windowManger.safeSetAttributes).toHaveBeenCalledTimes(1);
+        expect(manager.windowManger.safeSetAttributes).toHaveBeenCalledWith({
+            focus: "target",
+        });
+        expect(manager.windowManger.safeSetAttributes).not.toHaveBeenCalledWith({
+            focus: undefined,
+        });
+        expect(manager.requestFocus).not.toHaveBeenCalled();
+    });
+
+    it("recovers highest-z only after a TeleBox lazy handoff ends undefined", async () => {
+        const manager = createLazyManager(1) as any;
+        const target = createProxy();
+        manager.attributes.apps.target = {};
+        manager.windowManger.canOperate = true;
+        manager.windowManger.safeSetAttributes = vi.fn();
+        manager.store.focus = undefined;
+        manager.attributes.focus = undefined;
+        manager.appProxies = new Map([["target", target]]);
+        manager.boxManager = {
+            maximized: true,
+            getFocusBox: vi.fn(() => undefined),
+            blurAllBox: vi.fn(),
+            getTopBox: vi.fn(() => ({ id: "top-app", zIndex: 10 })),
+        };
+        manager.evictBeforeSetup = vi.fn().mockResolvedValue(undefined);
+        manager.enqueueAppSetup = vi.fn().mockResolvedValue(undefined);
+        manager.requestFocus = vi.fn();
+        manager.lazyFocusQueue = Promise.resolve();
+
+        AppManager.prototype.handleBoxFocus.call(manager, {
+            appId: "target",
+            source: "telebox",
+        });
+        await manager.lazyFocusQueue;
+
+        expect(manager.boxManager.getTopBox).toHaveBeenCalledWith(undefined);
+        expect(manager.requestFocus).toHaveBeenCalledWith("top-app");
+    });
+
+    it("does not recover top after a programmatic lazy focus ends undefined", async () => {
+        const manager = createLazyManager(1) as any;
+        const target = createProxy();
+        manager.windowManger.canOperate = true;
+        manager.windowManger.safeSetAttributes = vi.fn();
+        manager.store.focus = undefined;
+        manager.attributes.focus = undefined;
+        manager.appProxies = new Map([["target", target]]);
+        manager.boxManager = {
+            maximized: true,
+            getFocusBox: vi.fn(() => undefined),
+            blurAllBox: vi.fn(),
+            getTopBox: vi.fn(() => ({ id: "top-app", zIndex: 10 })),
+        };
+        manager.evictBeforeSetup = vi.fn().mockResolvedValue(undefined);
+        manager.enqueueAppSetup = vi.fn().mockResolvedValue(undefined);
+        manager.requestFocus = vi.fn();
+        manager.lazyFocusQueue = Promise.resolve();
+
+        AppManager.prototype.handleBoxFocus.call(manager, {
+            appId: "target",
+            source: "programmatic",
+        });
+        await manager.lazyFocusQueue;
+
+        expect(manager.boxManager.getTopBox).not.toHaveBeenCalled();
+        expect(manager.requestFocus).not.toHaveBeenCalled();
     });
 
     it("clears a failed current target so later blur is not blocked", async () => {
@@ -234,15 +620,17 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.pendingLazyFocusAppId).toBeUndefined();
     });
 
-    it("restores the previous app when lazy setup fails after focus moved", async () => {
+    it("realigns the previous app only after a TeleBox setup failure handoff ends", async () => {
         const manager = createLazyManager(1) as any;
+        manager.windowManger.canOperate = true;
         const previous = createProxy({ isSetup: true });
         const target = createProxy();
+        manager.attributes.apps.target = {};
         previous.emitAppFocusEvent = vi.fn().mockResolvedValue(undefined);
         target.ensureSetup = vi.fn().mockRejectedValue(new Error("setup failed"));
         manager._prevFocused = "previous";
-        manager.store.focus = "target";
-        manager.attributes.focus = "target";
+        manager.store.focus = "previous";
+        manager.attributes.focus = "previous";
         manager.appProxies = new Map([
             ["previous", previous],
             ["target", target],
@@ -250,31 +638,30 @@ describe("AppManager lazy runtime cache", () => {
         manager.windowManger.safeSetAttributes = vi.fn();
         manager.boxManager = {
             maximized: true,
-            getBox: vi.fn(() => ({ id: "target" })),
-            teleBoxManager: { makeBoxTop: vi.fn() },
+            getFocusBox: vi.fn(() => ({ id: "target" })),
+            blurAllBox: vi.fn(),
             focusBox: vi.fn(),
+            getTopBox: vi.fn(() => ({ id: "previous", zIndex: 9 })),
         };
-        const restoreFocus = vi.spyOn(
-            manager,
-            "restoreFocusAfterLazySetupFailure"
-        );
+        manager.evictBeforeSetup = vi.fn().mockResolvedValue(undefined);
+        manager.enqueueAppSetup = vi.fn().mockRejectedValue(new Error("setup failed"));
         manager.lazyFocusQueue = Promise.resolve();
-        manager.lazyFocusGeneration = 1;
 
         expect(manager.lazySetupEnabled).toBe(true);
-        expect(manager.store.focus).toBe("target");
-        AppManager.prototype.queueLazyFocusTransition.call(manager, "previous", "target", 1);
+        AppManager.prototype.handleBoxFocus.call(manager, {
+            appId: "target",
+            source: "telebox",
+        });
         await manager.lazyFocusQueue;
 
-        expect(target.ensureSetup).toHaveBeenCalled();
-        expect(restoreFocus).toHaveBeenCalledWith("target", "previous", 1);
-        expect(manager.windowManger.safeSetAttributes).toHaveBeenCalledWith({
-            focus: "previous",
-        });
+        expect(manager.enqueueAppSetup).toHaveBeenCalledWith("target", expect.any(Function));
+        expect(manager.windowManger.safeSetAttributes).not.toHaveBeenCalled();
+        expect(manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "previous" });
     });
 
-    it("refocuses the previous box when a local lazy setup fails before room focus moves", () => {
+    it("defers TeleBox setup-failure recovery until the handoff finally block", () => {
         const manager = createLazyManager(1) as any;
+        manager.windowManger.canOperate = true;
         const previous = createProxy({ isSetup: true });
         manager.store.focus = "previous";
         manager.attributes.focus = "previous";
@@ -286,14 +673,71 @@ describe("AppManager lazy runtime cache", () => {
             manager,
             "target",
             "previous",
-            0
+            0,
+            true
         );
 
-        expect(manager.boxManager.focusBox).toHaveBeenCalledWith(
-            { appId: "previous" },
+        expect(manager.boxManager.focusBox).not.toHaveBeenCalled();
+        expect(manager.windowManger.safeSetAttributes).not.toHaveBeenCalled();
+    });
+
+    it("readonly setup failure follows Attribute.focus instead of choosing a fallback", () => {
+        const manager = createLazyManager(1) as any;
+        const previous = createProxy({ isSetup: true });
+        manager.windowManger.canOperate = false;
+        manager.windowManger.safeSetAttributes = vi.fn();
+        manager.store.focus = "failed";
+        manager.attributes.focus = "failed";
+        manager.appProxies = new Map([["previous", previous]]);
+        manager.boxManager = {
+            focusBox: vi.fn(),
+            blurAllBox: vi.fn(),
+            getTopBox: vi.fn(() => ({ id: "top-app" })),
+        };
+
+        AppManager.prototype.restoreFocusAfterLazySetupFailure.call(
+            manager,
+            "failed",
+            "previous",
+            0,
             false
         );
+
         expect(manager.windowManger.safeSetAttributes).not.toHaveBeenCalled();
+        expect(manager.boxManager.getTopBox).not.toHaveBeenCalled();
+        expect(manager.boxManager.focusBox).toHaveBeenCalledWith(
+            { appId: "failed" }
+        );
+        expect(manager.boxManager.blurAllBox).not.toHaveBeenCalled();
+    });
+
+    it("writable synced-focus setup failure follows Attribute.focus without fallback", () => {
+        const manager = createLazyManager(1) as any;
+        const previous = createProxy({ isSetup: true });
+        manager.windowManger.canOperate = true;
+        manager.windowManger.safeSetAttributes = vi.fn();
+        manager.store.focus = "synced-target";
+        manager.attributes.focus = "synced-target";
+        manager.appProxies = new Map([["previous", previous]]);
+        manager.boxManager = {
+            focusBox: vi.fn(),
+            blurAllBox: vi.fn(),
+            getTopBox: vi.fn(() => ({ id: "top-app" })),
+        };
+
+        AppManager.prototype.restoreFocusAfterLazySetupFailure.call(
+            manager,
+            "synced-target",
+            "previous",
+            0,
+            false
+        );
+
+        expect(manager.windowManger.safeSetAttributes).not.toHaveBeenCalled();
+        expect(manager.boxManager.getTopBox).not.toHaveBeenCalled();
+        expect(manager.boxManager.focusBox).toHaveBeenCalledWith(
+            { appId: "synced-target" }
+        );
     });
 
     it("falls back to the highest-z app when there is no previous focus", () => {
@@ -307,6 +751,12 @@ describe("AppManager lazy runtime cache", () => {
             manager.store.focus = focus;
         });
         manager.store.setAppFocus = vi.fn();
+        const focusCommit = vi.fn();
+        manager.pendingFocusCommit = {
+            appId: "failed",
+            resolve: focusCommit,
+            timer: setTimeout(() => undefined, 5_000),
+        };
         manager.boxManager = {
             maximized: true,
             getTopBox: vi.fn(() => ({ id: "top-app", zIndex: 10 })),
@@ -316,11 +766,16 @@ describe("AppManager lazy runtime cache", () => {
             manager,
             "failed",
             undefined,
-            0
+            0,
+            true
         );
+        AppManager.prototype.restoreFocusAfterTeleBoxHandoff.call(manager, "failed");
 
-        expect(manager.windowManger.safeSetAttributes).toHaveBeenCalledWith({ focus: undefined });
+        expect(manager.boxManager.getTopBox).toHaveBeenCalledWith("failed");
+        expect(manager.windowManger.safeSetAttributes).not.toHaveBeenCalled();
         expect(manager.store.setAppFocus).toHaveBeenCalledWith("top-app", true);
+        expect(focusCommit).toHaveBeenCalledWith(false);
+        expect(manager.pendingFocusCommit).toBeUndefined();
     });
 
     it("routes focusByAttributes through the lazy focus coordinator", () => {
@@ -333,7 +788,11 @@ describe("AppManager lazy runtime cache", () => {
 
         AppManager.prototype.focusByAttributes.call(manager, { target: {} });
 
-        expect(manager.queueLazyFocusTransition).toHaveBeenCalledWith(undefined, "target", 1);
+        expect(manager.queueLazyFocusTransition).toHaveBeenCalledWith(
+            undefined,
+            "target",
+            1
+        );
     });
 
     it("routes reconnect focus through the lazy focus coordinator", async () => {
@@ -352,48 +811,12 @@ describe("AppManager lazy runtime cache", () => {
 
         await AppManager.prototype.onReconnected.call(manager);
 
-        expect(manager.queueLazyFocusTransition).toHaveBeenCalledWith(undefined, "target", 1);
+        expect(manager.queueLazyFocusTransition).toHaveBeenCalledWith(
+            undefined,
+            "target",
+            1
+        );
         expect(proxy.onReconnected).toHaveBeenCalledTimes(1);
-    });
-
-    it("recovers initial maximized focus after all app boxes are ready", () => {
-        const manager = createLazyManager(3) as any;
-        manager.attributes.apps = { first: {}, second: {} };
-        manager.attributes.maximized = true;
-        manager.attributes.minimized = false;
-        manager._useBoxesStatus = false;
-        manager.windowManger.canOperate = true;
-        manager.boxManager = {
-            boxSize: 2,
-            maximized: true,
-            getTopBox: vi.fn(() => ({ id: "second" })),
-        };
-        manager.requestFocus = vi.fn();
-
-        AppManager.prototype.recoverInitialFocusIfNeeded.call(manager, manager.attributes.apps);
-
-        expect(manager.requestFocus).toHaveBeenCalledWith("second");
-    });
-
-    it.each([
-        ["normal", { maximized: false, minimized: false, useBoxesStatus: false }],
-        ["minimized", { maximized: true, minimized: true, useBoxesStatus: false }],
-        ["useBoxesStatus", { maximized: true, minimized: false, useBoxesStatus: true }],
-    ])("keeps focus cleared in %s mode", (_mode, state) => {
-        const manager = createLazyManager(3) as any;
-        manager.windowManger.lazySetupInMaximizedMode = false;
-        manager.attributes.maximized = state.maximized;
-        manager.attributes.minimized = state.minimized;
-        manager._useBoxesStatus = state.useBoxesStatus;
-        manager.boxManager = {
-            maximized: state.maximized,
-            getTopBox: vi.fn(() => ({ id: "top-app", zIndex: 12 })),
-        };
-        manager.requestFocus = vi.fn();
-
-        AppManager.prototype.restoreFocusToTopBoxIfNeeded.call(manager);
-
-        expect(manager.requestFocus).not.toHaveBeenCalled();
     });
 
     it("waits for the previous app to suspend before setting up the next app", async () => {
@@ -431,7 +854,7 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.ensureLazyFocus).toHaveBeenCalledWith("next", 1);
     });
 
-    it("defers maximized focus recovery until a transient undefined settles", async () => {
+    it("does not recover top for an attributes-driven undefined focus", async () => {
         const manager = createLazyManager(3);
         let finishSuspend!: () => void;
         const previous = createProxy({ isSetup: true });
@@ -445,17 +868,17 @@ describe("AppManager lazy runtime cache", () => {
         manager.store.focus = undefined;
         manager.lazyFocusGeneration = 1;
         manager.lazyFocusQueue = Promise.resolve();
-        manager.restoreFocusToTopBoxIfNeeded = vi.fn();
+        manager.requestFocus = vi.fn();
 
         AppManager.prototype.queueLazyFocusTransition.call(manager, "previous", undefined, 1);
         await Promise.resolve();
         await Promise.resolve();
-        expect(manager.restoreFocusToTopBoxIfNeeded).not.toHaveBeenCalled();
+        expect(manager.requestFocus).not.toHaveBeenCalled();
 
         finishSuspend();
         await manager.lazyFocusQueue;
 
-        expect(manager.restoreFocusToTopBoxIfNeeded).toHaveBeenCalledTimes(1);
+        expect(manager.requestFocus).not.toHaveBeenCalled();
     });
 
     it("dedupes concurrent setup requests into one queued task", async () => {
@@ -483,6 +906,22 @@ describe("AppManager lazy runtime cache", () => {
 
         expect(proxy.ensureSetup).not.toHaveBeenCalled();
         expect(manager.runtimeCache.get("app-1")?.lastUsed).toBeGreaterThan(0);
+    });
+
+    it("re-registers an already set-up no-teardown runtime without setup", async () => {
+        const manager = createLazyManager(1);
+        const legacy = createProxy({ isSetup: true, canTeardown: false });
+        manager.appProxies = new Map([["legacy", legacy]]);
+
+        // Lazy bookkeeping can be absent after a mode transition, but the
+        // runtime is still alive because it cannot be safely torn down.
+        expect(manager.runtimeCache.has("legacy")).toBe(false);
+
+        await AppManager.prototype.enqueueAppSetup.call(manager, "legacy");
+
+        expect(legacy.ensureSetup).not.toHaveBeenCalled();
+        expect(legacy.teardown).not.toHaveBeenCalled();
+        expect(manager.runtimeCache.get("legacy")?.state).toBe("ready");
     });
 
     it("drops the cache slot when setup fails", async () => {
@@ -825,6 +1264,7 @@ describe("AppManager lazy runtime cache", () => {
 
     it("pins slots on minimized batch teardown when teardown rejects", async () => {
         const manager = createLazyManager(2);
+        manager.attributes.minimized = true;
         const ok = createProxy({ isSetup: true });
         const flaky = createProxy({ isSetup: true });
         flaky.teardown = vi.fn().mockRejectedValue(new Error("half torn down"));
@@ -873,6 +1313,11 @@ describe("AppManager lazy runtime cache", () => {
         expect(fresh.ensureSetup).toHaveBeenCalledTimes(1);
         expect(zombie.teardown).not.toHaveBeenCalled();
         expect(manager.runtimeCache.size).toBe(2); // soft overflow, counted
+
+        // Refocusing the over-capacity legacy app is a cache hit. Even if the
+        // setup scheduler is reached defensively, isSetup prevents re-setup.
+        await AppManager.prototype.enqueueAppSetup.call(manager, "zombie");
+        expect(zombie.ensureSetup).not.toHaveBeenCalled();
     });
 
     it("trims the cache after focus commit and releases the old runtime last", async () => {

@@ -104,7 +104,8 @@ describe("unified page control", () => {
             kind: "DocsViewer",
             appEmitter: new Emittery(),
             box: { $footer: footer },
-            pageState: { index: 0, length: 3 },
+            pageState: { index: 0, length: 1 },
+            getContentPageState: () => ({ index: 0, length: 3 }),
             view: { focusSceneIndex: 0, focusScenePath: "/DocsViewer/1" },
             getFullScenePath: () => "/DocsViewer/1",
         };
@@ -134,6 +135,141 @@ describe("unified page control", () => {
                 page: 1,
                 pageCount: 3,
             });
+        } finally {
+            restore();
+        }
+    });
+
+    it("uses DocsViewer content pages instead of its single whiteboard scene", async () => {
+        const restore = registerAppKind("DocsViewer");
+        const manager = createManager();
+        const footer = document.createElement("div");
+        const next = document.createElement("button");
+        next.className = "btn-page-next";
+        footer.append(next);
+        const nextClick = vi.fn();
+        next.addEventListener("click", nextClick);
+        const app: any = {
+            id: "DocsViewer-static-images",
+            kind: "DocsViewer",
+            appEmitter: new Emittery(),
+            box: { $footer: footer },
+            pageState: { index: 0, length: 1 },
+            getContentPageState: () => ({ index: 0, length: 2 }),
+            view: { focusSceneIndex: 0, focusScenePath: "/DocsViewer/1" },
+            getFullScenePath: () => "/DocsViewer/1",
+        };
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+
+        try {
+            await expect(manager.getPageState({ target: app.id })).resolves.toEqual({
+                target: "DocsViewer",
+                appId: app.id,
+                page: 1,
+                pageCount: 2,
+            });
+            await expect(
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
+            expect(nextClick).toHaveBeenCalledOnce();
+        } finally {
+            restore();
+        }
+    });
+
+    it("accepts DocsViewer content page two even when its View remains on scene zero", async () => {
+        const restore = registerAppKind("DocsViewer");
+        const manager = createManager();
+        const footer = document.createElement("div");
+        const previous = document.createElement("button");
+        previous.className = "btn-page-back";
+        footer.append(previous);
+        const previousClick = vi.fn();
+        previous.addEventListener("click", previousClick);
+        const app: any = {
+            id: "DocsViewer-scrolled",
+            kind: "DocsViewer",
+            appEmitter: new Emittery(),
+            box: { $footer: footer },
+            pageState: { index: 0, length: 1 },
+            getContentPageState: () => ({ index: 1, length: 2 }),
+            view: { focusSceneIndex: 0, focusScenePath: "/DocsViewer/1" },
+            getFullScenePath: () => "/DocsViewer/1",
+        };
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+
+        try {
+            await expect(manager.getPageState({ target: app.id })).resolves.toMatchObject({
+                page: 2,
+                pageCount: 2,
+            });
+            await expect(
+                manager.dispatchDocsEvent("prevPage", { target: app.id })
+            ).resolves.toEqual({ accepted: true });
+            expect(previousClick).toHaveBeenCalledOnce();
+        } finally {
+            restore();
+        }
+    });
+
+    it("rejects DocsViewer commands when its runtime was torn down", async () => {
+        const restore = registerAppKind("DocsViewer");
+        const manager = createManager();
+        const footer = document.createElement("div");
+        const next = document.createElement("button");
+        next.className = "btn-page-next";
+        footer.append(next);
+        const app: any = {
+            id: "DocsViewer-suspended",
+            kind: "DocsViewer",
+            isSetup: false,
+            isDestroyed: false,
+            appEmitter: new Emittery(),
+            box: { $footer: footer },
+            pageState: { index: 0, length: 1 },
+            getContentPageState: () => ({ index: 0, length: 2 }),
+        };
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+
+        try {
+            await expect(manager.getPageState({ target: app.id })).rejects.toThrow(
+                "page state unavailable"
+            );
+            await expect(
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false, reason: "stateUnavailable" });
+        } finally {
+            restore();
+        }
+    });
+
+    it("requires a real DocsViewer control and applies page bounds to step aliases", async () => {
+        const restore = registerAppKind("DocsViewer");
+        const manager = createManager();
+        const footer = document.createElement("div");
+        const app: any = {
+            id: "DocsViewer-controls",
+            kind: "DocsViewer",
+            isSetup: true,
+            isDestroyed: false,
+            appEmitter: new Emittery(),
+            box: { $footer: footer },
+            pageState: { index: 0, length: 1 },
+            getContentPageState: () => ({ index: 0, length: 2 }),
+        };
+        manager.queryOne = () => app;
+        Object.defineProperty(manager, "canOperate", { value: true });
+
+        try {
+            await expect(
+                manager.dispatchDocsEvent("nextPage", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false, reason: "stateUnavailable" });
+            await expect(
+                manager.dispatchDocsEvent("prevStep", { target: app.id })
+            ).resolves.toMatchObject({ accepted: false, reason: "outOfRange" });
         } finally {
             restore();
         }

@@ -57,6 +57,56 @@ const createProxy = () => {
 };
 
 describe("AppProxy setup diagnostics", () => {
+    it("sends true after false timed out, even when false later completes", async () => {
+        vi.useFakeTimers();
+        const { proxy, logger } = createProxy();
+        await proxy.emitAppFocusEvent(true);
+        let finishBlur!: () => void;
+        proxy.appEmitter.emit = vi.fn()
+            .mockImplementationOnce(() => new Promise<void>(resolve => { finishBlur = resolve; }))
+            .mockResolvedValueOnce(undefined);
+        const blur = proxy.emitAppFocusEvent(false);
+        vi.advanceTimersByTime(10_000);
+        await expect(blur).resolves.toBe(false);
+        await expect(proxy.emitAppFocusEvent(true)).resolves.toBe(true);
+        finishBlur(); await Promise.resolve();
+        expect(proxy.appEmitter.emit.mock.calls.map((call: any[]) => call[1])).toEqual([false, true]);
+        expect(logger.warn).toHaveBeenCalledOnce();
+    });
+
+    it("a rejected transition makes the previous boolean retryable too", async () => {
+        const { proxy, logger } = createProxy();
+        await proxy.emitAppFocusEvent(true);
+        proxy.appEmitter.emit = vi.fn().mockRejectedValueOnce(new Error("partial freeze"))
+            .mockResolvedValueOnce(undefined);
+        await expect(proxy.emitAppFocusEvent(false)).resolves.toBe(false);
+        await expect(proxy.emitAppFocusEvent(true)).resolves.toBe(true);
+        expect(proxy.appEmitter.emit).toHaveBeenCalledTimes(2);
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("focus event rejected"));
+    });
+
+    it("late old rejection cannot invalidate a newer successful notification", async () => {
+        const { proxy } = createProxy();
+        let failOld!: (reason: Error) => void;
+        proxy.appEmitter.emit = vi.fn()
+            .mockImplementationOnce(() => new Promise<void>((_, reject) => { failOld = reject; }))
+            .mockResolvedValueOnce(undefined);
+        const old = proxy.emitAppFocusEvent(false);
+        const current = proxy.emitAppFocusEvent(true);
+        await expect(current).resolves.toBe(true);
+        failOld(new Error("late failure")); await old;
+        expect(proxy.emitAppFocusEvent(true)).toBe(current);
+        expect(proxy.appEmitter.emit).toHaveBeenCalledTimes(2);
+    });
+
+    it("activity changes invalidate a same-focus completion", async () => {
+        const { proxy } = createProxy();
+        await proxy.emitAppFocusEvent(true);
+        proxy.manager.activityRevision = 1;
+        await proxy.emitAppFocusEvent(true);
+        expect(proxy.appEmitter.emit).toHaveBeenCalledTimes(2);
+    });
+
     afterEach(() => {
         vi.useRealTimers();
         vi.restoreAllMocks();
@@ -86,10 +136,42 @@ describe("AppProxy setup diagnostics", () => {
 
         const notification = proxy.emitAppFocusEvent(true);
         vi.advanceTimersByTime(10_000);
-        await notification;
+        await expect(notification).resolves.toBe(false);
 
         expect(logger.warn).toHaveBeenCalledWith(
             expect.stringContaining("focus event timeout")
+        );
+    });
+
+    it("waits for the app focus listener and reuses its promise for duplicate focus", async () => {
+        const { proxy } = createProxy();
+        let release!: () => void;
+        proxy.appEmitter.emit = vi.fn(
+            () => new Promise<void>(resolve => (release = resolve))
+        );
+
+        const first = proxy.emitAppFocusEvent(true);
+        const duplicate = proxy.emitAppFocusEvent(true);
+        expect(duplicate).toBe(first);
+        expect(proxy.appEmitter.emit).toHaveBeenCalledOnce();
+
+        release();
+        await expect(first).resolves.toBe(true);
+    });
+
+    it("reports listener failure and allows the same focus state to retry", async () => {
+        const { proxy, logger } = createProxy();
+        proxy.appEmitter.emit = vi
+            .fn()
+            .mockRejectedValueOnce(new Error("unfreeze failed"))
+            .mockResolvedValueOnce(undefined);
+
+        await expect(proxy.emitAppFocusEvent(true)).resolves.toBe(false);
+        await expect(proxy.emitAppFocusEvent(true)).resolves.toBe(true);
+
+        expect(proxy.appEmitter.emit).toHaveBeenCalledTimes(2);
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("stage: focus event")
         );
     });
 
@@ -102,6 +184,60 @@ describe("AppProxy setup diagnostics", () => {
         const error = new Error("setup failed");
         proxy.setupCompletionPromise = Promise.resolve({ succeeded: false, error });
         await expect(proxy.waitForSetup()).rejects.toBe(error);
+    });
+
+    it("keeps a waiter registered before the first deferred setup starts", async () => {
+        const { proxy } = createProxy();
+        const result = { controller: true };
+        proxy.resetSetupCompletion();
+        proxy.deferredSetup = { app: {}, context: {} };
+        proxy.attachSetupScope = vi.fn();
+        proxy.setViewFocusScenePath = vi.fn();
+        proxy.finishAppSetup = vi.fn(async () => {
+            proxy.settleSetup({ succeeded: true, result });
+        });
+        const waiting = proxy.waitForSetup();
+
+        await expect(proxy.ensureSetup()).resolves.toBe(result);
+        await expect(waiting).resolves.toBe(result);
+    });
+
+    it("does not let an old setup attempt settle a newer retry", async () => {
+        const { proxy } = createProxy();
+        proxy.resetSetupCompletion();
+        const oldWait = proxy.waitForSetup();
+        const settleOld = proxy.createSetupSettler();
+        proxy.resetSetupCompletion();
+        const newWait = proxy.waitForSetup();
+        const settleNew = proxy.createSetupSettler();
+        const oldError = new Error("old setup aborted");
+
+        settleOld({ succeeded: false, error: oldError });
+        await expect(oldWait).rejects.toBe(oldError);
+        expect(proxy.setupCompletionSettled).toBe(false);
+        settleNew({ succeeded: true, result: "new runtime" });
+        await expect(newWait).resolves.toBe("new runtime");
+    });
+
+    it("settles an attempt invalidated while its focus notification is in flight", async () => {
+        const { proxy } = createProxy();
+        let finishFocus!: () => void;
+        proxy.store = { focus: "app-1" };
+        proxy.setupRunGeneration = 0;
+        proxy.runAppSetup = vi.fn().mockResolvedValue({ succeeded: true, result: {} });
+        proxy.emitAppFocusEvent = vi.fn(() => new Promise<void>(resolve => {
+            finishFocus = resolve;
+        }));
+        const settle = vi.fn();
+
+        const setup = proxy.finishAppSetup("app-1", {} as any, {} as any, undefined, undefined, settle);
+        for (let i = 0; i < 5 && !finishFocus; i += 1) await Promise.resolve();
+        expect(finishFocus).toBeTypeOf("function");
+        proxy.setupRunGeneration += 1;
+        finishFocus();
+        await setup;
+        expect(settle).toHaveBeenCalledOnce();
+        expect(settle.mock.calls[0][0]).toMatchObject({ succeeded: false });
     });
 
     it("ensureSetup rejects a failed setup instead of returning an empty result", async () => {
@@ -136,12 +272,21 @@ describe("AppProxy setup diagnostics", () => {
         await Promise.resolve();
         await Promise.resolve();
 
-        // Teardown while the setup promise is still in flight.
-        await proxy.teardown();
-        expect(app.teardown).toHaveBeenCalledOnce();
+        // Teardown invalidates the attempt, but waits for a real setupResult.
+        const tearingDown = proxy.teardown();
+        await Promise.resolve();
+        expect(app.teardown).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(10_000);
+        expect(logger.error).toHaveBeenCalledOnce();
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("app teardown timeout")
+        );
 
         resolveSetup({});
+        await tearingDown;
         await finishing;
+        expect(app.teardown).toHaveBeenCalledOnce();
+        expect(app.teardown).toHaveBeenCalledWith({}, {});
 
         // The released runtime must not be marked ready, and waiters
         // (the serial setup queue) must observe the abort.
@@ -150,6 +295,61 @@ describe("AppProxy setup diagnostics", () => {
         await expect(proxy.waitForSetup()).rejects.toThrow("aborted by teardown");
         expect(logger.warn).toHaveBeenCalledWith(
             expect.stringContaining("aborted by teardown/destroy")
+        );
+    });
+
+    it("reports a teardown still running at 10s exactly once", async () => {
+        vi.useFakeTimers();
+        const { proxy, logger } = createProxy();
+        let finishTeardown!: () => void;
+        const app = {
+            teardown: vi.fn(() => new Promise<void>(resolve => {
+                finishTeardown = resolve;
+            })),
+        };
+        proxy.appDefinition = app;
+        proxy.appContext = {};
+        proxy.setupStarted = true;
+        proxy.setupCompletionSettled = true;
+        const cleanup = proxy.teardown();
+
+        vi.advanceTimersByTime(9_999);
+        expect(logger.error).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(logger.error).toHaveBeenCalledOnce();
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("app teardown timeout")
+        );
+        vi.advanceTimersByTime(10_000);
+        expect(logger.error).toHaveBeenCalledOnce();
+        finishTeardown();
+        await cleanup;
+    });
+
+    it("propagates failed late teardown so its cache slot can be pinned", async () => {
+        const { proxy, logger } = createProxy();
+        let finishSetup!: (result: unknown) => void;
+        const app = {
+            setup: vi.fn(() => new Promise(resolve => {
+                finishSetup = resolve;
+            })),
+            teardown: vi.fn().mockRejectedValue(new Error("release failed")),
+        };
+        proxy.appDefinition = app;
+        proxy.appContext = {};
+        proxy.setupStarted = true;
+        proxy.setupSucceeded = false;
+        proxy.setupCompletionSettled = false;
+        proxy.resetSetupCompletion();
+        const finishing = proxy.finishAppSetup("app-1", app, {});
+        for (let i = 0; i < 5 && !finishSetup; i += 1) await Promise.resolve();
+
+        const cleanup = proxy.teardown();
+        finishSetup({});
+        await expect(cleanup).rejects.toThrow("release failed");
+        await finishing;
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("late app teardown failed")
         );
     });
 
@@ -305,6 +505,32 @@ describe("AppProxy setup diagnostics", () => {
 
         resolveSetup({});
         await pendingSetup;
+    });
+
+    it("closes a retained Slide outside the cache through the real destroy lifecycle", async () => {
+        const { proxy } = createProxy();
+        proxy.setupSucceeded = true;
+        proxy.setupRunGeneration = 0;
+        proxy.store = { cleanAppAttributes: vi.fn() };
+        proxy.boxManager = { closeBox: vi.fn() };
+        let finishDestroy!: () => void;
+        proxy.appEmitter.emit.mockImplementationOnce(
+            () => new Promise<void>(resolve => { finishDestroy = resolve; })
+        );
+
+        const closing = proxy.close();
+        // notifyApp is async; allow the app's destroy listener to start.
+        for (let i = 0; i < 10 && !finishDestroy; i += 1) await Promise.resolve();
+        expect(proxy.appEmitter.emit).toHaveBeenCalledWith("destroy", { error: undefined });
+        expect(proxy.viewManager.destroyView).not.toHaveBeenCalled();
+        finishDestroy();
+        await closing;
+
+        expect(proxy.manager.notifyAppDestroyed).toHaveBeenCalledWith("app-1");
+        expect(proxy.viewManager.destroyView).toHaveBeenCalledWith("app-1");
+        expect(proxy.boxManager.closeBox).toHaveBeenCalledWith("app-1", false);
+        expect(proxy.appProxies.has("app-1")).toBe(false);
+        expect(proxy.appEmitter.clearListeners).toHaveBeenCalled();
     });
 
     it("clears the watchdog when the app proxy is destroyed", async () => {

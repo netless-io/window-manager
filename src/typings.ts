@@ -61,6 +61,8 @@ export type AppEmitterEvent<T = any> = {
     containerRectUpdate: TeleBoxRect;
     roomStateChange: Partial<DisplayerState>;
     focus: boolean;
+    /** Local resource eligibility; does not change the shared logical focus. */
+    runtimeActivity: { active: boolean; revision: number };
     reconnected: void;
     seek: number;
     pageStateChange: PageState;

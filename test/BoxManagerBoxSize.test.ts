@@ -74,6 +74,11 @@ describe("BoxManager box size synchronization", () => {
 
             handlers.get("focused")?.({ id: "app-1" });
 
+            expect(context.boxEmitter.emit).toHaveBeenCalledWith("focus", {
+                appId: "app-1",
+                source: "telebox",
+            });
+
             if (shouldForce) {
                 expect(scheduleAppBoxSizeSync).toHaveBeenCalledWith("app-1", {
                     forceRefresh: true,
@@ -83,6 +88,47 @@ describe("BoxManager box size synchronization", () => {
             }
         }
     );
+
+    it("marks BoxManager.focusBox calls as programmatic", async () => {
+        vi.stubGlobal("CanvasRenderingContext2D", class CanvasRenderingContext2D {});
+        vi.stubGlobal("CustomEvent", window.CustomEvent);
+        vi.spyOn(window, "dispatchEvent").mockReturnValue(true);
+        const { BoxManager } = await import("../src/BoxManager");
+        const handlers = new Map<string, (value: any) => void>();
+        const teleBoxManager = {
+            maximized: true,
+            events: {
+                on: vi.fn((event: string, handler: (value: any) => void) => {
+                    handlers.set(event, handler);
+                }),
+            },
+            _state$: { reaction: vi.fn() },
+            _darkMode$: { reaction: vi.fn() },
+            _prefersColorScheme$: { reaction: vi.fn() },
+            _minimized$: { reaction: vi.fn() },
+            focusBox: vi.fn((appId: string) => {
+                handlers.get("focused")?.({ id: appId });
+            }),
+        };
+        vi.spyOn(BoxManager.prototype as any, "setupBoxManager").mockReturnValue(
+            teleBoxManager
+        );
+        const context = {
+            emitter: { emit: vi.fn(), on: vi.fn() },
+            callbacks: { emit: vi.fn() },
+            boxEmitter: { emit: vi.fn() },
+            canOperate: () => true,
+            scheduleAppBoxSizeSync: vi.fn(),
+        };
+        const manager = new BoxManager(context as any);
+
+        manager.focusBox({ appId: "app-1" }, false);
+
+        expect(context.boxEmitter.emit).toHaveBeenCalledWith("focus", {
+            appId: "app-1",
+            source: "programmatic",
+        });
+    });
 
     it.each([
         ["non-lazy readonly", false, true],
@@ -132,5 +178,21 @@ describe("BoxManager box size synchronization", () => {
         } else {
             expect(blurBox).not.toHaveBeenCalled();
         }
+    });
+
+    it("returns the highest-z box after excluding a failed focus target", async () => {
+        const { BoxManager } = await import("../src/BoxManager");
+        const manager = Object.create(BoxManager.prototype) as BoxManager & {
+            teleBoxManager: { query: () => Array<{ id: string; zIndex: number }> };
+        };
+        manager.teleBoxManager = {
+            query: () => [
+                { id: "failed", zIndex: 30 },
+                { id: "lower", zIndex: 10 },
+                { id: "fallback", zIndex: 20 },
+            ],
+        };
+
+        expect(manager.getTopBox("failed")?.id).toBe("fallback");
     });
 });

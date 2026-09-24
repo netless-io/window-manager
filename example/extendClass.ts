@@ -7,8 +7,8 @@ import {
     CursorManager,
     TeleBoxManager,
     TeleBoxCollector,
-} from "../dist";
-import type { WindowManager, BaseInsertParams, CursorOptions, ApplianceIcons } from "../dist";
+} from "@netless/window-manager";
+import type { WindowManager, BaseInsertParams, CursorOptions, ApplianceIcons } from "@netless/window-manager";
 
 type TeleBoxManagerConfig = ConstructorParameters<typeof TeleBoxManager>[0];
 type TeleBoxCollectorConfig = ConstructorParameters<typeof TeleBoxCollector>[0];

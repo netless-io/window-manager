@@ -9,23 +9,23 @@ importers:
   .:
     dependencies:
       '@netless/app-docs-viewer':
-        specifier: 0.2.21-beta.1
-        version: 0.2.21-beta.1(jspdf@2.5.2)
+        specifier: 0.2.21
+        version: 0.2.21(jspdf@2.5.2)
       '@netless/app-media-player':
-        specifier: 0.1.5-beta.1
-        version: 0.1.5-beta.1
+        specifier: 0.1.5
+        version: 0.1.5
       '@netless/app-plyr':
         specifier: 0.2.6-beta.3
         version: 0.2.6-beta.3
       '@netless/app-presentation':
-        specifier: 0.1.13-beta.2
-        version: 0.1.13-beta.2(jspdf@2.5.2)
+        specifier: 0.1.13-beta.4
+        version: 0.1.13-beta.4(jspdf@2.5.2)
       '@netless/app-slide':
-        specifier: file:../../slide-app/packages/app-slide
-        version: file:../../slide-app/packages/app-slide(jspdf@2.5.2)
+        specifier: 0.2.106-beta.3
+        version: 0.2.106-beta.3(jspdf@2.5.2)
       '@netless/appliance-plugin':
         specifier: 1.1.43
-        version: 1.1.43(@netless/window-manager@file:..(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
+        version: 1.1.43(@netless/window-manager@1.0.23-beta.3(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       '@netless/telebox-insider':
         specifier: 0.3.1-beta.0
         version: 0.3.1-beta.0
@@ -33,8 +33,8 @@ importers:
         specifier: ^0.3.7
         version: 0.3.8(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(video.js@7.21.7)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       '@netless/window-manager':
-        specifier: file:..
-        version: file:..(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
+        specifier: 1.0.23-beta.3
+        version: 1.0.23-beta.3(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       agora-foundation:
         specifier: 3.11.1-rc.1
         version: 3.11.1-rc.1
@@ -610,30 +610,30 @@ packages:
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
-  '@netless/app-docs-viewer@0.2.21-beta.1':
-    resolution: {integrity: sha512-sj1lsNbvkxtp2lV6+0LiN8X46mionT+xn7NDEha+HolJwrWGhKBOaxX2oTijOC834wZz+W/SN2sAqd5JCEDpwQ==}
+  '@netless/app-docs-viewer@0.2.21':
+    resolution: {integrity: sha512-tWtzBY7NZZb/JDs1pfX2/gyGp/UvsjvStl3cBPN0U4LvPUihsUWanv2KC9H3W847VPRX+ZD9P2SC63+6mcwD/w==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-media-player@0.1.5-beta.1':
-    resolution: {integrity: sha512-nCYklKlWt8V9giYe3LHx02Sm47kGA2mrePplBdDj3JEaufsiLqwLM/gHdrw/W1fLMtZBN5EwfAKEcmQUckuZrQ==}
+  '@netless/app-media-player@0.1.5':
+    resolution: {integrity: sha512-A933YsYr/n2DBhlnF4qCAN28wzP6uC38jmKJP+9VPRT+UWlH1jBRIayCmnpgKYq7op3v30mfOOrKkxJfKzbRFQ==}
 
   '@netless/app-plyr@0.2.6-beta.3':
     resolution: {integrity: sha512-0H8BII9f0VeefBOWI4Q5MiZnZguHrQ4IWJQSAwO9fCF2LYMQNZbtqBQrWNrz+QlHyPS1s/AYD/BxRZSLFqGZ9w==}
 
-  '@netless/app-presentation@0.1.13-beta.2':
-    resolution: {integrity: sha512-ihF8LPJxd5K16vPHK/hLo/7Opz+epVXEIsGgCXSibDhtu+RrhWEmcC1Wic/vYogaBQERyVvzCciqicFi27uoFQ==}
+  '@netless/app-presentation@0.1.13-beta.4':
+    resolution: {integrity: sha512-4GZeQ2ykHjJgovfyipbUHU69O3EJ077CBJVCklzc/r8U8slIyWzvACxsDdswlNarAiACTf5nM0srVSa3cdLq5w==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
       jspdf:
         optional: true
 
-  '@netless/app-slide@file:../../slide-app/packages/app-slide':
-    resolution: {directory: ../../slide-app/packages/app-slide, type: directory}
+  '@netless/app-slide@0.2.106-beta.3':
+    resolution: {integrity: sha512-sbxUnyfgL3wIdDFEyCTKjWGL3cj9o3jFS3mLYVO64BcRZaFWYl9Gc9S94BroHfW7c7PVZn2V+/6O+jB5hQik0A==}
     peerDependencies:
       jspdf: 2.5.1
     peerDependenciesMeta:
@@ -642,7 +642,6 @@ packages:
 
   '@netless/appliance-plugin@1.1.43':
     resolution: {integrity: sha512-8Fmk09Uo0M/vkliyow15KDTGwjFdOEmjyCBAlGTu12qPfM4bS3XtxZ4dOQ210eCU/gAlpQTvaF7iI6fhgxbOug==}
-    version: 1.1.43
     peerDependencies:
       '@netless/window-manager': '>=1.0'
       markmap-lib: ^0.18.12
@@ -671,8 +670,8 @@ packages:
       video.js: ^7
       white-web-sdk: ^2.13.8
 
-  '@netless/window-manager@file:..':
-    resolution: {directory: .., type: directory}
+  '@netless/window-manager@1.0.23-beta.3':
+    resolution: {integrity: sha512-07SfPXZkSn+EeRou8OVqBkFE/9/EeYOlcj4hhPqK/WMkZ6augYCSAzzj4oXECeFinQYrp7kwaI5ExuIda0K80w==}
     peerDependencies:
       jspdf: 2.5.1
       white-web-sdk: ^2.16.57
@@ -2211,7 +2210,7 @@ snapshots:
 
   '@juggle/resize-observer@3.4.0': {}
 
-  '@netless/app-docs-viewer@0.2.21-beta.1(jspdf@2.5.2)':
+  '@netless/app-docs-viewer@0.2.21(jspdf@2.5.2)':
     dependencies:
       '@juggle/resize-observer': 3.4.0
       debounce-fn: 5.1.2
@@ -2219,21 +2218,21 @@ snapshots:
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-media-player@0.1.5-beta.1': {}
+  '@netless/app-media-player@0.1.5': {}
 
   '@netless/app-plyr@0.2.6-beta.3': {}
 
-  '@netless/app-presentation@0.1.13-beta.2(jspdf@2.5.2)':
+  '@netless/app-presentation@0.1.13-beta.4(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/app-slide@file:../../slide-app/packages/app-slide(jspdf@2.5.2)':
+  '@netless/app-slide@0.2.106-beta.3(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
-  '@netless/appliance-plugin@1.1.43(@netless/window-manager@file:..(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
+  '@netless/appliance-plugin@1.1.43(@netless/window-manager@1.0.23-beta.3(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1)))(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
     dependencies:
-      '@netless/window-manager': file:..(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
+      '@netless/window-manager': 1.0.23-beta.3(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))
       clipper-lib: 6.4.2
       dom-to-image: 2.6.0
       eventemitter2: 6.4.9
@@ -2260,7 +2259,7 @@ snapshots:
       video.js: 7.21.7
       white-web-sdk: 2.16.58(agora-foundation@3.11.1-rc.1)
 
-  '@netless/window-manager@file:..(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
+  '@netless/window-manager@1.0.23-beta.3(jspdf@2.5.2)(white-web-sdk@2.16.58(agora-foundation@3.11.1-rc.1))':
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/telebox-insider': 0.3.1-beta.0

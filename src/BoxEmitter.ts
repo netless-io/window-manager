@@ -3,6 +3,9 @@ import Emittery from "emittery";
 
 export type BoxMovePayload = { appId: string; x: number; y: number };
 export type BoxFocusPayload = { appId: string };
+export type BoxFocusEventPayload = BoxFocusPayload & {
+    source: "telebox" | "programmatic" | "app";
+};
 export type BoxBlurredPayload = { appId: string };
 export type BoxResizePayload = {
     appId: string;
@@ -16,7 +19,7 @@ export type BoxStateChangePayload = { appId: string; state: TELE_BOX_STATE };
 
 export type BoxEvent = {
     move: BoxMovePayload;
-    focus: BoxFocusPayload;
+    focus: BoxFocusEventPayload;
     resize: BoxResizePayload;
     close: BoxClosePayload;
     boxStateChange: BoxStateChangePayload;

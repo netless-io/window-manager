@@ -104,7 +104,7 @@ export const createBoxManager = (
                 manager.appManager?.notifyContainerRectUpdate(rect),
             scheduleAppBoxSizeSync: (appId?: string, syncOptions?: AppBoxSizeSyncOptions) =>
                 manager.appManager?.scheduleAppBoxSizeSync(appId, syncOptions),
-            cleanFocus: () => manager.appManager?.store.cleanFocus(),
+            cleanFocus: () => manager.appManager?.requestMainViewFocus(),
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             requestAppFocus: (appId: string) => manager.appManager?.requestFocus(appId),
             isLazySetup: () => manager.lazySetupInMaximizedMode,
@@ -120,6 +120,7 @@ export const createBoxManager = (
 export class BoxManager {
     static readonly kind = "BoxManager";
     public teleBoxManager: TeleBoxManager;
+    private programmaticFocusDepth = 0;
 
     constructor(
         private context: BoxManagerContext,
@@ -209,7 +210,10 @@ export class BoxManager {
                     this.context.scheduleAppBoxSizeSync(box.id, { forceRefresh: true });
                 }
                 if (this.canOperate) {
-                    boxEmitter.emit("focus", { appId: box.id });
+                    boxEmitter.emit("focus", {
+                        appId: box.id,
+                        source: this.programmaticFocusDepth > 0 ? "programmatic" : "telebox",
+                    });
                 } else if (!this.context.isLazySetup?.()) {
                     this.teleBoxManager.blurBox(box.id);
                 }
@@ -406,8 +410,15 @@ export class BoxManager {
         return boxes[0];
     }
 
-    public getTopBox(): ReadonlyTeleBox | undefined {
-        return this.teleBoxManager.topBox;
+    public getTopBox(excludeAppId?: string): ReadonlyTeleBox | undefined {
+        if (!excludeAppId) return this.teleBoxManager.topBox;
+        return this.teleBoxManager
+            .query()
+            .filter(box => box.id !== excludeAppId)
+            .reduce<ReadonlyTeleBox | undefined>(
+                (top, box) => (!top || box.zIndex > top.zIndex ? box : top),
+                undefined
+            );
     }
 
     public updateBoxState(state?: AppInitState): void {
@@ -463,7 +474,15 @@ export class BoxManager {
     }
 
     public focusBox({ appId }: AppId, skipUpdate = true): void {
-        this.teleBoxManager.focusBox(appId, skipUpdate);
+        // TeleBox uses eventemitter3, so its Focused event is emitted
+        // synchronously inside focusBox(). The depth marker therefore covers
+        // the complete event callback without leaking into later UI actions.
+        this.programmaticFocusDepth += 1;
+        try {
+            this.teleBoxManager.focusBox(appId, skipUpdate);
+        } finally {
+            this.programmaticFocusDepth -= 1;
+        }
     }
 
     public resizeBox({ appId, width, height, skipUpdate }: ResizeBoxParams): void {

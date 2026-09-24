@@ -1,7 +1,7 @@
-import type { NetlessApp } from "../../dist";
+import type { NetlessApp } from "@netless/window-manager";
 import React, { useEffect, useState } from "react";
 import ReactDom from "react-dom";
-import type { AppContext } from "../../dist";
+import type { AppContext } from "@netless/window-manager";
 import "./board.css";
 
 export const Board: NetlessApp = {

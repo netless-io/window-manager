@@ -42,6 +42,8 @@ const APP_FOCUS_EVENT_WATCHDOG_TIMEOUT = 10_000;
 
 type AppSetupCompletion = { succeeded: true; result: any } | { succeeded: false; error: unknown };
 
+class AppTeardownFailure extends Error {}
+
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
 export class AppProxy implements PageRemoveService {
@@ -65,9 +67,11 @@ export class AppProxy implements PageRemoveService {
     private _prevFullPath: string | undefined;
     private boxSizeSynchronizer: AppBoxSizeSynchronizer;
     private setupWatchdogTimer?: ReturnType<typeof setTimeout>;
+    private teardownWatchdog?: { timer: ReturnType<typeof setTimeout>; startedAt: number };
     private setupCompletionPromise!: Promise<AppSetupCompletion>;
     private resolveSetupCompletion!: (completion: AppSetupCompletion) => void;
     private setupCompletionSettled = false;
+    private setupAttemptStarted = false;
     private setupStarted = false;
     private setupSucceeded = false;
     private setupDescriptorReady?: Promise<void>;
@@ -97,8 +101,14 @@ export class AppProxy implements PageRemoveService {
     // as ready (teardown-during-setup race).
     private setupRunGeneration = 0;
     private destroyPromise?: Promise<void>;
-    // Last value emitted on the `focus` event, for change-detection dedupe.
-    private lastEmittedFocus?: boolean;
+    private focusNotification?: {
+        target: boolean;
+        epoch: number;
+        activity: number;
+        completion: Promise<boolean>;
+    };
+    private contentPageState?: PageState;
+    private contentPageStateActive = false;
 
     public appResult?: NetlessApp<any>;
     public appContext?: AppContext<any, any>;
@@ -229,24 +239,77 @@ export class AppProxy implements PageRemoveService {
      * Change-duplicated emissions are deduped here; apps must still treat
      * the event as potentially repeated and handle it idempotently.
      */
-    public emitAppFocusEvent(isFocused: boolean, force = false): Promise<void> {
-        if (this.status === "destroyed") return Promise.resolve();
-        if (!force && this.lastEmittedFocus === isFocused) return Promise.resolve();
-        this.lastEmittedFocus = isFocused;
-        const notification = this.appEmitter
-            .emit("focus", isFocused)
-            .catch(error => this.logPostSetupNotificationError("focus event", error));
-        return new Promise(resolve => {
+    public emitAppFocusEvent(isFocused: boolean, force = false): Promise<boolean> {
+        if (this.status === "destroyed") return Promise.resolve(false);
+        const previous = this.focusNotification;
+        const epoch = this.setupRunGeneration;
+        const activity = this.manager.activityRevision ?? 0;
+        if (
+            !force &&
+            previous?.target === isFocused &&
+            previous.epoch === epoch &&
+            previous.activity === activity
+        ) {
+            return previous.completion;
+        }
+        const record = { target: isFocused, epoch, activity, completion: Promise.resolve(false) };
+        this.focusNotification = record;
+        record.completion = this.notifyResourceEvent("focus", isFocused).then(succeeded => {
+            if (!succeeded && this.focusNotification === record) {
+                // Failure means unknown physical state, never the previous boolean.
+                this.focusNotification = undefined;
+            }
+            return succeeded && this.setupRunGeneration === epoch && !this.isDestroyed;
+        });
+        return record.completion;
+    }
+
+    public emitAppActivityEvent(): Promise<boolean> {
+        return this.notifyResourceEvent("runtimeActivity", {
+            active: this.manager.canRunLazyTarget(this.id) && this.isFocused,
+            revision: this.manager.activityRevision ?? 0,
+        });
+    }
+
+    private notifyResourceEvent<K extends "focus" | "runtimeActivity">(
+        event: K,
+        payload: AppEmitterEvent[K]
+    ): Promise<boolean> {
+        if (this.isDestroyed) return Promise.resolve(false);
+        let emission: Promise<void>;
+        try {
+            emission = this.appEmitter.emit(event, payload);
+        } catch (error) {
+            emission = Promise.reject(error);
+        }
+        return new Promise<boolean>(resolve => {
+            let settled = false;
+            const finish = (succeeded: boolean): void => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                resolve(succeeded);
+            };
             const timeout = setTimeout(() => {
                 this.Logger?.warn(
-                    `[WindowManager]: focus event timeout, kind: ${this.kind}, appId: ${this.id}, timeout: ${APP_FOCUS_EVENT_WATCHDOG_TIMEOUT}ms`
+                    `[WindowManager]: ${event} event timeout, kind: ${this.kind}, appId: ${
+                        this.id
+                    }, epoch: ${this.setupRunGeneration}, activity: ${
+                        this.manager.activityRevision ?? 0
+                    }, timeout: ${APP_FOCUS_EVENT_WATCHDOG_TIMEOUT}ms`
                 );
-                resolve();
+                finish(false);
             }, APP_FOCUS_EVENT_WATCHDOG_TIMEOUT);
-            notification.then(() => {
-                clearTimeout(timeout);
-                resolve();
-            });
+            emission.then(
+                () => finish(true),
+                error => {
+                    this.Logger?.warn(
+                        `[WindowManager]: ${event} event rejected, kind: ${this.kind}, appId: ${this.id}, error: ${error}`
+                    );
+                    this.logPostSetupNotificationError(`${event} event`, error);
+                    finish(false);
+                }
+            );
         });
     }
 
@@ -502,15 +565,24 @@ export class AppProxy implements PageRemoveService {
         this.attachSetupScope(this.id);
         this.setViewFocusScenePath();
         this.setupStarted = true;
-        this.resetSetupCompletion();
+        this.contentPageStateActive = true;
+        // The constructor's completion belongs to the first attempt, including
+        // callers that started waiting before setup. Retries get a new one.
+        if (this.setupAttemptStarted || this.setupCompletionSettled) this.resetSetupCompletion();
+        this.setupAttemptStarted = true;
+        const completionPromise = this.setupCompletionPromise;
+        const settleAttempt = this.createSetupSettler();
         await this.finishAppSetup(
             this.id,
             deferred.app,
             deferred.context,
             deferred.boxInitState,
-            deferred.currentMainViewScenePath
+            deferred.currentMainViewScenePath,
+            settleAttempt
         );
-        return this.waitForSetup();
+        const completion = await completionPromise;
+        if (!completion.succeeded) throw completion.error;
+        return completion.result;
     }
 
     /** Wait until async App factory loading has entered setupApp. */
@@ -531,37 +603,68 @@ export class AppProxy implements PageRemoveService {
         });
     }
 
+    private createSetupSettler(): (completion: AppSetupCompletion) => void {
+        const resolve = this.resolveSetupCompletion;
+        let settled = false;
+        return completion => {
+            if (settled) return;
+            settled = true;
+            if (this.resolveSetupCompletion === resolve) this.setupCompletionSettled = true;
+            resolve(completion);
+        };
+    }
+
     private async finishAppSetup(
         appId: string,
         app: NetlessApp,
         context: AppContext<any, any>,
         boxInitState?: AppInitState,
-        currentMainViewScenePath?: string
+        currentMainViewScenePath?: string,
+        settle: (completion: AppSetupCompletion) => void = completion =>
+            this.settleSetup(completion)
     ): Promise<void> {
         const setupGeneration = this.setupRunGeneration;
+        let completedSetup: AppSetupCompletion | undefined;
+        const aborted = async () => {
+            let cleanupFailure: AppTeardownFailure | undefined;
+            if (completedSetup?.succeeded && app.teardown) {
+                try {
+                    await this.invokeAppTeardown(app, context, completedSetup.result);
+                } catch (error) {
+                    cleanupFailure = new AppTeardownFailure(String(error));
+                    this.Logger?.error(
+                        `[WindowManager]: late app teardown failed, kind: ${this.kind}, appId: ${appId}, error: ${error}`
+                    );
+                }
+            }
+            this.Logger?.warn(
+                `[WindowManager]: app setup aborted by teardown/destroy, kind: ${this.kind}, appId: ${appId}`
+            );
+            settle({
+                succeeded: false,
+                error:
+                    cleanupFailure ??
+                    new Error(
+                        `[WindowManager]: app setup aborted by teardown/destroy, appId: ${appId}`
+                    ),
+            });
+        };
         try {
             // 延迟执行 setup, 防止初始化的属性没有更新成功
             this.Logger?.info(`[WindowManager]: setup app ${this.kind}, appId: ${appId}`);
             const setupResult = await this.runAppSetup(appId, app, context);
+            completedSetup = setupResult;
             if (setupGeneration !== this.setupRunGeneration || this.status === "destroyed") {
                 // Teardown/destroy ran while setup was in flight: the runtime
                 // this setup produced is already released. Never mark it as
                 // set up; settle as aborted so waiters (the serial setup
                 // queue) move on and a later ensureSetup() can re-run cleanly
                 // from the retained descriptor.
-                this.Logger?.warn(
-                    `[WindowManager]: app setup aborted by teardown/destroy, kind: ${this.kind}, appId: ${appId}`
-                );
-                this.settleSetup({
-                    succeeded: false,
-                    error: new Error(
-                        `[WindowManager]: app setup aborted by teardown/destroy, appId: ${appId}`
-                    ),
-                });
+                await aborted();
                 return;
             }
             if (!setupResult.succeeded) {
-                this.settleSetup(setupResult);
+                settle(setupResult);
                 return;
             }
             const { result } = setupResult;
@@ -571,14 +674,25 @@ export class AppProxy implements PageRemoveService {
             // Focus events may have fired before setup ran; sync the current
             // focus state so apps observe a consistent initial value.
             await this.emitAppFocusEvent(this.isFocused, true);
+            if (setupGeneration !== this.setupRunGeneration || this.isDestroyed) {
+                await aborted();
+                return;
+            }
+            if (this.manager.lazySetupEnabled) await this.emitAppActivityEvent();
+            if (setupGeneration !== this.setupRunGeneration || this.isDestroyed) {
+                await aborted();
+                return;
+            }
             this.scheduleBoxSizeSync();
-            this.afterSetupApp(boxInitState);
-            this.flushPendingZIndex();
+            if (!this.manager.lazySetupEnabled) {
+                this.afterSetupApp(boxInitState);
+                this.flushPendingZIndex();
+            }
             this.fixMobileSize();
-            if (currentMainViewScenePath) {
+            if (currentMainViewScenePath && !this.manager.lazySetupEnabled) {
                 this.manager.mainViewProxy.setFocusScenePath(currentMainViewScenePath);
             }
-            this.settleSetup(setupResult);
+            settle(setupResult);
             void appRegister
                 .notifyApp(this.kind, "created", { appId, result })
                 .catch(error => this.logPostSetupNotificationError("registered hook", error));
@@ -586,11 +700,47 @@ export class AppProxy implements PageRemoveService {
                 .emit("onAppSetup", appId)
                 .catch(error => this.logPostSetupNotificationError("onAppSetup", error));
         } catch (error) {
-            this.handleSetupFailure(error);
+            if (setupGeneration !== this.setupRunGeneration || this.isDestroyed) await aborted();
+            else this.handleSetupFailure(error, settle);
         }
     }
 
-    private handleSetupFailure(error: unknown): void {
+    private async invokeAppTeardown(
+        app: NetlessApp,
+        context: AppContext<any, any>,
+        result: any
+    ): Promise<void> {
+        if (!app.teardown) return;
+        await this.withTeardownWatchdog(() => app.teardown!(context, result));
+    }
+
+    private async withTeardownWatchdog<T>(operation: () => Promise<T> | T): Promise<T> {
+        if (this.teardownWatchdog) return operation();
+        const startedAt = Date.now();
+        const timer = setTimeout(() => {
+            this.Logger?.error(
+                `[WindowManager]: app teardown timeout, kind: ${this.kind}, appId: ${
+                    this.id
+                }, elapsedMs: ${Date.now() - startedAt}`
+            );
+        }, 10_000);
+        const watchdog = { timer, startedAt };
+        this.teardownWatchdog = watchdog;
+        try {
+            return await operation();
+        } finally {
+            if (this.teardownWatchdog === watchdog) {
+                clearTimeout(timer);
+                this.teardownWatchdog = undefined;
+            }
+        }
+    }
+
+    private handleSetupFailure(
+        error: unknown,
+        settle: (completion: AppSetupCompletion) => void = completion =>
+            this.settleSetup(completion)
+    ): void {
         const cause = error instanceof Error ? error : new Error(String(error));
         this.Logger?.error(
             `[WindowManager]: app setup lifecycle error, kind: ${this.kind}, appId: ${
@@ -600,8 +750,10 @@ export class AppProxy implements PageRemoveService {
         // Keep the descriptor and allow a later ensureSetup() to retry from
         // scratch (design TC-016 step 3: recovery after a failed setup).
         this.setupStarted = false;
+        this.contentPageStateActive = false;
+        this.contentPageState = undefined;
         this.deferredSetup = this.setupDescriptor;
-        this.settleSetup({ succeeded: false, error: cause });
+        settle({ succeeded: false, error: cause });
     }
 
     private logPostSetupNotificationError(stage: string, error: unknown): void {
@@ -836,7 +988,7 @@ export class AppProxy implements PageRemoveService {
                     // defers to the lazy coordinator for unsetup apps
                     // (design §16.2).
                     this.boxManager?.focusBox({ appId: this.id });
-                    boxEmitter.emit("focus", { appId: this.id });
+                    boxEmitter.emit("focus", { appId: this.id, source: "app" });
                     break;
                 }
                 default: {
@@ -921,6 +1073,29 @@ export class AppProxy implements PageRemoveService {
         return this._pageState.toObject();
     }
 
+    /** Latest page state reported by an App whose pages are not whiteboard scenes. */
+    public setContentPageState(state: unknown): void {
+        if (this.status === "destroyed" || !this.contentPageStateActive) return;
+        if (!state || typeof state !== "object") return;
+        const { index, length } = state as Partial<PageState>;
+        if (
+            !Number.isInteger(index) ||
+            !Number.isInteger(length) ||
+            (length as number) < 1 ||
+            (index as number) < 0 ||
+            (index as number) >= (length as number)
+        ) {
+            return;
+        }
+        this.contentPageState = { index: index as number, length: length as number };
+    }
+
+    public getContentPageState(): PageState | undefined {
+        return this.status !== "destroyed" && this.setupSucceeded && this.contentPageState
+            ? { ...this.contentPageState }
+            : undefined;
+    }
+
     // PageRemoveService
     public async removeSceneByIndex(index: number) {
         const scenePath = this._pageState.getFullPath(index);
@@ -964,16 +1139,28 @@ export class AppProxy implements PageRemoveService {
         if (!this.setupStarted || !this.appContext) return;
         const app = this.appDefinition;
         if (app?.teardown) {
-            // Abort any in-flight setup: the runtime it is producing is about
-            // to be released, so it must not be marked ready afterwards.
-            this.setupRunGeneration += 1;
-            await app.teardown(this.appContext, this.setupResult);
-            this.appResult = undefined;
-            this.setupResult = undefined;
-            this.setupSucceeded = false;
-            this.detachSetupScope();
-            this.setupStarted = false;
-            this.deferredSetup = this.setupDescriptor;
+            await this.withTeardownWatchdog(async () => {
+                // Invalidate the in-flight attempt without passing an absent
+                // setupResult to the App's physical teardown.
+                this.setupRunGeneration += 1;
+                this.contentPageStateActive = false;
+                this.contentPageState = undefined;
+                if (this.setupCompletionSettled) {
+                    await this.invokeAppTeardown(app, this.appContext!, this.setupResult);
+                } else {
+                    // The invalidated attempt tears down its result when it returns.
+                    const completion = await this.setupCompletionPromise;
+                    if (!completion.succeeded && completion.error instanceof AppTeardownFailure) {
+                        throw completion.error;
+                    }
+                }
+                this.appResult = undefined;
+                this.setupResult = undefined;
+                this.setupSucceeded = false;
+                this.detachSetupScope();
+                this.setupStarted = false;
+                this.deferredSetup = this.setupDescriptor;
+            });
         } else {
             this.Logger?.warn(
                 `[WindowManager]: app ${this.kind} does not implement teardown; keeping runtime alive`
@@ -1010,6 +1197,8 @@ export class AppProxy implements PageRemoveService {
         error?: Error
     ): Promise<void> {
         this.status = "destroyed";
+        this.contentPageStateActive = false;
+        this.contentPageState = undefined;
         this.setupRunGeneration += 1;
         this.manager.notifyAppDestroyed(this.id);
         this.boxFocusOffHandlers?.forEach(off => off());

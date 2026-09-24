@@ -94,6 +94,29 @@ describe("SetupQueue", () => {
         expect(order).toEqual(["keep"]);
     });
 
+    it("lets an active setup finish before the latest remote focus target starts", async () => {
+        const queue = new SetupQueue();
+        const order: string[] = [];
+        let finishActive!: () => void;
+        const active = queue.push("setup:c", () => 0, async () => {
+            order.push("start:c");
+            await new Promise<void>(resolve => {
+                finishActive = resolve;
+            });
+            order.push("end:c");
+        });
+        const latestRemote = queue.push("setup:e", () => 0, async () => {
+            order.push("start:e");
+        });
+
+        expect(queue.cancel("setup:c")).toBe(false);
+        expect(order).toEqual(["start:c"]);
+        finishActive();
+        await Promise.all([active, latestRemote]);
+
+        expect(order).toEqual(["start:c", "end:c", "start:e"]);
+    });
+
     it("whenIdle resolves once the queue is drained", async () => {
         const queue = new SetupQueue();
         let done = false;

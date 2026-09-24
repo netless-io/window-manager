@@ -7,28 +7,59 @@ type SetupTask = {
     runner: SetupTaskRunner;
     resolve: () => void;
     reject: (error: unknown) => void;
+    canStart?: () => boolean;
 };
 
 /**
  * Serial task queue with dynamic priorities.
  *
- * Tasks run strictly one at a time. The next task is picked by ascending
+ * Tasks hold one scheduling lease at a time. The next task is picked by ascending
  * `priority()` (insertion order breaks ties), and the priority function is
  * evaluated at pick time, so not-yet-started tasks can be reordered when
- * e.g. the focused app changes. Started tasks are never interrupted.
+ * e.g. the focused app changes. yieldSetup() releases a setup lease without
+ * cancelling its physical work or settling its completion Promise.
  */
 export class SetupQueue {
     private tasks: SetupTask[] = [];
     private running = false;
+    private active?: { task: SetupTask; startedAt: number };
     private seq = 0;
     private idlePromise?: Promise<void>;
     private idleResolve?: () => void;
+    /** Scheduling ownership changed. Never invoke observers inside pump(). */
+    public onChange?: () => void;
 
-    public push(id: string, priority: () => number, runner: SetupTaskRunner): Promise<void> {
+    private notifyChange(): void {
+        void Promise.resolve().then(() => this.onChange?.());
+    }
+
+    public push(
+        id: string,
+        priority: () => number,
+        runner: SetupTaskRunner,
+        canStart?: () => boolean
+    ): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            this.tasks.push({ id, priority, seq: this.seq++, runner, resolve, reject });
+            this.tasks.push({ id, priority, seq: this.seq++, runner, resolve, reject, canStart });
             this.pump();
         });
+    }
+
+    public get current(): { id: string; startedAt: number } | undefined {
+        return this.active && { id: this.active.task.id, startedAt: this.active.startedAt };
+    }
+
+    /** Release only scheduling ownership. The caller's real completion stays pending. */
+    public yieldSetup(): void {
+        if (!this.active?.task.id.startsWith("setup:")) return;
+        this.active = undefined;
+        this.running = false;
+        this.pump();
+        this.notifyChange();
+    }
+
+    public resume(): void {
+        this.pump();
     }
 
     /** Remove a not-yet-started task. Returns whether a pending task was removed. */
@@ -53,7 +84,7 @@ export class SetupQueue {
         return this.tasks.length;
     }
 
-    /** Resolves when the queue is empty and the running task has finished. */
+    /** Resolves when no queued task or active lease remains; yielded work may still run. */
     public whenIdle(): Promise<void> {
         if (!this.running && this.tasks.length === 0) {
             return Promise.resolve();
@@ -70,7 +101,7 @@ export class SetupQueue {
         if (this.running) return;
         const task = this.pickNext();
         if (!task) {
-            if (this.idleResolve) {
+            if (this.tasks.length === 0 && this.idleResolve) {
                 const resolve = this.idleResolve;
                 this.idleResolve = undefined;
                 this.idlePromise = undefined;
@@ -79,6 +110,9 @@ export class SetupQueue {
             return;
         }
         this.running = true;
+        const lease = { task, startedAt: Date.now() };
+        this.active = lease;
+        this.notifyChange();
         void (async () => {
             try {
                 await task.runner();
@@ -86,19 +120,25 @@ export class SetupQueue {
             } catch (error) {
                 task.reject(error);
             } finally {
-                this.running = false;
-                this.pump();
+                if (this.active === lease) {
+                    this.active = undefined;
+                    this.running = false;
+                    this.pump();
+                    this.notifyChange();
+                }
             }
         })();
     }
 
     private pickNext(): SetupTask | undefined {
         if (this.tasks.length === 0) return undefined;
-        let best = 0;
-        let bestPriority = this.tasks[0].priority();
-        for (let i = 1; i < this.tasks.length; i += 1) {
+        let best = -1;
+        let bestPriority = Infinity;
+        for (let i = 0; i < this.tasks.length; i += 1) {
+            if (this.tasks[i].canStart && !this.tasks[i].canStart!()) continue;
             const priority = this.tasks[i].priority();
             if (
+                best < 0 ||
                 priority < bestPriority ||
                 (priority === bestPriority && this.tasks[i].seq < this.tasks[best].seq)
             ) {
@@ -106,6 +146,7 @@ export class SetupQueue {
                 bestPriority = priority;
             }
         }
+        if (best < 0) return undefined;
         const [task] = this.tasks.splice(best, 1);
         return task;
     }

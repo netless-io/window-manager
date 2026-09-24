@@ -82,7 +82,7 @@ parameter
 | applianceIcons         | [optional] {ApplianceNames, string}     |         | Configure the teaching aid picture used by the cursor           |
 | useBoxesStatus         | [optional] boolean                      | false   | Manage each window independently; while enabled, `forceMaximized` is ignored and App `forceTop`/`forceNormal` flags are effective |
 | lazySetupInMaximizedMode | [optional] boolean                    | false   | Set up Apps on demand in a force-maximized room; effective lazy mode treats `useBoxesStatus` as false |
-| maxCachedAppsInMaximizedMode | [optional] number                  | 1       | Number of App runtimes retained by the lazy-mode cache |
+| maxCachedAppsInMaximizedMode | [optional] number                  | 4       | Lazy LRU target size, not a total runtime/memory limit. Initialized Slide runtimes survive eviction (freeze/unfreeze); Apps without `teardown()` remain alive and tracked and can exceed this soft limit. In-flight or yielded setups are not ready cache entries. |
 | forceMaximized         | [optional] boolean                      | false   | Establish the room-wide force-maximized policy when writable; ignored and not written with `useBoxesStatus=true` |
 
 
@@ -165,6 +165,8 @@ Use `addAppAndWaitForSetup()` when setup errors must be caught by the caller.
 > Add an App and wait for its `setup()` to complete. A setup failure rejects with the
 > original error and removes the partially initialized local App.
 
+In lazy mode, a new App that becomes focused through the existing `addApp()` semantics shares the single latest pending intent with synchronized focus, `focusApp()`, and TeleBox. This API does not enqueue a separate setup task. It resolves with the appId only after setup succeeds. If a newer target supersedes it, or it is not ready within 20 seconds from the call, it rejects without removing an already created App shell. The 20-second timeout is reported through Room logger.error. A setup still running after 10 seconds is reported once; the scheduler may yield to a different pending target, but cannot physically stop third-party setup. Adding an App while minimized creates only its shell and does not request focus. Minimized or background state blocks new setup without pausing the API deadline. Non-lazy behavior is unchanged.
+
 ```typescript
 try {
     const appId = await manager.addAppAndWaitForSetup({
@@ -221,8 +223,15 @@ manager.closeApp(appId)
 > Switch the `app` of the current `focus`, and set this `app` to the front
 
 ```typescript
-manager.focusApp(appId)
+const committed = await manager.focusApp(appId); // required string; Promise<boolean>
+if (committed) await manager.dispatchDocsEvent("nextPage");
 ```
+
+In lazy mode, `true` requires completed setup and focus resource transitions while visible and not minimized. A replaced request, failed setup/notification, suspended activation or the 10-second API deadline returns `false`; do not run dependent pagination after it. The deadline starts at the API call and does not cancel the pending target, which may still display later. Non-lazy focus keeps its synchronous behavior and immediately resolves `true` for an existing App.
+
+Synchronized focus, API calls and TeleBox switches share one latest pending target. Hidden/minimized clients keep receiving targets but only process them after both gates reopen. An unfinished setup waits until completion or, with a different pending target, its original 10-second threshold; yielding cannot forcibly stop third-party work. Only an eligible user-origin TeleBox handoff can fallback; API/synchronized focus never chooses a replacement App.
+
+Native completion wrappers must propagate `false` as failure (or throw) before pagination; no pagination appId is required. Two awaited calls do not form a transaction: another caller can change focus between them.
 
 <h3 id="setMainViewSceneIndex">setMainViewSceneIndex</h3>
 

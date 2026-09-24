@@ -1214,7 +1214,7 @@ export class MainViewProxy {
 
     public async mainViewClickHandler(): Promise<void> {
         if (!this.manager.canOperate) return;
-        this.store.cleanFocus();
+        this.manager.requestMainViewFocus();
         this.manager.boxManager?.blurAllBox();
     }
 

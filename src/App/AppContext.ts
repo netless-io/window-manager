@@ -77,6 +77,16 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
         return this.manager.windowManger;
     };
 
+    /** New hosts keep lazy setup pending until real first-render readiness. */
+    public get waitForActualSetupReady(): boolean {
+        return this.manager.lazySetupEnabled;
+    }
+
+    public getRuntimeActivity = (): { active: boolean; revision: number } => ({
+        active: this.manager.canRunLazyTarget(this.appId) && this.appProxy.isFocused,
+        revision: this.manager.activityRevision,
+    });
+
     /**
      * Create a Room logger scoped to this App. Error logs are immediate while
      * `debouncedInfo` is rate-limited independently by event name.
@@ -325,6 +335,9 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
 
     /** Dispatch a local event to `manager.onAppEvent()`. */
     public dispatchAppEvent(type: string, value?: any): void {
+        if (type === "pageStateChange") {
+            this.appProxy.setContentPageState(value);
+        }
         internalEmitter.emit(`custom-${this.kind}` as any, {
             kind: this.kind,
             appId: this.appId,

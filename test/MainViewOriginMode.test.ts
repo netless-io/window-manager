@@ -23,6 +23,19 @@ vi.mock("../src/Utils/Common", () => ({
 }));
 import { MainViewProxy } from "../src/View/MainView";
 
+it("routes a main-view click through the pending-aware focus request", async () => {
+    const requestMainViewFocus = vi.fn();
+    const blurAllBox = vi.fn();
+    const proxy = Object.create(MainViewProxy.prototype) as any;
+    proxy.manager = { canOperate: true, requestMainViewFocus, boxManager: { blurAllBox } };
+    proxy.store = { cleanFocus: vi.fn() };
+
+    await proxy.mainViewClickHandler();
+    expect(requestMainViewFocus).toHaveBeenCalledOnce();
+    expect(proxy.store.cleanFocus).not.toHaveBeenCalled();
+    expect(blurAllBox).toHaveBeenCalledOnce();
+});
+
 type TestCamera = { centerX: number; centerY: number; scale: number };
 type TestSize = { width: number; height: number };
 

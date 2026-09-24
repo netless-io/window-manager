@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import ReactDom from "react-dom";
 import { LoggerReportMode, PlayerPhase, WhiteWebSdk } from "white-web-sdk";
-import { BuiltinApps, WindowManager } from "../dist";
+import { BuiltinApps, WindowManager } from "@netless/window-manager";
 import type {
     DocsEvent,
     DocsEventOptions,
     UnifiedPageState,
     UnifiedPageStateChange,
-} from "../dist";
+} from "@netless/window-manager";
 import {
     createStatic,
     createDynamic,
@@ -22,7 +22,7 @@ import {
     createPresentation,
 } from "./apps";
 import { EXAMPLE_ORIGIN_SIZE } from "./config";
-import "../dist/style.css";
+import "@netless/window-manager/dist/style.css";
 import "@netless/appliance-plugin/dist/style.css";
 import "./register";
 import "./app/box-size-listener";
@@ -131,7 +131,7 @@ const windowManagerTestConfig = {
         : url.get("isWritable") !== "false",
     forceMaximized: parseBooleanParam("force", true),
     lazySetupInMaximizedMode: parseBooleanParam("lazy", true),
-    maxCachedAppsInMaximizedMode: parseCacheSizeParam("cache", 3),
+    maxCachedAppsInMaximizedMode: parseCacheSizeParam("cache", 4),
 };
 document.title = `Document writable=${windowManagerTestConfig.isWritable ? 1 : 0} lazy=${
     windowManagerTestConfig.lazySetupInMaximizedMode ? 1 : 0
