@@ -42,6 +42,8 @@ function fixture(real = false) {
         const proxy = { kind: "Slide", isSetup: false, isDestroyed: false, canTeardown: true,
             teardown: vi.fn(), emitAppFocusEvent: vi.fn().mockResolvedValue(true),
             emitAppActivityEvent: vi.fn().mockResolvedValue(true),
+            setViewFocusScenePath: vi.fn(),
+            setScenePath: vi.fn(),
             ensureSetup: vi.fn(async () => { await setup; proxy.isSetup = true; }) };
         manager.appProxies.set(id, proxy);
         return proxy;
@@ -119,6 +121,46 @@ it("an added App waits on the same latest pending slot and is not set up after r
     expect(b.ensureSetup).not.toHaveBeenCalled();
     expect(e.ensureSetup).toHaveBeenCalledOnce();
     a.resolve(); await flush();
+});
+
+it("publishes only the final pending App scene after setup and focus", async () => {
+    const f = fixture();
+    const aSetup = deferred();
+    const a = f.app("A", aSetup.promise);
+    const b = f.app("B");
+    f.focus("A"); await flush();
+    f.focus("B"); await flush();
+    expect(a.setScenePath).not.toHaveBeenCalled();
+    expect(b.setScenePath).not.toHaveBeenCalled();
+
+    aSetup.resolve(); await flush();
+    expect(a.setScenePath).not.toHaveBeenCalled();
+    expect(a.setViewFocusScenePath).not.toHaveBeenCalled();
+    expect(b.setViewFocusScenePath).toHaveBeenCalledOnce();
+    expect(b.setScenePath).toHaveBeenCalledOnce();
+    expect(f.manager.activeLazyAppId).toBe("B");
+});
+
+it("publishes the scene of a warm App without setting it up again", async () => {
+    const f = fixture();
+    const b = f.app("B");
+    b.isSetup = true;
+    f.focus("B"); await flush();
+    expect(b.ensureSetup).not.toHaveBeenCalled();
+    expect(b.setViewFocusScenePath).toHaveBeenCalledOnce();
+    expect(b.setScenePath).toHaveBeenCalledOnce();
+});
+
+it("does not focus a stale App if scene publication is superseded", async () => {
+    const f = fixture();
+    const b = f.app("B");
+    const c = f.app("C");
+    b.isSetup = true;
+    b.setScenePath.mockImplementation(() => f.focus("C"));
+    f.focus("B"); await flush();
+    expect(f.manager.boxManager.focusBox).not.toHaveBeenCalledWith({ appId: "B" });
+    expect(f.manager.activeLazyAppId).toBe("C");
+    expect(c.setScenePath).toHaveBeenCalledOnce();
 });
 
 it("bounds an added App wait to the previous 10s plus its own 10s and logs each hung setup once", async () => {

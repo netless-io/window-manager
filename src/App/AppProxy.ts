@@ -65,6 +65,7 @@ export class AppProxy implements PageRemoveService {
     private stateKey: string;
     private _pageState: AppPageStateImpl;
     private _prevFullPath: string | undefined;
+    private lastNotifiedFocusScenePath?: string;
     private boxSizeSynchronizer: AppBoxSizeSynchronizer;
     private setupWatchdogTimer?: ReturnType<typeof setTimeout>;
     private teardownWatchdog?: { timer: ReturnType<typeof setTimeout>; startedAt: number };
@@ -1033,16 +1034,24 @@ export class AppProxy implements PageRemoveService {
     };
 
     private setFocusScenePathHandler = debounce((fullPath: string | undefined) => {
-        if (this.view && fullPath && fullPath !== this.view?.focusScenePath) {
-            setViewFocusScenePath(this.view, fullPath);
-            callbacks.emit("onAppScenePathChange", { appId: this.id, view: this.view });
+        const view = this.view;
+        if (!view || !fullPath) return;
+        if (!this.manager.lazySetupEnabled && fullPath === view.focusScenePath) return;
+        setViewFocusScenePath(view, fullPath);
+        if (this.manager.lazySetupEnabled) {
+            if (this.lastNotifiedFocusScenePath === fullPath) return;
+            this.lastNotifiedFocusScenePath = fullPath;
         }
+        callbacks.emit("onAppScenePathChange", { appId: this.id, view });
     }, 50);
 
     public setScenePath(): void {
         if (!this.manager.canOperate) return;
         const fullScenePath = this.getFullScenePath();
         if (this.manager.room && fullScenePath && this.view) {
+            this.Logger?.info(
+                `[WindowManager][scene-commit] appId=${this.id} path=${fullScenePath} focus=${this.manager.attributes.focus}`
+            );
             setScenePath(this.manager.room, fullScenePath);
         }
     }

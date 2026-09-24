@@ -212,6 +212,14 @@ export class AppManager {
         );
     }
 
+    public isCommittedLazyFocus(appId: string): boolean {
+        return (
+            this.activeLazyAppId === appId &&
+            this.store.focus === appId &&
+            this.canRunLazyTarget(appId)
+        );
+    }
+
     private getLazyScheduler(): LatestTaskQueue<LazyFocusIntent> {
         this.setupTaskQueue.onChange = () => this.lazyScheduler?.wake();
         return (this.lazyScheduler ??= new LatestTaskQueue({
@@ -1606,6 +1614,11 @@ export class AppManager {
         ) {
             return false;
         }
+        // setup/release may have advanced the Slide page while this target
+        // was pending. Publish only the final target's per-App scene to Room.
+        appProxy.setViewFocusScenePath?.();
+        if (this.windowManger.canOperate) appProxy.setScenePath?.();
+        if (!valid()) return false;
         const box = this.boxManager?.getBox(focused);
         if (box) (this.boxManager?.teleBoxManager as any).makeBoxTop(box, false);
         this.boxManager?.focusBox({ appId: focused });
