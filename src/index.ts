@@ -28,7 +28,7 @@ import {
     ViewMode,
 } from "white-web-sdk";
 import { isEqual, isNull, isObject, omit, isNumber } from "lodash";
-import { ArgusLog, createManagedRoomLogger, log } from "./Utils/log";
+import { ArgusLog, createManagedRoomLogger, createReplayLogger, log } from "./Utils/log";
 import { PageStateImpl } from "./PageState";
 import { ReconnectRefresher } from "./ReconnectRefresher";
 import { replaceRoomFunction } from "./Utils/RoomHacker";
@@ -381,11 +381,14 @@ export class WindowManager
     private extendPluginManager?: ExtendPluginManager;
 
     private _roomLogger?: Logger;
+    private static replayLogger?: Logger;
 
     public attributesDeboundceLog?: ArgusLog;
 
     get Logger(): Logger | undefined {
-        return this._roomLogger;
+        if (this._roomLogger) return this._roomLogger;
+        if (!this.isReplay) return undefined;
+        return (WindowManager.replayLogger ??= createReplayLogger());
     }
 
     public get lazySetupInMaximizedMode(): boolean {

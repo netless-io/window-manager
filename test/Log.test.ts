@@ -4,6 +4,7 @@ import { ATTRIBUTES_LOG_DEBOUNCE_TIME } from "../src/constants";
 import {
     ArgusLog,
     createManagedRoomLogger,
+    createReplayLogger,
     LocalConsole,
     ScopedAppLogger,
 } from "../src/Utils/log";
@@ -51,6 +52,12 @@ describe("managed WindowManager logging", () => {
         const logger = createManagedRoomLogger(roomLogger as unknown as Logger);
 
         expect(() => logger.error("original operation failed")).not.toThrow();
+    });
+
+    it("redacts replay warnings before writing to the console", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        createReplayLogger().warn("https://example.com/a?token=secret&x=1");
+        expect(warn).toHaveBeenCalledWith("https://example.com/a?[REDACTED]");
     });
 
     it("emits errors immediately and debounces info independently by event", () => {

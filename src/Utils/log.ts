@@ -161,6 +161,20 @@ export function createManagedRoomLogger(logger: Logger): Logger {
     return managed as unknown as Logger;
 }
 
+/** A Player has no Room logger; keep replay warnings and errors visible locally. */
+export function createReplayLogger(): Logger {
+    const logger = {
+        debug: () => {},
+        info: () => {},
+        warn: (...messages: unknown[]) =>
+            emitManagedRoomLog(console as unknown as Logger, "warn", messages),
+        error: (...messages: unknown[]) =>
+            emitManagedRoomLog(console as unknown as Logger, "error", messages),
+        withContext: () => logger,
+    };
+    return logger as unknown as Logger;
+}
+
 type PendingAppLog = {
     payload: unknown;
     debounceTimer?: ReturnType<typeof setTimeout>;

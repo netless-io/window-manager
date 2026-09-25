@@ -20,6 +20,22 @@ describe("WindowManager", () => {
         expect(wm.setAttributes).toBeDefined();
     });
 
+    it("uses a local replay logger when no Room logger exists", () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        wm.isReplay = true;
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const error = vi.spyOn(console, "error").mockImplementation(() => {});
+        try {
+            wm.Logger?.warn("replay setup pending");
+            wm.Logger?.error("replay setup failed");
+            expect(warn).toHaveBeenCalledWith("replay setup pending");
+            expect(error).toHaveBeenCalledWith("replay setup failed");
+        } finally {
+            warn.mockRestore();
+            error.mockRestore();
+        }
+    });
+
     it("keeps eager focus synchronous while returning an immediately resolved result", async () => {
         const wm = Object.create(WindowManager.prototype) as any;
         const box = {};
