@@ -1,28 +1,13 @@
 ## Unreleased
 
-## 1.0.23-beta.4 (2026-09-24)
-- `maxCachedAppsInMaximizedMode` 默认值由 `1` 调整为 `4`（lazy 模式下未显式配置时生效），选项文档与无效值回退提示同步更新。
-- 修复 `requestFocus` 自竞态：焦点切换时旧 app 的失焦通知（`focus(false)`）不再被影子转换吞掉；被更新焦点请求取代的 lazy 转换仍会补发上一 app 的 blur（带回跳守卫，重复投递由 app 侧幂等处理）。
-- 将本地主动与远端同步的焦点目标统一纳入最新 pending 调度；10 秒未完成时上报错误并让出调度，旧 setup 的迟到结果不得覆盖新焦点。
-- 按完整的运行活动状态协调最小化、浏览器后台、恢复与 Slide/Presentation 资源转换，等待焦点资源转换完成后再确认提交。
-- 补齐 setup、teardown、关闭 App 与主画布聚焦交错时的回归测试。
-
-## 1.0.23-beta.3 (2026-09-23)
-- lazy 模式下已初始化的 Slide 移出 LRU 或最小化时保留 runtime，由 app-slide 的 focus/blur 生命周期管理 freeze/unfreeze；再次聚焦时重新计入缓存，不重复 setup。
-- Slide 首次初始化和失败重试、实际关闭与销毁保持原有生命周期，其他 App 保持 LRU teardown 策略。
-- 补充 Slide 缓存外复用、最小化、关闭销毁及其他 App 淘汰的回归测试，并明确缓存容量不等于保留的 Slide runtime 数量。
-
-## 1.0.23-beta.2 (2026-09-23)
-- 串行协调 lazy 模式下的失焦、初始化与聚焦，避免旧窗口延迟失焦清空新焦点，并跳过已失效的待初始化任务。
-- 在 maximized、非 minimized 且 useBoxesStatus=false 时恢复缺失焦点；可写端同步恢复结果，覆盖初始化、重连和 setup 失败恢复场景。
-- 补充 App focus 回调等待上限、App 创建队列完成通知及 lazy focus 回归测试。
-
-## 1.0.23-beta.1 (2026-09-21)
-- 新增 `forceMaximized`、`lazySetupInMaximizedMode` 与 `maxCachedAppsInMaximizedMode`，支持强制最大化模式下按焦点延迟初始化 App runtime，并按 LRU 保留有限缓存。
-- App setup/teardown 统一通过串行队列执行，补齐缓存命中、淘汰、失败重试、pinned runtime、重连与 lazy/eager 切换时序。
-- `useBoxesStatus=true` 时忽略 `forceMaximized`；`useBoxesStatus=false` 时忽略 App 的 `forceTop`/`forceNormal`，避免两套窗口状态语义冲突。
-- 升级 `@netless/telebox-insider` 到 `0.3.1-beta.0`，修复强制最大化下禁用按钮的光标反馈。
-- 升级内置 `@netless/app-presentation` 到 `0.1.13-beta.2`，完善 teardown 清理与失焦资源降级。
+## 1.0.23 (2026-09-28)
+- 新增 `forceMaximized`、`lazySetupInMaximizedMode` 与 `maxCachedAppsInMaximizedMode`，强制最大化时按焦点初始化 App，并按 LRU 管理缓存；缓存默认容量为 `4`。`useBoxesStatus=true` 时不启用强制最大化。
+- 本地操作与远端同步共用最新 pending 焦点调度。缓存命中时复用 runtime；需要 setup 时等待成功、失败或超时结算，再提交有效目标的房间 focus、Box 焦点与 zIndex。旧 setup 的迟到结果不会覆盖新焦点。
+- 初始化和重连时优先恢复共享 focus，缺失时选择最高 zIndex 的 Box；可写端同步恢复的焦点。同步端提交本地层级，不反复回写同一焦点。
+- 已初始化的 Slide 在移出 LRU 或最小化后保留 runtime，由 App 焦点与运行活动状态管理资源；其他 App 继续按缓存策略 teardown。补齐最小化、后台与恢复时的资源状态协调。
+- `focusApp()` 的成功结果以房间 focus、Box 焦点和 zIndex 提交为准；App setup 或焦点通知失败单独记录日志。`addApp()` 等待创建及适用的焦点流程并返回 `Promise<appId | undefined>`，移除 `addAppAndWaitForSetup()`。
+- `closeApp()` 等待关闭及后继焦点交接，TeleBox 关闭按钮使用同一流程；连续关闭正在等待 setup 的后继 App 时，若当前共享焦点已失效，会继续选择剩余 App。
+- 补齐 lazy setup、缓存、焦点、关闭和主画布切换的回归测试；升级 `@netless/telebox-insider` 到 `0.3.2`，升级内置 `@netless/app-presentation` 到 `0.1.13`。
 
 ## 1.0.22 (2026-09-13)
 - 仅以房间 attributes 是否存在 `originSize` 判定 MainView 坐标模式，移除 `_mainViewCameraCoordinateVersion` 及旧迁移状态。
