@@ -69,7 +69,7 @@ describe("WindowManager", () => {
             )
         ).toEqual({
             useBoxesStatus: true,
-            requestedForceMaximized: false,
+            requestedForceMaximized: undefined,
             forceMaximized: false,
             lazySetupInMaximizedMode: false,
         });
@@ -80,9 +80,9 @@ describe("WindowManager", () => {
                 true
             )
         ).toEqual({
-            useBoxesStatus: true,
-            requestedForceMaximized: false,
-            forceMaximized: false,
+            useBoxesStatus: false,
+            requestedForceMaximized: undefined,
+            forceMaximized: true,
             lazySetupInMaximizedMode: false,
         });
     });
@@ -109,29 +109,101 @@ describe("WindowManager", () => {
         });
     });
 
-    it("ignores room forceMaximized behavior while independent box states are enabled", () => {
+    it("lets a writable mount explicitly clear an existing force policy", () => {
+        const resolve = (WindowManager as any).resolveEffectiveWindowMode;
+        const attributes = { forceMaximized: true, minimized: false, maximized: true };
+
+        expect(resolve({ forceMaximized: false, lazySetupInMaximizedMode: true }, attributes, true))
+            .toMatchObject({
+                requestedForceMaximized: false,
+                forceMaximized: false,
+                lazySetupInMaximizedMode: false,
+            });
+        expect(resolve({ forceMaximized: false }, attributes, false).forceMaximized).toBe(true);
+        expect(resolve({}, attributes, true).forceMaximized).toBe(true);
+        expect(resolve({ forceMaximized: false, useBoxesStatus: true }, attributes, true))
+            .toMatchObject({
+                useBoxesStatus: true,
+                requestedForceMaximized: false,
+                forceMaximized: false,
+            });
+    });
+
+    it("writes maximized with force and clears force without entering normal", () => {
         const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes").mockImplementation(() => {});
         const setForceMaximized = vi.fn();
         const setMaximized = vi.fn();
-        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes");
-        (wm as any)._useBoxesStatus = true;
-        (wm as any)._forceMaximized = false;
+        (wm as any)._useBoxesStatus = false;
+        (wm as any)._lazySetupInMaximizedMode = false;
         (wm as any).boxManager = { setForceMaximized, setMaximized };
+        Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
+        Object.defineProperty(wm, "attributes", {
+            configurable: true,
+            value: { maximized: false, minimized: false },
+        });
+
+        wm.setForceMaximized(true);
+        expect(safeSetAttributes).toHaveBeenCalledWith({
+            forceMaximized: true,
+            maximized: true,
+        });
+        expect(setForceMaximized).toHaveBeenCalledWith(true);
+        expect(wm.forceMaximized).toBe(true);
+        wm.setMaximized(false);
+        expect(setMaximized).not.toHaveBeenCalledWith(false, false);
+
+        wm.setForceMaximized(false);
+        expect(safeSetAttributes).toHaveBeenCalledWith({ forceMaximized: undefined });
+        expect(wm.forceMaximized).toBe(false);
+        expect(setForceMaximized).toHaveBeenCalledWith(false);
+        expect(setMaximized).not.toHaveBeenCalledWith(false, false);
+    });
+
+    it("lets room force override local box mode and restores it when force clears", () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const setForceMaximized = vi.fn();
+        const setUseBoxesStatus = vi.fn();
+        const setBoxesStatus = vi.fn();
+        const setMaximized = vi.fn();
+        const safeSetAttributes = vi.spyOn(wm, "safeSetAttributes").mockImplementation(() => {});
+        (wm as any)._useBoxesStatus = true;
+        (wm as any)._requestedUseBoxesStatus = true;
+        (wm as any)._forceMaximized = false;
+        (wm as any).boxManager = {
+            setForceMaximized,
+            setUseBoxesStatus,
+            setBoxesStatus,
+            setMaximized,
+        };
+        (wm as any).appManager = { useBoxesStatus: true };
         (wm as any)._roomLogger = { warn: vi.fn() };
         Object.defineProperty(wm, "attributes", {
             configurable: true,
-            value: { forceMaximized: true, maximized: true },
+            value: { forceMaximized: true, maximized: true, boxesStatus: {} },
         });
         Object.defineProperty(wm, "canOperate", { configurable: true, value: true });
 
         wm.applyForceMaximized(true);
+        expect(wm.forceMaximized).toBe(true);
+        expect(wm.useBoxesStatus).toBe(false);
+        expect((wm.appManager as any).useBoxesStatus).toBe(false);
+        expect(setUseBoxesStatus).toHaveBeenCalledWith(false);
+        expect(setForceMaximized).toHaveBeenCalledWith(true);
         wm.setMaximized(false);
-        wm.setForceMaximized(true);
+        expect(setMaximized).not.toHaveBeenCalledWith(false, false);
 
+        wm.setForceMaximized(false);
         expect(wm.forceMaximized).toBe(false);
+        expect(wm.useBoxesStatus).toBe(true);
+        expect((wm.appManager as any).useBoxesStatus).toBe(true);
+        expect(setUseBoxesStatus).toHaveBeenCalledWith(true);
         expect(setForceMaximized).toHaveBeenCalledWith(false);
-        expect(setMaximized).toHaveBeenCalledWith(false, false);
-        expect(safeSetAttributes).not.toHaveBeenCalled();
+        expect(setBoxesStatus).toHaveBeenCalledWith({});
+        expect(safeSetAttributes).toHaveBeenCalledWith({ forceMaximized: undefined });
+        expect((wm as any)._roomLogger.warn).toHaveBeenCalledWith(
+            "[WindowManager] room forceMaximized overrides local useBoxesStatus"
+        );
     });
 
     it("waits for App setup and returns the created appId", async () => {

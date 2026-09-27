@@ -71,7 +71,7 @@ export class AttributesDelegate {
     }
 
     public get focus(): string | undefined {
-        return get(this.attributes, [Fields.Focus]);
+        return get(this.attributes, [Fields.Focus]) ?? undefined;
     }
 
     public getAppAttributes(id: string): AppSyncAttributes {
@@ -162,11 +162,11 @@ export class AttributesDelegate {
         }
     }
 
-    public cleanAppAttributes(id: string) {
+    public cleanAppAttributes(id: string, preserveFocus = false) {
         this.context.safeUpdateAttributes([Fields.Apps, id], undefined);
         this.context.safeSetAttributes({ [id]: undefined });
         const focus = this.attributes[Fields.Focus];
-        if (focus === id) {
+        if (focus === id && !preserveFocus) {
             this.cleanFocus();
         }
     }

@@ -64,15 +64,15 @@
 - **优先级**：P0
 - **前置依赖**：无
 
-###### TC-FUNC-004 [主动API/回调API][force 清除] 显式清除 force 后回退 eager
+###### TC-FUNC-004 [属性回调][force 清除] 显式清除 force 后回退 eager
 
-- **目标**：确认 force 清除触发 eager 补齐，且不隐式修改房间 boxState。
+- **目标**：确认可写端显式清除 force 后回退 eager，且不隐式修改 boxState。
 - **来源场景**：SC-04
 - **前置**：lazy 客户端已在 maximized 运行，至少存在 3 个 shell，其中 1 个 ready、2 个未 setup。
 - **步骤**：
-  1. 管理端调用 `setForceMaximized(false)`，记录 attributes 变化和 setup queue 事件，确认 force 字段被清除、lazy 本地开关关闭、补齐任务进入串行队列。
-  2. 等待 `setupAllApps()` 对应 Promise/queue idle，确认所有可 setup App 为 `isSetup=true`，每个 App 只有一个未完成 setup Promise，setup 区间不交叉。
-  3. 读取 boxState，确认 force 清除没有隐式调用 `setMaximized(false)`；随后显式调用 normal API，确认原有 normal 语义恢复。
+  1. 可写端调用 `setForceMaximized(false)` 或下一端 `mount({ forceMaximized: false })`，确认共享 force 字段清除。
+  2. 确认 lazy 端回退 eager，按串行队列补齐未 setup App。
+  3. 确认清除 force 未隐式调用 `setMaximized(false)`；随后可显式恢复 normal。
 - **优先级**：P0
 - **前置依赖**：TC-FUNC-001
 
@@ -240,7 +240,7 @@
 - **来源场景**：SC-14
 - **前置**：同一房间启动 M 管理端、L lazy+cache=3 端、E force+eager 端；三端使用相同 App 列表。
 - **步骤**：
-  1. M 调用 `setForceMaximized(true)`，三端读取 attributes，确认 force=true、normal 被拦截；L 的 cache 内容不出现在 E/M 的本地 dumpState。
+  1. M 在 `mount()` 时设置 `forceMaximized=true`，三端读取 attributes，确认 force=true、maximized=true，normal 被拦截；L 的 cache 内容不出现在 E/M 的本地 dumpState。
   2. L 聚焦 A/B，确认 L 只维护本地 cache；E 端所有 App setup，且 E 的 setup 串行完成。
   3. M 清除 force，确认 L 回退 eager 并补齐；E 恢复原有 normal API 语义，但不会因 L 的本地 cache 事件改变自身 runtime。
 - **优先级**：P0
@@ -404,7 +404,7 @@
 
 ## 压测
 
-来源为既有 F1-F7 与 6x/20x 压测报告，本次扩展加入 force 清除、eager fallback、minimized、reconnect、seek、bindContainer。6x/20x 各 5 次独立清房，按上方 CPU/稳定性门槛判定；20x 单 run 超过 15 分钟标记 ABORT 并保留全部证据。
+来源为既有 F1-F7 与 6x/20x 压测报告，本次扩展加入动态 force 守卫、eager fallback、minimized、reconnect、seek、bindContainer。6x/20x 各 5 次独立清房，按上方 CPU/稳定性门槛判定；20x 单 run 超过 15 分钟标记 ABORT 并保留全部证据。
 
 ## 云测
 

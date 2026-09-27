@@ -61,10 +61,12 @@ function fixture(setup = false, cached = false, lazy = true) {
         windowManger: {
             attributes: attrs,
             lazySetupInMaximizedMode: lazy,
+            canOperate: true,
             resolveAppOptions: () => ({}),
             Logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
         },
         runtimeCache: new Map(cached ? [["app-1", { state: "ready", lastUsed: 1 }]] : []),
+        lazyFocusGeneration: 0,
         settingUpApps: new Map(),
         appProxies: new Map(),
         appStatus: new Map(),
@@ -116,10 +118,83 @@ it.each([
     expect(manager.activeLazyAppId).toBeUndefined();
     expect(proxy.appEmitter.emit).toHaveBeenCalledWith("destroy", { error: undefined });
     expect(proxy.viewManager.destroyView).toHaveBeenCalledWith("app-1");
-    expect(proxy.store.cleanAppAttributes).toHaveBeenCalledWith("app-1");
+    expect(proxy.store.cleanAppAttributes).toHaveBeenCalledWith("app-1", false);
     expect(manager.attributes.apps["app-1"]).toBeUndefined();
     expect(manager.attributes.focus).toBeUndefined();
 });
+
+it.each([true, false])(
+    "closing a focused app chooses the highest remaining Box, cached=%s",
+    async cached => {
+        const { manager, proxy } = fixture(true, true);
+        manager.runtimeCache.set("app-2", { state: cached ? "ready" : "evicted", lastUsed: 2 });
+        manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+        manager.attributes.apps["app-3"] = { kind: "ReviewApp", state: { zIndex: 101 } };
+        manager.appProxies.set("app-2", { isDestroyed: false });
+        manager.appProxies.set("app-3", { isDestroyed: false });
+        manager.boxManager = {
+            getBox: vi.fn((id: string) => ({ "app-2": { zIndex: 102 }, "app-3": { zIndex: 101 } })[id]),
+            boxIsFocus: vi.fn(() => false),
+        };
+        const requestFocus = vi.spyOn(manager, "requestFocus").mockImplementation(() => undefined);
+
+        await manager.closeApp("app-1");
+
+        expect(proxy.store.cleanAppAttributes).toHaveBeenCalledWith("app-1", true);
+        expect(manager.attributes.focus).toBe("app-1");
+        expect(requestFocus).toHaveBeenCalledTimes(1);
+        expect(requestFocus).toHaveBeenCalledWith("app-2");
+    }
+);
+
+it("closing another app preserves an existing valid focus", async () => {
+    const { manager } = fixture(true, false);
+    manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+    manager.attributes.focus = "app-2";
+    manager.appProxies.set("app-2", { isDestroyed: false });
+    const requestFocus = vi.spyOn(manager, "requestFocus").mockImplementation(() => undefined);
+
+    await manager.closeApp("app-1");
+
+    expect(manager.attributes.focus).toBe("app-2");
+    expect(requestFocus).not.toHaveBeenCalled();
+});
+
+it("repairs an empty focus after closing an app while another Box remains", async () => {
+    const { manager } = fixture(true, false);
+    manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+    manager.attributes.focus = null;
+    manager.appProxies.set("app-2", { isDestroyed: false });
+    const requestFocus = vi.spyOn(manager, "requestFocus").mockImplementation(() => undefined);
+
+    await manager.closeApp("app-1");
+
+    expect(requestFocus).toHaveBeenCalledTimes(1);
+    expect(requestFocus).toHaveBeenCalledWith("app-2");
+});
+
+it.each([undefined, "app-3"])(
+    "a newer focus intent takes precedence over close handoff: %s",
+    async focused => {
+        const { manager, proxy } = fixture(true, false);
+        manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+        manager.attributes.apps["app-3"] = { kind: "ReviewApp", state: { zIndex: 101 } };
+        manager.appProxies.set("app-2", { isDestroyed: false });
+        manager.appProxies.set("app-3", { isDestroyed: false });
+        const gate = deferred();
+        proxy.appEmitter.emit.mockReturnValue(gate.promise);
+        const requestFocus = vi.spyOn(manager, "requestFocus").mockImplementation(() => undefined);
+
+        const closing = manager.closeApp("app-1");
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        manager.lazyFocusGeneration = 1;
+        manager.desiredLazyFocus = { focused, generation: 1 };
+        gate.resolve();
+        await closing;
+
+        expect(requestFocus).not.toHaveBeenCalled();
+    }
+);
 
 it("addApp does not create a proxy after close during attribute preparation", async () => {
     const { manager } = fixture();
@@ -182,7 +257,7 @@ it("close removes synchronized attributes/scenes even before a proxy exists", as
     manager.displayer.scenePathType = vi.fn(() => ScenePathType.Dir);
     manager.displayer.removeScenes = vi.fn();
     await manager.closeApp("app-1");
-    expect(proxy.store.cleanAppAttributes).toHaveBeenCalledWith("app-1");
+    expect(proxy.store.cleanAppAttributes).toHaveBeenCalledWith("app-1", false);
     expect(manager.pendingAppIds.has("app-1")).toBe(false);
     expect(manager.displayer.removeScenes).toHaveBeenCalledWith("/deck", undefined);
     expect(manager.attributes.apps["app-1"]).toBeUndefined();
@@ -209,6 +284,7 @@ it.each(["close", "remote-delete", "manager-destroy"])(
         vi.useFakeTimers();
         const { manager } = fixture();
         manager.appProxies.clear();
+        manager.requestFocus = vi.fn();
         manager.attributes.apps["app-2"] = { kind: "ReviewApp", createdAt: 2 };
         manager.attributes["app-2"] = {};
         const tasks: Array<() => Promise<unknown>> = [];

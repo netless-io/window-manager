@@ -83,7 +83,7 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
     }
 
     public getRuntimeActivity = (): { active: boolean; revision: number } => ({
-        active: this.manager.canRunLazyTarget(this.appId) && this.appProxy.isFocused,
+        active: this.manager.canRunLazyTarget(this.appId) && this.appProxy.isResourceFocused,
         revision: this.manager.activityRevision,
     });
 

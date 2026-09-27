@@ -23,6 +23,40 @@ const createContext = (lazy: boolean, focused: boolean, committed: boolean) => {
 };
 
 describe("AppContext scene path publication", () => {
+    it("activates a pending target locally without publishing room focus", () => {
+        const manager = Object.create(AppManager.prototype) as any;
+        Object.assign(manager, {
+            windowManger: {
+                lazySetupInMaximizedMode: true,
+                attributes: { minimized: false, apps: {} },
+            },
+            store: { focus: "Slide-A" },
+            displayer: { removeMagixEventListener: vi.fn() },
+            appProxies: new Map(),
+            boxManager: { minimized: false },
+            desiredLazyFocus: { focused: "Slide-B", generation: 1 },
+            settingUpApps: new Map([["Slide-B", Promise.resolve()]]),
+            preparingLazyFocusAppId: "Slide-B",
+        });
+        const proxy = Object.create(AppProxy.prototype) as any;
+        Object.assign(proxy, { id: "Slide-B", manager, store: manager.store });
+        const context = new AppContext(manager, {} as any, "Slide-B", proxy);
+
+        expect(proxy.isFocused).toBe(false);
+        expect(proxy.isResourceFocused).toBe(true);
+        expect(context.getRuntimeActivity().active).toBe(true);
+        expect(manager.store.focus).toBe("Slide-A");
+
+        manager.desiredLazyFocus = { focused: "Slide-C", generation: 2 };
+        expect(proxy.isResourceFocused).toBe(false);
+        expect(context.getRuntimeActivity().active).toBe(false);
+
+        manager.desiredLazyFocus = { focused: "Slide-B", generation: 3 };
+        manager.windowManger.lazySetupInMaximizedMode = false;
+        expect(proxy.isResourceFocused).toBe(false);
+        expect(context.getRuntimeActivity().active).toBe(false);
+    });
+
     it("records a pending Slide page without changing the room scene", async () => {
         const { context, room, proxy } = createContext(true, true, false);
         await context.setScenePath("/slide333/1");
@@ -49,9 +83,13 @@ describe("AppContext scene path publication", () => {
             windowManger: { lazySetupInMaximizedMode: true, attributes },
             store: { focus: "Slide-B" },
             boxManager: { minimized: false },
+            appProxies: new Map([["Slide-B", { isSetup: true }]]),
             activeLazyAppId: "Slide-B",
         });
         expect(manager.isCommittedLazyFocus("Slide-B")).toBe(true);
+        manager.appProxies.get("Slide-B").isSetup = false;
+        expect(manager.isCommittedLazyFocus("Slide-B")).toBe(false);
+        manager.appProxies.get("Slide-B").isSetup = true;
         attributes.minimized = true;
         expect(manager.isCommittedLazyFocus("Slide-B")).toBe(false);
         attributes.minimized = false;

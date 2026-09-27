@@ -7,6 +7,7 @@ describe("BoxManager box size synchronization", () => {
     afterEach(() => {
         globalThis.CanvasRenderingContext2D = originalCanvasRenderingContext2D;
         globalThis.CustomEvent = originalCustomEvent;
+        vi.useRealTimers();
         vi.restoreAllMocks();
     });
 
@@ -109,6 +110,9 @@ describe("BoxManager box size synchronization", () => {
             focusBox: vi.fn((appId: string) => {
                 handlers.get("focused")?.({ id: appId });
             }),
+            focusBoxCommitted: vi.fn((appId: string) => {
+                handlers.get("focused")?.({ id: appId });
+            }),
         };
         vi.spyOn(BoxManager.prototype as any, "setupBoxManager").mockReturnValue(
             teleBoxManager
@@ -128,6 +132,120 @@ describe("BoxManager box size synchronization", () => {
             appId: "app-1",
             source: "programmatic",
         });
+    });
+
+    it("does not apply restored box focus before lazy setup completes", async () => {
+        vi.useFakeTimers();
+        const { BoxManager } = await import("../src/BoxManager");
+        const manager = Object.create(BoxManager.prototype) as any;
+        manager.teleBoxManager = {
+            queryOne: vi.fn(() => ({ id: "app-1" })),
+            update: vi.fn(),
+            focusBox: vi.fn(),
+        };
+        manager.context = {
+            isLazySetup: () => true,
+            scheduleAppBoxSizeSync: vi.fn(),
+            callbacks: { emit: vi.fn() },
+        };
+
+        manager.updateBoxState({ id: "app-1", focus: true });
+        vi.advanceTimersByTime(50);
+
+        expect(manager.teleBoxManager.focusBox).not.toHaveBeenCalled();
+    });
+
+    it("does not restore normal state while forceMaximized is enabled", async () => {
+        vi.useFakeTimers();
+        const { BoxManager } = await import("../src/BoxManager");
+        const manager = Object.create(BoxManager.prototype) as any;
+        manager.teleBoxManager = {
+            queryOne: vi.fn(() => ({ id: "app-1" })),
+            update: vi.fn(),
+            forceMaximized: true,
+            maximized: true,
+            setMaximized: vi.fn(),
+            setMinimized: vi.fn(),
+        };
+        manager.context = {
+            scheduleAppBoxSizeSync: vi.fn(),
+            callbacks: { emit: vi.fn() },
+        };
+
+        manager.updateBoxState({ id: "app-1", maximized: false, minimized: false });
+        vi.advanceTimersByTime(50);
+
+        expect(manager.teleBoxManager.setMaximized).not.toHaveBeenCalled();
+        expect(manager.teleBoxManager.setMinimized).toHaveBeenCalledWith(false, true);
+    });
+
+    it("creates a lazy box below the visible box and defers restored zIndex", async () => {
+        const { BoxManager } = await import("../src/BoxManager");
+        const manager = Object.create(BoxManager.prototype) as any;
+        const create = vi.fn();
+        const update = vi.fn();
+        manager.teleBoxManager = {
+            topBox: { id: "previous", zIndex: 315 },
+            useBoxesStatus: false,
+            containerRect: { width: 1000, height: 800 },
+            create,
+            queryOne: vi.fn(() => ({ id: "target" })),
+            update,
+        };
+        manager.context = {
+            isLazySetup: () => true,
+            emitter: { emit: vi.fn() },
+            callbacks: { emit: vi.fn() },
+            scheduleAppBoxSizeSync: vi.fn(),
+        };
+
+        manager.createBox({ appId: "target", app: { config: {} }, smartPosition: true });
+        expect(create.mock.calls[0][0].zIndex).toBe(314);
+        manager.updateBoxState({ id: "target", zIndex: 317 });
+        expect(update.mock.calls[0][1].zIndex).toBeUndefined();
+    });
+
+    it("keeps eager box creation and restored zIndex unchanged", async () => {
+        const { BoxManager } = await import("../src/BoxManager");
+        const manager = Object.create(BoxManager.prototype) as any;
+        const create = vi.fn();
+        const update = vi.fn();
+        manager.teleBoxManager = {
+            topBox: { id: "previous", zIndex: 315 },
+            useBoxesStatus: false,
+            containerRect: { width: 1000, height: 800 },
+            create,
+            queryOne: vi.fn(() => ({ id: "target" })),
+            update,
+        };
+        manager.context = {
+            isLazySetup: () => false,
+            emitter: { emit: vi.fn() },
+            callbacks: { emit: vi.fn() },
+            scheduleAppBoxSizeSync: vi.fn(),
+        };
+
+        manager.createBox({ appId: "target", app: { config: {} } });
+        expect(create.mock.calls[0][0].zIndex).toBeUndefined();
+        manager.updateBoxState({ id: "target", zIndex: 317 });
+        expect(update.mock.calls[0][1].zIndex).toBe(317);
+    });
+
+    it("routes lazy focusTopBox through the pending request", async () => {
+        const { BoxManager } = await import("../src/BoxManager");
+        const manager = Object.create(BoxManager.prototype) as any;
+        manager.teleBoxManager = { query: vi.fn(() => [{ id: "app-1" }]) };
+        manager.getTopBox = vi.fn(() => ({ id: "app-1" }));
+        manager.context = {
+            isLazySetup: () => true,
+            requestAppFocus: vi.fn(),
+        };
+        manager.focusBox = vi.fn();
+
+        manager.focusTopBox();
+
+        expect(manager.context.requestAppFocus).toHaveBeenCalledWith("app-1");
+        expect(manager.focusBox).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -194,5 +312,28 @@ describe("BoxManager box size synchronization", () => {
         };
 
         expect(manager.getTopBox("failed")?.id).toBe("fallback");
+    });
+
+    it("never lowers an existing DOM zIndex in lazy mode", async () => {
+        const { BoxManager } = await import("../src/BoxManager");
+        const box = { id: "app-1", zIndex: 101 };
+        const update = vi.fn((_: string, value: { zIndex: number }) => {
+            box.zIndex = value.zIndex;
+        });
+        const manager = Object.create(BoxManager.prototype) as BoxManager & {
+            teleBoxManager: { queryOne: () => typeof box; update: typeof update };
+            context: { isLazySetup: () => boolean };
+        };
+        manager.teleBoxManager = { queryOne: () => box, update };
+        manager.context = { isLazySetup: () => true };
+
+        manager.setZIndex("app-1", 99);
+        manager.setZIndex("app-1", 101);
+        expect(box.zIndex).toBe(101);
+        expect(update).not.toHaveBeenCalled();
+
+        manager.setZIndex("app-1", 103);
+        expect(box.zIndex).toBe(103);
+        expect(update).toHaveBeenCalledOnce();
     });
 });

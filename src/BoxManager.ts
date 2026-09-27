@@ -106,7 +106,7 @@ export const createBoxManager = (
                 manager.appManager?.scheduleAppBoxSizeSync(appId, syncOptions),
             cleanFocus: () => manager.appManager?.requestMainViewFocus(),
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
-            requestAppFocus: (appId: string) => manager.appManager?.requestFocus(appId),
+            requestAppFocus: (appId: string) => manager.appManager?.requestFocusFromTeleBox(appId),
             isLazySetup: () => manager.lazySetupInMaximizedMode,
             isForceMaximized: () => manager.forceMaximized,
             callbacks,
@@ -297,6 +297,10 @@ export class BoxManager {
             minheight = minheight / rect.height;
         }
 
+        const lazyTop =
+            this.context.isLazySetup?.() && !this.createTeleBoxManagerConfig?.useBoxesStatus
+                ? this.teleBoxManager.topBox
+                : undefined;
         const createBoxConfig: TeleBoxManagerCreateConfig = {
             title,
             minWidth: minwidth,
@@ -308,6 +312,7 @@ export class BoxManager {
             forceTop: params.forceTop,
             forceNormal: params.forceNormal,
             isDragContent: params.isDragContent,
+            ...(lazyTop ? { zIndex: Math.max(1, lazyTop.zIndex - 1) } : {}),
         };
         this.teleBoxManager.create(createBoxConfig, params.smartPosition);
         this.context.emitter.emit(`${params.appId}${Events.WindowCreated}` as any);
@@ -373,6 +378,11 @@ export class BoxManager {
 
         const TeleBoxManagerClass = getExtendClass(TeleBoxManager, WindowManager.extendClass);
         const manager = new TeleBoxManagerClass(initManagerState);
+        manager.setLazyFocusRequestHandler((appId: string) => {
+            if (!this.context.isLazySetup?.() || !this.canOperate) return false;
+            this.context.requestAppFocus?.(appId);
+            return true;
+        });
         if (this.teleBoxManager) {
             this.teleBoxManager.destroy();
         }
@@ -432,7 +442,7 @@ export class BoxManager {
                     y: state.y,
                     width: state.width || 0.5,
                     height: state.height || 0.5,
-                    zIndex: state.zIndex,
+                    zIndex: this.context.isLazySetup?.() ? undefined : state.zIndex,
                     boxStatus: state.boxStatus,
                     lastNotMinimizedBoxStatus: state.lastNotMinimizedBoxStatus,
                     forceTop: state.forceTop,
@@ -442,14 +452,14 @@ export class BoxManager {
                 true
             );
             setTimeout(() => {
-                if (state.focus) {
+                if (state.focus && !this.context.isLazySetup?.()) {
                     this.teleBoxManager.focusBox(box.id, true);
                 }
                 if (state.maximized != null) {
-                    this.teleBoxManager.setMaximized(Boolean(state.maximized), true);
+                    this.setMaximized(Boolean(state.maximized));
                 }
                 if (state.minimized != null) {
-                    this.teleBoxManager.setMinimized(Boolean(state.minimized), true);
+                    this.setMinimized(Boolean(state.minimized));
                 }
                 this.context.scheduleAppBoxSizeSync(box.id);
             }, 50);
@@ -479,7 +489,7 @@ export class BoxManager {
         // the complete event callback without leaking into later UI actions.
         this.programmaticFocusDepth += 1;
         try {
-            this.teleBoxManager.focusBox(appId, skipUpdate);
+            this.teleBoxManager.focusBoxCommitted(appId, skipUpdate);
         } finally {
             this.programmaticFocusDepth -= 1;
         }
@@ -531,6 +541,15 @@ export class BoxManager {
         }
     }
 
+    public setUseBoxesStatus(useBoxesStatus: boolean): void {
+        this.createTeleBoxManagerConfig = {
+            ...this.createTeleBoxManagerConfig,
+            useBoxesStatus,
+        };
+        this.teleBoxManager.setUseBoxesStatus(useBoxesStatus);
+        this.context.scheduleAppBoxSizeSync();
+    }
+
     public setMinimized(minimized: boolean, skipUpdate = true) {
         if (!minimized && (this.teleBoxManager as any).forceMaximized && !this.maximized) {
             return;
@@ -544,7 +563,8 @@ export class BoxManager {
         if (boxes.length >= 1) {
             const box = this.getTopBox();
             if (box) {
-                this.focusBox({ appId: box.id }, false);
+                if (this.context.isLazySetup?.()) this.context.requestAppFocus?.(box.id);
+                else this.focusBox({ appId: box.id }, false);
             }
         }
     }
@@ -563,6 +583,9 @@ export class BoxManager {
     }
 
     public setZIndex(id: string, zIndex: number, skipUpdate = true) {
+        if (this.context.isLazySetup?.() && zIndex <= (this.getBox(id)?.zIndex ?? -Infinity)) {
+            return;
+        }
         this.teleBoxManager.update(id, { zIndex }, skipUpdate);
     }
 

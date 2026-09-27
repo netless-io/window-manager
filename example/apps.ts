@@ -155,6 +155,23 @@ export const createSlide = (manager: WindowManager) => {
     });
 };
 
+export const createPerformanceSlide = (
+    manager: WindowManager,
+    suffix: "222" | "333" | "444"
+) => {
+    return manager.addApp({
+        kind: "Slide",
+        options: {
+            scenePath: `/slide${suffix}`,
+            title: suffix === "222" ? "test.pptx2222" : `test.pptx${suffix}`,
+        },
+        attributes: {
+            taskId: "4d9409def2a24dab97034fc7ab5ef5c5",
+            url: "https://conversion-demo-cn.oss-cn-hangzhou.aliyuncs.com/demo/dynamicConvert",
+        },
+    });
+};
+
 export const createBoard = (manager: WindowManager) => {
     return manager.addApp({
         kind: "Board",

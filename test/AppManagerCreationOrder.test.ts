@@ -155,4 +155,42 @@ describe("AppManager app creation order", () => {
 
         expect(tasks).toHaveLength(3);
     });
+
+    it("queues a new lazy app's focus only after its proxy exists", async () => {
+        const manager = Object.create(AppManager.prototype) as any;
+        manager.windowManger = {
+            lazySetupInMaximizedMode: true,
+            Logger: { info: vi.fn(), warn: vi.fn() },
+            attributes: { apps: { next: {} } },
+        };
+        manager.beforeAddApp = vi.fn().mockResolvedValue({ appId: "next", needFocus: true });
+        manager.baseInsertApp = vi.fn().mockResolvedValue({ id: "next" });
+        manager.afterAddApp = vi.fn();
+        manager.requestFocus = vi.fn();
+
+        await AppManager.prototype.addApp.call(manager, { kind: "Slide" }, false);
+
+        expect(manager.baseInsertApp).toHaveBeenCalledOnce();
+        expect(manager.afterAddApp).toHaveBeenCalledWith({ id: "next" });
+        expect(manager.requestFocus).toHaveBeenCalledWith("next", true);
+    });
+
+    it("does not publish room focus while creating a lazy app", async () => {
+        const manager = Object.create(AppManager.prototype) as any;
+        manager.windowManger = { lazySetupInMaximizedMode: true };
+        manager.appStatus = new Map();
+        manager.boxManager = { minimized: false };
+        manager.safeUpdateAttributes = vi.fn();
+        manager.store = {
+            setupAppAttributes: vi.fn(),
+            setAppFocus: vi.fn(),
+        };
+
+        const result = await (AppManager.prototype as any).beforeAddApp.call(
+            manager, { kind: "Slide" }, false
+        );
+
+        expect(result.needFocus).toBe(true);
+        expect(manager.store.setAppFocus).not.toHaveBeenCalled();
+    });
 });

@@ -32,6 +32,10 @@ const createProxy = () => {
         manager: {
             windowManger: { Logger: logger },
             notifyAppDestroyed: vi.fn(),
+            trackAppClose: vi.fn(),
+            captureAppClose: vi.fn(() => ({ wasFocused: false, wasPending: false, generation: 0 })),
+            getCloseSuccessor: vi.fn(),
+            finishAppClose: vi.fn(),
             appProxies,
             viewManager,
             appStatus: new Map(),
@@ -57,6 +61,76 @@ const createProxy = () => {
 };
 
 describe("AppProxy setup diagnostics", () => {
+    it("routes a legacy app focus request through lazy pending", () => {
+        const { proxy } = createProxy();
+        proxy.manager.canOperate = true;
+        proxy.manager.lazySetupEnabled = true;
+        proxy.manager.requestFocus = vi.fn();
+        proxy.boxManager = { focusBox: vi.fn() };
+        const listener = proxy.makeAppEventListener("app-1");
+
+        listener("focus", undefined);
+        listener("focus", true);
+
+        expect(proxy.manager.requestFocus).toHaveBeenCalledOnce();
+        expect(proxy.manager.requestFocus).toHaveBeenCalledWith("app-1");
+        expect(proxy.boxManager.focusBox).not.toHaveBeenCalled();
+    });
+
+    it("defers an old app's zIndex feedback until it is selected again", () => {
+        const { proxy } = createProxy();
+        proxy.setupSucceeded = true;
+        proxy.manager.lazySetupEnabled = true;
+        proxy.manager.shouldDeferLazyZIndex = vi.fn(() => true);
+        proxy.boxManager = {
+            getBox: vi.fn(() => ({ zIndex: 315 })),
+            setZIndex: vi.fn(),
+            focusBox: vi.fn(),
+        };
+
+        proxy.syncBoxZIndex("app-1", 317);
+        expect(proxy.boxManager.setZIndex).not.toHaveBeenCalled();
+        expect(proxy.pendingZIndex).toBe(317);
+
+        proxy.manager.shouldDeferLazyZIndex.mockReturnValue(false);
+        proxy.flushPendingZIndex();
+        expect(proxy.boxManager.setZIndex).toHaveBeenCalledWith("app-1", 317);
+        expect(proxy.boxManager.focusBox).not.toHaveBeenCalled();
+    });
+
+    it("discards a deferred zIndex when the attribute returns to the current value", () => {
+        const { proxy } = createProxy();
+        proxy.setupSucceeded = true;
+        proxy.manager.lazySetupEnabled = true;
+        proxy.manager.shouldDeferLazyZIndex = vi.fn(() => true);
+        proxy.boxManager = {
+            getBox: vi.fn(() => ({ zIndex: 315 })),
+            setZIndex: vi.fn(),
+        };
+
+        proxy.syncBoxZIndex("app-1", 317);
+        proxy.syncBoxZIndex("app-1", 315);
+        proxy.flushPendingZIndex();
+
+        expect(proxy.boxManager.setZIndex).not.toHaveBeenCalled();
+    });
+
+    it("caps a pending target's attribute feedback at its reserved zIndex", () => {
+        const { proxy } = createProxy();
+        proxy.setupSucceeded = true;
+        proxy.manager.lazySetupEnabled = true;
+        proxy.manager.shouldDeferLazyZIndex = vi.fn(() => true);
+        proxy.boxManager = {
+            getBox: vi.fn(() => ({ zIndex: 300 })),
+            setZIndex: vi.fn(),
+        };
+
+        proxy.syncBoxZIndex("app-1", 318);
+        proxy.flushPendingZIndex(316);
+
+        expect(proxy.boxManager.setZIndex).toHaveBeenCalledWith("app-1", 316);
+    });
+
     it("sends true after false timed out, even when false later completes", async () => {
         vi.useFakeTimers();
         const { proxy, logger } = createProxy();
@@ -370,6 +444,32 @@ describe("AppProxy setup diagnostics", () => {
         vi.advanceTimersByTime(10_000);
 
         expect(proxy.setupSucceeded).toBe(true);
+    });
+
+    it("keeps a selected target active without emitting focus before room commit", async () => {
+        const { proxy } = createProxy();
+        proxy.store = { focus: "previous" };
+        proxy.manager.lazySetupEnabled = true;
+        proxy.manager.isPreparingLazyFocus = vi.fn(() => true);
+        proxy.scheduleBoxSizeSync = vi.fn();
+        proxy.fixMobileSize = vi.fn();
+        proxy.emitAppFocusEvent = vi.fn().mockResolvedValue(true);
+        proxy.emitAppActivityEvent = vi.fn().mockResolvedValue(true);
+        const settle = vi.fn();
+
+        await proxy.finishAppSetup(
+            "app-1",
+            { setup: vi.fn().mockResolvedValue({}) },
+            {} as any,
+            undefined,
+            undefined,
+            settle
+        );
+
+        expect(proxy.emitAppFocusEvent).not.toHaveBeenCalled();
+        expect(proxy.emitAppActivityEvent).toHaveBeenCalledOnce();
+        expect(proxy.store.focus).toBe("previous");
+        expect(settle).toHaveBeenCalledWith({ succeeded: true, result: {} });
     });
 
     it("ensureSetup rejects when app setup never produced a descriptor", async () => {

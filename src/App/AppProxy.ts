@@ -233,6 +233,10 @@ export class AppProxy implements PageRemoveService {
         return this.store.focus === this.id;
     }
 
+    public get isResourceFocused(): boolean {
+        return this.isFocused || this.manager.isPreparingLazyFocus(this.id);
+    }
+
     /**
      * Emit the per-app `focus` boolean event. Sources: the attributes.focus
      * autorun (authoritative, works on readonly/Player clients too), box
@@ -267,7 +271,7 @@ export class AppProxy implements PageRemoveService {
 
     public emitAppActivityEvent(): Promise<boolean> {
         return this.notifyResourceEvent("runtimeActivity", {
-            active: this.manager.canRunLazyTarget(this.id) && this.isFocused,
+            active: this.manager.canRunLazyTarget(this.id) && this.isResourceFocused,
             revision: this.manager.activityRevision ?? 0,
         });
     }
@@ -511,7 +515,7 @@ export class AppProxy implements PageRemoveService {
                     width: this.box.intrinsicWidth,
                     height: this.box.intrinsicHeight,
                 });
-                this.boxManager.focusBox({ appId }, false);
+                if (!this.manager.lazySetupEnabled) this.boxManager.focusBox({ appId }, false);
             }
         } catch (error) {
             const cause = error instanceof Error ? error : new Error(String(error));
@@ -672,9 +676,11 @@ export class AppProxy implements PageRemoveService {
             this.appResult = result;
             this.setupResult = result;
             this.setupSucceeded = true;
-            // Focus events may have fired before setup ran; sync the current
-            // focus state so apps observe a consistent initial value.
-            await this.emitAppFocusEvent(this.isFocused, true);
+            // A pending lazy target is locally active during setup, but its
+            // authoritative focus event waits until room focus commits.
+            if (!this.manager.lazySetupEnabled || !this.manager.isPreparingLazyFocus(this.id)) {
+                await this.emitAppFocusEvent(this.isFocused, true);
+            }
             if (setupGeneration !== this.setupRunGeneration || this.isDestroyed) {
                 await aborted();
                 return;
@@ -800,15 +806,15 @@ export class AppProxy implements PageRemoveService {
         this.resolveSetupCompletion(completion);
     }
 
-    private flushPendingZIndex(): void {
-        const zIndex = this.pendingZIndex;
+    public flushPendingZIndex(maxZIndex?: number): void {
+        const zIndex =
+            this.pendingZIndex == null || maxZIndex == null
+                ? this.pendingZIndex
+                : Math.min(this.pendingZIndex, maxZIndex);
         this.pendingZIndex = undefined;
         if (zIndex != null && zIndex > 0 && zIndex !== this.box?.zIndex) {
             this.boxManager?.setZIndex(this.id, zIndex);
-            // Deliberate direct focus: this runs only after this app's own
-            // setup completed (design §16.2 leaves post-setup zIndex commits
-            // outside the coordinator; the app is ready by definition).
-            this.boxManager?.focusBox({ appId: this.id });
+            if (!this.manager.lazySetupEnabled) this.boxManager?.focusBox({ appId: this.id });
         }
     }
 
@@ -985,11 +991,14 @@ export class AppProxy implements PageRemoveService {
                     // broadcasts would focus them back — an infinite
                     // focus-fight loop.
                     if (typeof data === "boolean") break;
-                    // Legacy request path: routed through onBoxFocus, which
-                    // defers to the lazy coordinator for unsetup apps
-                    // (design §16.2).
-                    this.boxManager?.focusBox({ appId: this.id });
-                    boxEmitter.emit("focus", { appId: this.id, source: "app" });
+                    // Legacy request path joins the lazy focus queue before
+                    // any Box focus is committed.
+                    if (this.manager.lazySetupEnabled) {
+                        this.manager.requestFocus(this.id);
+                    } else {
+                        this.boxManager?.focusBox({ appId: this.id });
+                        boxEmitter.emit("focus", { appId: this.id, source: "app" });
+                    }
                     break;
                 }
                 default: {
@@ -1011,14 +1020,7 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher.add(this.stateKey, () => {
             return autorun(() => {
                 const appState = this.appAttributes?.state;
-                if (appState?.zIndex > 0 && appState.zIndex !== this.box?.zIndex) {
-                    if (!this.isSetup) {
-                        this.pendingZIndex = appState.zIndex;
-                        return;
-                    }
-                    this.boxManager?.setZIndex(appId, appState.zIndex);
-                    this.boxManager?.focusBox({ appId });
-                }
+                this.syncBoxZIndex(appId, appState?.zIndex);
             });
         });
         this.manager.refresher.add(`${appId}-fullPath`, () => {
@@ -1032,6 +1034,21 @@ export class AppProxy implements PageRemoveService {
             });
         });
     };
+
+    private syncBoxZIndex(appId: string, zIndex?: number): void {
+        if (zIndex == null || zIndex <= 0 || zIndex === this.box?.zIndex) {
+            this.pendingZIndex = undefined;
+            return;
+        }
+        const defer = !this.isSetup || this.manager.shouldDeferLazyZIndex(appId);
+        if (defer) {
+            this.pendingZIndex = zIndex;
+            return;
+        }
+        this.pendingZIndex = undefined;
+        this.boxManager?.setZIndex(appId, zIndex);
+        if (!this.manager.lazySetupEnabled) this.boxManager?.focusBox({ appId });
+    }
 
     private setFocusScenePathHandler = debounce((fullPath: string | undefined) => {
         const view = this.view;
@@ -1192,6 +1209,7 @@ export class AppProxy implements PageRemoveService {
             resolveDestroy = resolve;
             rejectDestroy = reject;
         });
+        this.manager.trackAppClose(this.id, this.destroyPromise);
         this.finishDestroy(needCloseBox, cleanAttrs, skipUpdate, error).then(
             resolveDestroy,
             rejectDestroy
@@ -1205,6 +1223,7 @@ export class AppProxy implements PageRemoveService {
         skipUpdate: boolean,
         error?: Error
     ): Promise<void> {
+        const closeFocus = cleanAttrs ? this.manager.captureAppClose(this.id) : undefined;
         this.status = "destroyed";
         this.contentPageStateActive = false;
         this.contentPageState = undefined;
@@ -1241,7 +1260,10 @@ export class AppProxy implements PageRemoveService {
             this.boxManager?.closeBox(this.id, skipUpdate);
         }
         if (cleanAttrs) {
-            this.store.cleanAppAttributes(this.id);
+            const successor = closeFocus?.wasFocused
+                ? this.manager.getCloseSuccessor(this.id)
+                : undefined;
+            this.store.cleanAppAttributes(this.id, Boolean(successor));
             if (this.scenePath) {
                 removeScenes(this.manager.room, this.scenePath);
             }
@@ -1255,6 +1277,7 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher.remove(this.stateKey);
         this.manager.refresher.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
+        if (closeFocus) this.manager.finishAppClose(this.id, closeFocus);
         this.Logger &&
             this.Logger.info(`[WindowManager]: destroy app ${this.kind} appId: ${this.id}`);
     }
