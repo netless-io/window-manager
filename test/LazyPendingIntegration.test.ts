@@ -31,6 +31,10 @@ function fixture(real = false) {
         get focus() { return attributes.focus ?? undefined; },
         setAppFocus: (id: string) => focus(id),
         cleanFocus: () => focus(undefined),
+        updateAppState: vi.fn((id: string, key: string, value: unknown) => {
+            const app = (attributes.apps as Record<string, { state?: Record<string, unknown> }>)[id];
+            if (app) (app.state ??= {})[key] = value;
+        }),
     };
     function focus(id: string | undefined) {
         attributes.focus = id;
@@ -85,7 +89,83 @@ it("keeps focus and zIndex unchanged during setup, then commits one reserved lev
     expect(await focus).toBe(true);
     expect(f.attributes.focus).toBe("B");
     expect(boxes.B.zIndex).toBe(316);
+    expect((f.attributes.apps as any).B.state.zIndex).toBe(316);
     expect(f.manager.boxManager.setZIndex).toHaveBeenCalledTimes(1);
+});
+
+it("commits a synchronized focus with a local zIndex only", async () => {
+    const f = fixture();
+    const previous = f.app("A");
+    previous.isSetup = true;
+    f.app("B");
+    (f.attributes.apps as any).B.state = { zIndex: 90 };
+    f.attributes.focus = "A";
+    f.manager._prevFocused = "A";
+    f.manager.activeLazyAppId = "A";
+    const boxes: Record<string, { zIndex: number }> = {
+        A: { zIndex: 315 }, B: { zIndex: 90 },
+    };
+    f.manager.boxManager.getBox = vi.fn((id: string) => boxes[id]);
+    f.manager.boxManager.getTopBox = vi.fn((exclude?: string) =>
+        exclude === "B" ? boxes.A : boxes.B);
+    f.manager.boxManager.setZIndex = vi.fn((id: string, value: number) => {
+        boxes[id].zIndex = value;
+    });
+    const makeBoxTop = vi.fn();
+    f.manager.boxManager.teleBoxManager = { makeBoxTop };
+
+    f.focus("B");
+    await flush();
+
+    expect(f.manager.activeLazyAppId).toBe("B");
+    expect(boxes.B.zIndex).toBe(316);
+    expect((f.attributes.apps as any).B.state.zIndex).toBe(90);
+    expect(f.manager.store.updateAppState).not.toHaveBeenCalled();
+    expect(makeBoxTop).toHaveBeenCalledWith(boxes.B, true);
+});
+
+it("does not raise or re-setup a stable focused App", async () => {
+    const f = fixture();
+    const app = f.app("A");
+    app.isSetup = true;
+    f.attributes.focus = "A";
+    f.manager.activeLazyAppId = "A";
+    const box = { id: "A", zIndex: 120 };
+    f.manager.boxManager.getBox = vi.fn(() => box);
+    f.manager.boxManager.setZIndex = vi.fn();
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+
+    expect(await f.manager.requestFocusAndWait("A")).toBe(true);
+    f.manager.requestFocus("A");
+    await flush();
+    expect(app.ensureSetup).not.toHaveBeenCalled();
+    expect(box.zIndex).toBe(120);
+    expect(f.manager.store.updateAppState).not.toHaveBeenCalled();
+});
+
+it("publishes the initiating client's zIndex after asynchronous focus feedback", async () => {
+    const f = fixture();
+    f.app("B");
+    const box = { id: "B", zIndex: 100 };
+    f.manager.boxManager.getBox = vi.fn(() => box);
+    f.manager.boxManager.getTopBox = vi.fn(() => undefined);
+    f.manager.boxManager.setZIndex = vi.fn();
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+    f.manager.windowManger.safeSetAttributes = vi.fn(({ focus }: { focus: string }) => {
+        setTimeout(() => f.focus(focus), 1);
+    });
+
+    const committed = f.manager.requestFocusAndWait("B");
+    await flush();
+    expect(f.attributes.focus).toBeUndefined();
+    expect(f.manager.store.updateAppState).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    await flush();
+
+    expect(await committed).toBe(true);
+    expect(f.attributes.focus).toBe("B");
+    expect((f.attributes.apps as any).B.state.zIndex).toBe(100);
+    expect(f.manager.store.updateAppState).toHaveBeenCalledTimes(1);
 });
 
 it("commits only the latest local focus after a hung setup yields at 10s", async () => {
@@ -128,12 +208,15 @@ it("commits only the latest local focus after a hung setup yields at 10s", async
     expect(f.attributes.focus).toBe("latest");
     expect(f.manager.activeLazyAppId).toBe("latest");
     expect(boxes.latest.zIndex).toBe(101);
+    expect((f.attributes.apps as any).latest.state.zIndex).toBe(101);
 
     firstSetup.resolve();
     await flush();
     expect(f.attributes.focus).toBe("latest");
     expect(f.manager.activeLazyAppId).toBe("latest");
     expect(boxes.latest.zIndex).toBe(101);
+    expect((f.attributes.apps as any).first.state).toBeUndefined();
+    expect(f.manager.store.updateAppState).toHaveBeenCalledTimes(1);
     expect(first.setScenePath).not.toHaveBeenCalled();
 });
 
@@ -162,6 +245,7 @@ it("raises a cached app once on focus without running setup again", async () => 
     expect(await f.manager.requestFocusAndWait("cached")).toBe(true);
     expect(cached.ensureSetup).not.toHaveBeenCalled();
     expect(boxes.cached.zIndex).toBe(102);
+    expect((f.attributes.apps as any).cached.state.zIndex).toBe(102);
     expect(f.attributes.focus).toBe("cached");
 });
 
@@ -170,6 +254,7 @@ it("keeps a target's higher setup zIndex when focus commits", async () => {
     const previous = f.app("previous");
     previous.isSetup = true;
     f.app("target");
+    (f.attributes.apps as any).target.state = { zIndex: 99 };
     f.attributes.focus = "previous";
     f.manager._prevFocused = "previous";
     f.manager.activeLazyAppId = "previous";
@@ -187,6 +272,7 @@ it("keeps a target's higher setup zIndex when focus commits", async () => {
 
     expect(await f.manager.requestFocusAndWait("target")).toBe(true);
     expect(boxes.target.zIndex).toBe(103);
+    expect((f.attributes.apps as any).target.state.zIndex).toBe(103);
     expect(f.manager.boxManager.setZIndex).not.toHaveBeenCalled();
 });
 
@@ -220,7 +306,7 @@ it("does not let addApp attribute reconciliation replace a pending lazy focus", 
     expect(f.manager.activeLazyAppId).toBe("B");
 });
 
-it("keeps the latest addApp pending until an in-flight setup finishes, even after 10s", async () => {
+it("starts only the latest addApp when the earlier setup exceeds 10s", async () => {
     const f = fixture();
     const running = deferred();
     const a = f.app("A", running.promise);
@@ -245,8 +331,8 @@ it("keeps the latest addApp pending until an in-flight setup finishes, even afte
     vi.advanceTimersByTime(10_001);
     await flush();
     expect(b.ensureSetup).not.toHaveBeenCalled();
-    expect(c.ensureSetup).not.toHaveBeenCalled();
-    expect(f.attributes.focus).toBe("A");
+    expect(c.ensureSetup).toHaveBeenCalledOnce();
+    expect(f.attributes.focus).toBe("C");
 
     running.resolve();
     await setupA;
@@ -256,7 +342,7 @@ it("keeps the latest addApp pending until an in-flight setup finishes, even afte
     expect(f.attributes.focus).toBe("C");
 });
 
-it("waits for physical setup before addApp even when its scheduling lease yielded", async () => {
+it("lets addApp proceed after an older physical setup yields", async () => {
     const f = fixture();
     const running = deferred();
     f.app("A", running.promise);
@@ -277,7 +363,7 @@ it("waits for physical setup before addApp even when its scheduling lease yielde
     expect(await f.manager.addApp({ kind: "Slide" }, false)).toBe("B");
     vi.advanceTimersByTime(10_001);
     await flush();
-    expect(b.ensureSetup).not.toHaveBeenCalled();
+    expect(b.ensureSetup).toHaveBeenCalledOnce();
 
     running.resolve();
     await setupA;
@@ -455,7 +541,9 @@ it("keeps the created Box focused when its setup fails", async () => {
         A: { zIndex: 315 }, B: { zIndex: 300 },
     };
     f.manager.boxManager.getBox = vi.fn((id: string) => boxes[id]);
-    f.manager.boxManager.setZIndex = vi.fn();
+    f.manager.boxManager.setZIndex = vi.fn((id: string, zIndex: number) => {
+        boxes[id].zIndex = zIndex;
+    });
     f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
 
     const focus = f.manager.requestFocusAndWait("B");
@@ -469,6 +557,7 @@ it("keeps the created Box focused when its setup fails", async () => {
     expect(f.attributes.focus).toBe("B");
     expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
     expect(f.manager.boxManager.setZIndex).toHaveBeenCalledWith("B", 316);
+    expect((f.attributes.apps as any).B.state.zIndex).toBe(316);
     expect(f.manager.appProxies.get("B").isSetup).toBe(false);
     expect(f.manager.failedSetupFocusAppId).toBe("B");
 });
@@ -500,7 +589,7 @@ it("does not replay an old zIndex when focusing the failed Box", async () => {
     expect(f.attributes.focus).toBe("B");
 });
 
-it("leaves a failed Box visible until an explicit refocus retries setup", async () => {
+it("keeps a failed Box focused without retrying setup on this page", async () => {
     const f = fixture();
     const box = { id: "B", zIndex: 100 };
     const app = f.app("B");
@@ -517,9 +606,9 @@ it("leaves a failed Box visible until an explicit refocus retries setup", async 
     f.manager.refreshLazyActivity(); await flush();
     expect(app.ensureSetup).toHaveBeenCalledTimes(1);
 
-    expect(await f.manager.requestFocusAndWait("B")).toBe(true);
-    expect(app.ensureSetup).toHaveBeenCalledTimes(2);
-    expect(app.isSetup).toBe(true);
+    expect(await f.manager.requestFocusAndWait("B")).toBe(false);
+    expect(app.ensureSetup).toHaveBeenCalledTimes(1);
+    expect(app.isSetup).toBe(false);
 });
 
 it("does not focus a failed setup after a newer target replaces it", async () => {
@@ -668,15 +757,17 @@ it("recovers the highest Box locally on a read-only client", async () => {
     const lower = f.app("A");
     const app = f.app("B");
     const boxes = {
-        A: { id: "A", zIndex: 100 },
+        A: { id: "A", zIndex: 200 },
         B: { id: "B", zIndex: 101 },
     };
     f.manager.windowManger.forceMaximized = true;
     f.manager.windowManger.canOperate = false;
     f.manager.initialFocusRecoveryPending = true;
     f.manager.initialFocusRecoveryAppIds = new Set(["A", "B"]);
+    (f.attributes.apps as any).A.state = { zIndex: 99 };
+    (f.attributes.apps as any).B.state = { zIndex: 101 };
     f.manager.boxManager.boxSize = 2;
-    f.manager.boxManager.getTopBox = vi.fn(() => boxes.B);
+    f.manager.boxManager.getTopBox = vi.fn(() => boxes.A);
     f.manager.boxManager.getBox = vi.fn((id: "A" | "B") => boxes[id]);
     f.manager.boxManager.setZIndex = vi.fn();
     f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
@@ -687,6 +778,11 @@ it("recovers the highest Box locally on a read-only client", async () => {
     expect(app.ensureSetup).toHaveBeenCalledOnce();
     expect(lower.ensureSetup).not.toHaveBeenCalled();
     expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
+    expect(f.manager.store.updateAppState).not.toHaveBeenCalled();
+    expect(f.manager.isLazyFocusCommitted("B")).toBe(true);
+    expect(f.manager.isLazyResourceFocused("B")).toBe(true);
+    f.manager.refreshLazyActivity(); await flush();
+    expect(app.ensureSetup).toHaveBeenCalledOnce();
 });
 
 it("keeps a read-only recovered Box focused after setup failure", async () => {
@@ -712,6 +808,9 @@ it("keeps a read-only recovered Box focused after setup failure", async () => {
     expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
     f.manager.refreshLazyActivity(); await flush();
     expect(app.ensureSetup).toHaveBeenCalledTimes(1);
+    expect(f.manager.activeLazyAppId).toBe("B");
+    expect(f.manager.isLazyFocusCommitted("B")).toBe(true);
+    expect(f.manager.isLazyResourceFocused("B")).toBe(false);
 });
 
 it("does not infer focus from top zIndex outside forceMaximized initialization", async () => {
@@ -738,7 +837,7 @@ it("the sole focus request yields a direct setup at its original 10s deadline", 
     a.resolve(); await setup; await flush(); expect(f.manager.activeLazyAppId).toBe("E");
 });
 
-it("reports each hung setup once while yielded physical work overlaps the latest setup", async () => {
+it("keeps the latest setup active while earlier yielded work finishes late", async () => {
     const f = fixture(); const aSetup = deferred(); const eSetup = deferred();
     const a = f.app("A", aSetup.promise); const e = f.app("E", eSetup.promise);
     f.focus("A"); await flush();
@@ -751,13 +850,6 @@ it("reports each hung setup once while yielded physical work overlaps the latest
     expect(e.ensureSetup).toHaveBeenCalledOnce();
     expect(f.manager.setupStartedAt.has("A")).toBe(true);
     expect(f.manager.setupStartedAt.has("E")).toBe(true);
-
-    vi.advanceTimersByTime(20_000); await flush();
-    const timeoutLogs = f.manager.windowManger.Logger.error.mock.calls
-        .map(([message]: [string]) => message)
-        .filter((message: string) => message.includes("app setup timeout"));
-    expect(timeoutLogs.filter((message: string) => message.includes("appId: A"))).toHaveLength(1);
-    expect(timeoutLogs.filter((message: string) => message.includes("appId: E"))).toHaveLength(1);
 
     eSetup.resolve(); await flush();
     expect(f.manager.activeLazyAppId).toBe("E");
@@ -839,7 +931,7 @@ it("does not focus a stale App if scene publication is superseded", async () => 
     expect(c.setScenePath).toHaveBeenCalledOnce();
 });
 
-it("bounds an added App wait to the previous 10s plus its own 10s and logs each hung setup once", async () => {
+it("bounds an added App wait while physical setups are still pending", async () => {
     const f = fixture();
     const a = deferred(); const bSetup = deferred(); const bReady = deferred();
     f.app("A", a.promise);
@@ -854,14 +946,8 @@ it("bounds an added App wait to the previous 10s plus its own 10s and logs each 
     vi.advanceTimersByTime(1); await flush();
     expect(b.ensureSetup).toHaveBeenCalledOnce();
     vi.advanceTimersByTime(9_999); await flush();
-    const setupTimeouts = () => f.manager.windowManger.Logger.error.mock.calls
-        .map(([message]: [string]) => message)
-        .filter((message: string) => message.includes("app setup timeout"));
-    expect(setupTimeouts().filter((message: string) => message.includes("appId: A"))).toHaveLength(1);
-    expect(setupTimeouts().filter((message: string) => message.includes("appId: B"))).toHaveLength(0);
     vi.advanceTimersByTime(1); await flush();
     expect(await outcome).toBeInstanceOf(LazySetupWaitError);
-    expect(setupTimeouts().filter((message: string) => message.includes("appId: B"))).toHaveLength(1);
     expect(f.manager.windowManger.Logger.error).toHaveBeenCalledWith(
         expect.stringContaining("lazy add setup wait timeout")
     );

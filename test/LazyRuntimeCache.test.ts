@@ -509,7 +509,7 @@ describe("AppManager lazy runtime cache", () => {
         AppManager.prototype.requestFocus.call(manager, "app-1");
         await manager.lazyFocusQueue;
 
-        expect(manager.ensureLazyFocus).toHaveBeenCalledWith("app-1", 1);
+        expect(manager.ensureLazyFocus).toHaveBeenCalledWith("app-1", 1, false, undefined, true);
         expect(manager.pendingLazyFocusAppId).toBeUndefined();
     });
 
@@ -593,7 +593,7 @@ describe("AppManager lazy runtime cache", () => {
         await manager.lazyFocusQueue;
 
         expect(manager.evictBeforeSetup).toHaveBeenCalledWith("target");
-        expect(manager.ensureLazyFocus).toHaveBeenCalledWith("target", 1);
+        expect(manager.ensureLazyFocus).toHaveBeenCalledWith("target", 1, false, undefined, true);
     });
 
     it("absorbs TeleBox's old blurred -> new focused handoff without writing undefined", async () => {
@@ -946,7 +946,7 @@ describe("AppManager lazy runtime cache", () => {
         await manager.lazyFocusQueue;
 
         expect(order).toEqual(["suspend:start", "suspend:done", "setup:next"]);
-        expect(manager.ensureLazyFocus).toHaveBeenCalledWith("next", 1);
+        expect(manager.ensureLazyFocus).toHaveBeenCalledWith("next", 1, false, undefined, false);
     });
 
     it("does not recover top for an attributes-driven undefined focus", async () => {

@@ -217,7 +217,7 @@ describe("WindowManager", () => {
         expect(waitForSetup).toHaveBeenCalledOnce();
     });
 
-    it("cleans a partial App and rethrows its original setup error", async () => {
+    it("retains a created App and rethrows its original setup error", async () => {
         const wm = new WindowManager({ kind: "WindowManager", displayer });
         const error = new Error("presentation setup failed");
         const destroy = vi.fn().mockResolvedValue(undefined);
@@ -226,7 +226,7 @@ describe("WindowManager", () => {
         vi.spyOn(wm, "addApp").mockResolvedValue("app-1");
 
         await expect(wm.addAppAndWaitForSetup({ kind: "Presentation" })).rejects.toBe(error);
-        expect(destroy).toHaveBeenCalledWith(true, true, false, error);
+        expect(destroy).not.toHaveBeenCalled();
     });
 
     it("uses the lazy pending wait without adding a direct setup task", async () => {

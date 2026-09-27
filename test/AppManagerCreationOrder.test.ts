@@ -172,7 +172,7 @@ describe("AppManager app creation order", () => {
 
         expect(manager.baseInsertApp).toHaveBeenCalledOnce();
         expect(manager.afterAddApp).toHaveBeenCalledWith({ id: "next" });
-        expect(manager.requestFocus).toHaveBeenCalledWith("next", true);
+        expect(manager.requestFocus).toHaveBeenCalledWith("next");
     });
 
     it("does not publish room focus while creating a lazy app", async () => {

@@ -1,5 +1,7 @@
 # 最大化模式 Lazy Setup 与多 App Runtime 缓存设计
 
+> 2026-09-27 对齐：lazy 下所有 App 的 `app.setup()` 由 AppProxy 从实际调用时起统一等待最多 10 秒；成功、失败或超时都是本次 setup 的结算结果。Box 独立于 runtime，setup 失败或超时不删除 Box，也不自动重试。最新 pending 目标才可提交 focus/zIndex；ready 缓存命中不重新 setup。初始化先选有效的共享 focus，否则按共享 `apps[id].state.zIndex` 降序（同值按 App ID）选唯一目标，不以各端本地 Box 层级决定。以下各节按此规则修订。
+
 > 2026-09-24 修订：以下 v2 历史目标中，“真实 setup 永不重叠”已改为正常串行、超过 10 秒且有不同 pending 时让出调度占用；Slide runtime 保留，资源活动条件为 focus + 前台 + 非最小化。lazy 新增 App 与同步/API/TeleBox focus 共用一个最新 pending，不再为新增 App 保留独立 setup 排队项。以 §7.3–7.4、§9.1、§14、§16.3 的更新为准，不将逻辑让出声称为物理取消。
 
 > 状态：v2 设计。v1 的"单 runtime 缓存 lazy setup"已随 `b182b15`、`ba2750a` 部分实现（当前 `window-manager@1.0.23-beta.0`）；本文档在 v1 基础上增补四项设计并移除已过时的结论：
@@ -267,6 +269,8 @@ attributes.boxStatus                 setup generation/token
 
 `attributes.forceMaximized` 是本设计唯一新增的房间级策略字段；它优先于本端独立窗口配置，不要求未开启 lazy 的客户端延迟 App setup。未开启 lazy 的客户端仍然 eager setup，但必须遵守 `forceMaximized=true` 的 normal 禁止规则。
 
+lazy 焦点提交时，主动发起端若可写，必须把 Box 的最终层级写入共享 `attributes.apps[id].state.zIndex`；因房间 focus 变化被动激活的端只把本地 Box 升至本地最高 zIndex 加一，不再回写房间 zIndex，避免多端互相覆盖。只读端也只更新本地 Box。各端 DOM zIndex 的具体数值不要求一致，但初始化无有效 focus 时必须用同一份共享 App 状态选目标。缺失 zIndex 按 0 处理，同值按 App ID 稳定排序；`createdAt` 不用于推算历史焦点层级。
+
 force 字段只由可写端显式 `mount()` 参数或 `setForceMaximized()` 更新；普通 eager 客户端不能通过 `setMaximized(false)` 绕过房间约束。
 
 ## 6. App 生命周期模型
@@ -319,17 +323,19 @@ destroy()
 
 缓存淘汰或 minimized 释放调用 runtime teardown，不调用当前完整的 `destroy()`，否则会把仍需保留的 scene、View 和 shell 一起销毁。
 
-### 6.3 setup 失败
+### 6.3 setup 失败与超时
 
-- setup Promise 失败时，从 `settingUpApps` 移除任务，且该 App 不占用 runtimeCache slot（不进入缓存，也不触发对其他缓存项的淘汰）；
-- 保留 shell，避免 attributes.apps 与本地 Box 集合不一致；
-- 若目标 App 和 Box 仍存在、请求仍是最新目标，则提交 Box 焦点；setup 结果仍为失败，后续显式聚焦或刷新可重试；
+- AppProxy 从实际调用 `app.setup()` 起统一等待最多 10 秒；成功、抛错和超时均结算本次 attempt。超时返回失败结果，不把未就绪 runtime 标记 ready；底层 Promise 可能仍在运行，但晚到结果不得再次提交焦点、zIndex 或旧 attempt 的 ready 状态；
+- 失败/超时从 `settingUpApps` 移除任务，不占 runtimeCache slot；保留 App 描述、View 和 Box，不因 `addApp()` 或 `addAppAndWaitForSetup()` 的入口不同而销毁已创建的 Box；
+- 若目标 App 和 Box 仍存在、请求仍是最新目标，则提交 Box 焦点和一次层级更新；若已有更新的 pending，跳过旧目标的提交，继续新目标；
+- 本次页面内失败的 setup 不自动重试，显式再次聚焦该 Box 也不重新执行同一个 runtime 的 setup；刷新和重连按初始化流程创建新 attempt；
 - 根据现有错误事件和日志约定上报原始错误；
-- `focusApp(appId)` 的等待结果在 setup 失败时为 `false`，但已创建的目标 Box 仍获得焦点；不得回退到旧课件或清成 mainView；
+- `focusApp(appId)` 在 setup 失败或超时时返回 `false`，表示 runtime 未 ready；只要请求仍有效，已创建的目标 Box 仍获得焦点，不回退旧课件或清成 mainView；
+- 失败 Box 的 `AppContext.isFocused()` 反映本地已提交的 Box 焦点，但 `runtimeActivity.active` 为 false；未成功 setup 的 runtime 不进入 ready 缓存；
 - 由 `attributes.focus` 同步触发的被动 setup 失败时，只读端聚焦该 Box，不反向改写房间焦点；
 - 目标在 setup 期间被关闭或被更新的请求取代时，不提交该目标的焦点。
 
-TeleBox 切换可能先发旧 Box 的 `blurred`，再发新 Box 的 `focused`。lazy 模式用 `pendingLazyFocusAppId/pendingLazyBlurredAppId` 吸收这一事件顺序；setup 失败但目标 Box 仍存在时，焦点归属该目标，不按最高 `zIndex` 回退。最高 `zIndex` 选择仅用于关闭后的继任 Box，以及 forceMaximized 初始化遇到空焦点或失效焦点时的恢复。
+TeleBox 切换可能先发旧 Box 的 `blurred`，再发新 Box 的 `focused`。lazy 模式用 `pendingLazyFocusAppId/pendingLazyBlurredAppId` 吸收这一事件顺序；setup 失败或超时但目标 Box 仍存在且没有更新 pending 时，焦点归属该目标，不按最高 `zIndex` 回退。最高 `zIndex` 选择仅用于关闭后的继任 Box，以及 forceMaximized 初始化遇到空焦点或失效焦点时的恢复。
 
 ### 6.4 LRU 淘汰时序
 
@@ -338,7 +344,7 @@ TeleBox 切换可能先发旧 Box 的 `blurred`，再发新 Box 的 `focused`。
 1. 淘汰目标 = `runtimeCache` 中 `lastUsed` 最小、且**不是**当前 `activeAppId` / `pendingFocusAppId`、`state === "ready"` 的项；
 2. 若候选目标是当前可见 App（仅 cache=1 的切换场景会出现），则先 setup 新 App，新 App ready 并提交 focus 后再 teardown 旧 App（保持已实现的现状体验：旧画面保留到新画面就绪）；
 3. 其余情况（cache ≥ 2 溢出）先 teardown LRU 项，再进入串行 setup 队列，避免瞬时 runtime 数超过配置值；
-4. 正常路径下 teardown 与 setup 通过同一串行队列协调；超过 10 秒且存在不同最新目标时，旧 setup 仅让出调度租约，实际异步工作仍可能重叠；
+4. 正常路径下 teardown 与 setup 通过同一串行队列协调；AppProxy 从实际调用 `app.setup()` 起计时，10 秒结算为失败。底层 Promise 不能物理取消，晚到工作与新目标可能短暂重叠，但不得提交旧焦点或层级；
 5. teardown **抛错**时缓存条目置为 `pinned`（保留记账、按容量计数、排除后续淘汰、error 日志），不阻塞队列；无 teardown 实现的条目同样保留记账并跳过淘汰（见 §13 与本节软超限语义）；
 6. `tearing-down` 状态的项不参与命中：对它的 focus 请求视为 cache miss，等待 teardown 完成后重新 setup。
 
@@ -406,13 +412,13 @@ eager 路径原先经 `setupApp()` 中 `setTimeout(..., SETUP_APP_DELAY)` 直接
   4. `attributes.apps` 插入顺序兜底；
 - 有效 `useBoxesStatus=false`（包括 lazy）时 `forceTop` 无效，因此排序直接从 focus 开始；
 - eager 单个新增任务按优先级插入；lazy 新增 App 仅通过统一 focus pending 触发 setup，尚未开始的中间目标被最新目标覆盖；
-- 已开始的真实 setup 不重排；lazy 下存在不同 pending 且运行满 10 秒时可让出调度占用，真实 Promise 保留。旧任务晚完成不能释放新任务的占用或提交旧焦点；没有 pending 则继续等待。teardown 等必做清理不按此规则让出。
+- 已开始的 setup 不重排；AppProxy 在 10 秒内结算调度所等待的 attempt，底层异步工作可能继续。队列据结算结果处理唯一最新 pending；旧底层工作晚完成不能释放新任务的占用、提交旧焦点或覆盖缓存记账。teardown 等必做清理不能被误报为完成。
 
 ### 7.4 与 lazy focus 队列的关系
 
-同步 focus、`focusApp(appId)`、TeleBox 和本地新增 App 共用 `LatestTaskQueue` 的一个 pending 槽，再通过 `SetupQueue` 执行当前目标的真实 setup；`SetupQueue` 不积压 lazy 新增 App 的独立等待任务。最小化/后台只关闭消费门禁，不停止写 pending；恢复时用原 setup 起始时间重新判断完成或 10 秒让出。真实 setup 与调度占用分开，A→E→A 复用原 A Promise。真实 setup 运行满 10 秒时经 Room logger.error 记录一次；这不代表第三方 setup 已被物理中断。
+同步 focus、`focusApp(appId)`、TeleBox 和本地新增 App 共用 `LatestTaskQueue` 的一个 pending 槽，再通过 `SetupQueue` 执行当前目标的 setup；`SetupQueue` 不积压 lazy 新增 App 的独立等待任务。最小化/后台只关闭消费门禁，不停止写 pending。ready 缓存命中直接进入资源恢复与焦点提交，不运行 `app.setup()`；稳定焦点的重复请求也不再提升 zIndex。AppProxy 的 10 秒上限只结算本次 attempt，不代表底层异步工作已被物理取消，晚到结果必须按 attempt 代次隔离。
 
-最新目标写入 pending 时，撤销 `SetupQueue` 中尚未启动、目标不同的旧 setup；已启动的 setup 仍按完成或 10 秒让出规则处理，因此 A 正在执行、B 已排队、E 成为最新目标时，不再先执行 B。TeleBox 目标在异步缓存清理后、setup 后及写入共享 focus 前，均须确认 AppProxy 仍是当前实例、未销毁且 App 仍在房间 attributes 中；关闭期间失效的目标不能重新提交。点击主画布即使共享 focus 已是 `undefined`，也要写入最新的 mainView pending，以撤销尚未提交的 TeleBox 切换。
+最新目标写入 pending 时，撤销 `SetupQueue` 中尚未启动、目标不同的旧 setup；已启动的 attempt 等待 AppProxy 成功、失败或超时结算后，再处理当时唯一最新目标，因此 A 正在执行、B 已排队、E 成为最新目标时，不再先执行 B。TeleBox 目标在异步缓存清理后、setup 后及写入共享 focus 前，均须确认 AppProxy 仍是当前实例、未销毁且 App 仍在房间 attributes 中；关闭期间失效的目标不能重新提交。点击主画布即使共享 focus 已是 `undefined`，也要写入最新的 mainView pending，以撤销尚未提交的 TeleBox 切换。
 
 ## 8. 初始化时序（聚焦优先）
 
@@ -440,11 +446,15 @@ ensureAttributes()
             -> 读取 attributes.forceMaximized 和当前 boxState；字段缺失/为 false 或状态为 normal 时 warning 并降级 eager
             -> 保留 minimized 状态，不强制解除最小化
             -> 创建所有 App shell / View / Box
-            -> setup 当前可见 top App（activeAppId 优先；minimized 时不 setup）
-            -> setup 成功后提交 focus；其余 App 保持 shell，缓存按需填充
+            -> 有效 attributes.focus 优先，否则按共享 App state.zIndex 选最高者（同值按 App ID）
+            -> 只 setup 该目标（minimized 时不 setup）；ready 缓存命中则不重新 setup
+            -> setup 成功/失败/超时后，若仍是最新目标则提交本地 Box focus
+            -> 仅在原共享 focus 无效且本端可写时同步恢复出的 focus；其余 App 保持 shell
 ```
 
-初始化只 setup 一个 App，与 `maxCachedAppsInMaximizedMode` 的数值无关（不预热，见 3.2 节）。
+初始化至多 setup 一个 App，与 `maxCachedAppsInMaximizedMode` 的数值无关（不预热，见 3.2 节）。只读端可先于可写端进入历史房间：它按同一份共享 focus/zIndex 选目标，恢复的本地有效焦点必须被 `AppContext.isFocused()`、focus 事件和 runtimeActivity 一致识别；可写端仅在该目标结算后同步缺失的房间 focus。
+
+房间 `attributes.focus` 的后续变化与本地 `focusApp()`、`addApp()`、TeleBox 请求共用一个最新 pending。被同步端命中 ready 缓存时直接恢复资源并提交本地 Box focus/zIndex；否则等待 AppProxy setup 成功、失败或超时，再确认仍是最新目标后提交。被同步端绝不把自己计算的本地 zIndex 作为同一次焦点变化的第二次房间写入。
 
 lazy 配置校验应在 `mount()` 初始化阶段完成；状态归一化应放在 BoxManager 创建后、`internalEmitter.emit("onCreated")` 之前，使 `onCreated()` 注册的 autorun 看到一致的最大化状态。不要清理 minimized。归一化必须幂等，重复执行不能反复向房间写入相同状态。
 
@@ -464,26 +474,26 @@ lazy 分支中，`attributes.focus` 可以先发生变化，但它不能立即�
 确保目标 App shell 存在
     |
     v
-命中缓存？
-    +-- 是 -> 更新 lastUsed，直接提交 focus
+命中 ready 缓存？
+    +-- 是 -> 更新 lastUsed，恢复资源并提交 focus/zIndex，不重新 setup
     |
-    +-- 否 -> 按需淘汰（6.4 节）-> 串行队列 setup（复用 settingUpApps Promise）
+    +-- 否 -> 按需淘汰（6.4 节）-> 串行队列与 AppProxy setup（复用 settingUpApps Promise）
                     |
                     v
-              目标 App ready
+              setup 成功 / 失败 / 10 秒超时
                     |
-                    +-- generation 仍然有效？ -- 否 -> 丢弃过期结果
+                    +-- generation 仍然有效？ -- 否 -> 丢弃过期提交，执行必要清理
                     |
                     是
                     |
                     v
-              向 TeleBox 提交 focus / zIndex
+              向 TeleBox 提交 Box focus / zIndex（失败时 runtime 不计 ready）
                     |
                     v
               按需 teardown 被淘汰的缓存项
                     |
                     v
-              更新 activeAppId
+              更新本地有效焦点；可写端同步最终 zIndex
 ```
 
 提交 focus 前，操作路由仍应使用 `activeAppId`，不能因为 `attributes.focus` 已变化就提前把分页、事件或 unified page control 路由到尚未 setup 的 App。
@@ -520,7 +530,7 @@ await manager.DispatchDocsEvent("nextPage");
 
 App focus 事件本身也是 completion barrier：App 的 `context.emitter.on("focus")` listener 必须返回本次异步资源切换的 Promise，不能用 `void` 丢弃；WindowManager 通过 `Emittery.emit()` 等待该 Promise。以 Slide 为例，`focus(true)` 只有在 `release()`、player 重建及 `setSlideState()` 完成后才成功；重复的同状态 focus 必须复用正在执行的 Promise。listener reject 或 focus-event watchdog 超时时，本次 lazy `focusApp()` 返回 `false`，不得先提交成功。App 内部可以串行 freeze/unfreeze，但只有把同一 Promise 逐层返回到 WindowManager，串行才同时构成对调用方有效的完成屏障。
 
-这里的 pending 需要区分两层：三种来源均先进入同一最新 pending；旧 setup 完成，或运行已满 10 秒且有不同目标时，才在前台且非最小化条件下处理新目标。让出不强制中断真实 JS 工作。被取代的 `focusApp(C)` waiter 则立即返回 `false`，不取消 C setup、不移除 E pending，也不能在 E 完成后返回 C 成功。API 的独立 10 秒期限从调用开始计时，因此可以先返回 false、目标之后才显示。
+这里的 pending 需要区分两层：三种来源均先进入同一最新 pending；旧 AppProxy setup attempt 成功、失败或从实际调用起满 10 秒结算后，才在前台且非最小化条件下处理新目标。结算不强制中断真实 JS 工作。被取代的 `focusApp(C)` waiter 立即返回 `false`，不移除 E pending，也不能在 E 完成后返回 C 成功。`focusApp()` 不再以调用起点单独计算 10 秒 setup 期限；它等待目标的 setup/缓存激活和本次焦点提交结果。
 
 focus 通知失败/超时后，去重记录整体置为 unknown，不回滚旧布尔值；同状态和反向状态都能重试，旧通知不能覆盖新记录。通知以 runtime epoch 和 activity revision 隔离。Slide 的 focus、visibility、minimized 使用同一资源串行链；`runtimeActivity` 事件通知包含 cache 外仍存活的实例，恢复不依赖新 focus 事件。
 
@@ -559,10 +569,10 @@ remove 当前 App / Box
     -> 找到下一个最大化 top Box
     -> 暂不立即 focus
     -> WindowManager setup 下一个 App（命中缓存则直接提交）
-    -> 就绪后提交 focus；若 setup 失败但 Box 仍存在，也提交该 Box 的 focus 并保留失败结果
+    -> ready 缓存命中直接提交；否则 setup 成功、失败或超时结算后提交 Box focus 并保留失败结果
 ```
 
-程序化 `closeApp()` 与标题栏关闭使用同一交接：按剩余 Box 的 `zIndex` 选择最高者，等待关闭清理结束后进入 lazy pending。若期间出现更新的 focus/mainView 请求，关闭收尾不得覆盖该请求。关闭最后一个 App 才清空 focus。刷新时若共享 focus 指向已删除的 App，forceMaximized 初始化按最高 Box 恢复；只读端仅作本地恢复，不写房间属性。
+程序化 `closeApp()` 与标题栏关闭使用同一交接：按剩余 Box 的 `zIndex` 选择最高者，等待关闭清理结束后进入 lazy pending。若期间出现更新的 focus/mainView 请求，关闭收尾不得覆盖该请求。关闭最后一个 App 才清空 focus。刷新时若共享 focus 指向已删除的 App，forceMaximized 初始化按共享 `apps[id].state.zIndex` 选择目标；只读端仅作本地恢复，不写房间属性。
 
 建议为 TeleBox 增加窄范围的延迟能力，例如标题栏 close 使用 `deferFocus`，或者提供一个由 WindowManager 明确调用的 `commitFocus`。异步 Promise 不应直接塞进 TeleBox 的同步事件处理函数。
 
@@ -634,23 +644,23 @@ v1 中"三个内置 App 需要同步实现 teardown"的结论已过时：`app-sl
 
 ## 14. 内置 App setup 串行化改造
 
-WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一个课件的首屏资源就绪后才开始下一个课件"，四个内置 App 必须让 `setup()` 的返回 Promise 覆盖首屏关键资源，同时提供超时与失败路径，避免 setup 队列被单个 App 永久阻塞。
+WindowManager 侧串行队列等待 AppProxy 的 setup attempt。AppProxy 在 lazy 模式下从实际调用 `app.setup()` 起统一设置 10 秒上限，成功、失败或超时都结算队列占用；App 内部的首屏告警阈值不是这个统一 setup timeout。超时后物理异步工作可能继续，必须隔离晚到回调与结果。
 
 契约更新（2026-09-24）：以下严格 ready 能力已接入 Slide/Presentation；docs-viewer/media-player 仍沿用其原有 ready 超时策略，本次未扩大改造范围。
 
-- `setup()` 返回的 Promise 必须在"首屏可见资源 ready"后 resolve；
-- 默认 5s（可由 AppOptions `setupReadyTimeout` 覆盖）是首屏警告阈值；新宿主 `context.waitForActualSetupReady=true` 时继续等真实 ready，旧宿主/eager 保留超时 resolve 的兼容行为。
-- 新 lazy 契约下，Slide 首帧错误、Presentation 已发起请求的首图失败和 ready 前 disposal 均终止 setup；不能把失败当成 ready。
-- 超时让出不 cancel 后台加载本身，也不伪造 setup 成功。
-- 区分首屏警告（默认 5s）、宿主当前工作让出阈值（10s）、focus listener 超时和 API 调用期限。后两者失败不取消 pending。
-- `app setup start/done/duration` 记录真实工作；正常路径串行，10s 异常让出后可能重叠，并输出 warn。该机制不能中断同步阻塞主线程的 JS。
+- `setup()` 返回的 Promise 应覆盖 App 自身定义的首屏 ready；AppProxy 在 lazy 模式统一将 10 秒未返回结算为失败，保留 Box；
+- 默认 5s（可由 AppOptions `setupReadyTimeout` 覆盖）仍是内置 App 的首屏告警阈值；新宿主 `context.waitForActualSetupReady=true` 可继续等真实 ready，但最长受 AppProxy 的 10 秒统一期限约束；旧宿主/eager 的有界兼容行为保持；
+- Slide 首帧错误终止 setup；Presentation 背景图片失败或超时不使整个 setup 失败，由图片组件自行重试。ready 前 disposal 按 App 关闭/清理结算，不能重新提交旧焦点；
+- AppProxy 超时不 cancel 底层加载，也不伪造 setup 成功；晚到成功只能清理自己的结果，不能改焦点、层级或本次失败记账；
+- focus listener 的完成屏障与 setup timeout 分开；`focusApp()` 不以调用起点另设 10 秒 setup 截止时间；
+- `app setup start/done/duration` 记录队列执行；AppProxy 单独从实际 `app.setup()` 调用时计时。正常串行，10 秒结算后底层物理工作可能重叠，并输出 error。该机制不能中断同步阻塞主线程的 JS。
 
 ### 14.1 app-slide
 
 - `SlideDocsViewer.mount()` 暴露 ready Promise；
 - ready = `SlideController.readyPromise`，至少等待首个 `renderEnd`；
 - `app-slide.setup()` 返回该 Promise；
-- 渲染失败（slide error）映射为 reject；新 lazy 宿主上超时仅 warn、继续等待，旧宿主/eager 保留 warn + resolve。
+- 渲染失败（slide error）映射为 reject；新 lazy 宿主上的 5 秒首帧告警继续等待，AppProxy 在实际 setup 调用满 10 秒时统一结算超时；旧宿主/eager 保留原兼容行为。
 
 ### 14.2 app-docs-viewer
 
@@ -663,7 +673,7 @@ WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一
 
 - `Preload` 增加启动控制：setup 阶段聚焦当前页（`touch(pageIndex, true)`）；后续页面预加载**维持既有 Preload 链**——当前页 onload 后经 `requestIdleCallback`（100ms timeout 兜底）递进，`maxLinks=5` 限流，不与 setup 队列联动（v1 草案"延迟到队列空闲"不再要求）；
 - 不重排 `prepareScenes()` 与重 runtime 的创建顺序（该顺序重构侵入 setup 主体，收益有限）：以"创建后立即聚焦当前页 Preload + setup 等待当前页首图"达成同等内存目标；
-- setup 返回当前页首图 ready（背景 `<img>` complete 且 naturalWidth > 0）；新 lazy 宿主上 5s 仅 warn，首图 error 则失败；旧宿主/eager 保留有界等待；
+- setup 等待当前页首图 ready（背景 `<img>` complete 且 naturalWidth > 0）；背景图 error/超时不使整个 setup 失败，SDK 的 `<img>` 错误处理可继续重试；新 lazy 宿主的其他未结算工作仍受 AppProxy 10 秒上限约束；
 - 该 App 同时落地第 15 节的失焦缩略图降级。
 
 ### 14.4 app-media-player
@@ -676,7 +686,7 @@ WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一
 
 ### 14.5 验收标准
 
-- 记录每个 App setup 开始/结束时间；正常串行，超过 10s 且有不同 pending 的逻辑让出必须有 warn，不把异常重叠计为真实取消。
+- 记录每个 AppProxy setup attempt 开始/结束时间；正常串行，10 秒超时必须结算并经 Room logger.error 上报，不把物理异步工作的晚完成计为第二次 setup 成功。
 - 新 lazy 宿主的 Slide 首帧、Presentation 首图不得晚于 setup 成功；旧宿主/eager 及本次未改造 App 的超时兼容路径单独记录。
 
 ## 15. app-presentation 失焦缩略图降级（frozen/unfrozen 模式）
@@ -716,7 +726,7 @@ WindowManager 侧串行队列只能保证"调用串行"。要真正做到"上一
 
 `focus: boolean` 事件（`src/typings.ts`，1.0.23 已实现发射）有三个来源，统一经 `AppProxy.emitAppFocusEvent()` 出口（带变更去重，setup 完成时的初次同步强制发射）：
 
-1. **attributes.focus autorun（权威来源）**：`AppManager.onFocusChange()` 在焦点变化时向旧 focused App 发 `false`、新 focused App 发 `true`。此来源覆盖程序化/远端 focus 变化，且在只读端、Player 上同样工作——v1 草案"由 AppProxy 监听 Box focus/blur"的单一来源在 eager 模式（`focusBox` 默认 skipUpdate 不触发 telebox Focused/Blurred）与只读端（BoxManager 有 `canOperate` 门禁）存在覆盖缺口，已废弃该依赖；
+1. **attributes.focus autorun（房间目标来源）**：eager 下直接通知新旧 App；lazy 下只登记最新 pending，并等待目标 setup 结算或缓存激活后再通知 `focus(true)` 和提交本地 Box 焦点。只读端、Player 同样消费该目标变化；
 2. **box focus/blur 事件**：本地点击等场景在 attributes 同步前提供早期信号；
 3. **setup 完成同步**：`finishAppSetup` 成功后按当前 `isFocused` 强制发射一次，保证 App 在 setup 期间订阅后能看到一致的初值。例外是正在执行 setup 的最新 lazy 目标：它在本地视为资源聚焦，但暂不发 `focus` 事件；房间共享 focus 和 `focus(true)` 都等 setup 成功后提交。目标被替换、setup 结束或最小化后，这个临时状态失效。
 
@@ -830,7 +840,7 @@ eager 模式下 coordinator 必须同步放行这些请求；lazy 模式下未 s
 
 - 远端新增 App：先创建 shell，只有它成为当前 top App 时才 setup；
 - 当前客户端 `addApp()`：沿用现有 focus 语义，若新 App 成为 top，则由 lazy coordinator setup 后提交 focus；
-- `addAppAndWaitForSetup()`：这是显式的 ready API。lazy 下新增 App 沿用 `addApp()` 的焦点语义，只有它仍是最新目标时才由统一 pending setup；setup 成功才 resolve。若被新目标覆盖、创建或等待超时，则 reject，但不销毁已创建的 App shell；真实 setup 失败才沿用失败清理。API 从调用起最多等待 20 秒，其中旧 setup 的让出阈值为其开始后的 10 秒，新目标开始 setup 后至多使用剩余期限；创建阶段也占用这 20 秒预算；
+- `addAppAndWaitForSetup()`：这是显式的 ready API。lazy 下新增 App 沿用 `addApp()` 的焦点语义，只有它仍是最新目标时才由统一 pending setup；setup 成功才 resolve。被新目标覆盖、API 等待超时或真实 setup 失败均 reject，但一旦 Box 已创建就不得销毁 App shell。API 自调用起的 20 秒等待上限仅影响调用方结果，不改变 AppProxy 从实际 setup 调用起的 10 秒上限，也不取消最新 pending；
 - 仅有效 `useBoxesStatus=true` 时，`forceTop` App 的选择与 TeleBox 一致；lazy 使用全局窗口状态，忽略 `forceTop`，初始化、标题栏 close 与下一 top 均由 focus/zIndex coordinator 选择；
 - 新增 App 不能直接调用旧 eager `baseInsertApp()` 绕过缓存与 coordinator。
 
@@ -925,7 +935,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 19. 快速切换 A -> B -> C 时，过期 B setup 完成后不会重新 focus B。
 20. teardown 与 setup 不并发；`tearing-down` 项不参与缓存命中。
 21. reconnect 与 Player seek rebuild 不使用 `Promise.all()` 并发 setup，全部走串行队列。
-22. setup 失败后 shell 保留、失败目标 Box 获得焦点，但 `focusApp(appId)` 返回失败；目标不占用缓存 slot，后续显式聚焦可重试。目标已关闭或被新请求取代时不得提交旧焦点。
+22. setup 失败或 AppProxy 10 秒超时后 shell 保留、仍是最新目标的 Box 获得焦点，但 `focusApp(appId)` 返回失败；目标不占用缓存 slot，本次页面内显式聚焦不自动重试。目标已关闭或被新请求取代时不得提交旧焦点/zIndex。
 23. `addAppAndWaitForSetup()` 对非 top App 也真正完成 setup 后再 resolve。
 24. media-player 在 setup 未完成时 teardown 不产生异步 DOM 异常（取消 token 生效）。
 25. 进入 minimized 串行释放全部缓存 runtime；退出 minimized 后聚焦 App 最先恢复。
@@ -956,7 +966,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 41. cache=1 与 eager normal 模式下降级逻辑不生效，行为与现状一致。
 42. 失焦后 Preload 暂停、聚焦后恢复当前页预加载。
 
-实现说明（已实现部分）：lazy focus 等待 AppProxy 的创建窗口最多 2 秒（`ensureLazyFocus` 轮询）；超时通过 logger warn 记录并放弃本次 focus 请求。当前单元测试已锁定 setup 失败、descriptor 缺失和 setup 完成态等核心状态机行为；动态 force 守卫、zIndex pending flush、teardown 幂和监听器卫生、串行队列与缓存淘汰属于集成回归测试重点。
+实现说明：lazy focus 等待 AppProxy 的创建窗口最多 2 秒（`ensureLazyFocus` 轮询）；超时通过 logger warn 记录并放弃本次 focus 请求。AppProxy 对实际 `app.setup()` 统一执行 10 秒结算；API 等待和队列调度的保护计时不改变该 setup 结果。只读初始化恢复的本地有效焦点必须在后续活动状态刷新后保持有效。
 
 ## 20. 实现检查清单
 

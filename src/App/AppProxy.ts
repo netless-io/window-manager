@@ -44,6 +44,13 @@ type AppSetupCompletion = { succeeded: true; result: any } | { succeeded: false;
 
 class AppTeardownFailure extends Error {}
 
+class AppSetupTimeoutError extends Error {
+    constructor(kind: string, appId: string) {
+        super(`[WindowManager]: app setup timed out, kind: ${kind}, appId: ${appId}`);
+        this.name = "AppSetupTimeoutError";
+    }
+}
+
 export type AppEmitter = Emittery<AppEmitterEvent>;
 
 export class AppProxy implements PageRemoveService {
@@ -228,13 +235,17 @@ export class AppProxy implements PageRemoveService {
         return !!(this.appDefinition && (this.appDefinition as NetlessApp).teardown);
     }
 
-    /** Whether the room-level focus currently points to this app. */
+    /** Lazy mode reports the locally committed Box; eager mode follows room focus. */
     public get isFocused(): boolean {
-        return this.store.focus === this.id;
+        return this.manager.lazySetupEnabled
+            ? this.manager.isLazyFocusCommitted(this.id)
+            : this.store.focus === this.id;
     }
 
     public get isResourceFocused(): boolean {
-        return this.isFocused || this.manager.isPreparingLazyFocus(this.id);
+        return this.manager.lazySetupEnabled
+            ? this.manager.isLazyResourceFocused(this.id)
+            : this.isFocused;
     }
 
     /**
@@ -754,9 +765,8 @@ export class AppProxy implements PageRemoveService {
                 this.id
             }, status: ${this.status}, error: ${cause.message}, stack: ${cause.stack || ""}`
         );
-        // Keep the descriptor and allow a later ensureSetup() to retry from
-        // scratch (design TC-016 step 3: recovery after a failed setup).
-        this.setupStarted = false;
+        // A failed setup is terminal for this page. Reconnect/refresh creates
+        // a new initialization attempt; focus changes retain the Box.
         this.contentPageStateActive = false;
         this.contentPageState = undefined;
         this.deferredSetup = this.setupDescriptor;
@@ -778,24 +788,63 @@ export class AppProxy implements PageRemoveService {
         context: AppContext<any, any>
     ): Promise<AppSetupCompletion> {
         this.clearSetupWatchdog();
-        this.setupWatchdogTimer = setTimeout(() => {
-            this.setupWatchdogTimer = undefined;
-            if (this.status === "destroyed") return;
-            this.Logger?.warn(
-                `[WindowManager]: hydrate timeout, stage: app setup, kind: ${this.kind}, appId: ${appId}, timeout: ${APP_SETUP_WATCHDOG_TIMEOUT}ms`
-            );
-        }, APP_SETUP_WATCHDOG_TIMEOUT);
+        let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
+        let timedOut = false;
         try {
-            return { succeeded: true, result: await app.setup(context) };
+            const startedAt = Date.now();
+            const setup = Promise.resolve(app.setup(context));
+            if (!this.manager.lazySetupEnabled) {
+                this.setupWatchdogTimer = setTimeout(() => {
+                    this.setupWatchdogTimer = undefined;
+                    if (this.status === "destroyed") return;
+                    this.Logger?.warn(
+                        `[WindowManager]: hydrate timeout, stage: app setup, kind: ${this.kind}, appId: ${appId}, timeout: ${APP_SETUP_WATCHDOG_TIMEOUT}ms`
+                    );
+                }, APP_SETUP_WATCHDOG_TIMEOUT);
+                return { succeeded: true, result: await setup };
+            }
+
+            const timeout = new Promise<never>((_, reject) => {
+                timeoutTimer = setTimeout(() => {
+                    timedOut = true;
+                    const error = new AppSetupTimeoutError(this.kind, appId);
+                    if (this.status !== "destroyed")
+                        this.Logger?.error(`${error.message}, elapsedMs: ${Date.now() - startedAt}`);
+                    reject(error);
+                }, Math.max(0, APP_SETUP_WATCHDOG_TIMEOUT - (Date.now() - startedAt)));
+            });
+            void setup.then(
+                async result => {
+                    if (!timedOut) return;
+                    if (!app.teardown) {
+                        this.Logger?.warn(
+                            `[WindowManager]: late setup result cannot be released, kind: ${this.kind}, appId: ${appId}`
+                        );
+                        return;
+                    }
+                    try {
+                        await this.invokeAppTeardown(app, context, result);
+                    } catch (error) {
+                        this.Logger?.error(
+                            `[WindowManager]: late app teardown failed, kind: ${this.kind}, appId: ${appId}, error: ${error}`
+                        );
+                    }
+                },
+                () => undefined
+            );
+            return { succeeded: true, result: await Promise.race([setup, timeout]) };
         } catch (error) {
             const cause = error instanceof Error ? error : new Error(String(error));
-            this.Logger?.error(
-                `[WindowManager]: app setup error, kind: ${this.kind}, appId: ${appId}, status: ${
-                    this.status
-                }, error: ${cause.message}, stack: ${cause.stack || ""}`
-            );
+            if (!(error instanceof AppSetupTimeoutError)) {
+                this.Logger?.error(
+                    `[WindowManager]: app setup error, kind: ${this.kind}, appId: ${appId}, status: ${
+                        this.status
+                    }, error: ${cause.message}, stack: ${cause.stack || ""}`
+                );
+            }
             return { succeeded: false, error };
         } finally {
+            if (timeoutTimer) clearTimeout(timeoutTimer);
             this.clearSetupWatchdog();
         }
     }

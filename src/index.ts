@@ -1030,8 +1030,8 @@ export class WindowManager
     /**
      * Create an App and wait until its `setup()` has completed.
      *
-     * Unlike `addApp()`, setup failures reject this Promise and the partially
-     * initialized local App is removed. Existing `addApp()` timing is unchanged.
+     * Unlike `addApp()`, setup failures reject this Promise. The created Box
+     * and App descriptor remain available until explicitly closed.
      *
      * In lazy mode, the latest focus intent owns setup. A superseded or timed
      * out wait rejects without destroying the App shell; a later focus may
@@ -1096,16 +1096,6 @@ export class WindowManager
             return appId;
         } catch (error) {
             if (error instanceof LazySetupWaitError) throw error;
-            const cause = error instanceof Error ? error : new Error(String(error));
-            try {
-                await app.destroy(true, true, false, cause);
-            } catch (cleanupError) {
-                this.Logger?.error(
-                    `[WindowManager]: failed to clean up app after setup error, appId: ${appId}, error: ${String(
-                        cleanupError
-                    )}`
-                );
-            }
             throw error;
         }
     }

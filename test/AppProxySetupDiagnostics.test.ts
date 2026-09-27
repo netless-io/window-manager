@@ -61,6 +61,19 @@ const createProxy = () => {
 };
 
 describe("AppProxy setup diagnostics", () => {
+    it("reports only committed local focus to a lazy App context", () => {
+        const { proxy } = createProxy();
+        proxy.manager.lazySetupEnabled = true;
+        proxy.manager.isLazyFocusCommitted = vi.fn(() => false);
+        proxy.manager.isLazyResourceFocused = vi.fn(() => true);
+        proxy.store = { focus: "app-1" };
+
+        expect(proxy.isFocused).toBe(false);
+        expect(proxy.isResourceFocused).toBe(true);
+        proxy.manager.isLazyFocusCommitted.mockReturnValue(true);
+        expect(proxy.isFocused).toBe(true);
+    });
+
     it("routes a legacy app focus request through lazy pending", () => {
         const { proxy } = createProxy();
         proxy.manager.canOperate = true;
@@ -605,6 +618,45 @@ describe("AppProxy setup diagnostics", () => {
 
         resolveSetup({});
         await pendingSetup;
+    });
+
+    it("settles lazy setup at 10s and releases a late result without marking it ready", async () => {
+        vi.useFakeTimers();
+        const { proxy, logger } = createProxy();
+        proxy.manager.lazySetupEnabled = true;
+        let resolveSetup!: (result: object) => void;
+        const setup = new Promise<object>(resolve => { resolveSetup = resolve; });
+        const teardown = vi.fn().mockResolvedValue(undefined);
+        const app = { setup: vi.fn(() => setup), teardown };
+        const pending = proxy.runAppSetup("app-1", app, {});
+
+        vi.advanceTimersByTime(9_999);
+        expect(teardown).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(await pending).toMatchObject({ succeeded: false, error: expect.any(Error) });
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("app setup timed out"));
+
+        const result = {};
+        resolveSetup(result);
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        expect(teardown).toHaveBeenCalledWith({}, result);
+        expect(proxy.isSetup).toBe(false);
+    });
+
+    it("does not report a lazy setup timeout as an app failure after intentional destroy", async () => {
+        vi.useFakeTimers();
+        const { proxy, logger } = createProxy();
+        proxy.manager.lazySetupEnabled = true;
+        let resolveSetup!: (result: object) => void;
+        const setup = new Promise<object>(resolve => { resolveSetup = resolve; });
+        const pending = proxy.runAppSetup("app-1", { setup: () => setup }, {});
+
+        await proxy.destroy(false, false, true);
+        vi.advanceTimersByTime(10_000);
+        expect(await pending).toMatchObject({ succeeded: false });
+        expect(logger.error).not.toHaveBeenCalled();
+        resolveSetup({});
+        await Promise.resolve();
     });
 
     it("closes a retained Slide outside the cache through the real destroy lifecycle", async () => {
