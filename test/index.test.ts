@@ -1,5 +1,4 @@
 import { Displayer, WindowManager } from "../src";
-import { LazySetupWaitError } from "../src/AppManager";
 import { describe, it, vi, expect } from "vitest";
 
 vi.mock("white-web-sdk");
@@ -206,81 +205,92 @@ describe("WindowManager", () => {
         );
     });
 
-    it("waits for App setup and returns the created appId", async () => {
+    it("addApp waits for eager setup and committed focus before returning the created appId", async () => {
         const wm = new WindowManager({ kind: "WindowManager", displayer });
         const waitForSetup = vi.fn().mockResolvedValue({});
         const app = { waitForSetup };
-        wm.appManager = { appProxies: new Map([["app-1", app]]) } as any;
-        vi.spyOn(wm, "addApp").mockResolvedValue("app-1");
+        wm.appManager = { appProxies: new Map([["app-1", app]]), store: { focus: "app-1" } } as any;
+        wm.boxManager = { boxIsFocus: vi.fn(() => true) } as any;
+        vi.spyOn(wm as any, "_addApp").mockResolvedValue("app-1");
 
-        await expect(wm.addAppAndWaitForSetup({ kind: "Presentation" })).resolves.toBe("app-1");
+        await expect(wm.addApp({ kind: "Presentation" })).resolves.toBe("app-1");
         expect(waitForSetup).toHaveBeenCalledOnce();
     });
 
-    it("retains a created App and rethrows its original setup error", async () => {
+    it("retains a created App and returns its id after setup error when focus committed", async () => {
         const wm = new WindowManager({ kind: "WindowManager", displayer });
         const error = new Error("presentation setup failed");
         const destroy = vi.fn().mockResolvedValue(undefined);
         const app = { waitForSetup: vi.fn().mockRejectedValue(error), destroy };
+        wm.appManager = { appProxies: new Map([["app-1", app]]), store: { focus: "app-1" } } as any;
+        wm.boxManager = { boxIsFocus: vi.fn(() => true) } as any;
+        vi.spyOn(wm as any, "_addApp").mockResolvedValue("app-1");
+
+        await expect(wm.addApp({ kind: "Presentation" })).resolves.toBe("app-1");
+        expect(destroy).not.toHaveBeenCalled();
+    });
+
+    it("returns undefined when the created App did not commit focus", async () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const error = new Error("presentation setup failed");
+        const app = { waitForSetup: vi.fn().mockRejectedValue(error) };
+        wm.appManager = { appProxies: new Map([["app-1", app]]), store: { focus: "app-1" } } as any;
+        wm.boxManager = { boxIsFocus: vi.fn(() => false) } as any;
+        vi.spyOn(wm as any, "_addApp").mockResolvedValue("app-1");
+
+        await expect(wm.addApp({ kind: "Presentation" })).resolves.toBeUndefined();
+    });
+
+    it("waits for the lazy add flow to finish before returning its id", async () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        wm.appManager = { appProxies: new Map() } as any;
+        (wm as any)._lazySetupInMaximizedMode = true;
+        let finish!: (id: string) => void;
+        vi.spyOn(wm as any, "_addApp").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+
+        let settled = false;
+        const add = wm.addApp({ kind: "Slide" }).then(id => { settled = true; return id; });
+        await Promise.resolve();
+        expect(settled).toBe(false);
+        finish("app-1");
+        await expect(add).resolves.toBe("app-1");
+    });
+
+    it("returns an id while minimized without waiting for setup", async () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        const app = { waitForSetup: vi.fn() };
         wm.appManager = { appProxies: new Map([["app-1", app]]) } as any;
-        vi.spyOn(wm, "addApp").mockResolvedValue("app-1");
-
-        await expect(wm.addAppAndWaitForSetup({ kind: "Presentation" })).rejects.toBe(error);
-        expect(destroy).not.toHaveBeenCalled();
-    });
-
-    it("uses the lazy pending wait without adding a direct setup task", async () => {
-        const wm = new WindowManager({ kind: "WindowManager", displayer });
-        const app = { waitForSetup: vi.fn(), destroy: vi.fn() };
-        const waitForLazyAddedAppSetup = vi.fn().mockResolvedValue(undefined);
-        wm.appManager = {
-            appProxies: new Map([["app-1", app]]),
-            waitForLazyAddedAppSetup,
-            enqueueAppSetup: vi.fn(),
-        } as any;
+        wm.boxManager = { minimized: true } as any;
+        (wm as any)._roomLogger = { warn: vi.fn() };
         (wm as any)._lazySetupInMaximizedMode = true;
-        vi.spyOn(wm, "addApp").mockResolvedValue("app-1");
+        vi.spyOn(wm as any, "_addApp").mockResolvedValue("app-1");
 
-        await expect(wm.addAppAndWaitForSetup({ kind: "Slide" })).resolves.toBe("app-1");
-        expect(waitForLazyAddedAppSetup).toHaveBeenCalledWith("app-1", app, expect.any(Number));
-        expect((wm.appManager as any).enqueueAppSetup).not.toHaveBeenCalled();
+        await expect(wm.addApp({ kind: "Slide" })).resolves.toBe("app-1");
         expect(app.waitForSetup).not.toHaveBeenCalled();
+        expect((wm as any)._roomLogger.warn).toHaveBeenCalledWith(
+            expect.stringContaining("addApp created while minimized")
+        );
     });
 
-    it("keeps an added App shell when its lazy setup wait is superseded", async () => {
+    it("returns undefined when lazy focus does not commit", async () => {
         const wm = new WindowManager({ kind: "WindowManager", displayer });
-        const destroy = vi.fn();
-        const app = { destroy };
-        const error = new LazySetupWaitError("superseded", "app-1");
-        wm.appManager = {
-            appProxies: new Map([["app-1", app]]),
-            waitForLazyAddedAppSetup: vi.fn().mockRejectedValue(error),
-        } as any;
+        wm.appManager = { appProxies: new Map() } as any;
         (wm as any)._lazySetupInMaximizedMode = true;
-        vi.spyOn(wm, "addApp").mockResolvedValue("app-1");
+        vi.spyOn(wm as any, "_addApp").mockResolvedValue(undefined);
 
-        await expect(wm.addAppAndWaitForSetup({ kind: "Slide" })).rejects.toBe(error);
-        expect(destroy).not.toHaveBeenCalled();
+        await expect(wm.addApp({ kind: "Slide" })).resolves.toBeUndefined();
     });
 
-    it("bounds lazy add creation before setup waiting begins", async () => {
-        vi.useFakeTimers();
-        try {
-            const wm = new WindowManager({ kind: "WindowManager", displayer });
-            const logger = { error: vi.fn() };
-            (wm as any)._roomLogger = logger;
-            (wm as any)._lazySetupInMaximizedMode = true;
-            vi.spyOn(wm, "addApp").mockReturnValue(new Promise(() => undefined));
+    it("returns undefined when App or Box creation fails", async () => {
+        const wm = new WindowManager({ kind: "WindowManager", displayer });
+        wm.appManager = { appProxies: new Map() } as any;
+        (wm as any)._roomLogger = { error: vi.fn() };
+        vi.spyOn(wm as any, "_addApp").mockRejectedValue(new Error("box creation failed"));
 
-            const outcome = wm.addAppAndWaitForSetup({ kind: "Slide" }).catch(error => error);
-            vi.advanceTimersByTime(20_000);
-            await expect(outcome).resolves.toMatchObject({ reason: "timeout" });
-            expect(logger.error).toHaveBeenCalledWith(
-                expect.stringContaining("lazy add creation timeout")
-            );
-        } finally {
-            vi.useRealTimers();
-        }
+        await expect(wm.addApp({ kind: "Slide" })).resolves.toBeUndefined();
+        expect((wm as any)._roomLogger.error).toHaveBeenCalledWith(
+            expect.stringContaining("box creation failed")
+        );
     });
 
     it("routes setCameraBound through the main-view camera coordinator", () => {

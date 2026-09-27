@@ -53,9 +53,9 @@
           - 预期：返回类型不改变；不存在的 app focus 为 warning + no-op
           - 预期：close 后 attributes、proxy、cache、setup bookkeeping 同步清理
       - minimized API
-        - SC-13 minimized 下 addApp 与 addAppAndWaitForSetup
+        - SC-13 minimized 下 addApp
           - 预期：lazy minimized addApp 只创建 shell，不触发 runtime setup
-          - 预期：addAppAndWaitForSetup 按约定返回 appId，解除 minimized 后才 setup
+          - 预期：addApp 返回 appId 并记录 warning，解除 minimized 后才 setup
       - setup/destroy
         - SC-12 setup 失败、teardown-during-setup、destroy
           - 预期：shell 不污染房间 apps，Promise 失败有日志，无 stale proxy/cache/queue

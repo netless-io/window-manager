@@ -61,7 +61,7 @@
 | SC-10 | setup/focus 串行协同 | 公共 API 与 App 生命周期 | P0 | cache hit 不重新 setup，过期 focus 不提交 | focus 重入 | TC-FUNC-013, TC-FUNC-017 |
 | SC-11 | setup/focus 串行协同 | 性能与稳定性 | P0 | focus 布尔广播与旧请求语义不形成循环 | focus 事件 | TC-FUNC-014 |
 | SC-12 | 公共 API 与 App 生命周期 | runtime cache 状态机 | P1 | add/focus/close/wait API 的返回值和 shell/runtime 生命周期正确 | API 契约 | TC-FUNC-006, TC-FUNC-016, TC-FUNC-017 |
-| SC-13 | 公共 API 与 App 生命周期 | 房间协同与恢复 | P1 | minimized 下 addApp 只建 shell，addAppAndWaitForSetup 按已约定语义返回 | minimized API | TC-FUNC-007 |
+| SC-13 | 公共 API 与 App 生命周期 | 房间协同与恢复 | P1 | minimized 下 addApp 只建 shell、记录 warning 并返回 appId | minimized API | TC-FUNC-007 |
 | SC-14 | 房间协同与恢复 | setup/focus 串行协同 | P0 | lazy 客户端和 eager 客户端同房间观察到一致 force/box 状态 | 多客户端 | TC-FUNC-018 |
 | SC-15 | 房间协同与恢复 | runtime cache 状态机 | P0 | reconnect 后 lazy 只恢复必要 runtime，eager 等待全部 setup | reconnect | TC-FUNC-019, TC-FUNC-020 |
 | SC-16 | 房间协同与恢复 | runtime cache 状态机 | P1 | Player seek rebuild 不产生并发 setup 或重复 cache entry | seek | TC-FUNC-021 |
@@ -89,7 +89,7 @@
 ### 公共 API 与 App 生命周期
 
 - **关键场景**：`SC-12`、`SC-13`。
-- **待确认**：`addAppAndWaitForSetup()` 在 minimized + lazy 下是否要求 resolve 后立即 `isSetup=true`；当前已约定为只创建 shell、返回 appId，解除 minimized 后再 setup。
+- **已对齐**：`addApp()` 在 minimized + lazy 下只创建 shell、记录 warning 并返回 appId，解除 minimized 后再 setup。
 
 ### 房间协同与恢复
 

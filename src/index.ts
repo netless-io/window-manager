@@ -1,5 +1,5 @@
 import pRetry from "p-retry";
-import { AppManager, LazySetupWaitError } from "./AppManager";
+import { AppManager } from "./AppManager";
 import { DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE } from "./AppManager";
 import { appRegister } from "./Register";
 import { callbacks } from "./callback";
@@ -1012,7 +1012,7 @@ export class WindowManager
                 return new Promise((resolve, reject) => {
                     internalEmitter.once("rootDirRemoved").then(async () => {
                         try {
-                            const appId = await this._addApp(params);
+                            const appId = await this.addAppAfterRootReady(params);
                             resolve(appId);
                         } catch (error) {
                             reject(error.message);
@@ -1020,83 +1020,50 @@ export class WindowManager
                     });
                 });
             } else {
-                return this._addApp(params);
+                return this.addAppAfterRootReady(params);
             }
         } else {
             throw new Errors.AppManagerNotInitError();
         }
     }
 
-    /**
-     * Create an App and wait until its `setup()` has completed.
-     *
-     * Unlike `addApp()`, setup failures reject this Promise. The created Box
-     * and App descriptor remain available until explicitly closed.
-     *
-     * In lazy mode, the latest focus intent owns setup. A superseded or timed
-     * out wait rejects without destroying the App shell; a later focus may
-     * still set it up. A minimized workspace does not start setup.
-     */
-    public async addAppAndWaitForSetup<T = any>(params: AddAppParams<T>): Promise<string> {
+    private async addAppAfterRootReady<T = any>(params: AddAppParams<T>): Promise<string | undefined> {
         const lazy = this.lazySetupInMaximizedMode;
-        const startedAt = Date.now();
-        let creationTimer: ReturnType<typeof setTimeout> | undefined;
         let appId: string | undefined;
         try {
-            const creation = this.addApp(params);
-            appId = lazy
-                ? await Promise.race([
-                      creation,
-                      new Promise<never>((_, reject) => {
-                          creationTimer = setTimeout(() => {
-                              this.Logger?.error(
-                                  `[WindowManager] lazy add creation timeout, kind: ${
-                                      params.kind
-                                  }, elapsedMs: ${Date.now() - startedAt}`
-                              );
-                              reject(new LazySetupWaitError("timeout", "pending creation"));
-                          }, 20_000);
-                      }),
-                  ])
-                : await creation;
-        } finally {
-            if (creationTimer) clearTimeout(creationTimer);
+            appId = await this._addApp(params);
+        } catch (error) {
+            this.Logger?.error(`[WindowManager] addApp creation failed, kind: ${params.kind}, error: ${error}`);
+            return;
         }
-        if (!appId) {
-            throw new Error("[WindowManager]: app was not created");
+        if (!appId) return;
+        if (this.attributes.minimized || this.boxManager?.minimized) {
+            this.Logger?.warn(`[WindowManager] addApp created while minimized, appId: ${appId}`);
+            return appId;
         }
+        if (lazy) return appId;
         const app = this.queryOne(appId);
-        if (!app) {
-            throw new Error(`[WindowManager]: app not found after creation, appId: ${appId}`);
-        }
+        if (!app) return;
+        const appManager = this.appManager;
+        if (!appManager) return;
         try {
-            if (lazy) {
-                const appManager = this.appManager;
-                if (!appManager) {
-                    throw new Error("[WindowManager]: AppManager is not initialized");
+            try {
+                if (typeof (app as any).ensureSetup === "function") {
+                    await appManager.enqueueAppSetup(appId);
+                } else {
+                    await app.waitForSetup();
                 }
-                await appManager.waitForLazyAddedAppSetup(
-                    appId,
-                    app,
-                    Math.max(0, 20_000 - (Date.now() - startedAt))
-                );
-                return appId;
+            } catch (error) {
+                this.Logger?.error(`[WindowManager] added App setup failed, appId: ${appId}, error: ${error}`);
             }
-            if (typeof (app as any).ensureSetup === "function") {
-                // Route through the serial setup queue so an explicit wait
-                // never runs `setup()` concurrently with other apps.
-                const appManager = this.appManager;
-                if (!appManager) {
-                    throw new Error("[WindowManager]: AppManager is not initialized");
-                }
-                await appManager.enqueueAppSetup(appId);
-            } else {
-                await app.waitForSetup();
+            if (appManager.store.focus !== appId ||
+                this.boxManager?.boxIsFocus(appId) !== true) {
+                return;
             }
             return appId;
         } catch (error) {
-            if (error instanceof LazySetupWaitError) throw error;
-            throw error;
+            this.Logger?.error(`[WindowManager] addApp focus not committed, appId: ${appId}, error: ${error}`);
+            return;
         }
     }
 
@@ -2766,8 +2733,9 @@ export class WindowManager
     /**
      * 切换 focus 到指定的 app, 并且把这个 app 放到最前面
      *
-     * 返回 Promise：`true` 表示焦点已真正提交（setup 完成、box 已聚焦、
-     * focus 事件已发出）；`false` 表示请求被更新的切换取代或超时未提交。
+     * 返回 Promise：`true` 表示房间 focus 与本地 Box 焦点、zIndex 已提交；
+     * setup 或 App focus 通知失败不会撤销已提交的焦点，而是记录错误。
+     * `false` 表示请求被取代或焦点未能提交。
      * 快速连续调用时内部只保留最新请求，旧的未处理请求立即以 `false` 结束。
      * 非 lazy 模式保持原有同步 focus 行为，返回值会立即 resolve 为 `true`。
      */

@@ -106,7 +106,7 @@
 - **前置**：lazy + force 房间进入 minimized；清空当前可见 runtime。
 - **步骤**：
   1. 调用 `addApp()`，确认 Promise 返回 appId、`queryOne(appId)` 可用、`isSetup=false`，且没有该 App 的 setup start 日志。
-  2. 调用 `addAppAndWaitForSetup()`，确认按当前约定在 shell 创建后返回 appId，`isSetup=false`，不触发 runtime setup。
+  2. 确认 Room logger.warn 记录最小化新增；解除最小化前不触发 runtime setup。
   3. 显式解除 minimized，确认按 top/focus 优先 setup 新 App，再提交 focus，realReady 达成后才出现 focus commit。
 - **优先级**：P1
 - **前置依赖**：TC-FUNC-001

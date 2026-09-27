@@ -64,6 +64,7 @@ function fixture(setup = false, cached = false, lazy = true) {
             canOperate: true,
             resolveAppOptions: () => ({}),
             Logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+            focusApp: vi.fn().mockResolvedValue(true),
         },
         runtimeCache: new Map(cached ? [["app-1", { state: "ready", lastUsed: 1 }]] : []),
         lazyFocusGeneration: 0,
@@ -136,14 +137,20 @@ it.each([true, false])(
             getBox: vi.fn((id: string) => ({ "app-2": { zIndex: 102 }, "app-3": { zIndex: 101 } })[id]),
             boxIsFocus: vi.fn(() => false),
         };
-        const requestFocus = vi.spyOn(manager, "requestFocus").mockImplementation(() => undefined);
-
-        await manager.closeApp("app-1");
+        const handoff = deferred();
+        const focusApp = vi.spyOn(manager, "requestFocusAndWait").mockReturnValue(handoff.promise);
+        let closed = false;
+        const closing = manager.closeApp("app-1").then(() => { closed = true; });
+        for (let i = 0; i < 10; i++) await Promise.resolve();
 
         expect(proxy.store.cleanAppAttributes).toHaveBeenCalledWith("app-1", true);
         expect(manager.attributes.focus).toBe("app-1");
-        expect(requestFocus).toHaveBeenCalledTimes(1);
-        expect(requestFocus).toHaveBeenCalledWith("app-2");
+        expect(focusApp).toHaveBeenCalledOnce();
+        expect(focusApp).toHaveBeenCalledWith("app-2");
+        expect(closed).toBe(false);
+        handoff.resolve(true);
+        await closing;
+        expect(closed).toBe(true);
     }
 );
 
@@ -160,17 +167,33 @@ it("closing another app preserves an existing valid focus", async () => {
     expect(requestFocus).not.toHaveBeenCalled();
 });
 
-it("repairs an empty focus after closing an app while another Box remains", async () => {
+it("closing only a pending app cancels it without changing the current focus", async () => {
+    const { manager } = fixture(true, false);
+    manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+    manager.attributes.focus = "app-2";
+    manager.appProxies.set("app-2", { isDestroyed: false });
+    manager.lazyFocusGeneration = 1;
+    manager.desiredLazyFocus = { focused: "app-1", generation: 1 };
+    manager.pendingLazyFocusAppId = "app-1";
+    const focusApp = vi.spyOn(manager, "requestFocusAndWait").mockResolvedValue(true);
+
+    await manager.closeApp("app-1");
+
+    expect(manager.attributes.focus).toBe("app-2");
+    expect(manager.desiredLazyFocus).toBeUndefined();
+    expect(manager.pendingLazyFocusAppId).toBeUndefined();
+    expect(focusApp).not.toHaveBeenCalled();
+});
+
+it("does not replace an empty focus when closing a non-focused app", async () => {
     const { manager } = fixture(true, false);
     manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
     manager.attributes.focus = null;
     manager.appProxies.set("app-2", { isDestroyed: false });
-    const requestFocus = vi.spyOn(manager, "requestFocus").mockImplementation(() => undefined);
-
     await manager.closeApp("app-1");
 
-    expect(requestFocus).toHaveBeenCalledTimes(1);
-    expect(requestFocus).toHaveBeenCalledWith("app-2");
+    expect(manager.windowManger.focusApp).not.toHaveBeenCalled();
+    expect(manager.attributes.focus).toBeNull();
 });
 
 it.each([undefined, "app-3"])(
@@ -183,7 +206,7 @@ it.each([undefined, "app-3"])(
         manager.appProxies.set("app-3", { isDestroyed: false });
         const gate = deferred();
         proxy.appEmitter.emit.mockReturnValue(gate.promise);
-        const requestFocus = vi.spyOn(manager, "requestFocus").mockImplementation(() => undefined);
+        const focusApp = vi.spyOn(manager, "requestFocusAndWait").mockResolvedValue(true);
 
         const closing = manager.closeApp("app-1");
         for (let i = 0; i < 10; i++) await Promise.resolve();
@@ -192,7 +215,7 @@ it.each([undefined, "app-3"])(
         gate.resolve();
         await closing;
 
-        expect(requestFocus).not.toHaveBeenCalled();
+        expect(focusApp).not.toHaveBeenCalled();
     }
 );
 
@@ -232,6 +255,31 @@ it("both close calls wait for the same runtime destruction", async () => {
     await Promise.all([first, second]);
     expect(proxy.appEmitter.emit).toHaveBeenCalledOnce();
     expect(proxy.viewManager.destroyView).toHaveBeenCalledOnce();
+});
+
+it("concurrent close calls share the successor focus wait", async () => {
+    const { manager } = fixture(true, true);
+    manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+    manager.appProxies.set("app-2", { isDestroyed: false });
+    const gate = deferred();
+    const focusApp = vi.spyOn(manager, "requestFocusAndWait").mockReturnValue(gate.promise);
+
+    const first = manager.closeApp("app-1");
+    const second = manager.closeApp("app-1");
+    expect(second).toBe(first);
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(focusApp).toHaveBeenCalledOnce();
+    gate.resolve(true);
+    await Promise.all([first, second]);
+});
+
+it("a Box removal enters the close flow without removing the Box twice", async () => {
+    const { manager, proxy } = fixture(true, true);
+    await manager.closeApp("app-1", true, true);
+
+    expect(proxy.boxManager.closeBox).not.toHaveBeenCalled();
+    expect(manager.attributes.apps["app-1"]).toBeUndefined();
+    expect(proxy.appEmitter.emit).toHaveBeenCalledWith("destroy", { error: undefined });
 });
 
 it.each([true, false])("late app factory cannot create a box after close; lazy=%s", async lazy => {
@@ -285,6 +333,7 @@ it.each(["close", "remote-delete", "manager-destroy"])(
         const { manager } = fixture();
         manager.appProxies.clear();
         manager.requestFocus = vi.fn();
+        manager.requestFocusAndWait = vi.fn().mockResolvedValue(true);
         manager.attributes.apps["app-2"] = { kind: "ReviewApp", createdAt: 2 };
         manager.attributes["app-2"] = {};
         const tasks: Array<() => Promise<unknown>> = [];

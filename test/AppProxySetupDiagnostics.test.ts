@@ -634,7 +634,7 @@ describe("AppProxy setup diagnostics", () => {
         expect(teardown).not.toHaveBeenCalled();
         vi.advanceTimersByTime(1);
         expect(await pending).toMatchObject({ succeeded: false, error: expect.any(Error) });
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("app setup timed out"));
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("app setup timed out"));
 
         const result = {};
         resolveSetup(result);
@@ -665,6 +665,7 @@ describe("AppProxy setup diagnostics", () => {
         proxy.setupRunGeneration = 0;
         proxy.store = { cleanAppAttributes: vi.fn() };
         proxy.boxManager = { closeBox: vi.fn() };
+        proxy.manager.closeApp = vi.fn(() => proxy.destroy(true, true, false));
         let finishDestroy!: () => void;
         proxy.appEmitter.emit.mockImplementationOnce(
             () => new Promise<void>(resolve => { finishDestroy = resolve; })
@@ -678,6 +679,7 @@ describe("AppProxy setup diagnostics", () => {
         finishDestroy();
         await closing;
 
+        expect(proxy.manager.closeApp).toHaveBeenCalledWith("app-1");
         expect(proxy.manager.notifyAppDestroyed).toHaveBeenCalledWith("app-1");
         expect(proxy.viewManager.destroyView).toHaveBeenCalledWith("app-1");
         expect(proxy.boxManager.closeBox).toHaveBeenCalledWith("app-1", false);

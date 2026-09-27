@@ -546,7 +546,7 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.preparingLazyFocusAppId).toBeUndefined();
     });
 
-    it("does not commit lazy focus when the app focus emitter fails", async () => {
+    it("commits room-selected Box focus when the app focus emitter fails", async () => {
         const manager = createLazyManager(3) as any;
         const target = {
             ...createProxy({ isSetup: true }),
@@ -565,9 +565,12 @@ describe("AppManager lazy runtime cache", () => {
 
         await expect(
             AppManager.prototype.ensureLazyFocus.call(manager, "target", 0)
-        ).resolves.toBe(false);
-        expect(manager.activeLazyAppId).toBeUndefined();
-        expect(manager.settlePendingFocusCommit).not.toHaveBeenCalled();
+        ).resolves.toBe(true);
+        expect(manager.activeLazyAppId).toBe("target");
+        expect(manager.settlePendingFocusCommit).toHaveBeenCalledWith("target", true, 0);
+        expect(manager.warnings).toContain(
+            "[error] [WindowManager] app focus notification failed, appId: target"
+        );
     });
 
     it("runs the full lazy commit when the box focus already matches room focus", async () => {
@@ -714,7 +717,7 @@ describe("AppManager lazy runtime cache", () => {
         expect(manager.pendingLazyFocusAppId).toBeUndefined();
     });
 
-    it("realigns the previous app only after a TeleBox setup failure handoff ends", async () => {
+    it("waits for attribute feedback after a TeleBox setup failure", async () => {
         const manager = createLazyManager(1) as any;
         manager.windowManger.canOperate = true;
         const previous = createProxy({ isSetup: true });
@@ -749,8 +752,8 @@ describe("AppManager lazy runtime cache", () => {
         await manager.lazyFocusQueue;
 
         expect(manager.enqueueAppSetup).toHaveBeenCalledWith("target", expect.any(Function));
-        expect(manager.windowManger.safeSetAttributes).not.toHaveBeenCalled();
-        expect(manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "previous" });
+        expect(manager.windowManger.safeSetAttributes).toHaveBeenCalledWith({ focus: "target" });
+        expect(manager.boxManager.focusBox).not.toHaveBeenCalledWith({ appId: "target" });
     });
 
     it("defers TeleBox setup-failure recovery until the handoff finally block", () => {

@@ -9,7 +9,6 @@
     - [`setCollectorContainer`](#set-collector-container)
   - [实例方法](#instance-methods)
     - [`addApp`](#addApp)
-    - [`addAppAndWaitForSetup`](#addAppAndWaitForSetup)
     - [`closeApp`](#closeApp)
     - [`focusApp`](#focusApp)
     - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
@@ -159,25 +158,7 @@ const appId = await manager.addApp({
 
 `forceTop` 和 `forceNormal` 仅在当前 WindowManager 使用 `useBoxesStatus=true` 时生效；全局窗口状态和 lazy 模式会保留同步字段，但不将其应用到本地窗口。
 
-`addApp()` 在窗口创建后即可返回，不等待 App 的 `setup()` 完成。需要捕获 `setup()`
-异常时使用 `addAppAndWaitForSetup()`。
-
-<h3 id="addAppAndWaitForSetup">addAppAndWaitForSetup</h3>
-
-> 添加 App 并等待它的 `setup()` 完成。setup 失败时 Promise reject，并清理本地半初始化 App。
-
-lazy 模式下，新 App 按既有语义成为焦点时，与同步 focus、`focusApp()`、TeleBox 共用一个最新 pending；此 API 不另外排队 setup。只有 setup 成功才返回 appId。新目标覆盖当前请求时会 reject，已创建的 App shell 保留；从调用开始满 20 秒仍未 ready 时也会 reject，并通过 Room logger.error 记录超时，shell 和有效 pending 不会仅因等待超时而被销毁。当前 setup 运行满 10 秒会单独记录一次 error；若有不同的新目标，调度器可让出旧等待，但不能物理中断第三方 setup。最小化时新增 App 只创建 shell、不请求焦点；最小化或后台期间不启动新 setup，20 秒期限仍继续计算。非 lazy 行为不变。
-
-```typescript
-try {
-    const appId = await manager.addAppAndWaitForSetup({
-        kind: "helloWorld",
-        options: { scenePath: "/hello-world" },
-    })
-} catch (error) {
-    // error 是 App setup 抛出的原始异常。
-}
-```
+`addApp()` 返回 `Promise<string | undefined>`。它先写入 App 属性并创建 Box。仍是最新焦点目标时，等 setup 成功、失败或超时结算，再等房间 focus、Box 焦点和 zIndex 提交后返回 appId。setup 错误只记日志。pending 被替换或最小化时创建的 App 返回已创建的 appId，不等待 setup；创建或必要的焦点提交失败时返回 `undefined`。
 
 <h3 id="appContextCreateLogger">AppContext.createLogger</h3>
 
@@ -213,8 +194,10 @@ WindowManager 内部日志和 App logger 统一进行安全序列化、敏感字
 > 关闭已经打开的 `APP`
 
 ```typescript
-manager.closeApp(appId)
+await manager.closeApp(appId)
 ```
+
+关闭当前焦点 App 时，Promise 等待剩余最高 zIndex App 的焦点流程结算；关闭非焦点或仅 pending 的 App 不改变现有焦点。关闭最后一个 App 时清空焦点。
 
 <h3 id="focusApp">focusApp</h3>
 

@@ -326,11 +326,11 @@ destroy()
 ### 6.3 setup 失败与超时
 
 - AppProxy 从实际调用 `app.setup()` 起统一等待最多 10 秒；成功、抛错和超时均结算本次 attempt。超时返回失败结果，不把未就绪 runtime 标记 ready；底层 Promise 可能仍在运行，但晚到结果不得再次提交焦点、zIndex 或旧 attempt 的 ready 状态；
-- 失败/超时从 `settingUpApps` 移除任务，不占 runtimeCache slot；保留 App 描述、View 和 Box，不因 `addApp()` 或 `addAppAndWaitForSetup()` 的入口不同而销毁已创建的 Box；
+- 失败/超时从 `settingUpApps` 移除任务，不占 runtimeCache slot；保留已创建的 App 描述、View 和 Box；
 - 若目标 App 和 Box 仍存在、请求仍是最新目标，则提交 Box 焦点和一次层级更新；若已有更新的 pending，跳过旧目标的提交，继续新目标；
 - 本次页面内失败的 setup 不自动重试，显式再次聚焦该 Box 也不重新执行同一个 runtime 的 setup；刷新和重连按初始化流程创建新 attempt；
-- 根据现有错误事件和日志约定上报原始错误；
-- `focusApp(appId)` 在 setup 失败或超时时返回 `false`，表示 runtime 未 ready；只要请求仍有效，已创建的目标 Box 仍获得焦点，不回退旧课件或清成 mainView；
+- `app.setup()` 报错通过 `room.logger.error` 上报，超时通过 `room.logger.warn` 上报；两者不改变焦点提交的返回语义；
+- `focusApp(appId)` 的返回值表示房间 focus 和本地 Box 焦点、zIndex 是否已提交，不表示 runtime ready；setup 失败或超时后，若请求仍有效且这些状态最终提交成功，则返回 `true`，保留目标 Box，不回退旧课件或清成 mainView；
 - 失败 Box 的 `AppContext.isFocused()` 反映本地已提交的 Box 焦点，但 `runtimeActivity.active` 为 false；未成功 setup 的 runtime 不进入 ready 缓存；
 - 由 `attributes.focus` 同步触发的被动 setup 失败时，只读端聚焦该 Box，不反向改写房间焦点；
 - 目标在 setup 期间被关闭或被更新的请求取代时，不提交该目标的焦点。
@@ -396,7 +396,7 @@ eager 路径原先经 `setupApp()` 中 `setTimeout(..., SETUP_APP_DELAY)` 直接
 - reconnect（`AppManager.onReconnected()`，已由 `Promise.all()` 改为逐 App 串行重建）；
 - Player seek rebuild（`onPlayerSeekDone()` 全量重建）；
 - `forceMaximized` 清除后的 eager 补齐；
-- `addAppAndWaitForSetup()`：eager 沿用串行 setup 队列；lazy 只等待最新 focus pending 驱动的 setup，不直接插入第二条 setup 队列。
+- `addApp()`：eager 沿用串行 setup 队列；lazy 只等待最新 focus pending 的 setup 结算与最终房间/Box 焦点提交，不直接插入第二条 setup 队列。
 
 `AppCreateQueue` 保持现有职责（AppProxy/Box 创建串行 + ready 事件），不再承担"setup 完成串行"的语义；两者可以并存。
 
@@ -526,9 +526,9 @@ await manager.FocusApp(cId);
 await manager.DispatchDocsEvent("nextPage");
 ```
 
-`focusApp()` 的异步结果必须贯穿 WindowManager、Whiteboard-bridge 和 Native SDK：成功只表示目标 runtime 已 setup、Box focus 已提交且 App focus 事件已完成；请求被更新请求取代、超时或 setup 失败必须返回失败或 reject。调用方收到失败后不得继续发送依赖该 focus 的分页命令。现有同步/void 重载可以为兼容保留，但不得用于上述有顺序依赖的调用。
+`focusApp()` 的异步结果必须贯穿 WindowManager、Whiteboard-bridge 和 Native SDK：成功表示房间 focus 与本地 Box 焦点、zIndex 已提交，不保证目标 runtime ready。请求被更新请求取代或焦点未提交时返回失败；setup 报错和 App focus 通知失败记录错误，setup 超时记录警告，已提交的焦点仍返回成功。调用方收到失败后不得继续发送依赖该 focus 的分页命令；收到成功后也须处理分页操作自身的失败。现有同步/void 重载可以为兼容保留，但不得用于上述有顺序依赖的调用。
 
-App focus 事件本身也是 completion barrier：App 的 `context.emitter.on("focus")` listener 必须返回本次异步资源切换的 Promise，不能用 `void` 丢弃；WindowManager 通过 `Emittery.emit()` 等待该 Promise。以 Slide 为例，`focus(true)` 只有在 `release()`、player 重建及 `setSlideState()` 完成后才成功；重复的同状态 focus 必须复用正在执行的 Promise。listener reject 或 focus-event watchdog 超时时，本次 lazy `focusApp()` 返回 `false`，不得先提交成功。App 内部可以串行 freeze/unfreeze，但只有把同一 Promise 逐层返回到 WindowManager，串行才同时构成对调用方有效的完成屏障。
+App focus 事件仍是资源切换的等待屏障：App 的 `context.emitter.on("focus")` listener 必须返回本次异步资源切换的 Promise，不能用 `void` 丢弃；WindowManager 通过 `Emittery.emit()` 等待该 Promise。以 Slide 为例，`focus(true)` 在 `release()`、player 重建及 `setSlideState()` 完成后才报告资源成功；重复的同状态 focus 必须复用正在执行的 Promise。listener reject 或 focus-event watchdog 超时只记录 App 错误，房间 focus 与 Box 已提交时 `focusApp()` 仍返回 `true`。
 
 这里的 pending 需要区分两层：三种来源均先进入同一最新 pending；旧 AppProxy setup attempt 成功、失败或从实际调用起满 10 秒结算后，才在前台且非最小化条件下处理新目标。结算不强制中断真实 JS 工作。被取代的 `focusApp(C)` waiter 立即返回 `false`，不移除 E pending，也不能在 E 完成后返回 C 成功。`focusApp()` 不再以调用起点单独计算 10 秒 setup 期限；它等待目标的 setup/缓存激活和本次焦点提交结果。
 
@@ -829,7 +829,7 @@ Player 的 `onPlayerSeekDone()` 触发全量 attributes 重建，必须按同一
 - `AppProxy` setup / addApp 路径中的初始 focus；
 - `AppManager.addApp()` 在 minimized 状态下先解除最小化的路径（`afterAddApp()`）；
 - `WindowManager.focusApp()`；
-- TeleBox 本地点击、标题栏 close 后的 `focusTopBox()`；
+- TeleBox 本地点击，以及普通窗口和最大化标题栏的关闭请求；
 - 远端 focus、zIndex 和 reconnect 恢复。
 
 eager 模式下 coordinator 必须同步放行这些请求；lazy 模式下未 setup 的目标只能进入 pending，不能先变更 TeleBox focus 或 zIndex。
@@ -839,12 +839,13 @@ eager 模式下 coordinator 必须同步放行这些请求；lazy 模式下未 s
 ### 16.3 新增 App
 
 - 远端新增 App：先创建 shell，只有它成为当前 top App 时才 setup；
-- 当前客户端 `addApp()`：沿用现有 focus 语义，若新 App 成为 top，则由 lazy coordinator setup 后提交 focus；
-- `addAppAndWaitForSetup()`：这是显式的 ready API。lazy 下新增 App 沿用 `addApp()` 的焦点语义，只有它仍是最新目标时才由统一 pending setup；setup 成功才 resolve。被新目标覆盖、API 等待超时或真实 setup 失败均 reject，但一旦 Box 已创建就不得销毁 App shell。API 自调用起的 20 秒等待上限仅影响调用方结果，不改变 AppProxy 从实际 setup 调用起的 10 秒上限，也不取消最新 pending；
+- 当前客户端 `addApp(): Promise<appId | undefined>`：先写 App 属性、创建 Box，再判断是否进入统一焦点 pending。仍是最新目标时，等待 setup 成功、失败或超时结算及房间 focus、本地 Box 焦点和 zIndex 提交，返回 appId；setup 错误不改变返回结果。创建后 pending 被替换，保留描述和 Box 并返回 appId，不等待跳过的 setup。创建或必需的焦点提交失败时返回 undefined；20 秒等待上限只影响调用方结果，不取消 pending，也不改变 AppProxy 的 10 秒 setup 超时；
 - 仅有效 `useBoxesStatus=true` 时，`forceTop` App 的选择与 TeleBox 一致；lazy 使用全局窗口状态，忽略 `forceTop`，初始化、标题栏 close 与下一 top 均由 focus/zIndex coordinator 选择；
 - 新增 App 不能直接调用旧 eager `baseInsertApp()` 绕过缓存与 coordinator。
 
-lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除最小化；新 App 只创建 shell，直到调用方显式解除最小化，才按 top App coordinator setup。`addAppAndWaitForSetup()` 不再把 shell 创建误报为 ready；20 秒内未能 setup 则拒绝等待，但保留 shell。这样可以保持"最小化期间不创建重 runtime"的性能约束。
+关闭 App 时先判断它是否是当前共享 `attributes.focus`。关闭非焦点 App（包括仅在 pending 中的 App）只取消该目标并清理其 Box、属性和资源，不挑选继任焦点。关闭当前焦点 App 时，先完成销毁与属性清理，再从剩余 App 中按最高 zIndex 选择继任目标，等待该目标的 `focusApp()` 流程结算后才完成 `closeApp()` Promise；若已没有 App，则清空共享 focus，不再请求焦点。普通 Box 和最大化标题栏的关闭按钮只向 WindowManager 请求关闭，由同一条 `closeApp()` 流程移除 Box 并交接焦点，不能先由 TeleBox 自行移除并自动聚焦 top Box。
+
+lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除最小化；新 App 只创建 shell，记录 warning 并返回 appId。调用方显式解除最小化后，才按 top App coordinator setup。这样可以保持"最小化期间不创建重 runtime"的性能约束。
 
 本地点击未 setup App 时，WindowManager 会先暂时撤销 TeleBox 的本地视觉 focus，但不会把仍然有效的房间级 `attributes.focus` 写成 `undefined`；旧 focused App 会保持为共享 active，直到新 App setup 成功后再提交新的 focus。
 
@@ -873,7 +874,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 - `manager.setMaximized(true)` 只由显式 `forceMaximized=true` 的可写初始化请求或房间管理 API 触发；lazy 客户端只读取策略字段；
 - 其他客户端不需要新增配置；
 - setup 失败不能破坏已有 shell 或房间 App 列表；
-- `appsChange` 仍表示 App shell 列表变化，不表示 App runtime 已 ready；`onAppSetup` 或 `addAppAndWaitForSetup()` 才表示 setup 完成；
+- `appsChange` 仍表示 App shell 列表变化，不表示 App runtime 已 ready；`onAppSetup` 表示 setup 成功。`addApp()` 返回 appId 在最新目标路径表示 setup 已结算且焦点已提交；pending 被替换或最小化时只表示 shell 已创建；
 - Native/Bridge 不应把 `focusedChange` 直接当作 lazy runtime ready 信号；需要使用 setup 完成信号或 WindowManager 的本地 active focus 状态。
 
 ## 18. 审计问题与修复结论
@@ -889,8 +890,8 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 | R7 mount/onCreated 时序 | 配置校验在 mount，状态归一化在 BoxManager 创建后、onCreated 之前；mount 失败恢复共享状态。 |
 | R8 forceTop 模式泄漏 | `forceTop`/`forceNormal` 仅在有效 `useBoxesStatus=true` 时消费；全局窗口状态保留同步字段但不影响 Box、top 或 setup 优先级。 |
 | R9 Bridge 把 appsChange 当 ready | `appsChange` 只表示 shell，Bridge/native 使用 setup 完成信号。 |
-| R10 新增 App 绕过 lazy | 本地和远端新增 App 统一进入 coordinator；`addAppAndWaitForSetup()` 保留显式 ready 语义。 |
-| M1 解除 minimized 绕过 coordinator | `minimized=false` 事件和 `addApp()` 的自动解除最小化都先 setup top，再提交 focus/zIndex。 |
+| R10 新增 App 绕过 lazy | 本地和远端新增 App 统一进入 coordinator；`addApp()` 在最新目标路径等待焦点提交。 |
+| M1 解除 minimized 绕过 coordinator | `minimized=false` 事件先 setup top，再提交 focus/zIndex；最小化期间的 `addApp()` 保留 shell，不自动解除最小化。 |
 | M2 close 目标与窗口模式不一致 | 独立窗口模式按 forceTop，其他模式按 focus/zIndex；初始化、标题栏 close 和 close 后下一 top 统一由 coordinator 选择。 |
 | M3 teardown 监听器累积 | 每次 setup 建立独立 scope；teardown 必须清理复用 `context.emitter` 上的本次监听器后才能 re-setup。 |
 | M4 bind/rebuild 绕过 lazy | 每次 `bindContainer()`、reconnect 和 Player seek rebuild 都幂等重放 force 状态、shell 恢复和 top setup。 |
@@ -935,8 +936,8 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 19. 快速切换 A -> B -> C 时，过期 B setup 完成后不会重新 focus B。
 20. teardown 与 setup 不并发；`tearing-down` 项不参与缓存命中。
 21. reconnect 与 Player seek rebuild 不使用 `Promise.all()` 并发 setup，全部走串行队列。
-22. setup 失败或 AppProxy 10 秒超时后 shell 保留、仍是最新目标的 Box 获得焦点，但 `focusApp(appId)` 返回失败；目标不占用缓存 slot，本次页面内显式聚焦不自动重试。目标已关闭或被新请求取代时不得提交旧焦点/zIndex。
-23. `addAppAndWaitForSetup()` 对非 top App 也真正完成 setup 后再 resolve。
+22. setup 失败或 AppProxy 10 秒超时后 shell 保留、仍是最新目标的 Box 获得焦点；房间 focus 也提交成功时 `focusApp(appId)` 返回成功，否则返回失败。目标不占用缓存 slot，本次页面内显式聚焦不自动重试。目标已关闭或被新请求取代时不得提交旧焦点/zIndex。
+23. `addApp()` 的最新目标等 setup 结算与焦点提交后返回 appId；被新 pending 取代或在最小化期间创建的 App 保留 Box 并返回 appId；创建或必要提交失败返回 undefined。
 24. media-player 在 setup 未完成时 teardown 不产生异步 DOM 异常（取消 token 生效）。
 25. 进入 minimized 串行释放全部缓存 runtime；退出 minimized 后聚焦 App 最先恢复。
 26. force 清除后的补齐按聚焦优先排序；重复 `bindContainer()` 不重复 setup 或重复同步最大化状态。
@@ -946,14 +947,14 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 **Focus / close / 页面 / 回调语义**
 
 29. focus A -> B 时，B setup 完成前 TeleBox 不提交 B focus，A runtime 不提前销毁（cache=1）；cache≥2 时 A 进入缓存不销毁。
-30. 标题栏或 `closeApp()` 关闭 A 后，按剩余最高 `zIndex` 选择 B；B 就绪后 focus B，setup 失败但 Box 保留时仍 focus B；最后一个 App 关闭才清焦。
+30. 标题栏或 `closeApp()` 关闭当前焦点 A 后，按剩余最高 `zIndex` 选择 B，并等待 B 的焦点流程结算；关闭非焦点或仅 pending 的 A 不改变原焦点；最后一个 App 关闭才清焦。
 31. 解除 minimized 时先 setup top，再提交 focus；`addApp()` 在 minimized 下也遵循该顺序。
 32. 关闭最后一个 App 时，不发生意外的 false -> true 状态抖动。
 33. 空 App 集合下保留现有标题栏逻辑，但 `setFullscreen(true/false)` 优先级更高。
 34. `forceTop` App 仅在 `useBoxesStatus=true` 时参与 setup/focus 选择；lazy/global 模式忽略。
 35. Slide、DocsViewer、Presentation setup 后恢复正确的 `fullPath` / page index。
-36. `appsChange`、`onAppSetup`、`addAppAndWaitForSetup()` 的 ready 语义分别正确。
-36a. 快速执行 `focusApp(C) -> focusApp(D) -> focusApp(E)` 并穿插分页命令：只有 `await focusApp(appId)` 成功提交后，后续无 appId 的 `dispatchDocsEvent` 才能操作该当前焦点；返回失败时不得继续。Bridge/Native 必须真实等待 Web Promise 并传回成功、被取代、超时和 setup 失败结果，不能用 void/fire-and-forget 冒充完成。
+36. `appsChange` 的 shell 语义、`onAppSetup` 的 runtime ready 语义与 `addApp()` 的按路径返回语义分别正确。
+36a. 快速执行 `focusApp(C) -> focusApp(D) -> focusApp(E)` 并穿插分页命令：只有 `await focusApp(appId)` 成功提交后，后续无 appId 的 `dispatchDocsEvent` 才能定位当前焦点；返回失败时不得继续。成功不保证 runtime ready，分页操作须处理自身失败。Bridge/Native 必须真实等待 Web Promise 并传回焦点提交、被取代或未提交的结果，不能用 void/fire-and-forget 冒充完成。
 36b. 第三方 App 未实现 `teardown()` 时，超过 cache 配置、进入 minimized 和再次 focused 均不调用 teardown；runtimeCache 允许软超限并保留该 App 的 ready 记账，再次 focused 不重复调用 setup。缓存记账因模式切换缺失时，已 setup runtime 只重新登记、不重复 setup。
 36c. Slide 已失焦冻结后进入后台，后台期间收到 `focus=true` 不立即解冻；回到前台时仅当前 focused Slide 解冻，未 focused 或 minimized Slide 保持冻结。
 
@@ -1007,7 +1008,7 @@ lazy 实例处于 `minimized` 时，当前客户端新增 App 不会自动解除
 
 - [x] 在 setup 完成后才提交 TeleBox focus。
 - [ ] 盘点并改道所有现有 focus/zIndex 提交点（16.2 节清单）。
-- [ ] 为最大化标题栏 close 增加延迟自动 focus 的最小 TeleBox 能力。
+- [x] 普通窗口和最大化标题栏 close 统一委托 WindowManager，交接焦点前不由 TeleBox 自动 focusTopBox。
 - [ ] 在 TeleBox UI 中禁用 normal/restore 按钮和双击恢复。
 - [x] 通过 TeleBox 构造参数和运行时 setter 同步 force 状态，确保 UI 与事件拦截一致。
 

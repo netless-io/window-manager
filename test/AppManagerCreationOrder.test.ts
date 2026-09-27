@@ -160,13 +160,14 @@ describe("AppManager app creation order", () => {
         const manager = Object.create(AppManager.prototype) as any;
         manager.windowManger = {
             lazySetupInMaximizedMode: true,
-            Logger: { info: vi.fn(), warn: vi.fn() },
+            Logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
             attributes: { apps: { next: {} } },
         };
         manager.beforeAddApp = vi.fn().mockResolvedValue({ appId: "next", needFocus: true });
         manager.baseInsertApp = vi.fn().mockResolvedValue({ id: "next" });
         manager.afterAddApp = vi.fn();
         manager.requestFocus = vi.fn();
+        manager.waitForLazyAddedAppSetup = vi.fn().mockResolvedValue(undefined);
 
         await AppManager.prototype.addApp.call(manager, { kind: "Slide" }, false);
 
@@ -177,7 +178,7 @@ describe("AppManager app creation order", () => {
 
     it("does not publish room focus while creating a lazy app", async () => {
         const manager = Object.create(AppManager.prototype) as any;
-        manager.windowManger = { lazySetupInMaximizedMode: true };
+        manager.windowManger = { lazySetupInMaximizedMode: true, attributes: { minimized: false } };
         manager.appStatus = new Map();
         manager.boxManager = { minimized: false };
         manager.safeUpdateAttributes = vi.fn();

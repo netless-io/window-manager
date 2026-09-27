@@ -19,7 +19,7 @@
     "@netless/app-presentation": "0.1.13",
     "@netless/app-slide": "0.2.106",
     "@netless/appliance-plugin": "1.1.44",
-    "@netless/telebox-insider": "0.3.1",
+    "@netless/telebox-insider": "0.3.2-beta.0",
     "@netless/video-js-plugin": "^0.3.7",
     "@netless/window-manager": "link:..",
     "agora-foundation": "3.11.1-rc.1",

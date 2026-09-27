@@ -24,6 +24,7 @@ function fixture(real = false) {
         appProxies: new Map(), runtimeCache: new Map(), settingUpApps: new Map(),
         setupTaskQueue: new SetupQueue(), setupStartedAt: new Map(), lruClock: 0,
         lazyFocusGeneration: 0, activityRevision: 0, lazyFocusQueue: Promise.resolve(),
+        addSetupWaitTimeout: 20_000,
         focusCommitWatchdogTimeout: 30_000,
         boxManager: { getBox: vi.fn(), focusBox: vi.fn(), blurAllBox: vi.fn(), getFocusBox: vi.fn() },
     });
@@ -76,6 +77,10 @@ it("keeps focus and zIndex unchanged during setup, then commits one reserved lev
         boxes[id].zIndex = zIndex;
     });
     f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+    f.manager.windowManger.safeSetAttributes = vi.fn(({ focus }: { focus: string }) => {
+        expect(f.manager.boxManager.focusBox).not.toHaveBeenCalledWith({ appId: "B" });
+        f.focus(focus);
+    });
 
     const focus = f.manager.requestFocusAndWait("B");
     await flush();
@@ -90,6 +95,39 @@ it("keeps focus and zIndex unchanged during setup, then commits one reserved lev
     expect(f.attributes.focus).toBe("B");
     expect(boxes.B.zIndex).toBe(316);
     expect((f.attributes.apps as any).B.state.zIndex).toBe(316);
+    expect(f.manager.boxManager.setZIndex).toHaveBeenCalledTimes(1);
+});
+
+it("returns true when the App focus notification fails but room and Box focus commit", async () => {
+    const f = fixture();
+    const previous = f.app("A");
+    previous.isSetup = true;
+    const target = f.app("B");
+    target.emitAppFocusEvent.mockResolvedValue(false);
+    f.attributes.focus = "A";
+    f.manager._prevFocused = "A";
+    f.manager.activeLazyAppId = "A";
+    const boxes: Record<string, { zIndex: number }> = {
+        A: { zIndex: 315 }, B: { zIndex: 300 },
+    };
+    f.manager.boxManager.getBox = vi.fn((id: string) => boxes[id]);
+    f.manager.boxManager.getTopBox = vi.fn((exclude?: string) =>
+        exclude === "B" ? boxes.A : boxes.B);
+    f.manager.boxManager.setZIndex = vi.fn((id: string, zIndex: number) => {
+        boxes[id].zIndex = zIndex;
+    });
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+
+    const focus = f.manager.requestFocusAndWait("B");
+    await flush();
+    expect(await focus).toBe(true);
+    expect(f.attributes.focus).toBe("B");
+    expect(boxes.B.zIndex).toBe(316);
+    expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
+    expect(f.manager.windowManger.Logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("app focus notification failed, appId: B")
+    );
+    expect(await f.manager.requestFocusAndWait("B")).toBe(true);
     expect(f.manager.boxManager.setZIndex).toHaveBeenCalledTimes(1);
 });
 
@@ -289,6 +327,7 @@ it("does not let addApp attribute reconciliation replace a pending lazy focus", 
     f.manager.beforeAddApp = vi.fn().mockResolvedValue({ appId: "B", needFocus: true });
     f.manager.baseInsertApp = vi.fn().mockResolvedValue({ id: "B" });
     f.manager.afterAddApp = vi.fn();
+    f.manager.waitForLazyAddedAppSetup = vi.fn().mockResolvedValue(undefined);
 
     expect(await f.manager.addApp({ kind: "Slide" }, false)).toBe("B");
     await flush();
@@ -304,6 +343,93 @@ it("does not let addApp attribute reconciliation replace a pending lazy focus", 
     expect(target.ensureSetup).toHaveBeenCalledOnce();
     expect(f.attributes.focus).toBe("B");
     expect(f.manager.activeLazyAppId).toBe("B");
+});
+
+it("addApp waits for the latest focus commit but returns an id when replaced", async () => {
+    const f = fixture();
+    const pending = deferred();
+    f.app("B", pending.promise);
+    f.app("C");
+    const boxes: Record<string, { id: string; zIndex: number }> = {
+        B: { id: "B", zIndex: 100 }, C: { id: "C", zIndex: 101 },
+    };
+    let focusedBox: string | undefined;
+    f.manager.boxManager.getBox = vi.fn((id: string) => boxes[id]);
+    f.manager.boxManager.getTopBox = vi.fn((exclude?: string) =>
+        Object.values(boxes).filter(box => box.id !== exclude)
+            .sort((a, b) => b.zIndex - a.zIndex)[0]);
+    f.manager.boxManager.setZIndex = vi.fn((id: string, value: number) => { boxes[id].zIndex = value; });
+    f.manager.boxManager.focusBox = vi.fn(({ appId }: { appId: string }) => { focusedBox = appId; });
+    f.manager.boxManager.boxIsFocus = vi.fn((id: string) => focusedBox === id);
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+    f.manager.beforeAddApp = vi.fn()
+        .mockResolvedValueOnce({ appId: "B", needFocus: true })
+        .mockResolvedValueOnce({ appId: "C", needFocus: true });
+    f.manager.baseInsertApp = vi.fn()
+        .mockResolvedValueOnce({ id: "B" })
+        .mockResolvedValueOnce({ id: "C" });
+    f.manager.afterAddApp = vi.fn();
+
+    let firstSettled = false;
+    const first = f.manager.addApp({ kind: "Slide" }, false).then((id: string) => {
+        firstSettled = true;
+        return id;
+    });
+    await flush();
+    expect(firstSettled).toBe(false);
+    expect(f.attributes.focus).toBeUndefined();
+
+    const second = f.manager.addApp({ kind: "Slide" }, false);
+    await flush();
+    expect(await first).toBe("B");
+    expect(f.attributes.focus).toBeUndefined();
+    pending.resolve();
+    await flush();
+    expect(await second).toBe("C");
+    expect(f.attributes.focus).toBe("C");
+    expect(focusedBox).toBe("C");
+});
+
+it("addApp returns an id after setup fails if room and Box focus commit", async () => {
+    const f = fixture();
+    const previous = f.app("A");
+    previous.isSetup = true;
+    const app = f.app("B");
+    app.ensureSetup = vi.fn().mockRejectedValue(new Error("setup failed"));
+    f.attributes.focus = "A";
+    f.manager._prevFocused = "A";
+    f.manager.activeLazyAppId = "A";
+    const boxes = { A: { id: "A", zIndex: 101 }, B: { id: "B", zIndex: 100 } };
+    let focusedBox: string | undefined = "A";
+    f.manager.boxManager.getBox = vi.fn((id: "A" | "B") => boxes[id]);
+    f.manager.boxManager.getTopBox = vi.fn((exclude?: string) =>
+        exclude === "B" ? boxes.A : boxes.B);
+    f.manager.boxManager.setZIndex = vi.fn((id: "A" | "B", value: number) => { boxes[id].zIndex = value; });
+    f.manager.boxManager.focusBox = vi.fn(({ appId }: { appId: string }) => { focusedBox = appId; });
+    f.manager.boxManager.boxIsFocus = vi.fn((id: string) => focusedBox === id);
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+    f.manager.beforeAddApp = vi.fn().mockResolvedValue({ appId: "B", needFocus: true });
+    f.manager.baseInsertApp = vi.fn().mockResolvedValue({ id: "B" });
+    f.manager.afterAddApp = vi.fn();
+
+    expect(await f.manager.addApp({ kind: "Slide" }, false)).toBe("B");
+    expect(f.attributes.focus).toBe("B");
+    expect(focusedBox).toBe("B");
+    expect(boxes.B.zIndex).toBe(102);
+});
+
+it("addApp returns undefined when room focus cannot be written", async () => {
+    const f = fixture();
+    f.app("B");
+    f.manager.boxManager.getBox = vi.fn(() => ({ id: "B", zIndex: 100 }));
+    f.manager.windowManger.safeSetAttributes = vi.fn(() => { throw new Error("write failed"); });
+    f.manager.beforeAddApp = vi.fn().mockResolvedValue({ appId: "B", needFocus: true });
+    f.manager.baseInsertApp = vi.fn().mockResolvedValue({ id: "B" });
+    f.manager.afterAddApp = vi.fn();
+
+    expect(await f.manager.addApp({ kind: "Slide" }, false)).toBeUndefined();
+    expect(f.attributes.focus).toBeUndefined();
+    expect(f.manager.boxManager.focusBox).not.toHaveBeenCalledWith({ appId: "B" });
 });
 
 it("starts only the latest addApp when the earlier setup exceeds 10s", async () => {
@@ -325,6 +451,7 @@ it("starts only the latest addApp when the earlier setup exceeds 10s", async () 
         .mockResolvedValueOnce({ id: "B" })
         .mockResolvedValueOnce({ id: "C" });
     f.manager.afterAddApp = vi.fn();
+    f.manager.waitForLazyAddedAppSetup = vi.fn().mockResolvedValue(undefined);
 
     expect(await f.manager.addApp({ kind: "Slide" }, false)).toBe("B");
     expect(await f.manager.addApp({ kind: "Slide" }, false)).toBe("C");
@@ -360,6 +487,7 @@ it("lets addApp proceed after an older physical setup yields", async () => {
     f.manager.beforeAddApp = vi.fn().mockResolvedValue({ appId: "B", needFocus: true });
     f.manager.baseInsertApp = vi.fn().mockResolvedValue({ id: "B" });
     f.manager.afterAddApp = vi.fn();
+    f.manager.waitForLazyAddedAppSetup = vi.fn().mockResolvedValue(undefined);
     expect(await f.manager.addApp({ kind: "Slide" }, false)).toBe("B");
     vi.advanceTimersByTime(10_001);
     await flush();
@@ -545,13 +673,17 @@ it("keeps the created Box focused when its setup fails", async () => {
         boxes[id].zIndex = zIndex;
     });
     f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+    f.manager.windowManger.safeSetAttributes = vi.fn(({ focus }: { focus: string }) => {
+        expect(f.manager.boxManager.focusBox).not.toHaveBeenCalledWith({ appId: "B" });
+        f.focus(focus);
+    });
 
     const focus = f.manager.requestFocusAndWait("B");
     await flush();
     rejectSetup(new Error("setup failed"));
     await flush();
 
-    expect(await focus).toBe(false);
+    expect(await focus).toBe(true);
     expect(previous.emitAppFocusEvent.mock.calls.map(([focused]: [boolean]) => focused))
         .toEqual([false]);
     expect(f.attributes.focus).toBe("B");
@@ -560,6 +692,111 @@ it("keeps the created Box focused when its setup fails", async () => {
     expect((f.attributes.apps as any).B.state.zIndex).toBe(316);
     expect(f.manager.appProxies.get("B").isSetup).toBe(false);
     expect(f.manager.failedSetupFocusAppId).toBe("B");
+    expect(f.manager.windowManger.Logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("lazy setup failed for B: Error: setup failed")
+    );
+});
+
+it("reports a setup timeout as a warning and commits the same focus state", async () => {
+    const f = fixture();
+    const previous = f.app("A");
+    previous.isSetup = true;
+    f.attributes.focus = "A";
+    f.manager._prevFocused = "A";
+    f.manager.activeLazyAppId = "A";
+    const timeout = new Error("setup timed out");
+    timeout.name = "AppSetupTimeoutError";
+    const app = f.app("B");
+    app.ensureSetup = vi.fn().mockRejectedValue(timeout);
+    const boxes = { A: { id: "A", zIndex: 101 }, B: { id: "B", zIndex: 100 } };
+    f.manager.boxManager.getBox = vi.fn((id: "A" | "B") => boxes[id]);
+    f.manager.boxManager.getTopBox = vi.fn(() => boxes.A);
+    f.manager.boxManager.setZIndex = vi.fn((id: "A" | "B", zIndex: number) => {
+        boxes[id].zIndex = zIndex;
+    });
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+
+    expect(await f.manager.requestFocusAndWait("B")).toBe(true);
+    expect(f.attributes.focus).toBe("B");
+    expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
+    expect(boxes.B.zIndex).toBe(102);
+    expect(app.isSetup).toBe(false);
+    expect(f.manager.windowManger.Logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("lazy setup failed for B: AppSetupTimeoutError: setup timed out")
+    );
+    expect(f.manager.windowManger.Logger.error).not.toHaveBeenCalled();
+});
+
+it("waits for room focus feedback after a failed setup before returning true", async () => {
+    const f = fixture();
+    let rejectSetup!: (error: Error) => void;
+    f.app("B", new Promise<void>((_, reject) => { rejectSetup = reject; }));
+    const box = { id: "B", zIndex: 100 };
+    f.manager.boxManager.getBox = vi.fn(() => box);
+    f.manager.boxManager.getTopBox = vi.fn(() => undefined);
+    f.manager.boxManager.setZIndex = vi.fn((_: string, value: number) => { box.zIndex = value; });
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+    f.manager.windowManger.safeSetAttributes = vi.fn(({ focus }: { focus: string }) => {
+        setTimeout(() => f.focus(focus), 1);
+    });
+
+    const focus = f.manager.requestFocusAndWait("B");
+    await flush();
+    rejectSetup(new Error("setup failed"));
+    await flush();
+    expect(f.attributes.focus).toBeUndefined();
+    expect(f.manager.boxManager.focusBox).not.toHaveBeenCalledWith({ appId: "B" });
+    let settled = false;
+    void focus.then(() => { settled = true; });
+    await flush();
+    expect(settled).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    await flush();
+    expect(await focus).toBe(true);
+    expect(f.attributes.focus).toBe("B");
+    expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
+});
+
+it("returns false when a failed setup cannot write room focus", async () => {
+    const f = fixture();
+    let rejectSetup!: (error: Error) => void;
+    const previous = f.app("A");
+    previous.isSetup = true;
+    f.app("B", new Promise<void>((_, reject) => { rejectSetup = reject; }));
+    f.attributes.focus = "A";
+    f.manager._prevFocused = "A";
+    f.manager.activeLazyAppId = "A";
+    const boxes: Record<string, { id: string; zIndex: number }> = {
+        A: { id: "A", zIndex: 101 }, B: { id: "B", zIndex: 100 },
+    };
+    f.manager.boxManager.getBox = vi.fn((id: string) => boxes[id]);
+    f.manager.boxManager.getTopBox = vi.fn((exclude?: string) =>
+        exclude === "B" ? boxes.A : boxes.B);
+    f.manager.boxManager.setZIndex = vi.fn((id: string, value: number) => {
+        boxes[id].zIndex = value;
+    });
+    const makeBoxTop = vi.fn((box: { id: string; zIndex: number }) => {
+        box.zIndex = Math.max(box.zIndex, boxes.A.zIndex, boxes.B.zIndex) + 1;
+    });
+    f.manager.boxManager.teleBoxManager = { makeBoxTop };
+    f.manager.windowManger.safeSetAttributes = vi.fn(() => {
+        throw new Error("room focus write failed");
+    });
+
+    const focus = f.manager.requestFocusAndWait("B");
+    await flush();
+    rejectSetup(new Error("setup failed"));
+    await flush();
+
+    expect(await focus).toBe(false);
+    expect(f.attributes.focus).toBe("A");
+    expect(f.manager.activeLazyAppId).toBe("A");
+    expect(boxes.A.zIndex).toBeGreaterThan(boxes.B.zIndex);
+    expect(f.manager.boxManager.focusBox).toHaveBeenLastCalledWith({ appId: "A" });
+    expect(f.manager.windowManger.Logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("lazy focus failed for B: Error: room focus write failed")
+    );
 });
 
 it("does not replay an old zIndex when focusing the failed Box", async () => {
@@ -583,7 +820,7 @@ it("does not replay an old zIndex when focusing the failed Box", async () => {
     rejectSetup(new Error("setup failed"));
     await flush();
 
-    expect(await focus).toBe(false);
+    expect(await focus).toBe(true);
     expect(previous.flushPendingZIndex).not.toHaveBeenCalled();
     expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
     expect(f.attributes.focus).toBe("B");
@@ -600,13 +837,16 @@ it("keeps a failed Box focused without retrying setup on this page", async () =>
     f.manager.boxManager.setZIndex = vi.fn((_: string, zIndex: number) => { box.zIndex = zIndex; });
     f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
 
-    expect(await f.manager.requestFocusAndWait("B")).toBe(false);
+    const firstFocus = f.manager.requestFocusAndWait("B");
+    await flush();
+    expect(f.manager.activeLazyAppId).toBe("B");
+    expect(await firstFocus).toBe(true);
     expect(f.attributes.focus).toBe("B");
     expect(app.isSetup).toBe(false);
     f.manager.refreshLazyActivity(); await flush();
     expect(app.ensureSetup).toHaveBeenCalledTimes(1);
 
-    expect(await f.manager.requestFocusAndWait("B")).toBe(false);
+    expect(await f.manager.requestFocusAndWait("B")).toBe(true);
     expect(app.ensureSetup).toHaveBeenCalledTimes(1);
     expect(app.isSetup).toBe(false);
 });
@@ -731,7 +971,7 @@ it.each([true, false])(
         f.manager.notifyAppDestroyed("A");
         delete (f.attributes.apps as Record<string, unknown>).A;
         f.manager.appProxies.delete("A");
-        f.manager.finishAppClose("A", close);
+        const handoff = f.manager.finishAppClose("A", close);
         await flush();
         expect(f.attributes.focus).toBe("A");
         expect(next.ensureSetup).not.toHaveBeenCalled();
@@ -749,6 +989,7 @@ it.each([true, false])(
         expect(f.attributes.focus).toBe("B");
         expect(f.manager.boxManager.focusBox).toHaveBeenCalledWith({ appId: "B" });
         expect(boxes.B.zIndex).toBeGreaterThan(101);
+        await handoff;
     }
 );
 
@@ -889,6 +1130,41 @@ it("an added App waits on the same latest pending slot and is not set up after r
     expect(b.ensureSetup).not.toHaveBeenCalled();
     expect(e.ensureSetup).toHaveBeenCalledOnce();
     a.resolve(); await flush();
+});
+
+it("waits for a failed added App to commit room and Box focus before resolving", async () => {
+    const f = fixture();
+    let rejectSetup!: (error: Error) => void;
+    const app = f.app("B", new Promise<void>((_, reject) => { rejectSetup = reject; }));
+    const box = { id: "B", zIndex: 100 };
+    let focusedBox: string | undefined;
+    f.manager.boxManager.getBox = vi.fn(() => box);
+    f.manager.boxManager.getTopBox = vi.fn(() => undefined);
+    f.manager.boxManager.setZIndex = vi.fn((_: string, value: number) => { box.zIndex = value; });
+    f.manager.boxManager.focusBox = vi.fn(({ appId }: { appId: string }) => { focusedBox = appId; });
+    f.manager.boxManager.boxIsFocus = vi.fn((appId: string) => focusedBox === appId);
+    f.manager.boxManager.teleBoxManager = { makeBoxTop: vi.fn() };
+    f.manager.windowManger.safeSetAttributes = vi.fn(({ focus }: { focus: string }) => {
+        setTimeout(() => f.focus(focus), 1);
+    });
+
+    f.manager.requestFocus("B");
+    const waiting = f.manager.waitForLazyAddedAppSetup("B", app);
+    await flush();
+    rejectSetup(new Error("setup failed"));
+    await flush();
+    let settled = false;
+    void waiting.then(() => { settled = true; });
+    expect(settled).toBe(false);
+    expect(f.attributes.focus).toBeUndefined();
+    expect(focusedBox).toBeUndefined();
+
+    vi.advanceTimersByTime(1);
+    await flush();
+    await expect(waiting).resolves.toBeUndefined();
+    expect(f.attributes.focus).toBe("B");
+    expect(focusedBox).toBe("B");
+    expect(app.isSetup).toBe(false);
 });
 
 it("publishes only the final pending App scene after setup and focus", async () => {
@@ -1219,6 +1495,7 @@ it("releases a destroyed app's physical setup blocker before setting up the next
     f.manager.beforeAddApp = vi.fn().mockResolvedValue({ appId: "B", needFocus: true });
     f.manager.baseInsertApp = vi.fn().mockResolvedValue({ id: "B" });
     f.manager.afterAddApp = vi.fn();
+    f.manager.waitForLazyAddedAppSetup = vi.fn().mockResolvedValue(undefined);
     expect(await f.manager.addApp({ kind: "Slide" }, false)).toBe("B");
     expect(f.manager.setupStartedAt.has("A")).toBe(true);
     expect(next.ensureSetup).not.toHaveBeenCalled();

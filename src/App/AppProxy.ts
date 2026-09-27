@@ -809,7 +809,7 @@ export class AppProxy implements PageRemoveService {
                     timedOut = true;
                     const error = new AppSetupTimeoutError(this.kind, appId);
                     if (this.status !== "destroyed")
-                        this.Logger?.error(`${error.message}, elapsedMs: ${Date.now() - startedAt}`);
+                        this.Logger?.warn(`${error.message}, elapsedMs: ${Date.now() - startedAt}`);
                     reject(error);
                 }, Math.max(0, APP_SETUP_WATCHDOG_TIMEOUT - (Date.now() - startedAt)));
             });
@@ -1326,12 +1326,11 @@ export class AppProxy implements PageRemoveService {
         this.manager.refresher.remove(this.stateKey);
         this.manager.refresher.remove(`${this.id}-fullPath`);
         this._prevFullPath = undefined;
-        if (closeFocus) this.manager.finishAppClose(this.id, closeFocus);
         this.Logger &&
             this.Logger.info(`[WindowManager]: destroy app ${this.kind} appId: ${this.id}`);
     }
 
     public close(): Promise<void> {
-        return this.destroy(true, true, false);
+        return this.manager.closeApp(this.id);
     }
 }

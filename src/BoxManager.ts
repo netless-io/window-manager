@@ -72,6 +72,7 @@ export type BoxManagerContext = {
     cleanFocus: () => void;
     setAppFocus: (appId: string) => void;
     requestAppFocus?: (appId: string) => void;
+    requestAppClose?: (appId: string) => void;
     isLazySetup?: () => boolean;
     isForceMaximized?: () => boolean;
 };
@@ -107,6 +108,11 @@ export const createBoxManager = (
             cleanFocus: () => manager.appManager?.requestMainViewFocus(),
             setAppFocus: (appId: string) => manager.appManager?.store.setAppFocus(appId, true),
             requestAppFocus: (appId: string) => manager.appManager?.requestFocusFromTeleBox(appId),
+            requestAppClose: (appId: string) => {
+                void manager.closeApp(appId).catch(error => {
+                    manager.Logger?.error(`[WindowManager] TeleBox close failed, appId: ${appId}, error: ${error}`);
+                });
+            },
             isLazySetup: () => manager.lazySetupInMaximizedMode,
             isForceMaximized: () => manager.forceMaximized,
             callbacks,
@@ -381,6 +387,13 @@ export class BoxManager {
         manager.setLazyFocusRequestHandler((appId: string) => {
             if (!this.context.isLazySetup?.() || !this.canOperate) return false;
             this.context.requestAppFocus?.(appId);
+            return true;
+        });
+        (manager as TeleBoxManager & {
+            setCloseRequestHandler?: (handler: (appId: string) => boolean) => void;
+        }).setCloseRequestHandler?.((appId: string) => {
+            if (!this.canOperate || !this.context.requestAppClose) return false;
+            this.context.requestAppClose(appId);
             return true;
         });
         if (this.teleBoxManager) {

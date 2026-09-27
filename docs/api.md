@@ -9,7 +9,6 @@
      - [`setCollectorContainer`](#set-collector-container)
    - [instance methods](#instance-methods)
      - [`addApp`](#addApp)
-     - [`addAppAndWaitForSetup`](#addAppAndWaitForSetup)
      - [`closeApp`](#closeApp)
      - [`focusApp`](#focusApp)
      - [`setMainViewSceneIndex`](#setMainViewSceneIndex)
@@ -157,26 +156,7 @@ For specific parameters, please refer to the requirements of `APP` itself
 
 `forceTop` and `forceNormal` are effective only when this WindowManager uses `useBoxesStatus=true`. Global-window and lazy modes preserve synchronized fields but do not apply them locally.
 
-`addApp()` returns after the window is created and does not wait for App `setup()`.
-Use `addAppAndWaitForSetup()` when setup errors must be caught by the caller.
-
-<h3 id="addAppAndWaitForSetup">addAppAndWaitForSetup</h3>
-
-> Add an App and wait for its `setup()` to complete. A setup failure rejects with the
-> original error and removes the partially initialized local App.
-
-In lazy mode, a new App that becomes focused through the existing `addApp()` semantics shares the single latest pending intent with synchronized focus, `focusApp()`, and TeleBox. This API does not enqueue a separate setup task. It resolves with the appId only after setup succeeds. If a newer target supersedes it, or it is not ready within 20 seconds from the call, it rejects without removing an already created App shell. The 20-second timeout is reported through Room logger.error. A setup still running after 10 seconds is reported once; the scheduler may yield to a different pending target, but cannot physically stop third-party setup. Adding an App while minimized creates only its shell and does not request focus. Minimized or background state blocks new setup without pausing the API deadline. Non-lazy behavior is unchanged.
-
-```typescript
-try {
-    const appId = await manager.addAppAndWaitForSetup({
-        kind: "helloWorld",
-        options: { scenePath: "/hello-world" },
-    })
-} catch (error) {
-    // The original error thrown by App setup.
-}
-```
+`addApp()` returns `Promise<string | undefined>`. It writes the App attributes and creates its Box first. If it remains the latest focus target, it waits for setup to settle and for room focus, Box focus, and zIndex to commit before returning the appId. Setup errors and timeouts are logged but do not change a successful return. A superseded request or an App added while minimized returns its created appId without waiting for setup. Creation or required focus commit failure returns `undefined`.
 
 <h3 id="appContextCreateLogger">AppContext.createLogger</h3>
 
@@ -215,8 +195,10 @@ the event callback itself remains immediate.
 > Close any open `APP`
 
 ```typescript
-manager.closeApp(appId)
+await manager.closeApp(appId)
 ```
+
+When closing the focused App, the Promise waits for focus handoff to the remaining App with the highest zIndex. Closing a non-focused or pending App leaves the current focus unchanged. Closing the last App clears focus.
 
 <h3 id="focusApp">focusApp</h3>
 
