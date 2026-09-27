@@ -185,6 +185,46 @@ it("closing only a pending app cancels it without changing the current focus", a
     expect(focusApp).not.toHaveBeenCalled();
 });
 
+it.each([undefined, "removed-app"])(
+    "closing a pending app selects a successor when the current focus is %s",
+    async current => {
+        const { manager } = fixture(true, false);
+        manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+        manager.attributes.focus = current;
+        manager.appProxies.set("app-2", { isDestroyed: false });
+        manager.lazyFocusGeneration = 1;
+        manager.desiredLazyFocus = { focused: "app-1", generation: 1 };
+        const focusApp = vi.spyOn(manager, "requestFocusAndWait").mockResolvedValue(true);
+
+        await manager.closeApp("app-1");
+
+        expect(focusApp).toHaveBeenCalledOnce();
+        expect(focusApp).toHaveBeenCalledWith("app-2");
+    }
+);
+
+it("closing a pending handoff target selects another successor", async () => {
+    const { manager } = fixture(true, false);
+    manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };
+    manager.attributes.apps["app-3"] = { kind: "ReviewApp", state: { zIndex: 101 } };
+    manager.appProxies.set("app-3", { isDestroyed: false });
+    const firstHandoff = deferred();
+    const focusApp = vi.spyOn(manager, "requestFocusAndWait")
+        .mockReturnValueOnce(firstHandoff.promise)
+        .mockResolvedValue(true);
+
+    const closingFocused = manager.closeApp("app-1");
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(focusApp).toHaveBeenCalledWith("app-2");
+    manager.lazyFocusGeneration = 1;
+    manager.desiredLazyFocus = { focused: "app-2", generation: 1 };
+
+    await manager.closeApp("app-2");
+    expect(focusApp).toHaveBeenCalledWith("app-3");
+    firstHandoff.resolve(false);
+    await closingFocused;
+});
+
 it("does not replace an empty focus when closing a non-focused app", async () => {
     const { manager } = fixture(true, false);
     manager.attributes.apps["app-2"] = { kind: "ReviewApp", state: { zIndex: 102 } };

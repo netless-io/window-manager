@@ -799,6 +799,7 @@ export class AppManager {
     public captureAppClose(appId: string) {
         return {
             wasFocused: this.store.focus === appId,
+            wasPending: this.desiredLazyFocus?.focused === appId,
             generation: this.lazyFocusGeneration,
         };
     }
@@ -818,15 +819,20 @@ export class AppManager {
         closingId: string,
         close: ReturnType<AppManager["captureAppClose"]>
     ): Promise<void> {
-        if (!this.windowManger.canOperate || !close.wasFocused) return Promise.resolve();
+        if (!this.windowManger.canOperate || (!close.wasFocused && !close.wasPending))
+            return Promise.resolve();
+        const current = this.store.focus;
+        const currentIsValid = Boolean(
+            current && this.attributes.apps?.[current] &&
+            !this.appProxies.get(current)?.isDestroyed
+        );
+        if (current !== closingId && currentIsValid) return Promise.resolve();
         const successor = this.getCloseSuccessor(closingId);
         if (!successor) {
             if (Object.keys(this.attributes.apps ?? {}).length === 0 && this.store.focus !== undefined)
                 this.store.cleanFocus();
             return Promise.resolve();
         }
-        const current = this.store.focus;
-        if (current !== closingId) return Promise.resolve();
         const newerIntent = this.desiredLazyFocus;
         if (
             this.lazySetupEnabled && this.lazyFocusGeneration > close.generation &&
