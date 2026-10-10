@@ -1,4 +1,5 @@
 import pRetry from "p-retry";
+import { applyDynamicMountParams } from "./Utils/dynamicConfig";
 import { AppManager } from "./AppManager";
 import { DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE } from "./AppManager";
 import { appRegister } from "./Register";
@@ -468,6 +469,8 @@ export class WindowManager
         params: MountParams,
         extendClass?: ExtendClass
     ): Promise<WindowManager> {
+        const dynamicLocalOverrides: string[] = [];
+        params = applyDynamicMountParams(params, isRoom(params.room), path => dynamicLocalOverrides.push(path));
         const originSize = normalizeOriginSize(params.originSize);
         const pageScaleRange = normalizePageScaleRange(params.pageScaleRange);
         if (
@@ -588,6 +591,9 @@ export class WindowManager
                 manager._roomLogger = createManagedRoomLogger(
                     (writableRoom as unknown as { logger: Logger }).logger
                 );
+                if (dynamicLocalOverrides.length) {
+                    manager._roomLogger.info(`[dynamicConfig] ${JSON.stringify({ consumer: "windowManager", localOverrides: dynamicLocalOverrides })}`);
+                }
                 manager.attributesDeboundceLog = new ArgusLog(
                     manager._roomLogger,
                     "attributes",

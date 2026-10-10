@@ -18,10 +18,10 @@
     "@netless/app-plyr": "0.2.6-beta.3",
     "@netless/app-presentation": "0.1.13",
     "@netless/app-slide": "0.2.106",
-    "@netless/appliance-plugin": "1.1.44",
-    "@netless/telebox-insider": "0.3.2-beta.0",
+    "@netless/appliance-plugin": "file:../../appliance-plugin",
+    "@netless/telebox-insider": "0.3.2",
     "@netless/video-js-plugin": "^0.3.7",
-    "@netless/window-manager": "1.0.23-beta.6",
+    "@netless/window-manager": "link:..",
     "agora-foundation": "3.11.1-rc.1",
     "core-js": "^3.45.1",
     "normalize.css": "^8.0.1",
@@ -29,7 +29,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "video.js": "^7.14.3",
-    "white-web-sdk": "2.16.58"
+    "white-web-sdk": "2.16.59"
   },
   "devDependencies": {
     "@babel/core": "^7.14.8",

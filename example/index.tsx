@@ -22,7 +22,7 @@ import {
     createPlyr,
     createPresentation,
 } from "./apps";
-import { EXAMPLE_ORIGIN_SIZE } from "./config";
+import { dynamicConfig, EXAMPLE_ORIGIN_SIZE } from "./config";
 import "@netless/window-manager/dist/style.css";
 import "@netless/appliance-plugin/dist/style.css";
 import "./register";
@@ -73,6 +73,7 @@ function createFoundationLogWorker(): Worker {
 
 const sdk = new WhiteWebSdk({
     appIdentifier: import.meta.env.VITE_APPID,
+    dynamicConfig,
     region,
     apiHosts,
     useMobXState: true,
