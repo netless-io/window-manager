@@ -1,5 +1,11 @@
 ## Unreleased
 
+## 1.0.24 (2026-10-10)
+- `WindowManager.mount()` 支持读取 `white-web-sdk` 挂载在 Room 上的动态配置，在原参数校验和初始化前合并 `windowManager` 分组；不另行请求 OSS。
+- 宿主显式参数优先于动态配置，动态配置优先于带来源标记的 Bridge/Fastboard 内置值。普通对象递归合并，数组和运行时实例整体保留；缺少配置和回放保持原参数流程，Room/DOM 引用始终由本地提供。
+- 增加本地参数覆盖诊断和动态配置回归测试，修复 SDK 测试替身缺少 `isRoom` 导出的问题。
+- `white-web-sdk` peer 最低版本升级到 `^2.16.59`；example 更新到 SDK `2.16.59` 和 TeleBox `0.3.2`，支持按 region 配置 OSS 地址。
+
 ## 1.0.23 (2026-09-28)
 - 新增 `forceMaximized`、`lazySetupInMaximizedMode` 与 `maxCachedAppsInMaximizedMode`，强制最大化时按焦点初始化 App，并按 LRU 管理缓存；缓存默认容量为 `4`。`useBoxesStatus=true` 时不启用强制最大化。
 - 本地操作与远端同步共用最新 pending 焦点调度。缓存命中时复用 runtime；需要 setup 时等待成功、失败或超时结算，再提交有效目标的房间 focus、Box 焦点与 zIndex。旧 setup 的迟到结果不会覆盖新焦点。
