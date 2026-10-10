@@ -164,8 +164,12 @@ export function createManagedRoomLogger(logger: Logger): Logger {
 /** A Player has no Room logger; keep replay warnings and errors visible locally. */
 export function createReplayLogger(): Logger {
     const logger = {
-        debug: () => {},
-        info: () => {},
+        debug: () => {
+            /* Replay debug output is intentionally suppressed. */
+        },
+        info: () => {
+            /* Replay info output is intentionally suppressed. */
+        },
         warn: (...messages: unknown[]) =>
             emitManagedRoomLog(console as unknown as Logger, "warn", messages),
         error: (...messages: unknown[]) =>

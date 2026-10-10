@@ -837,9 +837,11 @@ export class AppProxy implements PageRemoveService {
             const cause = error instanceof Error ? error : new Error(String(error));
             if (!(error instanceof AppSetupTimeoutError)) {
                 this.Logger?.error(
-                    `[WindowManager]: app setup error, kind: ${this.kind}, appId: ${appId}, status: ${
-                        this.status
-                    }, error: ${cause.message}, stack: ${cause.stack || ""}`
+                    `[WindowManager]: app setup error, kind: ${
+                        this.kind
+                    }, appId: ${appId}, status: ${this.status}, error: ${cause.message}, stack: ${
+                        cause.stack || ""
+                    }`
                 );
             }
             return { succeeded: false, error };

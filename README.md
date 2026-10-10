@@ -37,6 +37,8 @@ $ yarn install @netless/window-manager
 
 ## QuickStart
 
+Room dynamic configuration is available from `1.0.24` with `white-web-sdk@2.16.59` or later. Explicit mount parameters take precedence over remote settings. See [dynamic configuration](docs/dynamic-config.md).
+
 ```javascript
 import { White-WebSdk } from "white-web-sdk";
 import { WindowManager, BuiltinApps } from "@netless/window-manager";

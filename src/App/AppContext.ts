@@ -202,7 +202,8 @@ export class AppContext<TAttributes extends {} = any, TMagixEventPayloads = any,
         this.appProxy.setFullPath(scenePath);
         // Lazy setup may render a pending Slide before its focus is committed.
         // Keep its per-App path current, but do not move the room's scene yet.
-        const committed = !this.manager.lazySetupEnabled || this.manager.isCommittedLazyFocus(this.appId);
+        const committed =
+            !this.manager.lazySetupEnabled || this.manager.isCommittedLazyFocus(this.appId);
         this.manager.Logger?.info(
             `[WindowManager][scene-request] appId=${this.appId} path=${scenePath} committed=${committed} focus=${this.manager.attributes.focus}`
         );

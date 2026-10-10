@@ -430,18 +430,17 @@ export class WindowManager
         canOperate: boolean
     ): EffectiveWindowMode {
         const requestedForceMaximized =
-            canOperate && params.forceMaximized !== undefined
-                ? params.forceMaximized
-                : undefined;
+            canOperate && params.forceMaximized !== undefined ? params.forceMaximized : undefined;
         const availableForceMaximized =
-            requestedForceMaximized ?? (attributes.forceMaximized === true);
-        const currentBoxState = requestedForceMaximized === true
-            ? "maximized"
-            : attributes.minimized
-            ? "minimized"
-            : attributes.maximized
-            ? "maximized"
-            : "normal";
+            requestedForceMaximized ?? attributes.forceMaximized === true;
+        const currentBoxState =
+            requestedForceMaximized === true
+                ? "maximized"
+                : attributes.minimized
+                ? "minimized"
+                : attributes.maximized
+                ? "maximized"
+                : "normal";
         const lazySetupInMaximizedMode = Boolean(
             params.lazySetupInMaximizedMode &&
                 availableForceMaximized &&
@@ -470,7 +469,9 @@ export class WindowManager
         extendClass?: ExtendClass
     ): Promise<WindowManager> {
         const dynamicLocalOverrides: string[] = [];
-        params = applyDynamicMountParams(params, isRoom(params.room), path => dynamicLocalOverrides.push(path));
+        params = applyDynamicMountParams(params, isRoom(params.room), path =>
+            dynamicLocalOverrides.push(path)
+        );
         const originSize = normalizeOriginSize(params.originSize);
         const pageScaleRange = normalizePageScaleRange(params.pageScaleRange);
         if (
@@ -592,7 +593,12 @@ export class WindowManager
                     (writableRoom as unknown as { logger: Logger }).logger
                 );
                 if (dynamicLocalOverrides.length) {
-                    manager._roomLogger.info(`[dynamicConfig] ${JSON.stringify({ consumer: "windowManager", localOverrides: dynamicLocalOverrides })}`);
+                    manager._roomLogger.info(
+                        `[dynamicConfig] ${JSON.stringify({
+                            consumer: "windowManager",
+                            localOverrides: dynamicLocalOverrides,
+                        })}`
+                    );
                 }
                 manager.attributesDeboundceLog = new ArgusLog(
                     manager._roomLogger,
@@ -1033,13 +1039,17 @@ export class WindowManager
         }
     }
 
-    private async addAppAfterRootReady<T = any>(params: AddAppParams<T>): Promise<string | undefined> {
+    private async addAppAfterRootReady<T = any>(
+        params: AddAppParams<T>
+    ): Promise<string | undefined> {
         const lazy = this.lazySetupInMaximizedMode;
         let appId: string | undefined;
         try {
             appId = await this._addApp(params);
         } catch (error) {
-            this.Logger?.error(`[WindowManager] addApp creation failed, kind: ${params.kind}, error: ${error}`);
+            this.Logger?.error(
+                `[WindowManager] addApp creation failed, kind: ${params.kind}, error: ${error}`
+            );
             return;
         }
         if (!appId) return;
@@ -1060,15 +1070,18 @@ export class WindowManager
                     await app.waitForSetup();
                 }
             } catch (error) {
-                this.Logger?.error(`[WindowManager] added App setup failed, appId: ${appId}, error: ${error}`);
+                this.Logger?.error(
+                    `[WindowManager] added App setup failed, appId: ${appId}, error: ${error}`
+                );
             }
-            if (appManager.store.focus !== appId ||
-                this.boxManager?.boxIsFocus(appId) !== true) {
+            if (appManager.store.focus !== appId || this.boxManager?.boxIsFocus(appId) !== true) {
                 return;
             }
             return appId;
         } catch (error) {
-            this.Logger?.error(`[WindowManager] addApp focus not committed, appId: ${appId}, error: ${error}`);
+            this.Logger?.error(
+                `[WindowManager] addApp focus not committed, appId: ${appId}, error: ${error}`
+            );
             return;
         }
     }
@@ -2752,10 +2765,7 @@ export class WindowManager
             return Promise.resolve(false);
         }
         if (this.lazySetupInMaximizedMode) {
-            return (
-                this.appManager?.requestFocusAndWait(appId) ??
-                Promise.resolve(false)
-            );
+            return this.appManager?.requestFocusAndWait(appId) ?? Promise.resolve(false);
         }
         this.boxManager?.focusBox({ appId }, false);
         // 1.0 版本这里会有正式的 api

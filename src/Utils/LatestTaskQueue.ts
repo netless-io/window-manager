@@ -19,9 +19,9 @@ export class LatestTaskQueue<T> {
             startedAt: (current: T) => number | undefined;
             yield: (current: T, next: T) => void;
             /** Actual work may have started outside this focus queue. */
-            blocker?: (next: T) =>
-                | { startedAt: number; canYield: boolean; yield: () => void }
-                | undefined;
+            blocker?: (
+                next: T
+            ) => { startedAt: number; canYield: boolean; yield: () => void } | undefined;
             error: (error: unknown) => void;
             timeout: number;
         }

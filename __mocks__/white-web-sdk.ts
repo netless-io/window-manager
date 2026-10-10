@@ -35,5 +35,7 @@ enum ViewMode {
 }
 
 const isPlayer = vi.fn(() => false);
+class Room {}
+const isRoom = vi.fn(displayer => displayer instanceof Room);
 
-export { InvisiblePlugin, UpdateEventKind, ApplianceNames, ViewMode, isPlayer };
+export { InvisiblePlugin, UpdateEventKind, ApplianceNames, ViewMode, isPlayer, isRoom, Room };

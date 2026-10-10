@@ -22,7 +22,7 @@ function cloneParameterValue(value: any): any {
     return copy;
 }
 /** Local undefined inherits. Arrays/instances are atomic; local hotKeys/floatBar retain their atomic API semantics. */
-export function mergeDynamicParameters<T extends object>(
+export function mergeDynamicParameters<T extends Record<string, any>>(
     remote: unknown,
     local: T,
     onOverride?: (path: string) => void,
@@ -31,9 +31,19 @@ export function mergeDynamicParameters<T extends object>(
 ): T {
     const descriptor = Object.getOwnPropertyDescriptor(local, parameterLayersKey);
     const layers = descriptor && !descriptor.enumerable ? descriptor.value : undefined;
-    if (layers && layers.version === 1 && isPlainObject(layers.defaults) && isPlainObject(layers.explicit)) {
-        const inherited = mergeDynamicParameters(layers.defaults, isPlainObject(remote) ? remote : {});
-        return mergeDynamicParameters(inherited, layers.explicit, onOverride, prefix, { value: remote }) as T;
+    if (
+        layers &&
+        layers.version === 1 &&
+        isPlainObject(layers.defaults) &&
+        isPlainObject(layers.explicit)
+    ) {
+        const inherited = mergeDynamicParameters(
+            layers.defaults,
+            isPlainObject(remote) ? remote : {}
+        );
+        return mergeDynamicParameters(inherited, layers.explicit, onOverride, prefix, {
+            value: remote,
+        }) as T;
     }
     if (!isPlainObject(remote)) return local;
     const output: Record<string, any> = cloneParameterValue(remote);
@@ -42,16 +52,36 @@ export function mergeDynamicParameters<T extends object>(
         const value = (local as Record<string, any>)[key];
         if (value === undefined) return;
         const path = prefix ? `${prefix}.${key}` : key;
-        if (key !== "hotKeys" && key !== "floatBar" && isPlainObject(value) && isPlainObject(output[key])) {
+        if (
+            key !== "hotKeys" &&
+            key !== "floatBar" &&
+            isPlainObject(value) &&
+            isPlainObject(output[key])
+        ) {
             // Follow actual keys: version keys such as "122.0" must not be split as paths.
-            const childEvidence = remoteEvidence ? {
-                value: isPlainObject(remoteEvidence.value) && Object.prototype.hasOwnProperty.call(remoteEvidence.value, key)
-                    ? remoteEvidence.value[key] : undefined,
-            } : undefined;
-            output[key] = mergeDynamicParameters(output[key], value, onOverride, path, childEvidence);
+            const childEvidence = remoteEvidence
+                ? {
+                      value:
+                          isPlainObject(remoteEvidence.value) &&
+                          Object.prototype.hasOwnProperty.call(remoteEvidence.value, key)
+                              ? remoteEvidence.value[key]
+                              : undefined,
+                  }
+                : undefined;
+            output[key] = mergeDynamicParameters(
+                output[key],
+                value,
+                onOverride,
+                path,
+                childEvidence
+            );
         } else {
-            if (Object.prototype.hasOwnProperty.call(remote, key) &&
-                (!remoteEvidence || isPlainObject(remoteEvidence.value) && Object.prototype.hasOwnProperty.call(remoteEvidence.value, key))) {
+            if (
+                Object.prototype.hasOwnProperty.call(remote, key) &&
+                (!remoteEvidence ||
+                    (isPlainObject(remoteEvidence.value) &&
+                        Object.prototype.hasOwnProperty.call(remoteEvidence.value, key)))
+            ) {
                 onOverride?.(path);
             }
             output[key] = value;
@@ -69,8 +99,9 @@ export function applyDynamicMountParams(
     const snapshot = (
         params.room as typeof params.room & { dynamicConfig?: { windowManager?: unknown } }
     ).dynamicConfig;
-    if (!isPlainObject(snapshot?.windowManager)) return params;
-    const remote = { ...(snapshot!.windowManager as Record<string, unknown>) };
+    const settings = snapshot?.windowManager;
+    if (!isPlainObject(settings)) return params;
+    const remote = { ...settings };
     // DOM nodes and the room reference are always provided by the local caller.
     ["room", "container", "collectorContainer"].forEach(key => delete remote[key]);
     return mergeDynamicParameters(remote, params, onOverride, "windowManager");

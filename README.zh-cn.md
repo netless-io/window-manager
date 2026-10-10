@@ -19,6 +19,8 @@
 
 ### 快速开始
 
+`1.0.24` 起支持 `white-web-sdk@2.16.59` 的 Room 动态配置，本地显式 mount 参数优先于远端配置。详见[动态配置接入](docs/dynamic-config.md)。
+
 ```javascript
 import { WhiteWebSdk } from "white-web-sdk";
 import { WindowManager, BuiltinApps } from "@netless/window-manager";
