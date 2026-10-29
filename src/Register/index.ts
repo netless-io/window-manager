@@ -62,14 +62,24 @@ class AppRegister {
         if (typeof paramSrc === "object") {
             downloadApp = async () => paramSrc;
         }
-        this.appClasses.set(params.kind, async () => {
+        const load = async () => {
+            // A caller holding an old registration must follow its replacement.
+            if (this.appClasses.get(params.kind) !== load) {
+                const current = this.appClasses.get(params.kind);
+                if (!current) throw new Error(`App unregistered: ${params.kind}`);
+                return current();
+            }
             let app = this.appClassesCache.get(params.kind);
             if (!app) {
-                app = downloadApp();
+                app = Promise.resolve().then(downloadApp).catch(error => {
+                    if (this.appClassesCache.get(params.kind) === app) this.appClassesCache.delete(params.kind);
+                    throw error;
+                });
                 this.appClassesCache.set(params.kind, app);
             }
             return app;
-        });
+        };
+        this.appClasses.set(params.kind, load);
 
         if (params.addHooks) {
             const emitter = this.createKindEmitter(params.kind);
@@ -109,3 +119,14 @@ class AppRegister {
 }
 
 export const appRegister = new AppRegister();
+
+/** Room-independent built-in class preparation; never calls App.setup. */
+export function preloadBuiltinApps(kinds: readonly string[] = ["Slide", "Presentation", "MediaPlayer", "DocsViewer"]): Promise<void> {
+    const allowed = new Set(["Slide", "Presentation", "MediaPlayer", "DocsViewer"]);
+    return Promise.all(kinds.map(kind => {
+        if (!allowed.has(kind)) throw new Error(`Unsupported preload app: ${kind}`);
+        const load = appRegister.appClasses.get(kind);
+        if (!load) throw new Error(`App not registered: ${kind}`);
+        return load();
+    })).then(() => undefined);
+}

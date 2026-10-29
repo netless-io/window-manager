@@ -2,7 +2,7 @@ import pRetry from "p-retry";
 import { applyDynamicMountParams } from "./Utils/dynamicConfig";
 import { AppManager } from "./AppManager";
 import { DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE } from "./AppManager";
-import { appRegister } from "./Register";
+import { appRegister, preloadBuiltinApps } from "./Register";
 import { callbacks } from "./callback";
 import { checkVersion, createInvisiblePlugin, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
@@ -994,6 +994,11 @@ export class WindowManager
     /**
      * 注册插件
      */
+    /** Load built-in JavaScript only, without creating App instances or calling setup. */
+    public static preloadApps(kinds: readonly string[] = ["Slide", "Presentation", "MediaPlayer", "DocsViewer"]): Promise<void> {
+        return preloadBuiltinApps(kinds);
+    }
+
     public static register(params: RegisterParams<any, any, any>): Promise<void> {
         return appRegister.register(params);
     }
