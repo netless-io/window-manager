@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@netless/app-little-white-board": "link:../../app-little-white-board",
     "@netless/app-docs-viewer": "0.2.21",
     "@netless/app-media-player": "0.1.6",
     "@netless/app-plyr": "0.2.6-beta.3",

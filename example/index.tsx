@@ -23,6 +23,7 @@ import {
     createPresentation,
 } from "./apps";
 import { dynamicConfig, EXAMPLE_ORIGIN_SIZE } from "./config";
+import { createLittleBoard } from "./little-board";
 import "@netless/window-manager/dist/style.css";
 import "@netless/appliance-plugin/dist/style.css";
 import "./register";
@@ -381,7 +382,7 @@ const replay = () => {
 };
 
 const joinRoom = ref => {
-    const uid = Math.random().toString().substr(3, 8);
+    const uid = url.get("uid") || Math.random().toString().substr(3, 8);
     if (isReplay) {
         replay();
     } else {
@@ -393,6 +394,8 @@ const joinRoom = ref => {
                 invisiblePlugins: [WindowManager as any, ApplianceMultiPlugin],
                 useMultiViews: true,
                 userPayload: {
+                    uid,
+                    nickName: url.get("nickName") || uid,
                     userId: "111",
                     cursorName: uid,
                     avatar: "https://avatars.githubusercontent.com/u/8299540?s=60&v=4",
@@ -867,6 +870,9 @@ const App = () => {
                 </button>
                 <button className="side-button" onClick={() => createBoard(manager)}>
                     Board
+                </button>
+                <button className="side-button" onClick={() => createLittleBoard(manager)}>
+                    LittleBoard
                 </button>
                 <button className="side-button" onClick={() => createStatic(manager)}>
                     课件 static

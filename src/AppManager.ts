@@ -106,7 +106,7 @@ export class AppManager {
 
     private _focusAppCreatedResolve?: (appProxy?: AppProxy) => void;
     private _focusAppId: string | undefined;
-    private _resolveTimer: number | undefined;
+    private _resolveTimer: ReturnType<typeof setTimeout> | undefined;
     private lazyFocusGeneration = 0;
     private activeLazyAppId?: string;
     private lazyFocusQueue: Promise<void> = Promise.resolve();

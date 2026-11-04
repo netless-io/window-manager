@@ -40,8 +40,8 @@ importers:
         specifier: 0.1.6
         version: 0.1.6
       '@netless/app-presentation':
-        specifier: 0.1.13
-        version: 0.1.13(jspdf@2.5.2)
+        specifier: 0.1.14
+        version: 0.1.14(jspdf@2.5.2)
       '@rollup/plugin-commonjs':
         specifier: ^20.0.0
         version: 20.0.0(rollup@4.60.1)
@@ -130,8 +130,8 @@ importers:
         specifier: ^0.14.1
         version: 0.14.2(@vitest/ui@0.14.2)(jsdom@19.0.0)(less@4.6.4)
       white-web-sdk:
-        specifier: 2.16.59
-        version: 2.16.59
+        specifier: 2.16.61
+        version: 2.16.61
 
 packages:
 
@@ -374,8 +374,8 @@ packages:
   '@netless/app-media-player@0.1.6':
     resolution: {integrity: sha512-HwlpxE6oT7Dn5Zh+tIyL/3sj5rMS5pKL9fdlXRXcfqDClaiHMAiymfNei0Ki2lS18foKtn5I+UlWnIUYVjGaAw==}
 
-  '@netless/app-presentation@0.1.13':
-    resolution: {integrity: sha512-uNhkBgSML1apg/HH7O9QaCkyhb0WNNG/Xe0DfPcNPvMok3DsMlDDpxwg6igutNJ9rQD/fXSW2ye07YYms5TVcg==}
+  '@netless/app-presentation@0.1.14':
+    resolution: {integrity: sha512-w6OJiM3tfbm+2Y1azpyPMuG32KfN+RK+QyXQjlV+R17xyB4w2GSjM1DzJZlsDVqKzC970dxw/9tbq2UexDbLMw==}
     peerDependencies:
       jspdf: ^2.5.1
     peerDependenciesMeta:
@@ -3374,8 +3374,8 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
-  white-web-sdk@2.16.59:
-    resolution: {integrity: sha512-Ol2oy6oRyd/Iicie+DBP6GzXkOSLAAIOR/gcCWEV2Q5+q5LYdtTk45omYLsKnRuCzsbqvt8dUgPGd5LrGjX4Iw==}
+  white-web-sdk@2.16.61:
+    resolution: {integrity: sha512-T/dzHrK1KmRu+T6+nFPQ/poXx49jg4muV8gChlW/iq+gDpApqu8nKijNfjHHHTf+dxlQ8zu9ENiZW/sJ1KyUKQ==}
     hasBin: true
     peerDependencies:
       agora-foundation: 3.11.1-rc.1 || 3.11.1
@@ -3622,7 +3622,7 @@ snapshots:
 
   '@netless/app-media-player@0.1.6': {}
 
-  '@netless/app-presentation@0.1.13(jspdf@2.5.2)':
+  '@netless/app-presentation@0.1.14(jspdf@2.5.2)':
     optionalDependencies:
       jspdf: 2.5.2
 
@@ -6874,7 +6874,7 @@ snapshots:
     dependencies:
       isexe: 2.0.0
 
-  white-web-sdk@2.16.59:
+  white-web-sdk@2.16.61:
     dependencies:
       '@juggle/resize-observer': 3.4.0
       '@netless/canvas-polyfill': 0.0.4

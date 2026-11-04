@@ -11,6 +11,9 @@ importers:
       '@netless/app-docs-viewer':
         specifier: 0.2.21
         version: 0.2.21(jspdf@2.5.2)
+      '@netless/app-little-white-board':
+        specifier: link:../../app-little-white-board
+        version: link:../../app-little-white-board
       '@netless/app-media-player':
         specifier: 0.1.6
         version: 0.1.6

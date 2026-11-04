@@ -2,7 +2,7 @@ import pRetry from "p-retry";
 import { applyDynamicMountParams } from "./Utils/dynamicConfig";
 import { AppManager } from "./AppManager";
 import { DEFAULT_MAX_CACHED_APPS_IN_MAXIMIZED_MODE } from "./AppManager";
-import { appRegister } from "./Register";
+import { appRegister, preloadBuiltinApps } from "./Register";
 import { callbacks } from "./callback";
 import { checkVersion, createInvisiblePlugin, setupWrapper } from "./Helper";
 import { ContainerResizeObserver } from "./ContainerResizeObserver";
@@ -992,8 +992,15 @@ export class WindowManager
     }
 
     /**
-     * 注册插件
+     * Load App JavaScript only; never creates instances or calls setup.
+     * Defaults to Slide and Presentation. Slide must first be registered by the host.
+     * Pass [] to skip, or select Slide / Presentation / MediaPlayer / DocsViewer.
      */
+    public static preloadApps(kinds?: readonly string[]): Promise<void> {
+        return preloadBuiltinApps(kinds);
+    }
+
+    /** 注册插件 */
     public static register(params: RegisterParams<any, any, any>): Promise<void> {
         return appRegister.register(params);
     }

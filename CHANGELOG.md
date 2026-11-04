@@ -1,5 +1,11 @@
 ## Unreleased
 
+## 1.0.26 (2026-11-04)
+
+- 新增 `WindowManager.preloadApps(kinds?)`，只准备 App 类，不创建实例或调用 `setup`。默认选择 `Slide`、`Presentation`（Slide 需由宿主先注册），支持 `MediaPlayer`、`DocsViewer`；传 `[]` 跳过预加载。
+- 并发预加载和实际 App 创建共享类加载；失败后允许重试，替换注册不会被旧加载失败清除。完整校验列表后才开始下载。
+- 内置 Presentation 升级到 `0.1.14`；开发与 peer 依赖对齐 `white-web-sdk@2.16.61`。
+
 ## 1.0.25 (2026-10-10)
 - 重新发布 1.0.24 的 Room 动态配置能力，沿用相同的运行时实现与依赖；包含动态参数合并、宿主参数优先级、覆盖诊断和 SDK 2.16.59 接入。
 
