@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 1.0.27 (未发布)
+## 1.0.27 (2026-11-04)
 
 - `WindowManager.preloadApps(kinds?)` 不提供默认 App；不传参数或传 `[]` 均不预热，必须显式传入列表。
 
