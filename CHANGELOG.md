@@ -1,5 +1,9 @@
 ## Unreleased
 
+## 1.0.27 (2026-11-04)
+
+- `WindowManager.preloadApps(kinds?)` 不提供默认 App；不传参数或传 `[]` 均不预热，必须显式传入列表。
+
 ## 1.0.26 (2026-11-04)
 
 - 新增 `WindowManager.preloadApps(kinds?)`，只准备 App 类，不创建实例或调用 `setup`。默认选择 `Slide`、`Presentation`（Slide 需由宿主先注册），支持 `MediaPlayer`、`DocsViewer`；传 `[]` 跳过预加载。

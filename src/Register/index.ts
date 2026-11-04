@@ -124,9 +124,7 @@ class AppRegister {
 export const appRegister = new AppRegister();
 
 /** Room-independent built-in class preparation; never calls App.setup. */
-export async function preloadBuiltinApps(
-    kinds: readonly string[] = ["Slide", "Presentation"]
-): Promise<void> {
+export async function preloadBuiltinApps(kinds: readonly string[] = []): Promise<void> {
     const allowed = new Set(["Slide", "Presentation", "MediaPlayer", "DocsViewer"]);
     // Validate the complete selection before starting any network work.
     const loaders = [...new Set(kinds)].map(kind => {

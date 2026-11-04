@@ -9,17 +9,24 @@ describe("room-independent App JavaScript", () => {
         );
     });
 
-    it("defaults to Slide and Presentation, and an empty selection loads nothing", async () => {
+    it.each(["omitted", "empty"])("loads nothing for an %s selection", async selection => {
+        const load = vi.fn(async () => ({ kind: "Test", setup: vi.fn() }));
+        for (const kind of ["Slide", "Presentation", "MediaPlayer", "DocsViewer"]) {
+            await appRegister.register({ kind, src: load });
+        }
+        if (selection === "omitted") await preloadBuiltinApps();
+        else await preloadBuiltinApps([]);
+        expect(load).not.toHaveBeenCalled();
+    });
+
+    it("loads only the explicitly selected pair", async () => {
         const slide = vi.fn(async () => ({ kind: "Test", setup: vi.fn() }));
         const presentation = vi.fn(async () => ({ kind: "Test", setup: vi.fn() }));
         const media = vi.fn(async () => ({ kind: "Test", setup: vi.fn() }));
         await appRegister.register({ kind: "Slide", src: slide });
         await appRegister.register({ kind: "Presentation", src: presentation });
         await appRegister.register({ kind: "MediaPlayer", src: media });
-        await preloadBuiltinApps([]);
-        expect(slide).not.toHaveBeenCalled();
-        expect(presentation).not.toHaveBeenCalled();
-        await preloadBuiltinApps();
+        await preloadBuiltinApps(["Slide", "Presentation"]);
         expect(slide).toHaveBeenCalledTimes(1);
         expect(presentation).toHaveBeenCalledTimes(1);
         expect(media).not.toHaveBeenCalled();
