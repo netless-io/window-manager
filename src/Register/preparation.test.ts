@@ -9,7 +9,7 @@ describe("room-independent App JavaScript", () => {
         );
     });
 
-    it("defaults to Slide and Presentation, and an empty selection loads nothing", async () => {
+    it("loads nothing unless the host explicitly selects Apps", async () => {
         const slide = vi.fn(async () => ({ kind: "Test", setup: vi.fn() }));
         const presentation = vi.fn(async () => ({ kind: "Test", setup: vi.fn() }));
         const media = vi.fn(async () => ({ kind: "Test", setup: vi.fn() }));
@@ -17,9 +17,11 @@ describe("room-independent App JavaScript", () => {
         await appRegister.register({ kind: "Presentation", src: presentation });
         await appRegister.register({ kind: "MediaPlayer", src: media });
         await preloadBuiltinApps([]);
+        await preloadBuiltinApps();
         expect(slide).not.toHaveBeenCalled();
         expect(presentation).not.toHaveBeenCalled();
-        await preloadBuiltinApps();
+        expect(media).not.toHaveBeenCalled();
+        await preloadBuiltinApps(["Slide", "Presentation"]);
         expect(slide).toHaveBeenCalledTimes(1);
         expect(presentation).toHaveBeenCalledTimes(1);
         expect(media).not.toHaveBeenCalled();

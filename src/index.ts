@@ -993,8 +993,9 @@ export class WindowManager
 
     /**
      * Load App JavaScript only; never creates instances or calls setup.
-     * Defaults to Slide and Presentation. Slide must first be registered by the host.
-     * Pass [] to skip, or select Slide / Presentation / MediaPlayer / DocsViewer.
+     * No Apps are selected implicitly. Omit kinds or pass [] to skip.
+     * Select Slide / Presentation / MediaPlayer / DocsViewer explicitly.
+     * Slide must first be registered by the host.
      */
     public static preloadApps(kinds?: readonly string[]): Promise<void> {
         return preloadBuiltinApps(kinds);
