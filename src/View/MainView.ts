@@ -1235,7 +1235,7 @@ export class MainViewProxy {
         this.view.callbacks.off("onSizeUpdated", this.onSizeUpdated);
     }
 
-    private _syncMainViewTimer = 0;
+    private _syncMainViewTimer: ReturnType<typeof setTimeout> | 0 = 0;
     private handleCameraOrSizeUpdated = () => {
         callbacks.emit("cameraStateChange", this.cameraState);
         // sdk >= 2.16.43 的 syncMainView() 可以写入当前 main view 的 camera, 以修复复制粘贴元素的位置

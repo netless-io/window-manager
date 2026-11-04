@@ -6,7 +6,7 @@ export type Invoker<T = any> = () => Promise<T | undefined>;
 export class AppCreateQueue {
     private list: Invoker[] = [];
     private currentInvoker: Invoker | undefined;
-    private timer: number | undefined;
+    private timer: ReturnType<typeof setInterval> | undefined;
     private idlePromise?: Promise<void>;
     private resolveIdle?: () => void;
     public isEmit = false;

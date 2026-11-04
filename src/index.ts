@@ -992,13 +992,15 @@ export class WindowManager
     }
 
     /**
-     * 注册插件
+     * Load App JavaScript only; never creates instances or calls setup.
+     * Defaults to Slide and Presentation. Slide must first be registered by the host.
+     * Pass [] to skip, or select Slide / Presentation / MediaPlayer / DocsViewer.
      */
-    /** Load built-in JavaScript only, without creating App instances or calling setup. */
-    public static preloadApps(kinds: readonly string[] = ["Slide", "Presentation", "MediaPlayer", "DocsViewer"]): Promise<void> {
+    public static preloadApps(kinds?: readonly string[]): Promise<void> {
         return preloadBuiltinApps(kinds);
     }
 
+    /** 注册插件 */
     public static register(params: RegisterParams<any, any, any>): Promise<void> {
         return appRegister.register(params);
     }
