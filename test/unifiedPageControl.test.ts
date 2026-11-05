@@ -831,6 +831,61 @@ describe("unified page control", () => {
         }
     });
 
+    it.each(["prevStep", "nextStep", "prevPage", "nextPage", "jumpToPage", "scalePage"] as const)(
+        "dispatches Slide %s while isAnimating remains true and still rejects loading",
+        async event => {
+            const restore = registerAppKind("Slide");
+            const manager = createManager();
+            const command = vi.fn(() => true);
+            const slide = {
+                isLoading: false,
+                isAnimating: true,
+                slideState: { currentSlideIndex: 2 },
+                hasPrevStep: () => true,
+                hasNextStep: () => true,
+                on: vi.fn(),
+                off: vi.fn(),
+            };
+            const app: any = {
+                id: "Slide-animating",
+                kind: "Slide",
+                appEmitter: new Emittery(),
+                box: {},
+                view: { focusScenePath: "/Slide/2" },
+                appResult: {
+                    position: () => [2, 3],
+                    controller: () => ({ ready: true }),
+                    slide: () => slide,
+                    [event === "scalePage" ? "scaleView" : event]: command,
+                },
+            };
+            manager.queryOne = () => app;
+            Object.defineProperty(manager, "canOperate", { value: true });
+            const options = {
+                target: app.id,
+                ...(event === "jumpToPage" ? { page: 3 } : {}),
+                ...(event === "scalePage" ? { scale: 1.5 } : {}),
+            };
+
+            try {
+                await expect(manager.dispatchDocsEvent(event, options)).resolves.toEqual({
+                    accepted: true,
+                });
+                expect(command).toHaveBeenCalledOnce();
+                expect(slide.isAnimating).toBe(true);
+
+                slide.isLoading = true;
+                await expect(manager.dispatchDocsEvent(event, options)).resolves.toMatchObject({
+                    accepted: false,
+                    reason: "stateUnavailable",
+                });
+                expect(command).toHaveBeenCalledOnce();
+            } finally {
+                restore();
+            }
+        }
+    );
+
     it("accepts an in-page Slide step without creating command state", async () => {
         const restore = registerAppKind("Slide");
         const manager = createManager();

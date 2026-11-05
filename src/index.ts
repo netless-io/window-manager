@@ -2354,12 +2354,8 @@ export class WindowManager
             const appResult = this.queryOne(appId)?.appResult as any;
             const controller = appResult?.controller?.();
             const slide = appResult?.slide?.();
-            const ready = Boolean(
-                controller?.ready &&
-                    slide &&
-                    slide.isLoading === false &&
-                    slide.isAnimating !== true
-            );
+            // Infinite animations can keep isAnimating true. Let Slide handle commands during playback.
+            const ready = Boolean(controller?.ready && slide && slide.isLoading === false);
             if (!ready || !event || !this.isUnifiedStepEvent(event)) return ready;
             const hasStep = event === "prevStep" ? slide.hasPrevStep : slide.hasNextStep;
             if (typeof hasStep !== "function") return false;
