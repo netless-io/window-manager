@@ -1,5 +1,9 @@
 ## Unreleased
 
+## 1.0.29 (2026-11-08)
+
+- 将 white-web-sdk 的 peer/development 兼容范围调整为 `^2.16.60`，允许宿主统一选择已验证版本；WindowManager 继续从宿主导入 SDK，不内嵌 SDK。
+
 ## 1.0.28 (2026-11-05)
 
 - 修复 Slide 含无限循环动画时，统一文档控制 API 因 `isAnimating` 持续为 true 而无法操作的问题。下一步、上一步、翻页、跳页和缩放允许在动画期间交给 Slide 处理，继续保留加载、权限及步进边界检查。
